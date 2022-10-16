@@ -2,7 +2,7 @@
 
 STORM_ID_KEY = 'storm_id_string'
 STORM_NAME_KEY = 'storm_name'
-VALID_TIME_KEY = 'valid_time_unix_sec'
+VALID_TIME_KEY = 'valid_time_unix_hours'
 CENTER_LATITUDE_KEY = 'center_latitude_deg_n'
 CENTER_LONGITUDE_KEY = 'center_longitude_deg_e'
 MAX_SUSTAINED_WIND_KEY = 'max_sustained_wind_m_s01'

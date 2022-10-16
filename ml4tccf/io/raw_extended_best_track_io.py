@@ -15,6 +15,7 @@ KT_TO_METRES_PER_SECOND = 1.852 / 3.6
 NAUTICAL_MILES_TO_METRES = 1852.
 KM_TO_METRES = 1000.
 MB_TO_PASCALS = 100.
+SECONDS_TO_HOURS = 1. / 3600
 
 STORM_ID_KEY = xbt_utils.STORM_ID_KEY
 STORM_NAME_KEY = xbt_utils.STORM_NAME_KEY
@@ -153,11 +154,15 @@ def read_file(ascii_file_name):
         xbt_table_pandas.index[bad_indices], axis=0, inplace=True
     )
 
+    valid_times_unix_hours = numpy.round(
+        valid_times_unix_sec * SECONDS_TO_HOURS
+    ).astype(int)
+
     these_dim = (xbt_utils.STORM_OBJECT_DIM,)
     main_data_dict = {
         STORM_ID_KEY: (these_dim, xbt_table_pandas[STORM_ID_KEY].values),
         STORM_NAME_KEY: (these_dim, xbt_table_pandas[STORM_NAME_KEY].values),
-        VALID_TIME_KEY: (these_dim, valid_times_unix_sec)
+        VALID_TIME_KEY: (these_dim, valid_times_unix_hours)
     }
 
     xbt_table_pandas.drop(
@@ -207,6 +212,7 @@ def read_file(ascii_file_name):
         xbt_table_pandas=xbt_table_pandas, variable_name=MIN_PRESSURE_KEY
     )
     min_pressures_pa = MB_TO_PASCALS * xbt_table_pandas[MIN_PRESSURE_KEY].values
+    min_pressures_pa[min_pressures_pa > 900000] = numpy.nan
 
     error_checking.assert_is_geq_numpy_array(
         min_pressures_pa, 85000., allow_nan=True
@@ -258,6 +264,7 @@ def read_file(ascii_file_name):
     outermost_pressures_pa = (
         MB_TO_PASCALS * xbt_table_pandas[OUTERMOST_PRESSURE_KEY].values
     )
+    outermost_pressures_pa[outermost_pressures_pa < 85000] = numpy.nan
 
     error_checking.assert_is_geq_numpy_array(
         outermost_pressures_pa, 85000., allow_nan=True
