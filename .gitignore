@@ -12,9 +12,6 @@ dist/
 .idea/
 *.iml
 
-# Code that I don't intend to commit.
-ml4tccf/*.py
-
 # Slurm output.
 *.out
 core.*
