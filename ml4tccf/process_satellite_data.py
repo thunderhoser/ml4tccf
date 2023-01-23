@@ -6,6 +6,7 @@ per day, with more verbose metadata and variable names.
 
 import os
 import sys
+import shutil
 import argparse
 import numpy
 
@@ -15,6 +16,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import time_conversion
+import file_system_utils
 import raw_satellite_io
 import satellite_io
 import misc_utils
@@ -117,6 +119,10 @@ def _run(input_dir_name, cyclone_id_string, max_bad_pixels_low_res,
     :param output_dir_name: Same.
     """
 
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=temporary_dir_name
+    )
+
     low_res_file_names = raw_satellite_io.find_files_one_tc(
         directory_name=input_dir_name, cyclone_id_string=cyclone_id_string,
         look_for_high_res=False, raise_error_if_all_missing=True
@@ -205,6 +211,8 @@ def _run(input_dir_name, cyclone_id_string, max_bad_pixels_low_res,
                 high_res_satellite_table_xarray=this_high_res_table_xarray
             )
         )
+
+    shutil.rmtree(temporary_dir_name)
 
 
 if __name__ == '__main__':

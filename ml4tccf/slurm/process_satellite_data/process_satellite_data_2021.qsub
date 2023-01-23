@@ -35,7 +35,7 @@ python3 -u "${CODE_DIR_NAME}/process_satellite_data.py" \
 --cyclone_id_string="${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
 --max_bad_pixels_low_res=6250 \
 --max_bad_pixels_high_res=25000 \
---temporary_dir_name="${OUTPUT_DIR_NAME}/temporary_${SLURM_ARRAY_TASK_ID}" \
+--temporary_dir_name="${OUTPUT_DIR_NAME}/temporary_${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
 --min_visible_pixel_fraction=0.9 \
 --altitude_angle_exe_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/solarpos/solarpos" \
 --output_dir_name="${OUTPUT_DIR_NAME}"
