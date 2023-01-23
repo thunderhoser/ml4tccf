@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="process_satellite_data_2019AL01_use-once-and-destroy"
+#SBATCH --job-name="process_satellite_data_2021"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -12,23 +12,23 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=01:00:00
-#SBATCH --array=1
+#SBATCH --array=1-18
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=process_satellite_data_2019AL01_use-once-and-destroy_%A_%a.out
+#SBATCH --output=process_satellite_data_2021_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/tccf_project/v0.0.4"
-set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/tccf_project/satellite_data/processed"
+set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/v0.0.4"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed"
 
-set CYCLONE_ID_STRINGS=("2019AL01" "2019AL02" "2019AL03" "2019AL04" "2019AL05" "2019AL06" "2019AL07" "2019AL08" "2019AL09" "2019AL10" "2019AL11" "2019AL12" "2019AL13" "2019AL14" "2019AL15" "2019AL16" "2019AL17" "2019AL18")
+set CYCLONE_ID_STRINGS=("2021AL01" "2021AL02" "2021AL03" "2021AL04" "2021AL05" "2021AL06" "2021AL07" "2021AL08" "2021AL09" "2021AL10" "2021AL11" "2021AL12" "2021AL13" "2021AL14" "2021AL15" "2021AL16" "2021AL17" "2021AL18")
 
 python3 -u "${CODE_DIR_NAME}/process_satellite_data.py" \
 --input_dir_name="${INPUT_DIR_NAME}" \
