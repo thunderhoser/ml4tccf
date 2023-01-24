@@ -12,7 +12,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=24:00:00
-#SBATCH --array=1-18
+#SBATCH --array=1-19
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -28,7 +28,7 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone
 set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/v0.0.4"
 set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed"
 
-set CYCLONE_ID_STRINGS=("2021AL01" "2021AL02" "2021AL03" "2021AL04" "2021AL05" "2021AL06" "2021AL07" "2021AL08" "2021AL09" "2021AL10" "2021AL11" "2021AL12" "2021AL13" "2021AL14" "2021AL15" "2021AL16" "2021AL17" "2021AL18")
+set CYCLONE_ID_STRINGS=("2021AL01" "2021AL02" "2021AL03" "2021AL04" "2021AL05" "2021AL06" "2021AL07" "2021AL08" "2021AL09" "2021AL10" "2021AL11" "2021AL12" "2021AL13" "2021AL14" "2021AL15" "2021AL16" "2021AL17" "2021AL18" "2021AL19")
 
 python3 -u "${CODE_DIR_NAME}/process_satellite_data.py" \
 --input_dir_name="${INPUT_DIR_NAME}" \
