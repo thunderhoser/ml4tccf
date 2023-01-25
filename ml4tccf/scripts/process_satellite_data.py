@@ -4,9 +4,11 @@ Specifically, converts from two files per TC per time step to one file per TC
 per day, with more verbose metadata and variable names.
 """
 
+import shutil
 import argparse
 import numpy
 from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import file_system_utils
 from ml4tccf.io import raw_satellite_io
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import misc_utils
@@ -109,6 +111,10 @@ def _run(input_dir_name, cyclone_id_string, max_bad_pixels_low_res,
     :param output_dir_name: Same.
     """
 
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=temporary_dir_name
+    )
+
     low_res_file_names = raw_satellite_io.find_files_one_tc(
         directory_name=input_dir_name, cyclone_id_string=cyclone_id_string,
         look_for_high_res=False, raise_error_if_all_missing=True
@@ -197,6 +203,8 @@ def _run(input_dir_name, cyclone_id_string, max_bad_pixels_low_res,
                 high_res_satellite_table_xarray=this_high_res_table_xarray
             )
         )
+
+    shutil.rmtree(temporary_dir_name)
 
 
 if __name__ == '__main__':

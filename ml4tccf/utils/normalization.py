@@ -1,0 +1,422 @@
+"""Methods for normalizing predictor variables."""
+
+import numpy
+import xarray
+import scipy.stats
+from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.gg_utils import error_checking
+from ml4tccf.io import satellite_io
+from ml4tccf.utils import satellite_utils
+
+TOLERANCE = 1e-6
+MIN_CUMULATIVE_DENSITY = 1e-6
+MAX_CUMULATIVE_DENSITY = 1. - 1e-6
+
+BIDIRECTIONAL_REFLECTANCE_KEY = satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY
+BRIGHTNESS_TEMPERATURE_KEY = satellite_utils.BRIGHTNESS_TEMPERATURE_KEY
+
+HIGH_RES_WAVELENGTH_DIM = satellite_utils.HIGH_RES_WAVELENGTH_DIM
+LOW_RES_WAVELENGTH_DIM = satellite_utils.LOW_RES_WAVELENGTH_DIM
+HIGH_RES_SAMPLE_DIM = 'high_res_sample'
+LOW_RES_SAMPLE_DIM = 'low_res_sample'
+
+
+def _actual_to_uniform_dist(actual_values_new, actual_values_training):
+    """Converts values from actual to uniform distribution.
+
+    :param actual_values_new: numpy array of actual (physical) values to
+        convert.
+    :param actual_values_training: numpy array of actual (physical) values in
+        training data.
+    :return: uniform_values_new: numpy array (same shape as `actual_values_new`)
+        with rescaled values from 0...1.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(actual_values_training)
+
+    actual_values_new_1d = numpy.ravel(actual_values_new)
+    real_indices = numpy.where(
+        numpy.invert(numpy.isnan(actual_values_new_1d))
+    )[0]
+
+    if len(real_indices) == 0:
+        return actual_values_new
+
+    search_indices = numpy.searchsorted(
+        numpy.sort(numpy.ravel(actual_values_training)),
+        actual_values_new_1d[real_indices],
+        side='left'
+    ).astype(float)
+
+    uniform_values_new_1d = actual_values_new_1d + 0.
+    num_values = actual_values_training.size
+    uniform_values_new_1d[real_indices] = search_indices / (num_values - 1)
+    uniform_values_new_1d[uniform_values_new_1d > 1.] = 1.
+
+    return numpy.reshape(uniform_values_new_1d, actual_values_new.shape)
+
+
+def _uniform_to_actual_dist(uniform_values_new, actual_values_training):
+    """Converts values from uniform to actual distribution.
+
+    This method is the inverse of `_actual_to_uniform_dist`.
+
+    :param uniform_values_new: See doc for `_actual_to_uniform_dist`.
+    :param actual_values_training: Same.
+    :return: actual_values_new: Same.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(actual_values_training)
+
+    uniform_values_new_1d = numpy.ravel(uniform_values_new)
+    real_indices = numpy.where(
+        numpy.invert(numpy.isnan(uniform_values_new_1d))
+    )[0]
+
+    if len(real_indices) == 0:
+        return uniform_values_new
+
+    actual_values_new_1d = uniform_values_new_1d + 0.
+    actual_values_new_1d[real_indices] = numpy.percentile(
+        numpy.ravel(actual_values_training),
+        100 * uniform_values_new_1d[real_indices],
+        interpolation='linear'
+    )
+
+    return numpy.reshape(actual_values_new_1d, uniform_values_new.shape)
+
+
+def _normalize_one_variable(actual_values_new, actual_values_training):
+    """Normalizes one variable.
+
+    :param actual_values_new: See doc for `_actual_to_uniform_dist`.
+    :param actual_values_training: Same.
+    :return: normalized_values_new: numpy array (same shape as
+        `actual_values_new`) with normalized values (z-scores).
+    """
+
+    uniform_values_new = _actual_to_uniform_dist(
+        actual_values_new=actual_values_new,
+        actual_values_training=actual_values_training
+    )
+
+    uniform_values_new_1d = numpy.ravel(uniform_values_new)
+    real_indices = numpy.where(
+        numpy.invert(numpy.isnan(uniform_values_new_1d))
+    )[0]
+
+    uniform_values_new_1d[real_indices] = numpy.maximum(
+        uniform_values_new_1d[real_indices], MIN_CUMULATIVE_DENSITY
+    )
+    uniform_values_new_1d[real_indices] = numpy.minimum(
+        uniform_values_new_1d[real_indices], MAX_CUMULATIVE_DENSITY
+    )
+    uniform_values_new_1d[real_indices] = scipy.stats.norm.ppf(
+        uniform_values_new_1d[real_indices], loc=0., scale=1.
+    )
+
+    return numpy.reshape(uniform_values_new_1d, uniform_values_new.shape)
+
+
+def _denorm_one_variable(normalized_values_new, actual_values_training):
+    """Denormalizes one variable.
+
+    This method is the inverse of `_normalize_one_variable`.
+
+    :param normalized_values_new: See doc for `_normalize_one_variable`.
+    :param actual_values_training: Same.
+    :return: actual_values_new: Same.
+    """
+
+    normalized_values_new_1d = numpy.ravel(normalized_values_new)
+    real_indices = numpy.where(
+        numpy.invert(numpy.isnan(normalized_values_new_1d))
+    )[0]
+
+    uniform_values_new_1d = normalized_values_new_1d + 0.
+    uniform_values_new_1d[real_indices] = scipy.stats.norm.cdf(
+        normalized_values_new_1d[real_indices], loc=0., scale=1.
+    )
+    uniform_values_new = numpy.reshape(
+        uniform_values_new_1d, normalized_values_new.shape
+    )
+
+    return _uniform_to_actual_dist(
+        uniform_values_new=uniform_values_new,
+        actual_values_training=actual_values_training
+    )
+
+
+def get_normalization_params(
+        satellite_file_names, num_values_per_low_res_channel,
+        num_values_per_high_res_channel):
+    """Computes normaliz'n params (set of reference values) for each predictor.
+
+    :param satellite_file_names: 1-D list of paths to input files, each readable
+        by `satellite_io.read_file`.
+    :param num_values_per_low_res_channel: Number of reference values to keep
+        for each low-resolution channel.
+    :param num_values_per_high_res_channel: Number of reference values to keep
+        for each high-resolution channel.
+    :return: normalization_param_table_xarray: xarray table.  Metadata and
+        variable names should make this table self-explanatory.
+    """
+
+    error_checking.assert_is_string_list(satellite_file_names)
+    error_checking.assert_is_integer(num_values_per_low_res_channel)
+    error_checking.assert_is_geq(num_values_per_low_res_channel, 10000)
+    error_checking.assert_is_integer(num_values_per_high_res_channel)
+    error_checking.assert_is_geq(num_values_per_high_res_channel, 50000)
+
+    print('Reading data from: "{0:s}"...'.format(satellite_file_names[0]))
+    first_table_xarray = satellite_io.read_file(satellite_file_names[0])
+
+    low_res_indices = numpy.linspace(
+        0, num_values_per_low_res_channel - 1,
+        num=num_values_per_low_res_channel, dtype=int
+    )
+    high_res_indices = numpy.linspace(
+        0, num_values_per_high_res_channel - 1,
+        num=num_values_per_high_res_channel, dtype=int
+    )
+
+    metadata_dict = {
+        HIGH_RES_WAVELENGTH_DIM:
+            first_table_xarray.coords[HIGH_RES_WAVELENGTH_DIM].values,
+        LOW_RES_WAVELENGTH_DIM:
+            first_table_xarray.coords[LOW_RES_WAVELENGTH_DIM].values,
+        HIGH_RES_SAMPLE_DIM: high_res_indices,
+        LOW_RES_SAMPLE_DIM: low_res_indices
+    }
+
+    num_high_res_wavelengths = len(metadata_dict[HIGH_RES_WAVELENGTH_DIM])
+    num_low_res_wavelengths = len(metadata_dict[LOW_RES_WAVELENGTH_DIM])
+
+    main_data_dict = {
+        BIDIRECTIONAL_REFLECTANCE_KEY: (
+            (HIGH_RES_SAMPLE_DIM, HIGH_RES_WAVELENGTH_DIM),
+            numpy.full(
+                (num_values_per_high_res_channel, num_high_res_wavelengths),
+                numpy.nan
+            )
+        ),
+        BRIGHTNESS_TEMPERATURE_KEY: (
+            (LOW_RES_SAMPLE_DIM, LOW_RES_WAVELENGTH_DIM),
+            numpy.full(
+                (num_values_per_low_res_channel, num_low_res_wavelengths),
+                numpy.nan
+            )
+        )
+    }
+
+    normalization_param_table_xarray = xarray.Dataset(
+        data_vars=main_data_dict, coords=metadata_dict
+    )
+    npt = normalization_param_table_xarray
+
+    num_files = len(satellite_file_names)
+    num_values_per_hr_channel_per_file = int(numpy.ceil(
+        float(num_values_per_high_res_channel) / num_files
+    ))
+    num_values_per_lr_channel_per_file = int(numpy.ceil(
+        float(num_values_per_low_res_channel) / num_files
+    ))
+
+    for i in range(num_files):
+        print('Reading data from: "{0:s}"...'.format(satellite_file_names[i]))
+        satellite_table_xarray = satellite_io.read_file(satellite_file_names[i])
+
+        for this_key in main_data_dict:
+            predictor_matrix = satellite_table_xarray[this_key].values
+
+            for j in range(predictor_matrix.shape[-1]):
+                predictor_values = predictor_matrix[..., j]
+                predictor_values = predictor_values[
+                    numpy.isfinite(predictor_values)
+                ]
+
+                if len(predictor_values) == 0:
+                    continue
+
+                if this_key == BIDIRECTIONAL_REFLECTANCE_KEY:
+                    num_values_expected = int(numpy.round(
+                        (i + 1) * num_values_per_hr_channel_per_file
+                    ))
+                else:
+                    num_values_expected = int(numpy.round(
+                        (i + 1) * num_values_per_lr_channel_per_file
+                    ))
+
+                first_nan_index = numpy.where(
+                    numpy.isnan(npt[this_key].values[:, j])
+                )[0][0]
+
+                num_values_needed = num_values_expected - first_nan_index
+
+                if len(predictor_values) > num_values_needed:
+                    predictor_values = numpy.random.choice(
+                        predictor_values, size=num_values_needed, replace=False
+                    )
+
+                npt[this_key].values[
+                    first_nan_index:(first_nan_index + len(predictor_values)),
+                    j
+                ] = predictor_values
+
+    for this_key in main_data_dict:
+        assert not numpy.any(numpy.isnan(npt[this_key].values))
+
+    normalization_param_table_xarray = npt
+    return normalization_param_table_xarray
+
+
+def normalize_data(satellite_table_xarray, normalization_param_table_xarray):
+    """Normalizes all predictor variables.
+
+    :param satellite_table_xarray: xarray table in format returned by
+        `satellite_io.read_file`.
+    :param normalization_param_table_xarray: See doc for
+        `get_normalization_params`.
+    :return: satellite_table_xarray: Normalized version of input.
+    """
+
+    st = satellite_table_xarray
+    npt = normalization_param_table_xarray
+
+    high_res_wavelengths_orig_metres = st.coords[HIGH_RES_WAVELENGTH_DIM].values
+    high_res_wavelengths_norm_metres = (
+        npt.coords[HIGH_RES_WAVELENGTH_DIM].values
+    )
+
+    for j in range(len(high_res_wavelengths_orig_metres)):
+        k = numpy.where(
+            numpy.absolute(
+                high_res_wavelengths_norm_metres -
+                high_res_wavelengths_orig_metres[j]
+            )
+            < TOLERANCE
+        )[0][0]
+
+        training_values = npt[BIDIRECTIONAL_REFLECTANCE_KEY].values[:, k]
+
+        st[BIDIRECTIONAL_REFLECTANCE_KEY].values[..., j] = (
+            _normalize_one_variable(
+                actual_values_new=
+                st[BIDIRECTIONAL_REFLECTANCE_KEY].values[..., j],
+                actual_values_training=training_values
+            )
+        )
+
+    low_res_wavelengths_orig_metres = st.coords[LOW_RES_WAVELENGTH_DIM].values
+    low_res_wavelengths_norm_metres = npt.coords[LOW_RES_WAVELENGTH_DIM].values
+
+    for j in range(len(low_res_wavelengths_orig_metres)):
+        k = numpy.where(
+            numpy.absolute(
+                low_res_wavelengths_norm_metres -
+                low_res_wavelengths_orig_metres[j]
+            )
+            < TOLERANCE
+        )[0][0]
+
+        training_values = npt[BRIGHTNESS_TEMPERATURE_KEY].values[:, k]
+
+        st[BRIGHTNESS_TEMPERATURE_KEY].values[..., j] = (
+            _normalize_one_variable(
+                actual_values_new=
+                st[BRIGHTNESS_TEMPERATURE_KEY].values[..., j],
+                actual_values_training=training_values
+            )
+        )
+
+    satellite_table_xarray = st
+    return satellite_table_xarray
+
+
+def denormalize_data(satellite_table_xarray, normalization_param_table_xarray):
+    """Denormalizes all predictor variables.
+
+    :param satellite_table_xarray: xarray table in format returned by
+        `satellite_io.read_file`.
+    :param normalization_param_table_xarray: See doc for
+        `get_normalization_params`.
+    :return: satellite_table_xarray: Denormalized version of input.
+    """
+
+    st = satellite_table_xarray
+    npt = normalization_param_table_xarray
+
+    high_res_wavelengths_orig_metres = st.coords[HIGH_RES_WAVELENGTH_DIM].values
+    high_res_wavelengths_norm_metres = (
+        npt.coords[HIGH_RES_WAVELENGTH_DIM].values
+    )
+
+    for j in range(len(high_res_wavelengths_orig_metres)):
+        k = numpy.where(
+            numpy.absolute(
+                high_res_wavelengths_norm_metres -
+                high_res_wavelengths_orig_metres[j]
+            )
+            < TOLERANCE
+        )[0][0]
+
+        training_values = npt[BIDIRECTIONAL_REFLECTANCE_KEY].values[:, k]
+
+        st[BIDIRECTIONAL_REFLECTANCE_KEY].values[..., j] = (
+            _denorm_one_variable(
+                normalized_values_new=
+                st[BIDIRECTIONAL_REFLECTANCE_KEY].values[..., j],
+                actual_values_training=training_values
+            )
+        )
+
+    low_res_wavelengths_orig_metres = st.coords[LOW_RES_WAVELENGTH_DIM].values
+    low_res_wavelengths_norm_metres = npt.coords[LOW_RES_WAVELENGTH_DIM].values
+
+    for j in range(len(low_res_wavelengths_orig_metres)):
+        k = numpy.where(
+            numpy.absolute(
+                low_res_wavelengths_norm_metres -
+                low_res_wavelengths_orig_metres[j]
+            )
+            < TOLERANCE
+        )[0][0]
+
+        training_values = npt[BRIGHTNESS_TEMPERATURE_KEY].values[:, k]
+
+        st[BRIGHTNESS_TEMPERATURE_KEY].values[..., j] = (
+            _denorm_one_variable(
+                normalized_values_new=
+                st[BRIGHTNESS_TEMPERATURE_KEY].values[..., j],
+                actual_values_training=training_values
+            )
+        )
+
+    satellite_table_xarray = st
+    return satellite_table_xarray
+
+
+def write_file(normalization_param_table_xarray, netcdf_file_name):
+    """Writes normalization params to NetCDF file.
+
+    :param normalization_param_table_xarray: xarray table in format returned by
+        `read_file`.
+    :param netcdf_file_name: Path to output file.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+
+    normalization_param_table_xarray.to_netcdf(
+        path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
+    )
+
+
+def read_file(netcdf_file_name):
+    """Reads normalization params from NetCDF file.
+
+    :param netcdf_file_name: Path to input file.
+    :return: normalization_param_table_xarray: xarray table.  Metadata and
+        variable names should make the table self-explanatory.
+    """
+
+    return xarray.open_dataset(netcdf_file_name)
