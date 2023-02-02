@@ -250,11 +250,9 @@ def get_normalization_params(
                     replace=False
                 )
 
-            for j in range(len(selected_time_indices)):
+            for j in selected_time_indices:
                 for k in range(predictor_matrix.shape[-1]):
-                    predictor_values = (
-                        predictor_matrix[selected_time_indices[j], ..., k]
-                    )
+                    predictor_values = predictor_matrix[j, ..., k]
                     predictor_values = predictor_values[
                         numpy.isfinite(predictor_values)
                     ]
@@ -281,11 +279,13 @@ def get_normalization_params(
                             num_values_expected, num_values_per_low_res_channel
                         ])
 
-                    first_nan_index = numpy.where(
+                    nan_indices = numpy.where(
                         numpy.isnan(npt[this_key].values[:, k])
-                    )[0][0]
+                    )[0]
+                    if len(nan_indices) == 0:
+                        continue
 
-                    num_values_needed = num_values_expected - first_nan_index
+                    num_values_needed = num_values_expected - nan_indices[0]
 
                     if len(predictor_values) > num_values_needed:
                         predictor_values = numpy.random.choice(
@@ -293,8 +293,8 @@ def get_normalization_params(
                             replace=False
                         )
 
-                    last_index = first_nan_index + len(predictor_values)
-                    npt[this_key].values[first_nan_index:last_index, k] = (
+                    last_index = nan_indices[0] + len(predictor_values)
+                    npt[this_key].values[nan_indices[0]:last_index, k] = (
                         predictor_values
                     )
 
