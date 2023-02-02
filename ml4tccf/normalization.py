@@ -232,7 +232,20 @@ def get_normalization_params(
         float(num_values_per_low_res_channel) / num_files
     ))
 
-    for i in range(num_files):
+    satellite_file_names = 2 * satellite_file_names
+
+    for i in range(len(satellite_file_names)):
+        need_more_values = False
+
+        for this_key in main_data_dict:
+            need_more_values = (
+                need_more_values and
+                numpy.any(numpy.isnan(npt[this_key].values))
+            )
+
+        if not need_more_values:
+            break
+
         print('\nReading data from: "{0:s}"...'.format(satellite_file_names[i]))
         satellite_table_xarray = satellite_io.read_file(satellite_file_names[i])
 
@@ -252,13 +265,18 @@ def get_normalization_params(
 
             for j in range(len(selected_time_indices)):
                 for k in range(predictor_matrix.shape[-1]):
+                    nan_indices = numpy.where(
+                        numpy.isnan(npt[this_key].values[:, k])
+                    )[0]
+                    if len(nan_indices) == 0:
+                        continue
+
                     predictor_values = (
                         predictor_matrix[selected_time_indices[j], ..., k]
                     )
                     predictor_values = predictor_values[
                         numpy.isfinite(predictor_values)
                     ]
-
                     if len(predictor_values) == 0:
                         continue
 
@@ -278,12 +296,6 @@ def get_normalization_params(
                         num_values_expected = min([
                             num_values_expected, num_values_per_low_res_channel
                         ])
-
-                    nan_indices = numpy.where(
-                        numpy.isnan(npt[this_key].values[:, k])
-                    )[0]
-                    if len(nan_indices) == 0:
-                        continue
 
                     first_index = nan_indices[0]
                     num_values_needed = num_values_expected - first_index
