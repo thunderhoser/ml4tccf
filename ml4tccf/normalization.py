@@ -250,9 +250,11 @@ def get_normalization_params(
                     replace=False
                 )
 
-            for j in selected_time_indices:
+            for j in range(len(selected_time_indices)):
                 for k in range(predictor_matrix.shape[-1]):
-                    predictor_values = predictor_matrix[j, ..., k]
+                    predictor_values = (
+                        predictor_matrix[selected_time_indices[j], ..., k]
+                    )
                     predictor_values = predictor_values[
                         numpy.isfinite(predictor_values)
                     ]
@@ -308,7 +310,9 @@ def get_normalization_params(
                         'Randomly selecting {0:d} predictor values from '
                         '{1:d}th time step and {2:d}th channel...'
                     ).format(
-                        len(predictor_values), j + 1, k + 1
+                        len(predictor_values),
+                        selected_time_indices[j] + 1,
+                        k + 1
                     ))
 
                     last_index = first_index + len(predictor_values)
