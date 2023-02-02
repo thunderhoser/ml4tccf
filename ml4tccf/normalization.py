@@ -236,19 +236,21 @@ def get_normalization_params(
         print('\nReading data from: "{0:s}"...'.format(satellite_file_names[i]))
         satellite_table_xarray = satellite_io.read_file(satellite_file_names[i])
 
-        for this_key in main_data_dict:
-            predictor_matrix = satellite_table_xarray[this_key].values
+        num_times = (
+            satellite_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values.shape[0]
+        )
+        selected_time_indices = numpy.linspace(
+            0, num_times - 1, num=num_times, dtype=int
+        )
 
-            num_times = predictor_matrix.shape[0]
-            selected_time_indices = numpy.linspace(
-                0, num_times - 1, num=num_times, dtype=int
+        if num_times > NUM_TIMES_PER_FILE_FOR_PARAMS:
+            selected_time_indices = numpy.random.choice(
+                selected_time_indices, size=NUM_TIMES_PER_FILE_FOR_PARAMS,
+                replace=False
             )
 
-            if num_times > NUM_TIMES_PER_FILE_FOR_PARAMS:
-                selected_time_indices = numpy.random.choice(
-                    selected_time_indices, size=NUM_TIMES_PER_FILE_FOR_PARAMS,
-                    replace=False
-                )
+        for this_key in main_data_dict:
+            predictor_matrix = satellite_table_xarray[this_key].values
 
             for j in range(len(selected_time_indices)):
                 for k in range(predictor_matrix.shape[-1]):
@@ -262,9 +264,7 @@ def get_normalization_params(
                     if len(predictor_values) == 0:
                         continue
 
-                    multiplier = (
-                        (i + 1) + float(j + 1) / NUM_TIMES_PER_FILE_FOR_PARAMS
-                    )
+                    multiplier = i + float(j + 1) / len(selected_time_indices)
 
                     if this_key == BIDIRECTIONAL_REFLECTANCE_KEY:
                         num_values_expected = int(numpy.round(
@@ -307,10 +307,11 @@ def get_normalization_params(
                         )
 
                     print((
-                        'Randomly selecting {0:d} predictor values from '
-                        '{1:d}th time step and {2:d}th channel...'
+                        'Randomly selecting {0:d} {1:s} values from {2:d}th '
+                        'time step and {3:d}th channel...'
                     ).format(
                         len(predictor_values),
+                        this_key.upper(),
                         selected_time_indices[j] + 1,
                         k + 1
                     ))
