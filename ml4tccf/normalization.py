@@ -233,7 +233,7 @@ def get_normalization_params(
     ))
 
     for i in range(num_files):
-        print('Reading data from: "{0:s}"...'.format(satellite_file_names[i]))
+        print('\nReading data from: "{0:s}"...'.format(satellite_file_names[i]))
         satellite_table_xarray = satellite_io.read_file(satellite_file_names[i])
 
         for this_key in main_data_dict:
@@ -285,7 +285,18 @@ def get_normalization_params(
                     if len(nan_indices) == 0:
                         continue
 
-                    num_values_needed = num_values_expected - nan_indices[0]
+                    first_index = nan_indices[0]
+                    num_values_needed = num_values_expected - first_index
+
+                    if num_values_needed < 1:
+                        if this_key == BIDIRECTIONAL_REFLECTANCE_KEY:
+                            num_values_needed = (
+                                num_values_per_high_res_channel - first_index
+                            )
+                        else:
+                            num_values_needed = (
+                                num_values_per_low_res_channel - first_index
+                            )
 
                     if len(predictor_values) > num_values_needed:
                         predictor_values = numpy.random.choice(
@@ -293,8 +304,15 @@ def get_normalization_params(
                             replace=False
                         )
 
-                    last_index = nan_indices[0] + len(predictor_values)
-                    npt[this_key].values[nan_indices[0]:last_index, k] = (
+                    print((
+                        'Randomly selecting {0:d} predictor values from '
+                        '{1:d}th time step and {2:d}th channel...'
+                    ).format(
+                        len(predictor_values), j + 1, k + 1
+                    ))
+
+                    last_index = first_index + len(predictor_values)
+                    npt[this_key].values[first_index:last_index, k] = (
                         predictor_values
                     )
 
