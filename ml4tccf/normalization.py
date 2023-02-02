@@ -20,6 +20,8 @@ TOLERANCE = 1e-6
 MIN_CUMULATIVE_DENSITY = 1e-6
 MAX_CUMULATIVE_DENSITY = 1. - 1e-6
 
+NUM_TIMES_PER_FILE_FOR_PARAMS = 10
+
 BIDIRECTIONAL_REFLECTANCE_KEY = satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY
 BRIGHTNESS_TEMPERATURE_KEY = satellite_utils.BRIGHTNESS_TEMPERATURE_KEY
 
@@ -237,39 +239,64 @@ def get_normalization_params(
         for this_key in main_data_dict:
             predictor_matrix = satellite_table_xarray[this_key].values
 
-            for j in range(predictor_matrix.shape[-1]):
-                predictor_values = predictor_matrix[..., j]
-                predictor_values = predictor_values[
-                    numpy.isfinite(predictor_values)
-                ]
+            num_times = predictor_matrix.shape[0]
+            selected_time_indices = numpy.linspace(
+                0, num_times - 1, num=num_times, dtype=int
+            )
 
-                if len(predictor_values) == 0:
-                    continue
+            if num_times > NUM_TIMES_PER_FILE_FOR_PARAMS:
+                selected_time_indices = numpy.random.choice(
+                    selected_time_indices, size=NUM_TIMES_PER_FILE_FOR_PARAMS,
+                    replace=False
+                )
 
-                if this_key == BIDIRECTIONAL_REFLECTANCE_KEY:
-                    num_values_expected = int(numpy.round(
-                        (i + 1) * num_values_per_hr_channel_per_file
-                    ))
-                else:
-                    num_values_expected = int(numpy.round(
-                        (i + 1) * num_values_per_lr_channel_per_file
-                    ))
+            for j in range(len(selected_time_indices)):
+                for k in range(predictor_matrix.shape[-1]):
+                    predictor_values = (
+                        predictor_matrix[selected_time_indices[j], ..., k]
+                    )
+                    predictor_values = predictor_values[
+                        numpy.isfinite(predictor_values)
+                    ]
 
-                first_nan_index = numpy.where(
-                    numpy.isnan(npt[this_key].values[:, j])
-                )[0][0]
+                    if len(predictor_values) == 0:
+                        continue
 
-                num_values_needed = num_values_expected - first_nan_index
-
-                if len(predictor_values) > num_values_needed:
-                    predictor_values = numpy.random.choice(
-                        predictor_values, size=num_values_needed, replace=False
+                    multiplier = (
+                        (i + 1) + float(j + 1) / NUM_TIMES_PER_FILE_FOR_PARAMS
                     )
 
-                npt[this_key].values[
-                    first_nan_index:(first_nan_index + len(predictor_values)),
-                    j
-                ] = predictor_values
+                    if this_key == BIDIRECTIONAL_REFLECTANCE_KEY:
+                        num_values_expected = int(numpy.round(
+                            multiplier * num_values_per_hr_channel_per_file
+                        ))
+                        num_values_expected = min([
+                            num_values_expected, num_values_per_high_res_channel
+                        ])
+                    else:
+                        num_values_expected = int(numpy.round(
+                            multiplier * num_values_per_lr_channel_per_file
+                        ))
+                        num_values_expected = min([
+                            num_values_expected, num_values_per_low_res_channel
+                        ])
+
+                    first_nan_index = numpy.where(
+                        numpy.isnan(npt[this_key].values[:, k])
+                    )[0][0]
+
+                    num_values_needed = num_values_expected - first_nan_index
+
+                    if len(predictor_values) > num_values_needed:
+                        predictor_values = numpy.random.choice(
+                            predictor_values, size=num_values_needed,
+                            replace=False
+                        )
+
+                    last_index = first_nan_index + len(predictor_values)
+                    npt[this_key].values[first_nan_index:last_index, k] = (
+                        predictor_values
+                    )
 
     for this_key in main_data_dict:
         assert not numpy.any(numpy.isnan(npt[this_key].values))
