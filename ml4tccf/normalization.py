@@ -236,21 +236,19 @@ def get_normalization_params(
         print('\nReading data from: "{0:s}"...'.format(satellite_file_names[i]))
         satellite_table_xarray = satellite_io.read_file(satellite_file_names[i])
 
-        num_times = (
-            satellite_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values.shape[0]
-        )
-        selected_time_indices = numpy.linspace(
-            0, num_times - 1, num=num_times, dtype=int
-        )
-
-        if num_times > NUM_TIMES_PER_FILE_FOR_PARAMS:
-            selected_time_indices = numpy.random.choice(
-                selected_time_indices, size=NUM_TIMES_PER_FILE_FOR_PARAMS,
-                replace=False
-            )
-
         for this_key in main_data_dict:
             predictor_matrix = satellite_table_xarray[this_key].values
+
+            selected_time_indices = numpy.where(
+                numpy.isfinite(predictor_matrix)
+            )[0]
+            selected_time_indices = numpy.unique(selected_time_indices)
+
+            if len(selected_time_indices) > NUM_TIMES_PER_FILE_FOR_PARAMS:
+                selected_time_indices = numpy.random.choice(
+                    selected_time_indices, size=NUM_TIMES_PER_FILE_FOR_PARAMS,
+                    replace=False
+                )
 
             for j in range(len(selected_time_indices)):
                 for k in range(predictor_matrix.shape[-1]):
