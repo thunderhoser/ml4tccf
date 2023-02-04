@@ -224,19 +224,32 @@ def get_normalization_params(
         float(num_values_per_low_res_channel) / num_files
     ))
 
-    for i in range(num_files):
-        print('Reading data from: "{0:s}"...'.format(satellite_file_names[i]))
+    satellite_file_names = 2 * satellite_file_names
+
+    for i in range(len(satellite_file_names)):
+        need_more_values = False
+
+        for this_key in main_data_dict:
+            need_more_values = (
+                need_more_values and
+                numpy.any(numpy.isnan(npt[this_key].values))
+            )
+
+        if not need_more_values:
+            break
+
+        print('\nReading data from: "{0:s}"...'.format(satellite_file_names[i]))
         satellite_table_xarray = satellite_io.read_file(satellite_file_names[i])
 
         for this_key in main_data_dict:
             predictor_matrix = satellite_table_xarray[this_key].values
 
-            num_times = predictor_matrix.shape[0]
-            selected_time_indices = numpy.linspace(
-                0, num_times - 1, num=num_times, dtype=int
-            )
+            selected_time_indices = numpy.where(
+                numpy.isfinite(predictor_matrix)
+            )[0]
+            selected_time_indices = numpy.unique(selected_time_indices)
 
-            if num_times > NUM_TIMES_PER_FILE_FOR_PARAMS:
+            if len(selected_time_indices) > NUM_TIMES_PER_FILE_FOR_PARAMS:
                 selected_time_indices = numpy.random.choice(
                     selected_time_indices, size=NUM_TIMES_PER_FILE_FOR_PARAMS,
                     replace=False
@@ -244,19 +257,22 @@ def get_normalization_params(
 
             for j in range(len(selected_time_indices)):
                 for k in range(predictor_matrix.shape[-1]):
+                    nan_indices = numpy.where(
+                        numpy.isnan(npt[this_key].values[:, k])
+                    )[0]
+                    if len(nan_indices) == 0:
+                        continue
+
                     predictor_values = (
                         predictor_matrix[selected_time_indices[j], ..., k]
                     )
                     predictor_values = predictor_values[
                         numpy.isfinite(predictor_values)
                     ]
-
                     if len(predictor_values) == 0:
                         continue
 
-                    multiplier = (
-                        (i + 1) + float(j + 1) / NUM_TIMES_PER_FILE_FOR_PARAMS
-                    )
+                    multiplier = i + float(j + 1) / len(selected_time_indices)
 
                     if this_key == BIDIRECTIONAL_REFLECTANCE_KEY:
                         num_values_expected = int(numpy.round(
@@ -273,11 +289,18 @@ def get_normalization_params(
                             num_values_expected, num_values_per_low_res_channel
                         ])
 
-                    first_nan_index = numpy.where(
-                        numpy.isnan(npt[this_key].values[:, k])
-                    )[0][0]
+                    first_index = nan_indices[0]
+                    num_values_needed = num_values_expected - first_index
 
-                    num_values_needed = num_values_expected - first_nan_index
+                    if num_values_needed < 1:
+                        if this_key == BIDIRECTIONAL_REFLECTANCE_KEY:
+                            num_values_needed = (
+                                num_values_per_high_res_channel - first_index
+                            )
+                        else:
+                            num_values_needed = (
+                                num_values_per_low_res_channel - first_index
+                            )
 
                     if len(predictor_values) > num_values_needed:
                         predictor_values = numpy.random.choice(
@@ -285,8 +308,18 @@ def get_normalization_params(
                             replace=False
                         )
 
-                    last_index = first_nan_index + len(predictor_values)
-                    npt[this_key].values[first_nan_index:last_index, k] = (
+                    print((
+                        'Randomly selecting {0:d} {1:s} values from {2:d}th '
+                        'time step and {3:d}th channel...'
+                    ).format(
+                        len(predictor_values),
+                        this_key.upper(),
+                        selected_time_indices[j] + 1,
+                        k + 1
+                    ))
+
+                    last_index = first_index + len(predictor_values)
+                    npt[this_key].values[first_index:last_index, k] = (
                         predictor_values
                     )
 
