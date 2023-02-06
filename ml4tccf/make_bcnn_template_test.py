@@ -4,6 +4,7 @@ import os
 import sys
 import copy
 import numpy
+import keras.losses
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -31,7 +32,9 @@ DEFAULT_OPTION_DICT = {
         architecture_utils.RELU_FUNCTION_STRING,
     bcnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
     bcnn_architecture.L2_WEIGHT_KEY: 1e-6,
-    bcnn_architecture.USE_BATCH_NORM_KEY: True
+    bcnn_architecture.USE_BATCH_NORM_KEY: True,
+    bcnn_architecture.ENSEMBLE_SIZE_KEY: 1,
+    bcnn_architecture.LOSS_FUNCTION_KEY: keras.losses.mean_squared_error
 }
 
 OUTPUT_DIR_NAME = (
