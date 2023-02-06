@@ -19,13 +19,13 @@ OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_KEY:
         numpy.array([1250, 1250, 7], dtype=int),
     cnn_architecture.INCLUDE_HIGH_RES_KEY: True,
-    cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(10, 2, dtype=int),
+    cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(11, 2, dtype=int),
     cnn_architecture.NUM_CHANNELS_KEY: numpy.array([
-        2, 2, 4, 4, 16, 16, 32, 32, 64, 64, 128, 128, 184, 184, 256, 256,
-        384, 384, 512, 512
+        2, 2, 4, 4, 16, 16, 32, 32, 64, 64, 96, 96, 128, 128, 184, 184,
+        256, 256, 384, 384, 512, 512
     ], dtype=int),
-    cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(20, 0.),
-    cnn_architecture.NUM_NEURONS_KEY: numpy.array([536, 83, 13, 2], dtype=int),
+    cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(22, 0.),
+    cnn_architecture.NUM_NEURONS_KEY: numpy.array([1722, 181, 19, 2], dtype=int),
     cnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
     cnn_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,

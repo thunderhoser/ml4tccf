@@ -28,13 +28,13 @@ USE_BATCH_NORM_KEY = 'use_batch_normalization'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
-    NUM_CONV_LAYERS_KEY: numpy.full(10, 2, dtype=int),
+    NUM_CONV_LAYERS_KEY: numpy.full(11, 2, dtype=int),
     NUM_CHANNELS_KEY: numpy.array([
-        2, 2, 4, 4, 16, 16, 32, 32, 64, 64, 128, 128, 184, 184, 256, 256,
-        384, 384, 512, 512
+        2, 2, 4, 4, 16, 16, 32, 32, 64, 64, 96, 96, 128, 128, 184, 184,
+        256, 256, 384, 384, 512, 512
     ], dtype=int),
-    CONV_DROPOUT_RATES_KEY: numpy.full(20, 0.),
-    NUM_NEURONS_KEY: numpy.array([536, 83, 13, 2], dtype=int),
+    CONV_DROPOUT_RATES_KEY: numpy.full(22, 0.),
+    NUM_NEURONS_KEY: numpy.array([1722, 181, 19, 2], dtype=int),
     DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
