@@ -25,6 +25,8 @@ INNER_ACTIV_FUNCTION_KEY = 'inner_activ_function_name'
 INNER_ACTIV_FUNCTION_ALPHA_KEY = 'inner_activ_function_alpha'
 L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
+ENSEMBLE_SIZE_KEY = 'ensemble_size'
+LOSS_FUNCTION_KEY = 'loss_function'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
@@ -34,7 +36,7 @@ DEFAULT_OPTION_DICT = {
         256, 256, 384, 384, 512, 512
     ], dtype=int),
     CONV_DROPOUT_RATES_KEY: numpy.full(22, 0.),
-    NUM_NEURONS_KEY: numpy.array([1722, 181, 19, 2], dtype=int),
+    NUM_NEURONS_KEY: numpy.array([1024, 128, 16, 2], dtype=int),
     DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
@@ -42,7 +44,7 @@ DEFAULT_OPTION_DICT = {
 }
 
 
-def _check_input_args(option_dict):
+def check_input_args(option_dict):
     """Error-checks input arguments.
 
     B = number of convolutional blocks
@@ -77,6 +79,8 @@ def _check_input_args(option_dict):
         only).
     option_dict["use_batch_normalization"]: Boolean flag.  If True, will use
         batch normalization after each non-output layer.
+    option_dict["ensemble_size"]: Number of ensemble members.
+    option_dict["loss_function"]: Loss function.
 
     :return: option_dict: Same as input but maybe with default values added.
     """
@@ -142,19 +146,21 @@ def _check_input_args(option_dict):
 
     error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
+    error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
+    error_checking.assert_is_geq(option_dict[ENSEMBLE_SIZE_KEY], 1)
 
     return option_dict
 
 
-def create_cnn_without_uq(option_dict):
-    """Creates basic CNN (without uncertainty quantification).
+def create_model(option_dict):
+    """Creates CNN.
 
-    :param option_dict: See documentation for `_check_input_args`.
+    :param option_dict: See documentation for `check_input_args`.
     :return: model_object: Untrained (but compiled) instance of
         `keras.models.Model`.
     """
 
-    option_dict = _check_input_args(option_dict)
+    option_dict = check_input_args(option_dict)
 
     input_dimensions_low_res = option_dict[INPUT_DIMENSIONS_KEY]
     include_high_res_data = option_dict[INCLUDE_HIGH_RES_KEY]
@@ -167,6 +173,8 @@ def create_cnn_without_uq(option_dict):
     inner_activ_function_alpha = option_dict[INNER_ACTIV_FUNCTION_ALPHA_KEY]
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    loss_function = option_dict[LOSS_FUNCTION_KEY]
+    ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
 
     input_layer_object_low_res = keras.layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
@@ -311,6 +319,17 @@ def create_cnn_without_uq(option_dict):
                 layer_object
             )
 
+    if ensemble_size > 1:
+        num_target_vars = float(num_neurons_by_dense_layer[-1]) / ensemble_size
+        assert numpy.isclose(
+            num_target_vars, numpy.round(num_target_vars), atol=1e-6
+        )
+
+        num_target_vars = int(numpy.round(num_target_vars))
+        layer_object = keras.layers.Reshape(
+            target_shape=(num_target_vars, ensemble_size)
+        )(layer_object)
+
     if include_high_res_data:
         input_layer_objects = [
             input_layer_object_high_res, input_layer_object_low_res
@@ -322,7 +341,7 @@ def create_cnn_without_uq(option_dict):
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
-        loss='mse', optimizer=keras.optimizers.Adam(), metrics=[]
+        loss=loss_function, optimizer=keras.optimizers.Adam(), metrics=[]
     )
     model_object.summary()
 

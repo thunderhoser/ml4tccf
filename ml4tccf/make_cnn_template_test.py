@@ -2,9 +2,7 @@
 
 import os
 import sys
-import copy
 import numpy
-import keras
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -25,7 +23,8 @@ OPTION_DICT = {
         256, 256, 384, 384, 512, 512
     ], dtype=int),
     cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(22, 0.),
-    cnn_architecture.NUM_NEURONS_KEY: numpy.array([1722, 181, 19, 2], dtype=int),
+    cnn_architecture.NUM_NEURONS_KEY:
+        numpy.array([1024, 128, 16, 2], dtype=int),
     cnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
     cnn_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
@@ -46,7 +45,7 @@ def _run():
     This is effectively the main method.
     """
 
-    model_object = cnn_architecture.create_cnn_without_uq(OPTION_DICT)
+    model_object = cnn_architecture.create_model(OPTION_DICT)
     output_file_name = '{0:s}/model.h5'.format(OUTPUT_DIR_NAME)
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
