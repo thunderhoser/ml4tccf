@@ -1086,7 +1086,11 @@ def data_generator(option_dict):
             'YES' if numpy.any(numpy.isnan(predictor_matrices[0]))
             else 'NO'
         ))
+
         print(len(predictor_matrices))
+        print(numpy.any(numpy.isnan(predictor_matrices[0])))
+        print(numpy.any(numpy.isnan(predictor_matrices[1])))
+
         print('Is any predictor NaN? {0:s}'.format(
             'YES' if any([numpy.any(numpy.isnan(p))] for p in predictor_matrices)
             else 'NO'
