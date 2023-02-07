@@ -27,6 +27,8 @@ METRIC_FUNCTION_LIST = [
     custom_losses.mean_distance_kilometres,
     custom_losses.mean_squared_distance_kilometres2,
     custom_losses.mean_prediction,
+    custom_losses.mean_predictive_stdev,
+    custom_losses.mean_predictive_range,
     custom_losses.mean_target,
     custom_losses.mean_grid_spacing_kilometres
 ]
@@ -36,6 +38,8 @@ METRIC_FUNCTION_DICT = {
     'mean_squared_distance_kilometres2':
         custom_losses.mean_squared_distance_kilometres2,
     'mean_prediction': custom_losses.mean_prediction,
+    'mean_predictive_stdev': custom_losses.mean_predictive_stdev,
+    'mean_predictive_range': custom_losses.mean_predictive_range,
     'mean_target': custom_losses.mean_target,
     'mean_grid_spacing_kilometres': custom_losses.mean_grid_spacing_kilometres
 }
@@ -963,18 +967,6 @@ def data_generator(option_dict):
             if this_bt_matrix_kelvins.size == 0:
                 continue
 
-            print('Is any brightness temperature NaN? {0:s}'.format(
-                'YES' if numpy.any(numpy.isnan(this_bt_matrix_kelvins))
-                else 'NO'
-            ))
-            print((
-                'Min/mean/max grid spacing (km) = {0:.2f}/{1:.2f}/{2:.2f}'
-            ).format(
-                numpy.min(these_grid_spacings_km),
-                numpy.mean(these_grid_spacings_km),
-                numpy.max(these_grid_spacings_km)
-            ))
-
             these_dim = this_bt_matrix_kelvins.shape[:-2] + (
                 numpy.prod(this_bt_matrix_kelvins.shape[-2:]),
             )
@@ -983,11 +975,6 @@ def data_generator(option_dict):
             )
 
             if this_reflectance_matrix is not None:
-                print('Is any bidirectional reflectance NaN? {0:s}'.format(
-                    'YES' if numpy.any(numpy.isnan(this_reflectance_matrix))
-                    else 'NO'
-                ))
-
                 these_dim = this_reflectance_matrix.shape[:-2] + (
                     numpy.prod(this_reflectance_matrix.shape[-2:]),
                 )
@@ -1029,17 +1016,6 @@ def data_generator(option_dict):
             cyclone_index += 1
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
-        print('Is any brightness temperature NaN (before aug)? {0:s}'.format(
-            'YES' if numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
-            else 'NO'
-        ))
-
-        if bidirectional_reflectance_matrix is not None:
-            print('Is any bidirectional reflectance NaN (before aug)? {0:s}'.format(
-                'YES' if numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
-                else 'NO'
-            ))
-
         (
             bidirectional_reflectance_matrix, brightness_temp_matrix_kelvins,
             row_translations_low_res_px, column_translations_low_res_px
@@ -1051,17 +1027,6 @@ def data_generator(option_dict):
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=sentinel_value
         )
-
-        print('Is any brightness temperature NaN (after aug)? {0:s}'.format(
-            'YES' if numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
-            else 'NO'
-        ))
-
-        if bidirectional_reflectance_matrix is not None:
-            print('Is any bidirectional reflectance NaN (after aug)? {0:s}'.format(
-                'YES' if numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
-                else 'NO'
-            ))
 
         grid_spacings_km = numpy.repeat(
             numpy.expand_dims(grid_spacings_km, axis=1),
@@ -1077,34 +1042,6 @@ def data_generator(option_dict):
             row_translations_low_res_px, column_translations_low_res_px,
             grid_spacings_km
         )))
-
-        print('Is any brightness temperature NaN? {0:s}'.format(
-            'YES' if numpy.any(numpy.isnan(predictor_matrices[-1]))
-            else 'NO'
-        ))
-        print('Is any bidirectional reflectance NaN? {0:s}'.format(
-            'YES' if numpy.any(numpy.isnan(predictor_matrices[0]))
-            else 'NO'
-        ))
-
-        print(len(predictor_matrices))
-        print(numpy.any(numpy.isnan(predictor_matrices[0])))
-        print(numpy.any(numpy.isnan(predictor_matrices[1])))
-        print([numpy.any(numpy.isnan(p)) for p in predictor_matrices])
-        print(any([numpy.any(numpy.isnan(p)) for p in predictor_matrices]))
-
-        print('Is any predictor NaN? {0:s}'.format(
-            'YES' if any([numpy.any(numpy.isnan(p)) for p in predictor_matrices])
-            else 'NO'
-        ))
-        print('Is any target NaN? {0:s}'.format(
-            'YES' if numpy.any(numpy.isnan(target_matrix_low_res_px[:, :2]))
-            else 'NO'
-        ))
-        print('Is any grid spacing NaN? {0:s}'.format(
-            'YES' if numpy.any(numpy.isnan(target_matrix_low_res_px[:, 2]))
-            else 'NO'
-        ))
 
         yield predictor_matrices, target_matrix_low_res_px
 
