@@ -13,6 +13,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import error_checking
 import architecture_utils
+import neural_net
 
 INPUT_DIMENSIONS_LOW_RES_KEY = 'input_dimensions_low_res'
 INPUT_DIMENSIONS_HIGH_RES_KEY = 'input_dimensions_high_res'
@@ -367,7 +368,8 @@ def create_model(option_dict):
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(), metrics=[]
+        loss=loss_function, optimizer=keras.optimizers.Adam(),
+        metrics=neural_net.METRIC_FUNCTION_LIST + ['mse']
     )
     model_object.summary()
 
