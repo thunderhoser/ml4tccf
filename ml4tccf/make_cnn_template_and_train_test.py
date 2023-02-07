@@ -51,7 +51,7 @@ OPTION_DICT = {
     cnn_architecture.L2_WEIGHT_KEY: 1e-6,
     cnn_architecture.USE_BATCH_NORM_KEY: True,
     cnn_architecture.ENSEMBLE_SIZE_KEY: 50,
-    cnn_architecture.LOSS_FUNCTION_KEY: custom_losses.crps_kilometres
+    cnn_architecture.LOSS_FUNCTION_KEY: custom_losses.mean_squared_distance_kilometres2
 }
 
 OUTPUT_DIR_NAME = (
@@ -127,7 +127,7 @@ def _run():
         training_option_dict=TRAINING_OPTION_DICT,
         num_validation_batches_per_epoch=3,
         validation_option_dict=VALIDATION_OPTION_DICT,
-        loss_function_string='custom_losses.crps_kilometres',
+        loss_function_string='custom_losses.mean_squared_distance_kilometres2',
         plateau_patience_epochs=10,
         plateau_learning_rate_multiplier=0.6,
         early_stopping_patience_epochs=50,
