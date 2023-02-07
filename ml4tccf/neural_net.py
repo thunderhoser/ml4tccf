@@ -1029,6 +1029,17 @@ def data_generator(option_dict):
             cyclone_index += 1
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
+        print('Is any brightness temperature NaN (before aug)? {0:s}'.format(
+            'YES' if numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
+            else 'NO'
+        ))
+
+        if bidirectional_reflectance_matrix is not None:
+            print('Is any bidirectional reflectance NaN (before aug)? {0:s}'.format(
+                'YES' if numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
+                else 'NO'
+            ))
+
         (
             bidirectional_reflectance_matrix, brightness_temp_matrix_kelvins,
             row_translations_low_res_px, column_translations_low_res_px
@@ -1040,6 +1051,17 @@ def data_generator(option_dict):
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=sentinel_value
         )
+
+        print('Is any brightness temperature NaN (after aug)? {0:s}'.format(
+            'YES' if numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
+            else 'NO'
+        ))
+
+        if bidirectional_reflectance_matrix is not None:
+            print('Is any bidirectional reflectance NaN (after aug)? {0:s}'.format(
+                'YES' if numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
+                else 'NO'
+            ))
 
         grid_spacings_km = numpy.repeat(
             numpy.expand_dims(grid_spacings_km, axis=1),
