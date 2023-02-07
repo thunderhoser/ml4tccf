@@ -22,8 +22,8 @@ OPTION_DICT = {
     cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(11, 2, dtype=int),
     cnn_architecture.NUM_CHANNELS_KEY: numpy.array([
         2, 2, 4, 4, 16, 16,
-        24, 24, 32, 32, 48, 48, 64, 64, 96, 96,
-        128, 128, 184, 184, 256, 256
+        20, 20, 24, 24, 32, 32, 40, 40, 48, 48,
+        64, 64, 80, 80, 96, 96, 128, 128
     ], dtype=int),
     cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(22, 0.),
     cnn_architecture.NUM_NEURONS_KEY:
