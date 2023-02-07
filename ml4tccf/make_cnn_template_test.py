@@ -3,7 +3,6 @@
 import os
 import sys
 import numpy
-import keras.losses
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -13,6 +12,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import file_system_utils
 import architecture_utils
 import cnn_architecture
+import custom_losses
 
 OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_KEY:
@@ -25,15 +25,15 @@ OPTION_DICT = {
     ], dtype=int),
     cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(22, 0.),
     cnn_architecture.NUM_NEURONS_KEY:
-        numpy.array([1024, 128, 16, 2], dtype=int),
+        numpy.array([1024, 128, 50, 50], dtype=int),
     cnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
     cnn_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
     cnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
     cnn_architecture.L2_WEIGHT_KEY: 1e-6,
     cnn_architecture.USE_BATCH_NORM_KEY: True,
-    cnn_architecture.ENSEMBLE_SIZE_KEY: 1,
-    cnn_architecture.LOSS_FUNCTION_KEY: keras.losses.mean_squared_error
+    cnn_architecture.ENSEMBLE_SIZE_KEY: 50,
+    cnn_architecture.LOSS_FUNCTION_KEY: custom_losses.crps_kilometres()
 }
 
 OUTPUT_DIR_NAME = (

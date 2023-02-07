@@ -4,7 +4,6 @@ import os
 import sys
 import copy
 import numpy
-import keras.losses
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -14,6 +13,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import file_system_utils
 import architecture_utils
 import cnn_architecture_bayesian as bcnn_architecture
+import custom_losses
 
 DEFAULT_OPTION_DICT = {
     bcnn_architecture.INPUT_DIMENSIONS_KEY:
@@ -26,15 +26,15 @@ DEFAULT_OPTION_DICT = {
     ], dtype=int),
     bcnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(22, 0.),
     bcnn_architecture.NUM_NEURONS_KEY:
-        numpy.array([1024, 128, 16, 2], dtype=int),
+        numpy.array([1024, 128, 50, 50], dtype=int),
     bcnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
     bcnn_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
     bcnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
     bcnn_architecture.L2_WEIGHT_KEY: 1e-6,
     bcnn_architecture.USE_BATCH_NORM_KEY: True,
-    bcnn_architecture.ENSEMBLE_SIZE_KEY: 1,
-    bcnn_architecture.LOSS_FUNCTION_KEY: keras.losses.mean_squared_error
+    bcnn_architecture.ENSEMBLE_SIZE_KEY: 50,
+    bcnn_architecture.LOSS_FUNCTION_KEY: custom_losses.crps_kilometres()
 }
 
 OUTPUT_DIR_NAME = (

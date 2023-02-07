@@ -17,6 +17,7 @@ import satellite_io
 import misc_utils
 import satellite_utils
 
+METRES_TO_KM = 0.001
 MINUTES_TO_SECONDS = 60
 DAYS_TO_SECONDS = 86400
 INTERVAL_BETWEEN_TARGET_TIMES_SEC = 21600
@@ -310,6 +311,8 @@ def _read_satellite_data_one_cyclone(
         of reflectance values (unitless).
     :return: brightness_temp_matrix_kelvins: T-by-m-by-n-by-L-by-w numpy array
         of brightness temperatures.
+    :return: grid_spacings_low_res_km: length-T numpy array of grid spacings for
+        low-resolution data.
     """
 
     target_times_unix_sec = numpy.concatenate([
@@ -321,7 +324,7 @@ def _read_satellite_data_one_cyclone(
     ]
 
     if len(target_times_unix_sec) == 0:
-        return None, None
+        return None, None, None
 
     if num_target_times < len(target_times_unix_sec):
         target_times_unix_sec = numpy.random.choice(
@@ -408,6 +411,8 @@ def _read_satellite_data_one_cyclone(
     )
     brightness_temp_matrix_kelvins = numpy.full(these_dim, numpy.nan)
 
+    grid_spacings_low_res_km = numpy.full(num_target_times, numpy.nan)
+
     if len(high_res_wavelengths_microns) > 0:
         t = satellite_table_xarray
         this_num_rows = (
@@ -472,6 +477,18 @@ def _read_satellite_data_one_cyclone(
             this_bt_matrix_kelvins, 1, 2
         )
 
+        these_x_diffs_metres = numpy.mean(
+            numpy.diff(t[satellite_utils.X_COORD_LOW_RES_KEY].values, axis=1),
+            axis=1
+        )
+        these_y_diffs_metres = numpy.mean(
+            numpy.diff(t[satellite_utils.Y_COORD_LOW_RES_KEY].values, axis=1),
+            axis=1
+        )
+        grid_spacings_low_res_km[i] = METRES_TO_KM * numpy.mean(
+            numpy.concatenate((these_x_diffs_metres, these_y_diffs_metres))
+        )
+
         if len(high_res_wavelengths_microns) == 0:
             continue
 
@@ -499,7 +516,12 @@ def _read_satellite_data_one_cyclone(
         numpy.isnan(brightness_temp_matrix_kelvins)
     ] = sentinel_value
 
-    return bidirectional_reflectance_matrix, brightness_temp_matrix_kelvins
+    grid_spacings_low_res_km = grid_spacings_low_res_km[good_indices]
+
+    return (
+        bidirectional_reflectance_matrix, brightness_temp_matrix_kelvins,
+        grid_spacings_low_res_km
+    )
 
 
 def _translate_images(image_matrix, row_translation_px, column_translation_px,
@@ -743,13 +765,16 @@ def data_generator(option_dict):
         brightness_temp_matrix_kelvins: T-by-m-by-n-by-(w * L) numpy array of
             brightness temperatures.
 
-    :return: target_matrix_low_res_px: E-by-2 numpy array with distances (in
+    :return: target_matrix_low_res_px: E-by-3 numpy array with distances (in
         low-resolution pixels) between the image center and actual cyclone
         center.  target_matrix[:, 0] contains row offsets, and
         target_matrix[:, 1] contains column offsets.  For example, if
         target_matrix[20, 0] = -2 and target_matrix[20, 1] = 3, this means that
         the true cyclone center for the 21st example is 2 rows above, and 3
         columns to the right of, the image center.
+
+        target_matrix[:, 2] contains the grid spacing for each data sample in
+        km.
     """
 
     option_dict = _check_generator_args(option_dict)
@@ -798,6 +823,7 @@ def data_generator(option_dict):
     while True:
         bidirectional_reflectance_matrix = None
         brightness_temp_matrix_kelvins = None
+        grid_spacings_km = None
         num_examples_in_memory = 0
 
         while num_examples_in_memory < num_examples_per_batch:
@@ -809,21 +835,21 @@ def data_generator(option_dict):
                 num_examples_per_batch - num_examples_in_memory
             ])
 
-            this_reflectance_matrix, this_bt_matrix_kelvins = (
-                _read_satellite_data_one_cyclone(
-                    input_file_names=
-                    satellite_file_names_by_cyclone[cyclone_index],
-                    num_target_times=num_examples_to_read,
-                    lag_times_minutes=lag_times_minutes,
-                    lag_time_tolerance_sec=lag_time_tolerance_sec,
-                    max_num_missing_lag_times=max_num_missing_lag_times,
-                    max_interp_gap_sec=max_interp_gap_sec,
-                    high_res_wavelengths_microns=high_res_wavelengths_microns,
-                    low_res_wavelengths_microns=low_res_wavelengths_microns,
-                    num_rows_low_res=num_rows_low_res,
-                    num_columns_low_res=num_columns_low_res,
-                    sentinel_value=sentinel_value
-                )
+            (
+                this_reflectance_matrix, this_bt_matrix_kelvins,
+                these_grid_spacings_km
+            ) = _read_satellite_data_one_cyclone(
+                input_file_names=satellite_file_names_by_cyclone[cyclone_index],
+                num_target_times=num_examples_to_read,
+                lag_times_minutes=lag_times_minutes,
+                lag_time_tolerance_sec=lag_time_tolerance_sec,
+                max_num_missing_lag_times=max_num_missing_lag_times,
+                max_interp_gap_sec=max_interp_gap_sec,
+                high_res_wavelengths_microns=high_res_wavelengths_microns,
+                low_res_wavelengths_microns=low_res_wavelengths_microns,
+                num_rows_low_res=num_rows_low_res,
+                num_columns_low_res=num_columns_low_res,
+                sentinel_value=sentinel_value
             )
 
             if this_bt_matrix_kelvins is None:
@@ -854,6 +880,8 @@ def data_generator(option_dict):
                     these_dim, numpy.nan
                 )
 
+                grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
+
                 if this_reflectance_matrix is not None:
                     these_dim = (
                         (num_examples_per_batch,) +
@@ -868,6 +896,7 @@ def data_generator(option_dict):
             brightness_temp_matrix_kelvins[first_index:last_index, ...] = (
                 this_bt_matrix_kelvins
             )
+            grid_spacings_km[first_index:last_index] = these_grid_spacings_km
 
             if this_reflectance_matrix is not None:
                 bidirectional_reflectance_matrix[
@@ -889,12 +918,19 @@ def data_generator(option_dict):
             sentinel_value=sentinel_value
         )
 
+        grid_spacings_km = numpy.repeat(
+            numpy.expand_dims(grid_spacings_km, axis=1),
+            axis=1, repeats=data_aug_num_translations
+        )
+        grid_spacings_km = numpy.ravel(grid_spacings_km)
+
         predictor_matrices = [brightness_temp_matrix_kelvins]
         if bidirectional_reflectance_matrix is not None:
             predictor_matrices.insert(0, bidirectional_reflectance_matrix)
 
         target_matrix_low_res_px = numpy.transpose(numpy.vstack((
-            row_translations_low_res_px, column_translations_low_res_px
+            row_translations_low_res_px, column_translations_low_res_px,
+            grid_spacings_km
         )))
 
         yield predictor_matrices, target_matrix_low_res_px
