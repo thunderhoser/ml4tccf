@@ -5,6 +5,7 @@ import keras
 import keras.layers
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
+from ml4tccf.machine_learning import neural_net
 
 INPUT_DIMENSIONS_LOW_RES_KEY = 'input_dimensions_low_res'
 INPUT_DIMENSIONS_HIGH_RES_KEY = 'input_dimensions_high_res'
@@ -359,7 +360,8 @@ def create_model(option_dict):
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(), metrics=[]
+        loss=loss_function, optimizer=keras.optimizers.Adam(),
+        metrics=neural_net.METRIC_FUNCTION_LIST + ['mse']
     )
     model_object.summary()
 

@@ -664,11 +664,7 @@ def _augment_data(
     :return: column_translations_low_res_px: Same but for columns.
     """
 
-    import time
-
     # Housekeeping.
-    exec_start_time_unix_sec = time.time()
-
     num_examples_orig = brightness_temp_matrix_kelvins.shape[0]
     num_examples_new = num_examples_orig * num_translations_per_example
 
@@ -734,9 +730,6 @@ def _augment_data(
             numpy.nan
         )
 
-    print(time.time() - exec_start_time_unix_sec)
-    exec_start_time_unix_sec = time.time()
-
     for i in range(num_examples_orig):
         first_index = i * num_translations_per_example
         last_index = first_index + num_translations_per_example
@@ -758,8 +751,6 @@ def _augment_data(
                 column_translation_px=4 * column_translations_low_res_px[j],
                 padding_value=sentinel_value
             )[0, ...]
-
-    print(time.time() - exec_start_time_unix_sec)
 
     return (
         new_reflectance_matrix, new_bt_matrix_kelvins,
@@ -959,6 +950,18 @@ def data_generator(option_dict):
             if this_bt_matrix_kelvins.size == 0:
                 continue
 
+            print('Is any brightness temperature NaN? {0:s}'.format(
+                'YES' if numpy.any(numpy.isnan(this_bt_matrix_kelvins))
+                else 'NO'
+            ))
+            print((
+                'Min/mean/max grid spacing (km) = {0:.2f}/{1:.2f}/{2:.2f}'
+            ).format(
+                numpy.min(these_grid_spacings_km),
+                numpy.mean(these_grid_spacings_km),
+                numpy.max(these_grid_spacings_km)
+            ))
+
             these_dim = this_bt_matrix_kelvins.shape[:-2] + (
                 numpy.prod(this_bt_matrix_kelvins.shape[-2:]),
             )
@@ -967,6 +970,11 @@ def data_generator(option_dict):
             )
 
             if this_reflectance_matrix is not None:
+                print('Is any bidirectional reflectance NaN? {0:s}'.format(
+                    'YES' if numpy.any(numpy.isnan(this_reflectance_matrix))
+                    else 'NO'
+                ))
+
                 these_dim = this_reflectance_matrix.shape[:-2] + (
                     numpy.prod(this_reflectance_matrix.shape[-2:]),
                 )

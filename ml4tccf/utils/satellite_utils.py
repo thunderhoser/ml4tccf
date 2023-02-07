@@ -639,4 +639,19 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
         raise ValueError(error_string)
 
+    if numpy.all(numpy.isnan(
+            new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values
+    )):
+        error_string = (
+            'All bidirectional reflectances are NaN, even after attempted '
+            'interpolation.  {0:d} of {1:d} desired times were found.'
+        ).format(
+            num_desired_times - num_missing_times, num_desired_times
+        )
+
+        warning_string = 'POTENTIAL ERROR: {0:s}'.format(error_string)
+        warnings.warn(warning_string)
+
+        raise ValueError(error_string)
+
     return new_table_xarray
