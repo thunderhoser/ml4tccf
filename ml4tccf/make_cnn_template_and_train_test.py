@@ -31,15 +31,15 @@ import custom_losses
 
 OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
-        numpy.array([600, 600, 21], dtype=int),
+        numpy.array([300, 300, 6], dtype=int),
     cnn_architecture.INPUT_DIMENSIONS_HIGH_RES_KEY:
-        numpy.array([2400, 2400, 3], dtype=int),
+        numpy.array([1200, 1200, 3], dtype=int),
     cnn_architecture.INCLUDE_HIGH_RES_KEY: True,
     cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(9, 2, dtype=int),
     cnn_architecture.NUM_CHANNELS_KEY: numpy.array([
-        2, 2, 4, 4, 16, 16,
-        20, 20, 24, 24, 28, 28, 32, 32, 36, 36,
-        40, 40
+        4, 4, 8, 8,
+        16, 16,
+        18, 18, 20, 20, 22, 22, 24, 24, 26, 26, 28, 28
     ], dtype=int),
     cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(18, 0.),
     cnn_architecture.NUM_NEURONS_KEY:
@@ -81,11 +81,11 @@ TRAINING_OPTION_DICT = {
     YEARS_KEY: numpy.array([2021], dtype=int),
     LAG_TIMES_KEY: numpy.array([0, 30, 60], dtype=int),
     HIGH_RES_WAVELENGTHS_KEY: numpy.array([0.64]),
-    LOW_RES_WAVELENGTHS_KEY: numpy.array([3.9, 6.95, 8.5, 10.35, 11.2, 12.3, 13.3]),
+    LOW_RES_WAVELENGTHS_KEY: numpy.array([3.9, 13.3]),
     BATCH_SIZE_KEY: 4,
     MAX_EXAMPLES_PER_CYCLONE_KEY: 2,
-    NUM_GRID_ROWS_KEY: 600,
-    NUM_GRID_COLUMNS_KEY: 600,
+    NUM_GRID_ROWS_KEY: 300,
+    NUM_GRID_COLUMNS_KEY: 300,
     DATA_AUG_NUM_TRANS_KEY: 8,
     DATA_AUG_MEAN_TRANS_KEY: 15.,
     DATA_AUG_STDEV_TRANS_KEY: 7.5,

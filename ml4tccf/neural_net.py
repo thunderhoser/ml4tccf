@@ -671,11 +671,7 @@ def _augment_data(
     :return: column_translations_low_res_px: Same but for columns.
     """
 
-    import time
-
     # Housekeeping.
-    exec_start_time_unix_sec = time.time()
-
     num_examples_orig = brightness_temp_matrix_kelvins.shape[0]
     num_examples_new = num_examples_orig * num_translations_per_example
 
@@ -741,9 +737,6 @@ def _augment_data(
             numpy.nan
         )
 
-    print(time.time() - exec_start_time_unix_sec)
-    exec_start_time_unix_sec = time.time()
-
     for i in range(num_examples_orig):
         first_index = i * num_translations_per_example
         last_index = first_index + num_translations_per_example
@@ -765,8 +758,6 @@ def _augment_data(
                 column_translation_px=4 * column_translations_low_res_px[j],
                 padding_value=sentinel_value
             )[0, ...]
-
-    print(time.time() - exec_start_time_unix_sec)
 
     return (
         new_reflectance_matrix, new_bt_matrix_kelvins,
