@@ -3,7 +3,64 @@
 from tensorflow.keras import backend as K
 
 
-def mean_squared_distance_kilometres():
+def mean_prediction():
+    """Creates function that computes mean prediction.
+    
+    :return: metric: Function (defined below).
+    """
+
+    def metric(target_tensor, prediction_tensor):
+        """Computes mean prediction.
+
+        :param target_tensor: See doc for `mean_squared_distance_kilometres2`.
+        :param prediction_tensor: Same.
+        :return: mean_prediction: Mean prediction.
+        """
+
+        return K.mean(prediction_tensor)
+
+    return metric
+
+
+def mean_target():
+    """Creates function that computes mean target value.
+    
+    :return: metric: Function (defined below).
+    """
+
+    def metric(target_tensor, prediction_tensor):
+        """Computes mean target value.
+
+        :param target_tensor: See doc for `mean_squared_distance_kilometres2`.
+        :param prediction_tensor: Same.
+        :return: mean_target: Mean target value.
+        """
+
+        return K.mean(target_tensor[:, :2])
+
+    return metric
+
+
+def mean_grid_spacing_kilometres():
+    """Creates function that computes mean grid spacing.
+    
+    :return: metric: Function (defined below).
+    """
+
+    def metric(target_tensor, prediction_tensor):
+        """Computes mean grid spacing.
+
+        :param target_tensor: See doc for `mean_squared_distance_kilometres2`.
+        :param prediction_tensor: Same.
+        :return: mean_grid_spacing_km: Mean grid spacing.
+        """
+
+        return K.mean(target_tensor[:, 2])
+
+    return metric
+
+
+def mean_squared_distance_kilometres2():
     """Creates mean-squared-distance loss function.
 
     :return: loss: Loss function (defined below).
@@ -54,7 +111,7 @@ def mean_distance_kilometres():
         """Computes mean distance between predicted and actual TC centers.
 
 
-        :param target_tensor: See doc for `mean_squared_distance_km`.
+        :param target_tensor: See doc for `mean_squared_distance_kilometres2`.
         :param prediction_tensor: Same.
         :return: mean_distance_km: Mean distance.
         """
@@ -85,7 +142,7 @@ def crps_kilometres():
     def loss(target_tensor, prediction_tensor):
         """Computes CRPS between predicted and actual TC centers.
 
-        :param target_tensor: See doc for `mean_squared_distance_km`.
+        :param target_tensor: See doc for `mean_squared_distance_kilometres2`.
         :param prediction_tensor: Same.
         :return: crps_km: CRPS.
         """

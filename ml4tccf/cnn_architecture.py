@@ -369,7 +369,7 @@ def create_model(option_dict):
     )
     model_object.compile(
         loss=loss_function, optimizer=keras.optimizers.Adam(),
-        metrics=['mse']
+        metrics=neural_net.METRIC_FUNCTION_DICT
     )
     model_object.summary()
 
