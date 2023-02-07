@@ -17,7 +17,7 @@ import custom_losses
 
 OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_KEY:
-        numpy.array([1250, 1250, 7], dtype=int),
+        numpy.array([625, 625, 7], dtype=int),
     cnn_architecture.INCLUDE_HIGH_RES_KEY: True,
     cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(11, 2, dtype=int),
     cnn_architecture.NUM_CHANNELS_KEY: numpy.array([
@@ -68,8 +68,8 @@ TRAINING_OPTION_DICT = {
     LOW_RES_WAVELENGTHS_KEY: numpy.array([3.9, 6.95, 8.5, 10.35, 11.2, 12.3, 13.3]),
     BATCH_SIZE_KEY: 4,
     MAX_EXAMPLES_PER_CYCLONE_KEY: 2,
-    NUM_GRID_ROWS_KEY: None,
-    NUM_GRID_COLUMNS_KEY: None,
+    NUM_GRID_ROWS_KEY: 625,
+    NUM_GRID_COLUMNS_KEY: 625,
     DATA_AUG_NUM_TRANS_KEY: 8,
     DATA_AUG_MEAN_TRANS_KEY: 15.,
     DATA_AUG_STDEV_TRANS_KEY: 7.5,
