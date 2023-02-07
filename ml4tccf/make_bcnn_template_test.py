@@ -16,8 +16,10 @@ import cnn_architecture_bayesian as bcnn_architecture
 import custom_losses
 
 DEFAULT_OPTION_DICT = {
-    bcnn_architecture.INPUT_DIMENSIONS_KEY:
-        numpy.array([1250, 1250, 7], dtype=int),
+    bcnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
+        numpy.array([1250, 1250, 21], dtype=int),
+    bcnn_architecture.INPUT_DIMENSIONS_HIGH_RES_KEY:
+        numpy.array([5000, 5000, 3], dtype=int),
     bcnn_architecture.INCLUDE_HIGH_RES_KEY: True,
     bcnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(11, 2, dtype=int),
     bcnn_architecture.NUM_CHANNELS_KEY: numpy.array([

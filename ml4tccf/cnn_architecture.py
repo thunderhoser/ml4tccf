@@ -14,7 +14,8 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import error_checking
 import architecture_utils
 
-INPUT_DIMENSIONS_KEY = 'input_dimensions_low_res'
+INPUT_DIMENSIONS_LOW_RES_KEY = 'input_dimensions_low_res'
+INPUT_DIMENSIONS_HIGH_RES_KEY = 'input_dimensions_high_res'
 INCLUDE_HIGH_RES_KEY = 'include_high_res_data'
 NUM_CONV_LAYERS_KEY = 'num_conv_layers_by_block'
 NUM_CHANNELS_KEY = 'num_channels_by_conv_layer'
@@ -54,7 +55,11 @@ def check_input_args(option_dict):
     :param option_dict: Dictionary with the following keys.
     option_dict["input_dimensions_low_res"]:
         numpy array with input dimensions for low-resolution satellite data:
-        [num_grid_rows, num_grid_columns, num_channels].
+        [num_grid_rows, num_grid_columns, num_lag_times * num_wavelengths].
+    option_dict["input_dimensions_high_res"]:
+        numpy array with input dimensions for high-resolution satellite data:
+        [num_grid_rows, num_grid_columns, num_lag_times * num_wavelengths].
+        If you are not including high-res data, make this None.
     option_dict["include_high_res_data"]: Boolean flag.  If True, will create
         architecture that includes high-resolution satellite data (1/4 the grid
         spacing of low-resolution data) as input.
@@ -90,17 +95,38 @@ def check_input_args(option_dict):
     option_dict.update(orig_option_dict)
 
     error_checking.assert_is_numpy_array(
-        option_dict[INPUT_DIMENSIONS_KEY],
+        option_dict[INPUT_DIMENSIONS_LOW_RES_KEY],
         exact_dimensions=numpy.array([3], dtype=int)
     )
     error_checking.assert_is_integer_numpy_array(
-        option_dict[INPUT_DIMENSIONS_KEY]
+        option_dict[INPUT_DIMENSIONS_LOW_RES_KEY]
     )
     error_checking.assert_is_greater_numpy_array(
-        option_dict[INPUT_DIMENSIONS_KEY], 0
+        option_dict[INPUT_DIMENSIONS_LOW_RES_KEY], 0
     )
 
     error_checking.assert_is_boolean(option_dict[INCLUDE_HIGH_RES_KEY])
+
+    if option_dict[INCLUDE_HIGH_RES_KEY]:
+        error_checking.assert_is_numpy_array(
+            option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY],
+            exact_dimensions=numpy.array([3], dtype=int)
+        )
+        error_checking.assert_is_integer_numpy_array(
+            option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
+        )
+        error_checking.assert_is_greater_numpy_array(
+            option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY], 0
+        )
+
+        error_checking.assert_equals(
+            option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY][0],
+            4 * option_dict[INPUT_DIMENSIONS_LOW_RES_KEY][0]
+        )
+        error_checking.assert_equals(
+            option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY][1],
+            4 * option_dict[INPUT_DIMENSIONS_LOW_RES_KEY][1]
+        )
 
     error_checking.assert_is_numpy_array(
         option_dict[NUM_CONV_LAYERS_KEY], num_dimensions=1
@@ -162,7 +188,8 @@ def create_model(option_dict):
 
     option_dict = check_input_args(option_dict)
 
-    input_dimensions_low_res = option_dict[INPUT_DIMENSIONS_KEY]
+    input_dimensions_low_res = option_dict[INPUT_DIMENSIONS_LOW_RES_KEY]
+    input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
     include_high_res_data = option_dict[INCLUDE_HIGH_RES_KEY]
     num_conv_layers_by_block = option_dict[NUM_CONV_LAYERS_KEY]
     num_channels_by_conv_layer = option_dict[NUM_CHANNELS_KEY]
@@ -181,10 +208,9 @@ def create_model(option_dict):
     )
 
     if include_high_res_data:
-        these_dim = (
-            4 * input_dimensions_low_res[0], 4 * input_dimensions_low_res[1], 1
+        input_layer_object_high_res = keras.layers.Input(
+            shape=tuple(input_dimensions_high_res.tolist())
         )
-        input_layer_object_high_res = keras.layers.Input(shape=these_dim)
     else:
         input_layer_object_high_res = None
 

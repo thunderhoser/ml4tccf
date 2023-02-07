@@ -30,8 +30,10 @@ import custom_losses
 #         print(e)
 
 OPTION_DICT = {
-    cnn_architecture.INPUT_DIMENSIONS_KEY:
-        numpy.array([600, 600, 7], dtype=int),
+    cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
+        numpy.array([600, 600, 21], dtype=int),
+    cnn_architecture.INPUT_DIMENSIONS_HIGH_RES_KEY:
+        numpy.array([2400, 2400, 3], dtype=int),
     cnn_architecture.INCLUDE_HIGH_RES_KEY: True,
     cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(9, 2, dtype=int),
     cnn_architecture.NUM_CHANNELS_KEY: numpy.array([
@@ -82,8 +84,8 @@ TRAINING_OPTION_DICT = {
     LOW_RES_WAVELENGTHS_KEY: numpy.array([3.9, 6.95, 8.5, 10.35, 11.2, 12.3, 13.3]),
     BATCH_SIZE_KEY: 4,
     MAX_EXAMPLES_PER_CYCLONE_KEY: 2,
-    NUM_GRID_ROWS_KEY: 626,
-    NUM_GRID_COLUMNS_KEY: 626,
+    NUM_GRID_ROWS_KEY: 600,
+    NUM_GRID_COLUMNS_KEY: 600,
     DATA_AUG_NUM_TRANS_KEY: 8,
     DATA_AUG_MEAN_TRANS_KEY: 15.,
     DATA_AUG_STDEV_TRANS_KEY: 7.5,
@@ -126,7 +128,9 @@ def _run():
         num_validation_batches_per_epoch=3,
         validation_option_dict=VALIDATION_OPTION_DICT,
         loss_function_string='custom_losses.crps_kilometres()',
-        do_early_stopping=True, plateau_lr_multiplier=0.6,
+        plateau_patience_epochs=10,
+        plateau_learning_rate_multiplier=0.6,
+        early_stopping_patience_epochs=50,
         bnn_architecture_dict=None
     )
 
