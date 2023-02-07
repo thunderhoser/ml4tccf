@@ -1078,6 +1078,15 @@ def data_generator(option_dict):
             grid_spacings_km
         )))
 
+        print('Is any brightness temperature NaN? {0:s}'.format(
+            'YES' if numpy.any(numpy.isnan(predictor_matrices[-1]))
+            else 'NO'
+        ))
+        print('Is any bidirectional reflectance NaN? {0:s}'.format(
+            'YES' if numpy.any(numpy.isnan(predictor_matrices[0]))
+            else 'NO'
+        ))
+        print(len(predictor_matrices))
         print('Is any predictor NaN? {0:s}'.format(
             'YES' if any([numpy.any(numpy.isnan(p))] for p in predictor_matrices)
             else 'NO'
