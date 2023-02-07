@@ -35,12 +35,6 @@ INTERVAL_BETWEEN_TARGET_TIMES_SEC = 21600
 DATE_FORMAT = satellite_io.DATE_FORMAT
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
-PLATEAU_PATIENCE_EPOCHS = 10
-DEFAULT_LEARNING_RATE_MULTIPLIER = 0.5
-PLATEAU_COOLDOWN_EPOCHS = 0
-EARLY_STOPPING_PATIENCE_EPOCHS = 50
-LOSS_PATIENCE = 0.
-
 SATELLITE_DIRECTORY_KEY = 'satellite_dir_name'
 YEARS_KEY = 'years'
 LAG_TIMES_KEY = 'lag_times_minutes'
@@ -78,14 +72,16 @@ TRAINING_OPTIONS_KEY = 'training_option_dict'
 NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
 VALIDATION_OPTIONS_KEY = 'validation_option_dict'
 LOSS_FUNCTION_KEY = 'loss_function_string'
-EARLY_STOPPING_KEY = 'do_early_stopping'
-PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
+PLATEAU_PATIENCE_KEY = 'plateau_patience_epochs'
+PLATEAU_LR_MUTIPLIER_KEY = 'plateau_learning_rate_multiplier'
+EARLY_STOPPING_PATIENCE_KEY = 'early_stopping_patience_epochs'
 BNN_ARCHITECTURE_KEY = 'bnn_architecture_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, LOSS_FUNCTION_KEY,
-    EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY, BNN_ARCHITECTURE_KEY
+    PLATEAU_PATIENCE_KEY, PLATEAU_LR_MUTIPLIER_KEY, EARLY_STOPPING_PATIENCE_KEY,
+    BNN_ARCHITECTURE_KEY
 ]
 
 
@@ -102,7 +98,7 @@ def _get_random_signs(array_length):
 def _check_generator_args(option_dict):
     """Error-checks input arguments for generator.
 
-    :param option_dict: See doc for `input_generator`.
+    :param option_dict: See doc for `data_generator`.
     :return: option_dict: Same as input, except defaults may have been added.
     """
 
@@ -550,6 +546,36 @@ def _read_satellite_data_one_cyclone(
     )
 
 
+# def _translate_images_fast_attempt(
+#         image_matrix, row_translation_px, column_translation_px, padding_value):
+#     """Translates set of images in both the x- and y-directions.
+#
+#     :param image_matrix: numpy array, where the second (third) axis is the row
+#         (column) dimension.
+#     :param row_translation_px: Will translate each image by this many rows.
+#     :param column_translation_px: Will translate each image by this many
+#         columns.
+#     :param padding_value: Padded pixels will be filled with this value.
+#     :return: translated_image_matrix: Same as input but after translation.
+#     """
+#
+#     transform_object = skimage.transform.AffineTransform(
+#         translation=[column_translation_px, row_translation_px]
+#     )
+#
+#     num_examples = image_matrix.shape[0]
+#     num_channels = image_matrix.shape[3]
+#     translated_image_matrix = image_matrix + 0.
+#
+#     for i in range(num_examples):
+#         for j in range(num_channels):
+#             translated_image_matrix[i, ..., j] = skimage.transform.warp(
+#                 translated_image_matrix[i, ..., j], transform_object.inverse
+#             )
+#
+#     return translated_image_matrix
+
+
 def _translate_images(image_matrix, row_translation_px, column_translation_px,
                       padding_value):
     """Translates set of images in both the x- and y-directions.
@@ -638,7 +664,11 @@ def _augment_data(
     :return: column_translations_low_res_px: Same but for columns.
     """
 
+    import time
+
     # Housekeeping.
+    exec_start_time_unix_sec = time.time()
+
     num_examples_orig = brightness_temp_matrix_kelvins.shape[0]
     num_examples_new = num_examples_orig * num_translations_per_example
 
@@ -704,6 +734,9 @@ def _augment_data(
             numpy.nan
         )
 
+    print(time.time() - exec_start_time_unix_sec)
+    exec_start_time_unix_sec = time.time()
+
     for i in range(num_examples_orig):
         first_index = i * num_translations_per_example
         last_index = first_index + num_translations_per_example
@@ -726,6 +759,8 @@ def _augment_data(
                 padding_value=sentinel_value
             )[0, ...]
 
+    print(time.time() - exec_start_time_unix_sec)
+
     return (
         new_reflectance_matrix, new_bt_matrix_kelvins,
         row_translations_low_res_px, column_translations_low_res_px
@@ -736,7 +771,8 @@ def _write_metafile(
         pickle_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, loss_function_string,
-        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict):
+        plateau_patience_epochs, plateau_learning_rate_multiplier,
+        early_stopping_patience_epochs, bnn_architecture_dict):
     """Writes metadata to Pickle file.
 
     :param pickle_file_name: Path to output file.
@@ -746,8 +782,9 @@ def _write_metafile(
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param loss_function_string: Same.
-    :param do_early_stopping: Same.
-    :param plateau_lr_multiplier: Same.
+    :param plateau_patience_epochs: Same.
+    :param plateau_learning_rate_multiplier: Same.
+    :param early_stopping_patience_epochs: Same.
     :param bnn_architecture_dict: Same.
     """
 
@@ -758,8 +795,9 @@ def _write_metafile(
         NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
         VALIDATION_OPTIONS_KEY: validation_option_dict,
         LOSS_FUNCTION_KEY: loss_function_string,
-        EARLY_STOPPING_KEY: do_early_stopping,
-        PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
+        PLATEAU_PATIENCE_KEY: plateau_patience_epochs,
+        PLATEAU_LR_MUTIPLIER_KEY: plateau_learning_rate_multiplier,
+        EARLY_STOPPING_PATIENCE_KEY: early_stopping_patience_epochs,
         BNN_ARCHITECTURE_KEY: bnn_architecture_dict
     }
 
@@ -1004,7 +1042,8 @@ def train_model(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,
         num_validation_batches_per_epoch, validation_option_dict,
-        loss_function_string, do_early_stopping, plateau_lr_multiplier,
+        loss_function_string, plateau_patience_epochs,
+        plateau_learning_rate_multiplier, early_stopping_patience_epochs,
         bnn_architecture_dict):
     """Trains neural net with generator.
 
@@ -1029,12 +1068,14 @@ def train_model(
 
     :param loss_function_string: Loss function.  This string should be formatted
         such that `eval(loss_function_string)` returns the actual loss function.
-    :param do_early_stopping: Boolean flag.  If True, will stop training early
-        if validation loss has not improved over last several epochs (see
-        constants at top of file for what exactly this means).
-    :param plateau_lr_multiplier: Multiplier for learning rate.  Learning
-        rate will be multiplied by this factor upon plateau in validation
-        performance.
+    :param plateau_patience_epochs: Training will be deemed to have reached
+        "plateau" if validation loss has not decreased in the last N epochs,
+        where N = plateau_patience_epochs.
+    :param plateau_learning_rate_multiplier: If training reaches "plateau,"
+        learning rate will be multiplied by this value in range (0, 1).
+    :param early_stopping_patience_epochs: Training will be stopped early if
+        validation loss has not decreased in the last N epochs, where N =
+        early_stopping_patience_epochs.
     :param bnn_architecture_dict: Dictionary with architecture options for
         Bayesian neural network (BNN).  If the model being trained is not
         Bayesian, make this None.
@@ -1050,11 +1091,12 @@ def train_model(
     error_checking.assert_is_geq(num_training_batches_per_epoch, 2)
     error_checking.assert_is_integer(num_validation_batches_per_epoch)
     error_checking.assert_is_geq(num_validation_batches_per_epoch, 2)
-    error_checking.assert_is_boolean(do_early_stopping)
-
-    if do_early_stopping:
-        error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
-        error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+    error_checking.assert_is_integer(plateau_patience_epochs)
+    error_checking.assert_is_geq(plateau_patience_epochs, 2)
+    error_checking.assert_is_greater(plateau_learning_rate_multiplier, 0.)
+    error_checking.assert_is_less_than(plateau_learning_rate_multiplier, 1.)
+    error_checking.assert_is_integer(early_stopping_patience_epochs)
+    error_checking.assert_is_geq(early_stopping_patience_epochs, 5)
 
     training_option_dict = _check_generator_args(training_option_dict)
 
@@ -1080,21 +1122,19 @@ def train_model(
         filepath=model_file_name, monitor='val_loss', verbose=1,
         save_best_only=True, save_weights_only=False, mode='min', period=1
     )
-    list_of_callback_objects = [history_object, checkpoint_object]
+    early_stopping_object = keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=0.,
+        patience=early_stopping_patience_epochs, verbose=1, mode='min'
+    )
+    plateau_object = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss', factor=plateau_learning_rate_multiplier,
+        patience=plateau_patience_epochs, verbose=1, mode='min',
+        min_delta=0., cooldown=0
+    )
 
-    if do_early_stopping:
-        early_stopping_object = keras.callbacks.EarlyStopping(
-            monitor='val_loss', min_delta=LOSS_PATIENCE,
-            patience=EARLY_STOPPING_PATIENCE_EPOCHS, verbose=1, mode='min'
-        )
-        list_of_callback_objects.append(early_stopping_object)
-
-        plateau_object = keras.callbacks.ReduceLROnPlateau(
-            monitor='val_loss', factor=plateau_lr_multiplier,
-            patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
-            min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
-        )
-        list_of_callback_objects.append(plateau_object)
+    list_of_callback_objects = [
+        history_object, checkpoint_object, early_stopping_object, plateau_object
+    ]
 
     training_generator = data_generator(training_option_dict)
     validation_generator = data_generator(validation_option_dict)
@@ -1111,8 +1151,9 @@ def train_model(
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
         loss_function_string=loss_function_string,
-        do_early_stopping=do_early_stopping,
-        plateau_lr_multiplier=plateau_lr_multiplier,
+        plateau_patience_epochs=plateau_patience_epochs,
+        plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
+        early_stopping_patience_epochs=early_stopping_patience_epochs,
         bnn_architecture_dict=bnn_architecture_dict
     )
 
@@ -1160,8 +1201,9 @@ def read_metafile(pickle_file_name):
     metadata_dict["num_validation_batches_per_epoch"]: Same.
     metadata_dict["validation_option_dict"]: Same.
     metadata_dict["loss_function_string"]: Same.
-    metadata_dict["do_early_stopping"]: Same.
-    metadata_dict["plateau_lr_multiplier"]: Same.
+    metadata_dict["plateau_patience_epochs"]: Same.
+    metadata_dict["plateau_learning_rate_multiplier"]: Same.
+    metadata_dict["early_stopping_patience_epochs"]: Same.
     metadata_dict["bnn_architecture_dict"]: Same.
 
     :raises: ValueError: if any expected key is not found in dictionary.
