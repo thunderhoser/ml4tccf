@@ -14,6 +14,9 @@ import architecture_utils
 import neural_net
 import cnn_architecture
 import custom_losses
+from tensorflow.config.experimental import list_physical_devices, set_memory_growth
+physical_devices = list_physical_devices('GPU')
+set_memory_growth(physical_devices[0], True)
 
 OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_KEY:
