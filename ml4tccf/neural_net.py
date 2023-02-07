@@ -2,9 +2,13 @@
 
 import os
 import sys
+import copy
 import random
+import pickle
 import numpy
 import xarray
+import keras
+import tensorflow.keras as tf_keras
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -12,10 +16,23 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import time_conversion
+import file_system_utils
 import error_checking
 import satellite_io
 import misc_utils
 import satellite_utils
+import custom_losses
+
+METRIC_FUNCTION_LIST = [
+    custom_losses.mean_distance_kilometres(),
+    custom_losses.mean_squared_distance_kilometres()
+]
+
+METRIC_FUNCTION_DICT = {
+    'mean_distance_kilometres': custom_losses.mean_distance_kilometres(),
+    'mean_squared_distance_kilometres':
+        custom_losses.mean_squared_distance_kilometres()
+}
 
 METRES_TO_KM = 0.001
 MINUTES_TO_SECONDS = 60
@@ -61,6 +78,22 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     MAX_INTERP_GAP_KEY: 0,
     SENTINEL_VALUE_KEY: -10.
 }
+
+NUM_EPOCHS_KEY = 'num_epochs'
+NUM_TRAINING_BATCHES_KEY = 'num_training_batches_per_epoch'
+TRAINING_OPTIONS_KEY = 'training_option_dict'
+NUM_VALIDATION_BATCHES_KEY = 'num_validation_batches_per_epoch'
+VALIDATION_OPTIONS_KEY = 'validation_option_dict'
+LOSS_FUNCTION_KEY = 'loss_function_string'
+EARLY_STOPPING_KEY = 'do_early_stopping'
+PLATEAU_LR_MUTIPLIER_KEY = 'plateau_lr_multiplier'
+BNN_ARCHITECTURE_KEY = 'bnn_architecture_dict'
+
+METADATA_KEYS = [
+    NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
+    NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY, LOSS_FUNCTION_KEY,
+    EARLY_STOPPING_KEY, PLATEAU_LR_MUTIPLIER_KEY, BNN_ARCHITECTURE_KEY
+]
 
 
 def _get_random_signs(array_length):
@@ -706,6 +739,44 @@ def _augment_data(
     )
 
 
+def _write_metafile(
+        pickle_file_name, num_epochs, num_training_batches_per_epoch,
+        training_option_dict, num_validation_batches_per_epoch,
+        validation_option_dict, loss_function_string,
+        do_early_stopping, plateau_lr_multiplier, bnn_architecture_dict):
+    """Writes metadata to Pickle file.
+
+    :param pickle_file_name: Path to output file.
+    :param num_epochs: See doc for `train_model`.
+    :param num_training_batches_per_epoch: Same.
+    :param training_option_dict: Same.
+    :param num_validation_batches_per_epoch: Same.
+    :param validation_option_dict: Same.
+    :param loss_function_string: Same.
+    :param do_early_stopping: Same.
+    :param plateau_lr_multiplier: Same.
+    :param bnn_architecture_dict: Same.
+    """
+
+    metadata_dict = {
+        NUM_EPOCHS_KEY: num_epochs,
+        NUM_TRAINING_BATCHES_KEY: num_training_batches_per_epoch,
+        TRAINING_OPTIONS_KEY: training_option_dict,
+        NUM_VALIDATION_BATCHES_KEY: num_validation_batches_per_epoch,
+        VALIDATION_OPTIONS_KEY: validation_option_dict,
+        LOSS_FUNCTION_KEY: loss_function_string,
+        EARLY_STOPPING_KEY: do_early_stopping,
+        PLATEAU_LR_MUTIPLIER_KEY: plateau_lr_multiplier,
+        BNN_ARCHITECTURE_KEY: bnn_architecture_dict
+    }
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
+
+    pickle_file_handle = open(pickle_file_name, 'wb')
+    pickle.dump(metadata_dict, pickle_file_handle)
+    pickle_file_handle.close()
+
+
 def data_generator(option_dict):
     """Generates input data for neural net.
 
@@ -934,3 +1005,227 @@ def data_generator(option_dict):
         )))
 
         yield predictor_matrices, target_matrix_low_res_px
+
+
+def train_model(
+        model_object, output_dir_name, num_epochs,
+        num_training_batches_per_epoch, training_option_dict,
+        num_validation_batches_per_epoch, validation_option_dict,
+        loss_function_string, do_early_stopping, plateau_lr_multiplier,
+        bnn_architecture_dict):
+    """Trains neural net with generator.
+
+    :param model_object: Untrained neural net (instance of `keras.models.Model`
+        or `keras.models.Sequential`).
+    :param output_dir_name: Path to output directory (model and training history
+        will be saved here).
+    :param num_epochs: Number of training epochs.
+    :param num_training_batches_per_epoch: Number of training batches per epoch.
+    :param training_option_dict: See doc for `data_generator`.  This dictionary
+        will be used to generate training data.
+    :param num_validation_batches_per_epoch: Number of validation batches per
+        epoch.
+    :param validation_option_dict: See doc for `data_generator`.  For validation
+        only, the following values will replace corresponding values in
+        `training_option_dict`:
+    validation_option_dict["satellite_dir_name"]
+    validation_option_dict["years"]
+    validation_option_dict["lag_time_tolerance_sec"]
+    validation_option_dict["max_num_missing_lag_times"]
+    validation_option_dict["max_interp_gap_sec"]
+
+    :param loss_function_string: Loss function.  This string should be formatted
+        such that `eval(loss_function_string)` returns the actual loss function.
+    :param do_early_stopping: Boolean flag.  If True, will stop training early
+        if validation loss has not improved over last several epochs (see
+        constants at top of file for what exactly this means).
+    :param plateau_lr_multiplier: Multiplier for learning rate.  Learning
+        rate will be multiplied by this factor upon plateau in validation
+        performance.
+    :param bnn_architecture_dict: Dictionary with architecture options for
+        Bayesian neural network (BNN).  If the model being trained is not
+        Bayesian, make this None.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
+    error_checking.assert_is_integer(num_epochs)
+    error_checking.assert_is_geq(num_epochs, 2)
+    error_checking.assert_is_integer(num_training_batches_per_epoch)
+    error_checking.assert_is_geq(num_training_batches_per_epoch, 2)
+    error_checking.assert_is_integer(num_validation_batches_per_epoch)
+    error_checking.assert_is_geq(num_validation_batches_per_epoch, 2)
+    error_checking.assert_is_boolean(do_early_stopping)
+
+    if do_early_stopping:
+        error_checking.assert_is_greater(plateau_lr_multiplier, 0.)
+        error_checking.assert_is_less_than(plateau_lr_multiplier, 1.)
+
+    training_option_dict = _check_generator_args(training_option_dict)
+
+    # TODO(thunderhoser): Maybe I should just max out the last 3 arguments and
+    # not let the user set them.
+    validation_keys_to_keep = [
+        SATELLITE_DIRECTORY_KEY, YEARS_KEY,
+        LAG_TIME_TOLERANCE_KEY, MAX_MISSING_LAG_TIMES_KEY, MAX_INTERP_GAP_KEY
+    ]
+    for this_key in list(training_option_dict.keys()):
+        if this_key in validation_keys_to_keep:
+            continue
+
+        validation_option_dict[this_key] = training_option_dict[this_key]
+
+    model_file_name = '{0:s}/model.h5'.format(output_dir_name)
+
+    history_object = keras.callbacks.CSVLogger(
+        filename='{0:s}/history.csv'.format(output_dir_name),
+        separator=',', append=False
+    )
+    checkpoint_object = keras.callbacks.ModelCheckpoint(
+        filepath=model_file_name, monitor='val_loss', verbose=1,
+        save_best_only=True, save_weights_only=False, mode='min', period=1
+    )
+    list_of_callback_objects = [history_object, checkpoint_object]
+
+    if do_early_stopping:
+        early_stopping_object = keras.callbacks.EarlyStopping(
+            monitor='val_loss', min_delta=LOSS_PATIENCE,
+            patience=EARLY_STOPPING_PATIENCE_EPOCHS, verbose=1, mode='min'
+        )
+        list_of_callback_objects.append(early_stopping_object)
+
+        plateau_object = keras.callbacks.ReduceLROnPlateau(
+            monitor='val_loss', factor=plateau_lr_multiplier,
+            patience=PLATEAU_PATIENCE_EPOCHS, verbose=1, mode='min',
+            min_delta=LOSS_PATIENCE, cooldown=PLATEAU_COOLDOWN_EPOCHS
+        )
+        list_of_callback_objects.append(plateau_object)
+
+    training_generator = data_generator(training_option_dict)
+    validation_generator = data_generator(validation_option_dict)
+
+    metafile_name = find_metafile(
+        model_dir_name=output_dir_name, raise_error_if_missing=False
+    )
+    print('Writing metadata to: "{0:s}"...'.format(metafile_name))
+
+    _write_metafile(
+        pickle_file_name=metafile_name, num_epochs=num_epochs,
+        num_training_batches_per_epoch=num_training_batches_per_epoch,
+        training_option_dict=training_option_dict,
+        num_validation_batches_per_epoch=num_validation_batches_per_epoch,
+        validation_option_dict=validation_option_dict,
+        loss_function_string=loss_function_string,
+        do_early_stopping=do_early_stopping,
+        plateau_lr_multiplier=plateau_lr_multiplier,
+        bnn_architecture_dict=bnn_architecture_dict
+    )
+
+    model_object.fit_generator(
+        generator=training_generator,
+        steps_per_epoch=num_training_batches_per_epoch,
+        epochs=num_epochs, verbose=1, callbacks=list_of_callback_objects,
+        validation_data=validation_generator,
+        validation_steps=num_validation_batches_per_epoch
+    )
+
+
+def find_metafile(model_dir_name, raise_error_if_missing=True):
+    """Finds metafile for neural net.
+
+    :param model_dir_name: Name of model directory.
+    :param raise_error_if_missing: Boolean flag.  If file is missing and
+        `raise_error_if_missing == True`, will throw error.  If file is missing
+        and `raise_error_if_missing == False`, will return *expected* file path.
+    :return: metafile_name: Path to metafile.
+    """
+
+    error_checking.assert_is_string(model_dir_name)
+    error_checking.assert_is_boolean(raise_error_if_missing)
+
+    metafile_name = '{0:s}/model_metadata.p'.format(model_dir_name)
+
+    if raise_error_if_missing and not os.path.isfile(metafile_name):
+        error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
+            metafile_name
+        )
+        raise ValueError(error_string)
+
+    return metafile_name
+
+
+def read_metafile(pickle_file_name):
+    """Reads metadata from Pickle file.
+
+    :param pickle_file_name: Path to input file.
+    :return: metadata_dict: Dictionary with the following keys.
+    metadata_dict["num_epochs"]: See doc for `train_model`.
+    metadata_dict["num_training_batches_per_epoch"]: Same.
+    metadata_dict["training_option_dict"]: Same.
+    metadata_dict["num_validation_batches_per_epoch"]: Same.
+    metadata_dict["validation_option_dict"]: Same.
+    metadata_dict["loss_function_string"]: Same.
+    metadata_dict["do_early_stopping"]: Same.
+    metadata_dict["plateau_lr_multiplier"]: Same.
+    metadata_dict["bnn_architecture_dict"]: Same.
+
+    :raises: ValueError: if any expected key is not found in dictionary.
+    """
+
+    error_checking.assert_file_exists(pickle_file_name)
+
+    pickle_file_handle = open(pickle_file_name, 'rb')
+    metadata_dict = pickle.load(pickle_file_handle)
+    pickle_file_handle.close()
+
+    missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
+    if len(missing_keys) == 0:
+        return metadata_dict
+
+    error_string = (
+        '\n{0:s}\nKeys listed above were expected, but not found, in file '
+        '"{1:s}".'
+    ).format(str(missing_keys), pickle_file_name)
+
+    raise ValueError(error_string)
+
+
+def read_model(hdf5_file_name):
+    """Reads model from HDF5 file.
+
+    :param hdf5_file_name: Path to input file.
+    :return: model_object: Instance of `keras.models.Model` or
+        `keras.models.Sequential`.
+    """
+
+    error_checking.assert_file_exists(hdf5_file_name)
+
+    metafile_name = find_metafile(
+        model_dir_name=os.path.split(hdf5_file_name)[0],
+        raise_error_if_missing=True
+    )
+    metadata_dict = read_metafile(metafile_name)
+    bnn_architecture_dict = metadata_dict[BNN_ARCHITECTURE_KEY]
+
+    if bnn_architecture_dict is not None:
+        from ml4tccf.machine_learning import cnn_architecture_bayesian
+
+        for this_key in [cnn_architecture_bayesian.LOSS_FUNCTION_KEY]:
+            bnn_architecture_dict[this_key] = eval(
+                bnn_architecture_dict[this_key]
+            )
+
+        model_object = cnn_architecture_bayesian.create_model(
+            bnn_architecture_dict
+        )
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
+    custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
+    custom_object_dict['loss'] = eval(metadata_dict[LOSS_FUNCTION_KEY])
+
+    return tf_keras.models.load_model(
+        hdf5_file_name, custom_objects=custom_object_dict
+    )
