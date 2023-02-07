@@ -24,20 +24,20 @@ import satellite_utils
 import custom_losses
 
 METRIC_FUNCTION_LIST = [
-    custom_losses.mean_distance_kilometres(),
-    custom_losses.mean_squared_distance_kilometres2(),
-    custom_losses.mean_prediction(),
-    custom_losses.mean_target(),
-    custom_losses.mean_grid_spacing_kilometres()
+    custom_losses.mean_distance_kilometres,
+    custom_losses.mean_squared_distance_kilometres2,
+    custom_losses.mean_prediction,
+    custom_losses.mean_target,
+    custom_losses.mean_grid_spacing_kilometres
 ]
 
 METRIC_FUNCTION_DICT = {
-    'mean_distance_kilometres': custom_losses.mean_distance_kilometres(),
+    'mean_distance_kilometres': custom_losses.mean_distance_kilometres,
     'mean_squared_distance_kilometres2':
-        custom_losses.mean_squared_distance_kilometres2(),
-    'mean_prediction': custom_losses.mean_prediction(),
-    'mean_target': custom_losses.mean_target(),
-    'mean_grid_spacing_kilometres': custom_losses.mean_grid_spacing_kilometres()
+        custom_losses.mean_squared_distance_kilometres2,
+    'mean_prediction': custom_losses.mean_prediction,
+    'mean_target': custom_losses.mean_target,
+    'mean_grid_spacing_kilometres': custom_losses.mean_grid_spacing_kilometres
 }
 
 METRES_TO_KM = 0.001
