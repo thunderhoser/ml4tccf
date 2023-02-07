@@ -15,30 +15,31 @@ import architecture_utils
 import neural_net
 import cnn_architecture
 import custom_losses
-from tensorflow.config.experimental import list_physical_devices, set_memory_growth
-gpus = list_physical_devices('GPU')
-if gpus:
-    try:
-        # Currently, memory growth needs to be the same across GPUs
-        for gpu in gpus:
-            tensorflow.config.experimental.set_memory_growth(gpu, True)
-        logical_gpus = tensorflow.config.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        # Memory growth must be set before GPUs have been initialized
-        print(e)
+
+# from tensorflow.config.experimental import list_physical_devices, set_memory_growth
+# gpus = list_physical_devices('GPU')
+# if gpus:
+#     try:
+#         # Currently, memory growth needs to be the same across GPUs
+#         for gpu in gpus:
+#             tensorflow.config.experimental.set_memory_growth(gpu, True)
+#         logical_gpus = tensorflow.config.list_logical_devices('GPU')
+#         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+#     except RuntimeError as e:
+#         # Memory growth must be set before GPUs have been initialized
+#         print(e)
 
 OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_KEY:
-        numpy.array([300, 300, 7], dtype=int),
+        numpy.array([600, 600, 7], dtype=int),
     cnn_architecture.INCLUDE_HIGH_RES_KEY: True,
-    cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(11, 2, dtype=int),
+    cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(9, 2, dtype=int),
     cnn_architecture.NUM_CHANNELS_KEY: numpy.array([
         2, 2, 4, 4, 16, 16,
         20, 20, 24, 24, 28, 28, 32, 32, 36, 36,
-        40, 40, 44, 44, 48, 48
+        40, 40
     ], dtype=int),
-    cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(22, 0.),
+    cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(18, 0.),
     cnn_architecture.NUM_NEURONS_KEY:
         numpy.array([1024, 128, 100, 100], dtype=int),
     cnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
