@@ -3,6 +3,7 @@
 import os
 import sys
 import numpy
+import tensorflow
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -15,8 +16,17 @@ import neural_net
 import cnn_architecture
 import custom_losses
 from tensorflow.config.experimental import list_physical_devices, set_memory_growth
-physical_devices = list_physical_devices('GPU')
-set_memory_growth(physical_devices[0], True)
+gpus = list_physical_devices('GPU')
+if gpus:
+    try:
+        # Currently, memory growth needs to be the same across GPUs
+        for gpu in gpus:
+            tensorflow.config.experimental.set_memory_growth(gpu, True)
+        logical_gpus = tensorflow.config.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # Memory growth must be set before GPUs have been initialized
+        print(e)
 
 OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_KEY:
