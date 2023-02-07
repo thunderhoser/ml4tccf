@@ -1056,6 +1056,19 @@ def data_generator(option_dict):
             grid_spacings_km
         )))
 
+        print('Is any predictor NaN? {0:s}'.format(
+            'YES' if any([numpy.any(numpy.isnan(p))] for p in predictor_matrices)
+            else 'NO'
+        ))
+        print('Is any target NaN? {0:s}'.format(
+            'YES' if numpy.any(numpy.isnan(target_matrix_low_res_px[:, :2]))
+            else 'NO'
+        ))
+        print('Is any grid spacing NaN? {0:s}'.format(
+            'YES' if numpy.any(numpy.isnan(target_matrix_low_res_px[:, 2]))
+            else 'NO'
+        ))
+
         yield predictor_matrices, target_matrix_low_res_px
 
 
