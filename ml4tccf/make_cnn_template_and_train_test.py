@@ -17,13 +17,13 @@ import custom_losses
 
 OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_KEY:
-        numpy.array([626, 626, 7], dtype=int),
+        numpy.array([300, 300, 7], dtype=int),
     cnn_architecture.INCLUDE_HIGH_RES_KEY: True,
     cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(11, 2, dtype=int),
     cnn_architecture.NUM_CHANNELS_KEY: numpy.array([
         2, 2, 4, 4, 16, 16,
-        20, 20, 24, 24, 32, 32, 40, 40, 48, 48,
-        64, 64, 80, 80, 96, 96
+        20, 20, 24, 24, 28, 28, 32, 32, 36, 36,
+        40, 40, 44, 44, 48, 48
     ], dtype=int),
     cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(22, 0.),
     cnn_architecture.NUM_NEURONS_KEY:
