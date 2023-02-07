@@ -14,6 +14,31 @@ def mean_prediction(target_tensor, prediction_tensor):
     return K.mean(prediction_tensor)
 
 
+def mean_predictive_stdev(target_tensor, prediction_tensor):
+    """Computes mean standard deviation of predictive distribution.
+
+    :param target_tensor: See doc for `mean_squared_distance_kilometres2`.
+    :param prediction_tensor: Same.
+    :return: mean_predictive_stdev: Mean stdev of predictive distribution.
+    """
+
+    return K.mean(K.std(prediction_tensor, axis=-1))
+
+
+def mean_predictive_range(target_tensor, prediction_tensor):
+    """Computes mean range (max less min) of predictive distribution.
+
+    :param target_tensor: See doc for `mean_squared_distance_kilometres2`.
+    :param prediction_tensor: Same.
+    :return: mean_predictive_range: Mean range of predictive distribution.
+    """
+
+    return K.mean(
+        K.max(prediction_tensor, axis=-1) -
+        K.min(prediction_tensor, axis=-1)
+    )
+
+
 def mean_target(target_tensor, prediction_tensor):
     """Computes mean target value.
 

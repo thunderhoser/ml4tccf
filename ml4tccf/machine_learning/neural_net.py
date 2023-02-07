@@ -20,6 +20,8 @@ METRIC_FUNCTION_LIST = [
     custom_losses.mean_distance_kilometres,
     custom_losses.mean_squared_distance_kilometres2,
     custom_losses.mean_prediction,
+    custom_losses.mean_predictive_stdev,
+    custom_losses.mean_predictive_range,
     custom_losses.mean_target,
     custom_losses.mean_grid_spacing_kilometres
 ]
@@ -29,6 +31,8 @@ METRIC_FUNCTION_DICT = {
     'mean_squared_distance_kilometres2':
         custom_losses.mean_squared_distance_kilometres2,
     'mean_prediction': custom_losses.mean_prediction,
+    'mean_predictive_stdev': custom_losses.mean_predictive_stdev,
+    'mean_predictive_range': custom_losses.mean_predictive_range,
     'mean_target': custom_losses.mean_target,
     'mean_grid_spacing_kilometres': custom_losses.mean_grid_spacing_kilometres
 }
@@ -956,18 +960,6 @@ def data_generator(option_dict):
             if this_bt_matrix_kelvins.size == 0:
                 continue
 
-            print('Is any brightness temperature NaN? {0:s}'.format(
-                'YES' if numpy.any(numpy.isnan(this_bt_matrix_kelvins))
-                else 'NO'
-            ))
-            print((
-                'Min/mean/max grid spacing (km) = {0:.2f}/{1:.2f}/{2:.2f}'
-            ).format(
-                numpy.min(these_grid_spacings_km),
-                numpy.mean(these_grid_spacings_km),
-                numpy.max(these_grid_spacings_km)
-            ))
-
             these_dim = this_bt_matrix_kelvins.shape[:-2] + (
                 numpy.prod(this_bt_matrix_kelvins.shape[-2:]),
             )
@@ -976,11 +968,6 @@ def data_generator(option_dict):
             )
 
             if this_reflectance_matrix is not None:
-                print('Is any bidirectional reflectance NaN? {0:s}'.format(
-                    'YES' if numpy.any(numpy.isnan(this_reflectance_matrix))
-                    else 'NO'
-                ))
-
                 these_dim = this_reflectance_matrix.shape[:-2] + (
                     numpy.prod(this_reflectance_matrix.shape[-2:]),
                 )
