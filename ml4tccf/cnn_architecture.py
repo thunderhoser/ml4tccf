@@ -269,6 +269,8 @@ def create_model(option_dict):
         layer_object = keras.layers.Concatenate(axis=-1)([
             layer_object, input_layer_object_low_res
         ])
+    else:
+        layer_object = input_layer_object_low_res
 
     num_conv_blocks = len(num_conv_layers_by_block)
     start_index = 2 if include_high_res_data else 0
@@ -278,24 +280,14 @@ def create_model(option_dict):
             layer_index += 1
             k = layer_index
 
-            if include_high_res_data:
-                layer_object = architecture_utils.get_2d_conv_layer(
-                    num_kernel_rows=3, num_kernel_columns=3,
-                    num_rows_per_stride=1, num_columns_per_stride=1,
-                    num_filters=num_channels_by_conv_layer[k],
-                    padding_type_string=
-                    architecture_utils.YES_PADDING_STRING,
-                    weight_regularizer=l2_function
-                )(layer_object)
-            else:
-                layer_object = architecture_utils.get_2d_conv_layer(
-                    num_kernel_rows=3, num_kernel_columns=3,
-                    num_rows_per_stride=1, num_columns_per_stride=1,
-                    num_filters=num_channels_by_conv_layer[k],
-                    padding_type_string=
-                    architecture_utils.YES_PADDING_STRING,
-                    weight_regularizer=l2_function
-                )(input_layer_object_low_res)
+            layer_object = architecture_utils.get_2d_conv_layer(
+                num_kernel_rows=3, num_kernel_columns=3,
+                num_rows_per_stride=1, num_columns_per_stride=1,
+                num_filters=num_channels_by_conv_layer[k],
+                padding_type_string=
+                architecture_utils.YES_PADDING_STRING,
+                weight_regularizer=l2_function
+            )(layer_object)
 
             layer_object = architecture_utils.get_activation_layer(
                 activation_function_string=inner_activ_function_name,
