@@ -1057,7 +1057,7 @@ def data_generator(option_dict):
 
         print('GENERATOR SHAPES')
         print(predictor_matrices[0].shape)
-        print(predictor_matrices[1].shape)
+        print(predictor_matrices[-1].shape)
         print(target_matrix_low_res_px.shape)
 
         yield predictor_matrices, target_matrix_low_res_px
