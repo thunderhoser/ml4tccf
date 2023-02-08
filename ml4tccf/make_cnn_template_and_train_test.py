@@ -27,7 +27,7 @@ OPTION_DICT = {
     ], dtype=int),
     cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(14, 0.),
     cnn_architecture.NUM_NEURONS_KEY:
-        numpy.array([1024, 128, 18, 2], dtype=int),
+        numpy.array([1024, 128, 18, 10], dtype=int),
     cnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.25, 0.25, 0.25, 0]),
     cnn_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
