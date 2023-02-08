@@ -419,12 +419,13 @@ def _read_satellite_data_one_cyclone(
                 for_high_res=False
             )
 
-            orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
-                satellite_table_xarray=orig_satellite_tables_xarray[i],
-                num_rows_to_keep=4 * num_rows_low_res,
-                num_columns_to_keep=4 * num_columns_low_res,
-                for_high_res=True
-            )
+            if len(high_res_wavelengths_microns) > 0:
+                orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
+                    satellite_table_xarray=orig_satellite_tables_xarray[i],
+                    num_rows_to_keep=4 * num_rows_low_res,
+                    num_columns_to_keep=4 * num_columns_low_res,
+                    for_high_res=True
+                )
 
         orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
             satellite_table_xarray=orig_satellite_tables_xarray[i],
@@ -432,11 +433,12 @@ def _read_satellite_data_one_cyclone(
             for_high_res=False
         )
 
-        orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
-            satellite_table_xarray=orig_satellite_tables_xarray[i],
-            wavelengths_to_keep_microns=high_res_wavelengths_microns,
-            for_high_res=True
-        )
+        if len(high_res_wavelengths_microns) > 0:
+            orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
+                satellite_table_xarray=orig_satellite_tables_xarray[i],
+                wavelengths_to_keep_microns=high_res_wavelengths_microns,
+                for_high_res=True
+            )
 
     satellite_table_xarray = satellite_utils.concat_over_time(
         orig_satellite_tables_xarray
