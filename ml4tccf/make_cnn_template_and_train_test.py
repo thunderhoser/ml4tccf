@@ -3,7 +3,6 @@
 import os
 import sys
 import numpy
-# import tensorflow
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -16,41 +15,26 @@ import neural_net
 import cnn_architecture
 import custom_losses
 
-# from tensorflow.config.experimental import list_physical_devices, set_memory_growth
-# gpus = list_physical_devices('GPU')
-# if gpus:
-#     try:
-#         # Currently, memory growth needs to be the same across GPUs
-#         for gpu in gpus:
-#             tensorflow.config.experimental.set_memory_growth(gpu, True)
-#         logical_gpus = tensorflow.config.list_logical_devices('GPU')
-#         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-#     except RuntimeError as e:
-#         # Memory growth must be set before GPUs have been initialized
-#         print(e)
-
 OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
-        numpy.array([300, 300, 6], dtype=int),
+        numpy.array([600, 600, 10], dtype=int),
     cnn_architecture.INPUT_DIMENSIONS_HIGH_RES_KEY:
         numpy.array([1200, 1200, 3], dtype=int),
-    cnn_architecture.INCLUDE_HIGH_RES_KEY: True,
-    cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(9, 2, dtype=int),
+    cnn_architecture.INCLUDE_HIGH_RES_KEY: False,
+    cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(7, 2, dtype=int),
     cnn_architecture.NUM_CHANNELS_KEY: numpy.array([
-        4, 4, 8, 8,
-        16, 16,
-        18, 18, 20, 20, 22, 22, 24, 24, 26, 26, 28, 28
+        16, 16, 20, 20, 24, 24, 28, 28, 32, 32, 36, 36, 40, 40
     ], dtype=int),
-    cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(18, 0.),
+    cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(14, 0.),
     cnn_architecture.NUM_NEURONS_KEY:
-        numpy.array([1024, 128, 100, 100], dtype=int),
-    cnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
+        numpy.array([1024, 128, 18, 2], dtype=int),
+    cnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.25, 0.25, 0.25, 0]),
     cnn_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
     cnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    cnn_architecture.L2_WEIGHT_KEY: 1e-6,
+    cnn_architecture.L2_WEIGHT_KEY: 1e-7,
     cnn_architecture.USE_BATCH_NORM_KEY: True,
-    cnn_architecture.ENSEMBLE_SIZE_KEY: 50,
+    cnn_architecture.ENSEMBLE_SIZE_KEY: 1,
     cnn_architecture.LOSS_FUNCTION_KEY: custom_losses.mean_squared_distance_kilometres2
 }
 
@@ -79,13 +63,13 @@ SENTINEL_VALUE_KEY = 'sentinel_value'
 TRAINING_OPTION_DICT = {
     SATELLITE_DIRECTORY_KEY: '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed',
     YEARS_KEY: numpy.array([2021], dtype=int),
-    LAG_TIMES_KEY: numpy.array([0, 30, 60], dtype=int),
+    LAG_TIMES_KEY: numpy.array([0], dtype=int),
     HIGH_RES_WAVELENGTHS_KEY: numpy.array([0.64]),
-    LOW_RES_WAVELENGTHS_KEY: numpy.array([3.9, 13.3]),
-    BATCH_SIZE_KEY: 4,
+    LOW_RES_WAVELENGTHS_KEY: numpy.array([3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3]),
+    BATCH_SIZE_KEY: 8,
     MAX_EXAMPLES_PER_CYCLONE_KEY: 2,
-    NUM_GRID_ROWS_KEY: 300,
-    NUM_GRID_COLUMNS_KEY: 300,
+    NUM_GRID_ROWS_KEY: 600,
+    NUM_GRID_COLUMNS_KEY: 600,
     DATA_AUG_NUM_TRANS_KEY: 8,
     DATA_AUG_MEAN_TRANS_KEY: 15.,
     DATA_AUG_STDEV_TRANS_KEY: 7.5,
@@ -123,9 +107,9 @@ def _run():
     neural_net.train_model(
         model_object=model_object,
         output_dir_name=OUTPUT_DIR_NAME, num_epochs=10,
-        num_training_batches_per_epoch=3,
+        num_training_batches_per_epoch=32,
         training_option_dict=TRAINING_OPTION_DICT,
-        num_validation_batches_per_epoch=3,
+        num_validation_batches_per_epoch=16,
         validation_option_dict=VALIDATION_OPTION_DICT,
         loss_function_string='custom_losses.mean_squared_distance_kilometres2',
         plateau_patience_epochs=10,
