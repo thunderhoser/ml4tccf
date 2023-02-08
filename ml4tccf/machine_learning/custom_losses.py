@@ -159,3 +159,68 @@ def crps_kilometres(target_tensor, prediction_tensor):
     return K.mean(
         mean_error_tensor_km - 0.5 * mean_prediction_diff_tensor_km
     )
+
+
+def crps_part1(target_tensor, prediction_tensor):
+    prediction_diff_tensor = K.abs(
+        K.expand_dims(prediction_tensor, axis=-1) -
+        K.expand_dims(prediction_tensor, axis=-2)
+    )
+
+    return K.mean(prediction_diff_tensor)
+
+
+def crps_part2(target_tensor, prediction_tensor):
+    prediction_diff_tensor = K.abs(
+        K.expand_dims(prediction_tensor, axis=-1) -
+        K.expand_dims(prediction_tensor, axis=-2)
+    )
+
+    all_rowcol_diff_tensor = K.sqrt(
+        prediction_diff_tensor[:, 0, ...] ** 2
+        + prediction_diff_tensor[:, 1, ...] ** 2
+    )
+
+    return K.mean(all_rowcol_diff_tensor)
+
+
+def crps_part3(target_tensor, prediction_tensor):
+    prediction_diff_tensor = K.abs(
+        K.expand_dims(prediction_tensor, axis=-1) -
+        K.expand_dims(prediction_tensor, axis=-2)
+    )
+
+    all_rowcol_diff_tensor = K.sqrt(
+        prediction_diff_tensor[:, 0, ...] ** 2
+        + prediction_diff_tensor[:, 1, ...] ** 2
+    )
+
+    all_diff_tensor_km = (
+        K.expand_dims(K.expand_dims(target_tensor[:, 2], axis=-1), axis=-1)
+        * all_rowcol_diff_tensor
+    )
+
+    return K.mean(all_diff_tensor_km)
+
+
+def crps_part4(target_tensor, prediction_tensor):
+    prediction_diff_tensor = K.abs(
+        K.expand_dims(prediction_tensor, axis=-1) -
+        K.expand_dims(prediction_tensor, axis=-2)
+    )
+
+    all_rowcol_diff_tensor = K.sqrt(
+        prediction_diff_tensor[:, 0, ...] ** 2
+        + prediction_diff_tensor[:, 1, ...] ** 2
+    )
+
+    all_diff_tensor_km = (
+        K.expand_dims(K.expand_dims(target_tensor[:, 2], axis=-1), axis=-1)
+        * all_rowcol_diff_tensor
+    )
+
+    mean_prediction_diff_tensor_km = K.mean(
+        all_diff_tensor_km, axis=(-2, -1)
+    )
+
+    return K.mean(mean_prediction_diff_tensor_km)

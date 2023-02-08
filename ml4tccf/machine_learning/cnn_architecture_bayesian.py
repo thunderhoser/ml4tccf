@@ -297,19 +297,19 @@ def create_model(option_dict):
         layer_object = keras.layers.Concatenate(axis=-1)([
             layer_object, input_layer_object_low_res
         ])
+    else:
+        layer_object = input_layer_object_low_res
 
     num_conv_blocks = len(num_conv_layers_by_block)
+    start_index = 2 if include_high_res_data else 0
 
-    for block_index in range(2, num_conv_blocks):
+    for block_index in range(start_index, num_conv_blocks):
         for _ in range(num_conv_layers_by_block[block_index]):
             layer_index += 1
             k = layer_index
 
             layer_object = _get_2d_conv_layer(
-                previous_layer_object=(
-                    layer_object if include_high_res_data
-                    else input_layer_object_low_res
-                ),
+                previous_layer_object=layer_object,
                 layer_type_string=conv_layer_type_strings[k],
                 num_filters=num_channels_by_conv_layer[k],
                 weight_regularizer=l2_function,

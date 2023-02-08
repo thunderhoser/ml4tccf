@@ -23,7 +23,12 @@ METRIC_FUNCTION_LIST = [
     custom_losses.mean_predictive_stdev,
     custom_losses.mean_predictive_range,
     custom_losses.mean_target,
-    custom_losses.mean_grid_spacing_kilometres
+    custom_losses.mean_grid_spacing_kilometres,
+    custom_losses.crps_part1,
+    custom_losses.crps_part2,
+    custom_losses.crps_part3,
+    custom_losses.crps_part4,
+    custom_losses.crps_kilometres
 ]
 
 METRIC_FUNCTION_DICT = {
@@ -34,7 +39,12 @@ METRIC_FUNCTION_DICT = {
     'mean_predictive_stdev': custom_losses.mean_predictive_stdev,
     'mean_predictive_range': custom_losses.mean_predictive_range,
     'mean_target': custom_losses.mean_target,
-    'mean_grid_spacing_kilometres': custom_losses.mean_grid_spacing_kilometres
+    'mean_grid_spacing_kilometres': custom_losses.mean_grid_spacing_kilometres,
+    'crps_part1': custom_losses.crps_part1,
+    'crps_part2': custom_losses.crps_part2,
+    'crps_part3': custom_losses.crps_part3,
+    'crps_part4': custom_losses.crps_part4,
+    'crps_kilometres': custom_losses.crps_kilometres
 }
 
 METRES_TO_KM = 0.001
