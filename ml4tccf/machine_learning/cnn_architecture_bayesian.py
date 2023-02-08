@@ -370,16 +370,15 @@ def create_model(option_dict):
                 layer_object
             )
 
-    if ensemble_size > 1:
-        num_target_vars = float(num_neurons_by_dense_layer[-1]) / ensemble_size
-        assert numpy.isclose(
-            num_target_vars, numpy.round(num_target_vars), atol=1e-6
-        )
+    num_target_vars = float(num_neurons_by_dense_layer[-1]) / ensemble_size
+    assert numpy.isclose(
+        num_target_vars, numpy.round(num_target_vars), atol=1e-6
+    )
 
-        num_target_vars = int(numpy.round(num_target_vars))
-        layer_object = keras.layers.Reshape(
-            target_shape=(num_target_vars, ensemble_size)
-        )(layer_object)
+    num_target_vars = int(numpy.round(num_target_vars))
+    layer_object = keras.layers.Reshape(
+        target_shape=(num_target_vars, ensemble_size)
+    )(layer_object)
 
     if include_high_res_data:
         input_layer_objects = [
