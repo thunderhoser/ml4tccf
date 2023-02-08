@@ -190,7 +190,6 @@ def create_model(option_dict):
     option_dict = check_input_args(option_dict)
 
     input_dimensions_low_res = option_dict[INPUT_DIMENSIONS_LOW_RES_KEY]
-    input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
     include_high_res_data = option_dict[INCLUDE_HIGH_RES_KEY]
     num_conv_layers_by_block = option_dict[NUM_CONV_LAYERS_KEY]
     num_channels_by_conv_layer = option_dict[NUM_CHANNELS_KEY]
@@ -209,6 +208,8 @@ def create_model(option_dict):
     )
 
     if include_high_res_data:
+        input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
+
         input_layer_object_high_res = keras.layers.Input(
             shape=tuple(input_dimensions_high_res.tolist())
         )
