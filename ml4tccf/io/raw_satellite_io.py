@@ -233,6 +233,13 @@ def read_file(satellite_file_name, is_high_res):
         longitudes_deg=orig_satellite_table_xarray[LONGITUDE_KEY].values,
         allow_nan=False
     )
+
+    # TODO(thunderhoser): I need to think about this choice some more.
+    if not numpy.all(numpy.diff(longitudes_deg_e) > 0):
+        longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+            longitudes_deg=longitudes_deg_e, allow_nan=False
+        )
+
     assert numpy.all(numpy.diff(longitudes_deg_e) > 0)
 
     # Do actual stuff.
