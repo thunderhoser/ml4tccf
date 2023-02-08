@@ -271,8 +271,9 @@ def create_model(option_dict):
         ])
 
     num_conv_blocks = len(num_conv_layers_by_block)
+    start_index = 2 if include_high_res_data else 0
 
-    for block_index in range(2, num_conv_blocks):
+    for block_index in range(start_index, num_conv_blocks):
         for _ in range(num_conv_layers_by_block[block_index]):
             layer_index += 1
             k = layer_index
