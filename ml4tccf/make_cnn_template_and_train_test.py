@@ -18,8 +18,6 @@ import custom_losses
 OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
         numpy.array([600, 600, 10], dtype=int),
-    cnn_architecture.INPUT_DIMENSIONS_HIGH_RES_KEY:
-        numpy.array([1200, 1200, 3], dtype=int),
     cnn_architecture.INCLUDE_HIGH_RES_KEY: False,
     cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(7, 2, dtype=int),
     cnn_architecture.NUM_CHANNELS_KEY: numpy.array([
@@ -64,7 +62,7 @@ TRAINING_OPTION_DICT = {
     SATELLITE_DIRECTORY_KEY: '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed',
     YEARS_KEY: numpy.array([2021], dtype=int),
     LAG_TIMES_KEY: numpy.array([0], dtype=int),
-    HIGH_RES_WAVELENGTHS_KEY: numpy.array([0.64]),
+    HIGH_RES_WAVELENGTHS_KEY: numpy.array([]),
     LOW_RES_WAVELENGTHS_KEY: numpy.array([3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3]),
     BATCH_SIZE_KEY: 8,
     MAX_EXAMPLES_PER_CYCLONE_KEY: 2,
