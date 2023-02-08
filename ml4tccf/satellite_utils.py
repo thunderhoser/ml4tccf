@@ -317,8 +317,8 @@ def mask_visible_data_at_night(
     valid_times_unix_sec = t.coords[TIME_DIM].values
 
     for i in range(len(valid_times_unix_sec)):
-        these_latitudes_deg_n = t[LATITUDE_HIGH_RES_KEY].values[i, :][::30]
-        these_longitudes_deg_e = t[LONGITUDE_HIGH_RES_KEY].values[i, :][::30]
+        these_latitudes_deg_n = t[LATITUDE_HIGH_RES_KEY].values[i, :][::120]
+        these_longitudes_deg_e = t[LONGITUDE_HIGH_RES_KEY].values[i, :][::120]
         this_longitude_matrix_deg_e, this_latitude_matrix_deg_n = (
             numpy.meshgrid(these_longitudes_deg_e, these_latitudes_deg_n)
         )
