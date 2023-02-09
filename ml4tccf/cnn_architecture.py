@@ -361,7 +361,7 @@ def create_model(option_dict):
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(),
+        loss=loss_function, optimizer=keras.optimizers.Adam(clipnorm=1.),
         metrics=neural_net.METRIC_FUNCTION_LIST
     )
     model_object.summary()
