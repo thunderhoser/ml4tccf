@@ -1,5 +1,6 @@
 """Custom loss functions."""
 
+import tensorflow
 from tensorflow.keras import backend as K
 
 
@@ -139,9 +140,10 @@ def crps_kilometres(target_tensor, prediction_tensor):
         row_distances_km ** 2 + column_distances_km ** 2
     )
 
+    prediction_tensor_no_nan = tensorflow.where(tensorflow.is_nan(prediction_tensor), tensorflow.zeros_like(prediction_tensor), prediction_tensor)
     prediction_diff_tensor = K.abs(
-        K.expand_dims(prediction_tensor, axis=-1) -
-        K.expand_dims(prediction_tensor, axis=-2)
+        K.expand_dims(prediction_tensor_no_nan, axis=-1) -
+        K.expand_dims(prediction_tensor_no_nan, axis=-2)
     )
 
     all_rowcol_diff_tensor = K.sqrt(
@@ -167,7 +169,7 @@ def crps_part1(target_tensor, prediction_tensor):
         K.expand_dims(prediction_tensor, axis=-2)
     )
 
-    return K.mean(prediction_diff_tensor)
+    return -K.mean(prediction_diff_tensor)
 
 
 def crps_part2(target_tensor, prediction_tensor):
@@ -181,7 +183,7 @@ def crps_part2(target_tensor, prediction_tensor):
         + prediction_diff_tensor[:, 1, ...] ** 2
     )
 
-    return K.mean(all_rowcol_diff_tensor)
+    return -K.mean(all_rowcol_diff_tensor)
 
 
 def crps_part3(target_tensor, prediction_tensor):
@@ -200,7 +202,7 @@ def crps_part3(target_tensor, prediction_tensor):
         * all_rowcol_diff_tensor
     )
 
-    return K.mean(all_diff_tensor_km)
+    return -K.mean(all_diff_tensor_km)
 
 
 def crps_part4(target_tensor, prediction_tensor):
@@ -223,4 +225,4 @@ def crps_part4(target_tensor, prediction_tensor):
         all_diff_tensor_km, axis=(-2, -1)
     )
 
-    return K.mean(mean_prediction_diff_tensor_km)
+    return -K.mean(mean_prediction_diff_tensor_km)
