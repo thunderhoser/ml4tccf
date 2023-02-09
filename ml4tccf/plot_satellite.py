@@ -26,6 +26,7 @@ import satellite_plotting
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 TIME_FORMAT = '%Y-%m-%d-%H%M'
+DATE_FORMAT = '%Y-%m-%d'
 
 METRES_TO_MICRONS = 1e6
 
@@ -39,6 +40,8 @@ INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 VALID_TIMES_ARG_NAME = 'valid_time_strings'
 NUM_TIMES_ARG_NAME = 'num_times'
+FIRST_DATE_ARG_NAME = 'first_date_string'
+LAST_DATE_ARG_NAME = 'last_date_string'
 PLOT_LATLNG_ARG_NAME = 'plot_latlng_coords'
 LOW_RES_WAVELENGTHS_ARG_NAME = 'low_res_wavelengths_microns'
 HIGH_RES_WAVELENGTHS_ARG_NAME = 'high_res_wavelengths_microns'
@@ -63,6 +66,11 @@ NUM_TIMES_HELP_STRING = (
     'to plot at specific times, use the argument {0:s} and leave this argument '
     'alone.'
 ).format(VALID_TIMES_ARG_NAME)
+
+DATE_HELP_STRING = (
+    '[optional, used only if {0:s} is filled] Will select N times from period '
+    '{1:s}...{2:s}, where N = {0:s}.'
+).format(NUM_TIMES_ARG_NAME, FIRST_DATE_ARG_NAME, LAST_DATE_ARG_NAME)
 
 PLOT_LATLNG_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot with(out) lat-long coordinates.'
@@ -101,6 +109,14 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_TIMES_ARG_NAME, type=int, required=False, default=-1,
     help=NUM_TIMES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + FIRST_DATE_ARG_NAME, type=str, required=False, default='',
+    help=DATE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + LAST_DATE_ARG_NAME, type=str, required=False, default='',
+    help=DATE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + PLOT_LATLNG_ARG_NAME, type=int, required=True,
@@ -373,7 +389,7 @@ def plot_data_one_time(
 
 
 def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
-         plot_latlng_coords,
+         first_date_string, last_date_string, plot_latlng_coords,
          low_res_wavelengths_microns, high_res_wavelengths_microns,
          num_grid_rows_low_res, num_grid_columns_low_res, output_dir_name):
     """Plots satellite images for one cyclone at the given times.
@@ -384,12 +400,16 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
     :param cyclone_id_string: Same.
     :param valid_time_strings: Same.
     :param num_times: Same.
+    :param first_date_string: Same.
+    :param last_date_string: Same.
     :param plot_latlng_coords: Same.
     :param low_res_wavelengths_microns: Same.
     :param high_res_wavelengths_microns: Same.
     :param num_grid_rows_low_res: Same.
     :param num_grid_columns_low_res: Same.
     :param output_dir_name: Same.
+    :raises: ValueError: if `first_date_string` and `last_date_string` result in
+        no files being found.
     """
 
     # Check input args.
@@ -402,11 +422,30 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
         valid_times_unix_sec = None
 
         error_checking.assert_is_greater(num_times, 0)
+
+        if first_date_string == '' or last_date_string == '':
+            first_date_string = None
+            last_date_string = None
+        else:
+            first_date_unix_sec = time_conversion.string_to_unix_sec(
+                first_date_string, DATE_FORMAT
+            )
+            last_date_unix_sec = time_conversion.string_to_unix_sec(
+                last_date_string, DATE_FORMAT
+            )
+            error_checking.assert_is_geq(
+                last_date_unix_sec, first_date_unix_sec
+            )
     else:
         valid_times_unix_sec = numpy.array([
             time_conversion.string_to_unix_sec(t, TIME_FORMAT)
             for t in valid_time_strings
         ], dtype=int)
+
+        first_date_string = None
+        last_date_string = None
+        first_date_unix_sec = None
+        last_date_unix_sec = None
 
     if num_grid_rows_low_res <= 0 or num_grid_columns_low_res:
         num_grid_rows_low_res = None
@@ -417,6 +456,34 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
         directory_name=satellite_dir_name, cyclone_id_string=cyclone_id_string,
         raise_error_if_all_missing=True
     )
+
+    if first_date_string is not None:
+        file_date_strings = [
+            satellite_io.file_name_to_date(f) for f in satellite_file_names
+        ]
+        file_dates_unix_sec = numpy.array([
+            time_conversion.string_to_unix_sec(d, satellite_io.DATE_FORMAT)
+            for d in file_date_strings
+        ], dtype=int)
+
+        good_indices = numpy.where(numpy.logical_and(
+            file_dates_unix_sec >= first_date_unix_sec,
+            file_dates_unix_sec <= last_date_unix_sec
+        ))[0]
+
+        if len(good_indices) == 0:
+            error_string = (
+                'Cannot find data between dates {0:s} and {1:s}.  Found the '
+                'following files:\n{2:s}'
+            ).format(
+                first_date_string, last_date_string, str(satellite_file_names)
+            )
+
+            raise ValueError(error_string)
+
+        satellite_file_names = [satellite_file_names[k] for k in good_indices]
+        del file_date_strings
+        del file_dates_unix_sec
 
     all_times_unix_sec = numpy.concatenate([
         xarray.open_dataset(f).coords[satellite_utils.TIME_DIM].values
@@ -520,6 +587,8 @@ if __name__ == '__main__':
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
         valid_time_strings=getattr(INPUT_ARG_OBJECT, VALID_TIMES_ARG_NAME),
         num_times=getattr(INPUT_ARG_OBJECT, NUM_TIMES_ARG_NAME),
+        first_date_string=getattr(INPUT_ARG_OBJECT, FIRST_DATE_ARG_NAME),
+        last_date_string=getattr(INPUT_ARG_OBJECT, LAST_DATE_ARG_NAME),
         plot_latlng_coords=bool(
             getattr(INPUT_ARG_OBJECT, PLOT_LATLNG_ARG_NAME)
         ),
