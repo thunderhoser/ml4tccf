@@ -42,7 +42,7 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + CYCLONE_ID_ARG_NAME, type=int, required=True,
+    '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
     help=CYCLONE_ID_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
