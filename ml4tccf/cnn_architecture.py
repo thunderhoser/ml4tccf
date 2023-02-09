@@ -172,7 +172,7 @@ def check_input_args(option_dict):
         option_dict[DENSE_DROPOUT_RATES_KEY], 1.
     )
 
-    error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
+    # error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
     error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
     error_checking.assert_is_geq(option_dict[ENSEMBLE_SIZE_KEY], 1)
@@ -241,7 +241,13 @@ def create_model(option_dict):
     else:
         input_layer_object_high_res = None
 
-    l2_function = architecture_utils.get_weight_regularizer(l2_weight=l2_weight)
+    if l2_weight > 0:
+        l2_function = architecture_utils.get_weight_regularizer(
+            l2_weight=l2_weight
+        )
+    else:
+        l2_function = None
+
     layer_index = -1
     layer_object = None
 

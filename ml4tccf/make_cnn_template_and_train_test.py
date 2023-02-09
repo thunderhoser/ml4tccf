@@ -30,7 +30,7 @@ OPTION_DICT = {
     cnn_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
     cnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    cnn_architecture.L2_WEIGHT_KEY: 1e-3,
+    cnn_architecture.L2_WEIGHT_KEY: -1.,
     cnn_architecture.USE_BATCH_NORM_KEY: True,
     cnn_architecture.ENSEMBLE_SIZE_KEY: 5,
     cnn_architecture.LOSS_FUNCTION_KEY: custom_losses.crps_kilometres
