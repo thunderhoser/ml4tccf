@@ -231,7 +231,7 @@ def get_normalization_params(
 
         for this_key in main_data_dict:
             need_more_values = (
-                need_more_values and
+                need_more_values or
                 numpy.any(numpy.isnan(npt[this_key].values))
             )
 
