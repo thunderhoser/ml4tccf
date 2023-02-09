@@ -357,6 +357,11 @@ THIS_METADATA_DICT = {
 FIRST_TABLE_AFTER_SUBSET_WVL_HIGH_RES = xarray.Dataset(
     data_vars=THIS_MAIN_DATA_DICT, coords=THIS_METADATA_DICT
 )
+FIRST_TABLE_AFTER_SUBSET_WVL_HIGH_RES = (
+    FIRST_TABLE_AFTER_SUBSET_WVL_HIGH_RES.drop_vars(
+        names=satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY
+    )
+)
 
 # The following constants are used to test subset_to_multiple_time_windows.
 FIRST_START_TIMES_UNIX_SEC = numpy.array(
@@ -632,22 +637,6 @@ THIS_MAIN_DATA_DICT = {
 }
 THIS_METADATA_DICT[satellite_utils.TIME_DIM] = THIRD_DESIRED_TIMES_UNIX_SEC
 THIRD_TABLE_AFTER_SUBSET_TIMES = xarray.Dataset(
-    data_vars=THIS_MAIN_DATA_DICT, coords=THIS_METADATA_DICT
-)
-
-THIS_BRIGHTNESS_TEMP_MATRIX_KELVINS[1, ...] = numpy.nan
-THIS_REFLECTANCE_MATRIX = THIS_BRIGHTNESS_TEMP_MATRIX_KELVINS[..., [0]] + 0.
-THIS_MAIN_DATA_DICT = {
-    satellite_utils.BRIGHTNESS_TEMPERATURE_KEY: (
-        LOW_RES_MATRIX_DIM_KEYS,
-        THIS_BRIGHTNESS_TEMP_MATRIX_KELVINS[[1, 0], ...]
-    ),
-    satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY: (
-        HIGH_RES_MATRIX_DIM_KEYS, THIS_REFLECTANCE_MATRIX[[1, 0], ...]
-    )
-}
-THIS_METADATA_DICT[satellite_utils.TIME_DIM] = FOURTH_DESIRED_TIMES_UNIX_SEC
-FOURTH_TABLE_AFTER_SUBSET_TIMES = xarray.Dataset(
     data_vars=THIS_MAIN_DATA_DICT, coords=THIS_METADATA_DICT
 )
 
@@ -1176,19 +1165,14 @@ class SatelliteUtilsTests(unittest.TestCase):
         With fourth set of options.
         """
 
-        this_table_xarray = satellite_utils.subset_times(
-            satellite_table_xarray=copy.deepcopy(TABLE_BEFORE_SUBSET_TIMES),
-            desired_times_unix_sec=FOURTH_DESIRED_TIMES_UNIX_SEC,
-            tolerances_sec=FOURTH_TIME_TOLERANCES_SEC,
-            max_num_missing_times=FOURTH_MAX_NUM_MISSING_TIMES,
-            max_interp_gaps_sec=FOURTH_MAX_INTERP_GAPS_SEC
-        )
-
-        self.assertTrue(
-            _compare_satellite_tables(
-                this_table_xarray, FOURTH_TABLE_AFTER_SUBSET_TIMES
+        with self.assertRaises(ValueError):
+            satellite_utils.subset_times(
+                satellite_table_xarray=copy.deepcopy(TABLE_BEFORE_SUBSET_TIMES),
+                desired_times_unix_sec=FOURTH_DESIRED_TIMES_UNIX_SEC,
+                tolerances_sec=FOURTH_TIME_TOLERANCES_SEC,
+                max_num_missing_times=FOURTH_MAX_NUM_MISSING_TIMES,
+                max_interp_gaps_sec=FOURTH_MAX_INTERP_GAPS_SEC
             )
-        )
 
     def test_subset_times_fifth(self):
         """Ensures correct output from subset_times.
