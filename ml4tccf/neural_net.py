@@ -1056,6 +1056,12 @@ def data_generator(option_dict):
             grid_spacings_km
         )))
 
+        print('ARE ALL VALUES FINITE?')
+        print(numpy.all(numpy.isfinite(predictor_matrices[0])))
+        print(numpy.all(numpy.isfinite(predictor_matrices[-1])))
+        print(numpy.all(numpy.isfinite(target_matrix_low_res_px[:, :2])))
+        print(numpy.all(numpy.isfinite(target_matrix_low_res_px[:, 2])))
+
         yield predictor_matrices, target_matrix_low_res_px
 
 
