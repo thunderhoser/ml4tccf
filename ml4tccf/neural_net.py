@@ -22,38 +22,33 @@ import satellite_io
 import misc_utils
 import satellite_utils
 import custom_losses
+import custom_metrics
 
 METRIC_FUNCTION_LIST = [
-    custom_losses.mean_distance_kilometres,
     custom_losses.mean_squared_distance_kilometres2,
-    custom_losses.mean_prediction,
-    custom_losses.mean_predictive_stdev,
-    custom_losses.mean_predictive_range,
-    custom_losses.mean_target,
-    custom_losses.mean_grid_spacing_kilometres,
-    custom_losses.crps_part1,
-    custom_losses.crps_part2,
-    custom_losses.crps_part3,
-    custom_losses.crps_part4,
-    custom_losses.crps_kilometres,
-    custom_losses.crps_foo_kilometres
+    custom_losses.weird_crps_kilometres2,
+    custom_losses.coord_avg_crps_kilometres,
+    custom_metrics.mean_distance_kilometres,
+    custom_metrics.mean_prediction,
+    custom_metrics.mean_predictive_stdev,
+    custom_metrics.mean_predictive_range,
+    custom_metrics.mean_target,
+    custom_metrics.mean_grid_spacing_kilometres,
+    custom_metrics.crps_kilometres
 ]
 
 METRIC_FUNCTION_DICT = {
-    'mean_distance_kilometres': custom_losses.mean_distance_kilometres,
     'mean_squared_distance_kilometres2':
         custom_losses.mean_squared_distance_kilometres2,
-    'mean_prediction': custom_losses.mean_prediction,
-    'mean_predictive_stdev': custom_losses.mean_predictive_stdev,
-    'mean_predictive_range': custom_losses.mean_predictive_range,
-    'mean_target': custom_losses.mean_target,
-    'mean_grid_spacing_kilometres': custom_losses.mean_grid_spacing_kilometres,
-    'crps_part1': custom_losses.crps_part1,
-    'crps_part2': custom_losses.crps_part2,
-    'crps_part3': custom_losses.crps_part3,
-    'crps_part4': custom_losses.crps_part4,
-    'crps_kilometres': custom_losses.crps_kilometres,
-    'crps_foo_kilometres': custom_losses.crps_foo_kilometres
+    'weird_crps_kilometres2': custom_losses.weird_crps_kilometres2,
+    'coord_avg_crps_kilometres': custom_losses.coord_avg_crps_kilometres,
+    'mean_distance_kilometres': custom_metrics.mean_distance_kilometres,
+    'mean_prediction': custom_metrics.mean_prediction,
+    'mean_predictive_stdev': custom_metrics.mean_predictive_stdev,
+    'mean_predictive_range': custom_metrics.mean_predictive_range,
+    'mean_target': custom_metrics.mean_target,
+    'mean_grid_spacing_kilometres': custom_metrics.mean_grid_spacing_kilometres,
+    'crps_kilometres': custom_metrics.crps_kilometres
 }
 
 METRES_TO_KM = 0.001
@@ -1057,18 +1052,6 @@ def data_generator(option_dict):
             row_translations_low_res_px, column_translations_low_res_px,
             grid_spacings_km
         )))
-
-        print('ARE ALL VALUES FINITE?')
-        print(numpy.all(numpy.isfinite(predictor_matrices[0])))
-        print(numpy.all(numpy.isfinite(predictor_matrices[-1])))
-        print(numpy.all(numpy.isfinite(target_matrix_low_res_px[:, :2])))
-        print(numpy.all(numpy.isfinite(target_matrix_low_res_px[:, 2])))
-
-        # print(numpy.mean(predictor_matrices[0], axis=(0, 1, 2), keepdims=True))
-        # print(numpy.std(predictor_matrices[0], axis=(0, 1, 2), ddof=1, keepdims=True))
-
-        # predictor_matrices[0] = (predictor_matrices[0] - numpy.mean(predictor_matrices[0], axis=(0, 1, 2), keepdims=True)) / numpy.std(predictor_matrices[0], axis=(0, 1, 2), ddof=1, keepdims=True)
-        # predictor_matrices[-1] = (predictor_matrices[-1] - numpy.mean(predictor_matrices[-1], axis=(0, 1, 2), keepdims=True)) / numpy.std(predictor_matrices[-1], axis=(0, 1, 2), ddof=1, keepdims=True)
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
         yield predictor_matrices, target_matrix_low_res_px

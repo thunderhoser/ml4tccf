@@ -5,7 +5,6 @@ import sys
 import numpy
 import keras
 import keras.layers
-from keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -172,36 +171,12 @@ def check_input_args(option_dict):
         option_dict[DENSE_DROPOUT_RATES_KEY], 1.
     )
 
-    # error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
+    error_checking.assert_is_geq(option_dict[L2_WEIGHT_KEY], 0.)
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
     error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
     error_checking.assert_is_geq(option_dict[ENSEMBLE_SIZE_KEY], 1)
 
     return option_dict
-
-
-def clip_predictions_function(max_absolute_value):
-    """Makes function to clip predictions to max absolute value.
-
-    :param max_absolute_value: Max absolute value for predictions.
-    :return: clip_function: Function handle (see below).
-    """
-
-    error_checking.assert_is_greater(max_absolute_value, 0.)
-
-    def clip_function(orig_prediction_tensor):
-        """Clips predictions to max absolute value.
-
-        :param orig_prediction_tensor: Keras tensor with model predictions.
-        :return: new_prediction_tensor: Same as input but with clipped values.
-        """
-
-        return K.clip(
-            orig_prediction_tensor, min_value=-max_absolute_value,
-            max_value=max_absolute_value
-        )
-
-    return clip_function
 
 
 def create_model(option_dict):
@@ -241,13 +216,7 @@ def create_model(option_dict):
     else:
         input_layer_object_high_res = None
 
-    if l2_weight > 0:
-        l2_function = architecture_utils.get_weight_regularizer(
-            l2_weight=l2_weight
-        )
-    else:
-        l2_function = None
-
+    l2_function = architecture_utils.get_weight_regularizer(l2_weight=l2_weight)
     layer_index = -1
     layer_object = None
 
@@ -381,11 +350,6 @@ def create_model(option_dict):
         target_shape=(num_target_vars, ensemble_size)
     )(layer_object)
 
-    this_function = clip_predictions_function(max_absolute_value=50.)
-    layer_object = keras.layers.Lambda(this_function, name='clip_predictions')(
-        layer_object
-    )
-
     if include_high_res_data:
         input_layer_objects = [
             input_layer_object_high_res, input_layer_object_low_res
@@ -397,7 +361,7 @@ def create_model(option_dict):
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(clipnorm=0.001),
+        loss=loss_function, optimizer=keras.optimizers.Adam(),
         metrics=neural_net.METRIC_FUNCTION_LIST
     )
     model_object.summary()
