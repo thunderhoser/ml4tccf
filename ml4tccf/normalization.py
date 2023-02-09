@@ -264,6 +264,8 @@ def get_normalization_params(
                 )
 
             for j in range(len(selected_time_indices)):
+                print(j)
+
                 for k in range(predictor_matrix.shape[-1]):
                     nan_indices = numpy.where(
                         numpy.isnan(npt[this_key].values[:, k])
