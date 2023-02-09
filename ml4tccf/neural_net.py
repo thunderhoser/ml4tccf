@@ -1062,6 +1062,9 @@ def data_generator(option_dict):
         print(numpy.all(numpy.isfinite(target_matrix_low_res_px[:, :2])))
         print(numpy.all(numpy.isfinite(target_matrix_low_res_px[:, 2])))
 
+        predictor_matrices[0] = (predictor_matrices[0] - numpy.mean(predictor_matrices[0], axis=-1, keepdims=True)) / numpy.std(predictor_matrices[0], axis=-1, ddof=1, keepdims=True)
+        predictor_matrices[-1] = (predictor_matrices[-1] - numpy.mean(predictor_matrices[-1], axis=-1, keepdims=True)) / numpy.std(predictor_matrices[-1], axis=-1, ddof=1, keepdims=True)
+
         yield predictor_matrices, target_matrix_low_res_px
 
 
