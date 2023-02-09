@@ -1049,6 +1049,7 @@ def data_generator(option_dict):
             grid_spacings_km
         )))
 
+        predictor_matrices = [p.astype('float16') for p in predictor_matrices]
         yield predictor_matrices, target_matrix_low_res_px
 
 
