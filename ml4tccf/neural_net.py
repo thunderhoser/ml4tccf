@@ -1064,12 +1064,13 @@ def data_generator(option_dict):
         print(numpy.all(numpy.isfinite(target_matrix_low_res_px[:, :2])))
         print(numpy.all(numpy.isfinite(target_matrix_low_res_px[:, 2])))
 
-        print(numpy.mean(predictor_matrices[0], axis=(0, 1, 2), keepdims=True))
-        print(numpy.std(predictor_matrices[0], axis=(0, 1, 2), ddof=1, keepdims=True))
+        # print(numpy.mean(predictor_matrices[0], axis=(0, 1, 2), keepdims=True))
+        # print(numpy.std(predictor_matrices[0], axis=(0, 1, 2), ddof=1, keepdims=True))
 
-        predictor_matrices[0] = (predictor_matrices[0] - numpy.mean(predictor_matrices[0], axis=(0, 1, 2), keepdims=True)) / numpy.std(predictor_matrices[0], axis=(0, 1, 2), ddof=1, keepdims=True)
-        predictor_matrices[-1] = (predictor_matrices[-1] - numpy.mean(predictor_matrices[-1], axis=(0, 1, 2), keepdims=True)) / numpy.std(predictor_matrices[-1], axis=(0, 1, 2), ddof=1, keepdims=True)
+        # predictor_matrices[0] = (predictor_matrices[0] - numpy.mean(predictor_matrices[0], axis=(0, 1, 2), keepdims=True)) / numpy.std(predictor_matrices[0], axis=(0, 1, 2), ddof=1, keepdims=True)
+        # predictor_matrices[-1] = (predictor_matrices[-1] - numpy.mean(predictor_matrices[-1], axis=(0, 1, 2), keepdims=True)) / numpy.std(predictor_matrices[-1], axis=(0, 1, 2), ddof=1, keepdims=True)
 
+        predictor_matrices = [p.astype('float16') for p in predictor_matrices]
         yield predictor_matrices, target_matrix_low_res_px
 
 
