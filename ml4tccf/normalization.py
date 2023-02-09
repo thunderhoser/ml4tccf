@@ -248,6 +248,7 @@ def get_normalization_params(
 
         print('\nReading data from: "{0:s}"...'.format(satellite_file_names[i]))
         satellite_table_xarray = satellite_io.read_file(satellite_file_names[i])
+        print('WHAT THE FUCKING FUCK')
         print(list(main_data_dict.keys()))
 
         for this_key in main_data_dict:
