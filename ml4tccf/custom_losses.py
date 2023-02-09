@@ -164,6 +164,49 @@ def crps_kilometres(target_tensor, prediction_tensor):
     )
 
 
+def crps_foo_kilometres(target_tensor, prediction_tensor):
+    """Computes CRPS between predicted and actual TC centers.
+
+    :param target_tensor: See doc for `mean_squared_distance_kilometres2`.
+    :param prediction_tensor: Same.
+    :return: crps_km: CRPS.
+    """
+
+    mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+    row_distances_km = (
+            target_tensor[:, 2] *
+            (mean_prediction_tensor[:, 0] - target_tensor[:, 0])
+    )
+    column_distances_km = (
+            target_tensor[:, 2] *
+            (mean_prediction_tensor[:, 1] - target_tensor[:, 1])
+    )
+    mean_error_tensor_km = (
+        row_distances_km ** 2 + column_distances_km ** 2
+    )
+
+    prediction_diff_tensor = K.abs(
+        K.expand_dims(prediction_tensor, axis=-1) -
+        K.expand_dims(prediction_tensor, axis=-2)
+    )
+
+    all_rowcol_diff_tensor = (
+        prediction_diff_tensor[:, 0, ...] ** 2
+        + prediction_diff_tensor[:, 1, ...] ** 2
+    )
+    all_diff_tensor_km = (
+            K.expand_dims(K.expand_dims(target_tensor[:, 2], axis=-1), axis=-1)
+            * all_rowcol_diff_tensor
+    )
+    mean_prediction_diff_tensor_km = K.mean(
+        all_diff_tensor_km, axis=(-2, -1)
+    )
+
+    return K.mean(
+        mean_error_tensor_km - 0.5 * mean_prediction_diff_tensor_km
+    )
+
+
 def crps_part1(target_tensor, prediction_tensor):
     prediction_diff_tensor = K.abs(
         K.expand_dims(prediction_tensor, axis=-1) -

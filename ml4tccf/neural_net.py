@@ -35,7 +35,8 @@ METRIC_FUNCTION_LIST = [
     custom_losses.crps_part2,
     custom_losses.crps_part3,
     custom_losses.crps_part4,
-    custom_losses.crps_kilometres
+    custom_losses.crps_kilometres,
+    custom_losses.crps_foo_kilometres
 ]
 
 METRIC_FUNCTION_DICT = {
@@ -51,7 +52,8 @@ METRIC_FUNCTION_DICT = {
     'crps_part2': custom_losses.crps_part2,
     'crps_part3': custom_losses.crps_part3,
     'crps_part4': custom_losses.crps_part4,
-    'crps_kilometres': custom_losses.crps_kilometres
+    'crps_kilometres': custom_losses.crps_kilometres,
+    'crps_foo_kilometres': custom_losses.crps_foo_kilometres
 }
 
 METRES_TO_KM = 0.001
