@@ -233,7 +233,6 @@ def get_normalization_params(
     ))
 
     for i in range(len(satellite_file_names)):
-        print(satellite_file_names[i])
         need_more_values = False
 
         for this_key in main_data_dict:
@@ -241,14 +240,14 @@ def get_normalization_params(
                 need_more_values and
                 numpy.any(numpy.isnan(npt[this_key].values))
             )
+            print(this_key)
+            print(need_more_values)
 
         if not need_more_values:
             break
 
         print('\nReading data from: "{0:s}"...'.format(satellite_file_names[i]))
         satellite_table_xarray = satellite_io.read_file(satellite_file_names[i])
-        print('WHAT THE FUCKING FUCK')
-        print(list(main_data_dict.keys()))
 
         for this_key in main_data_dict:
             predictor_matrix = satellite_table_xarray[this_key].values
