@@ -15,36 +15,33 @@ from ml4tccf.io import satellite_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
 from ml4tccf.machine_learning import custom_losses
+from ml4tccf.machine_learning import custom_metrics
 
 METRIC_FUNCTION_LIST = [
-    custom_losses.mean_distance_kilometres,
     custom_losses.mean_squared_distance_kilometres2,
-    custom_losses.mean_prediction,
-    custom_losses.mean_predictive_stdev,
-    custom_losses.mean_predictive_range,
-    custom_losses.mean_target,
-    custom_losses.mean_grid_spacing_kilometres,
-    custom_losses.crps_part1,
-    custom_losses.crps_part2,
-    custom_losses.crps_part3,
-    custom_losses.crps_part4,
-    custom_losses.crps_kilometres
+    custom_losses.weird_crps_kilometres2,
+    custom_losses.coord_avg_crps_kilometres,
+    custom_metrics.mean_distance_kilometres,
+    custom_metrics.mean_prediction,
+    custom_metrics.mean_predictive_stdev,
+    custom_metrics.mean_predictive_range,
+    custom_metrics.mean_target,
+    custom_metrics.mean_grid_spacing_kilometres,
+    custom_metrics.crps_kilometres
 ]
 
 METRIC_FUNCTION_DICT = {
-    'mean_distance_kilometres': custom_losses.mean_distance_kilometres,
     'mean_squared_distance_kilometres2':
         custom_losses.mean_squared_distance_kilometres2,
-    'mean_prediction': custom_losses.mean_prediction,
-    'mean_predictive_stdev': custom_losses.mean_predictive_stdev,
-    'mean_predictive_range': custom_losses.mean_predictive_range,
-    'mean_target': custom_losses.mean_target,
-    'mean_grid_spacing_kilometres': custom_losses.mean_grid_spacing_kilometres,
-    'crps_part1': custom_losses.crps_part1,
-    'crps_part2': custom_losses.crps_part2,
-    'crps_part3': custom_losses.crps_part3,
-    'crps_part4': custom_losses.crps_part4,
-    'crps_kilometres': custom_losses.crps_kilometres
+    'weird_crps_kilometres2': custom_losses.weird_crps_kilometres2,
+    'coord_avg_crps_kilometres': custom_losses.coord_avg_crps_kilometres,
+    'mean_distance_kilometres': custom_metrics.mean_distance_kilometres,
+    'mean_prediction': custom_metrics.mean_prediction,
+    'mean_predictive_stdev': custom_metrics.mean_predictive_stdev,
+    'mean_predictive_range': custom_metrics.mean_predictive_range,
+    'mean_target': custom_metrics.mean_target,
+    'mean_grid_spacing_kilometres': custom_metrics.mean_grid_spacing_kilometres,
+    'crps_kilometres': custom_metrics.crps_kilometres
 }
 
 METRES_TO_KM = 0.001
