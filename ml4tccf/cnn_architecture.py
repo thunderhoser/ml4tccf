@@ -5,6 +5,7 @@ import sys
 import numpy
 import keras
 import keras.layers
+from keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -179,6 +180,30 @@ def check_input_args(option_dict):
     return option_dict
 
 
+def clip_predictions_function(max_absolute_value):
+    """Makes function to clip predictions to max absolute value.
+
+    :param max_absolute_value: Max absolute value for predictions.
+    :return: clip_function: Function handle (see below).
+    """
+
+    error_checking.assert_is_greater(max_absolute_value, 0.)
+
+    def clip_function(orig_prediction_tensor):
+        """Clips predictions to max absolute value.
+
+        :param orig_prediction_tensor: Keras tensor with model predictions.
+        :return: new_prediction_tensor: Same as input but with clipped values.
+        """
+
+        return K.clip(
+            orig_prediction_tensor, min_value=-max_absolute_value,
+            max_value=max_absolute_value
+        )
+
+    return clip_function
+
+
 def create_model(option_dict):
     """Creates CNN.
 
@@ -349,6 +374,11 @@ def create_model(option_dict):
     layer_object = keras.layers.Reshape(
         target_shape=(num_target_vars, ensemble_size)
     )(layer_object)
+
+    this_function = clip_predictions_function(max_absolute_value=50.)
+    layer_object = keras.layers.Lambda(this_function, name='clip_predictions')(
+        layer_object
+    )
 
     if include_high_res_data:
         input_layer_objects = [
