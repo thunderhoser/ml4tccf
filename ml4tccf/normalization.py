@@ -264,6 +264,7 @@ def get_normalization_params(
                 )
 
             print(selected_time_indices)
+            print(list(main_data_dict.keys()))
 
             for j in range(len(selected_time_indices)):
                 for k in range(predictor_matrix.shape[-1]):
