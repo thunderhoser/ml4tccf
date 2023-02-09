@@ -232,18 +232,16 @@ def get_normalization_params(
         float(num_values_per_low_res_channel) / num_files
     ))
 
+    satellite_file_names = 2 * satellite_file_names
+
     for i in range(len(satellite_file_names)):
         need_more_values = False
 
         for this_key in main_data_dict:
             need_more_values = (
-                need_more_values and
+                need_more_values or
                 numpy.any(numpy.isnan(npt[this_key].values))
             )
-            print(this_key)
-            print(npt[this_key].values)
-            print(numpy.isnan(npt[this_key].values))
-            print(numpy.any(numpy.isnan(npt[this_key].values)))
 
         if not need_more_values:
             break
@@ -264,8 +262,6 @@ def get_normalization_params(
                     selected_time_indices, size=NUM_TIMES_PER_FILE_FOR_PARAMS,
                     replace=False
                 )
-
-            print(selected_time_indices)
 
             for j in range(len(selected_time_indices)):
                 for k in range(predictor_matrix.shape[-1]):
