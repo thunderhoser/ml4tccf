@@ -1,6 +1,7 @@
 """Custom loss functions."""
 
 import tensorflow
+import tensorflow.math
 from tensorflow.keras import backend as K
 
 
@@ -140,7 +141,7 @@ def crps_kilometres(target_tensor, prediction_tensor):
         row_distances_km ** 2 + column_distances_km ** 2
     )
 
-    prediction_tensor_no_nan = tensorflow.where(tensorflow.is_nan(prediction_tensor), tensorflow.zeros_like(prediction_tensor), prediction_tensor)
+    prediction_tensor_no_nan = tensorflow.where(tensorflow.math.is_nan(prediction_tensor), tensorflow.zeros_like(prediction_tensor), prediction_tensor)
     prediction_diff_tensor = K.abs(
         K.expand_dims(prediction_tensor_no_nan, axis=-1) -
         K.expand_dims(prediction_tensor_no_nan, axis=-2)
