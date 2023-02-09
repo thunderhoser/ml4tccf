@@ -232,11 +232,8 @@ def get_normalization_params(
         float(num_values_per_low_res_channel) / num_files
     ))
 
-    print(satellite_file_names)
-    satellite_file_names = 2 * satellite_file_names
-    print(satellite_file_names)
-
     for i in range(len(satellite_file_names)):
+        print(satellite_file_names[i])
         need_more_values = False
 
         for this_key in main_data_dict:
