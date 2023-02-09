@@ -241,7 +241,7 @@ def get_normalization_params(
                 numpy.any(numpy.isnan(npt[this_key].values))
             )
             print(this_key)
-            print(need_more_values)
+            print(npt[this_key].values)
 
         if not need_more_values:
             break
