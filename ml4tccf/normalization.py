@@ -248,6 +248,7 @@ def get_normalization_params(
 
         print('\nReading data from: "{0:s}"...'.format(satellite_file_names[i]))
         satellite_table_xarray = satellite_io.read_file(satellite_file_names[i])
+        print(list(main_data_dict.keys()))
 
         for this_key in main_data_dict:
             predictor_matrix = satellite_table_xarray[this_key].values
@@ -264,7 +265,6 @@ def get_normalization_params(
                 )
 
             print(selected_time_indices)
-            print(list(main_data_dict.keys()))
 
             for j in range(len(selected_time_indices)):
                 for k in range(predictor_matrix.shape[-1]):
