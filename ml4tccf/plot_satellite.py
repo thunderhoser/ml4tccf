@@ -8,6 +8,7 @@ import xarray
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
+import matplotlib.colors
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -43,6 +44,7 @@ NUM_TIMES_ARG_NAME = 'num_times'
 FIRST_DATE_ARG_NAME = 'first_date_string'
 LAST_DATE_ARG_NAME = 'last_date_string'
 PLOT_LATLNG_ARG_NAME = 'plot_latlng_coords'
+ARE_DATA_NORMALIZED_ARG_NAME = 'are_data_normalized'
 LOW_RES_WAVELENGTHS_ARG_NAME = 'low_res_wavelengths_microns'
 HIGH_RES_WAVELENGTHS_ARG_NAME = 'high_res_wavelengths_microns'
 NUM_GRID_ROWS_ARG_NAME = 'num_grid_rows_low_res'
@@ -74,6 +76,9 @@ DATE_HELP_STRING = (
 
 PLOT_LATLNG_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot with(out) lat-long coordinates.'
+)
+ARE_DATA_NORMALIZED_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will assume that data are (not) normalized.'
 )
 LOW_RES_WAVELENGTHS_HELP_STRING = (
     'Will plot low-resolution data (brightness temperature) at these '
@@ -123,6 +128,10 @@ INPUT_ARG_PARSER.add_argument(
     help=PLOT_LATLNG_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + ARE_DATA_NORMALIZED_ARG_NAME, type=int, required=False, default=0,
+    help=ARE_DATA_NORMALIZED_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + LOW_RES_WAVELENGTHS_ARG_NAME, type=float, nargs='+',
     required=False,
     default=[3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3],
@@ -148,7 +157,7 @@ INPUT_ARG_PARSER.add_argument(
 
 def plot_data_one_time(
         satellite_table_xarray, time_index, border_latitudes_deg_n,
-        border_longitudes_deg_e, output_dir_name):
+        border_longitudes_deg_e, are_data_normalized, output_dir_name):
     """Plots satellite data at one time.
 
     P = number of points in border set
@@ -160,6 +169,7 @@ def plot_data_one_time(
         (deg north).  If None, will plot without coords.
     :param border_longitudes_deg_e: length-P numpy array of longitudes
         (deg east).  If None, will plot without coords.
+    :param are_data_normalized: Boolean flag.
     :param output_dir_name: Name of output directory.  Image will be saved here.
     :return: output_file_name: Path to output file, where image was saved.
     """
@@ -200,6 +210,14 @@ def plot_data_one_time(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
 
+        if are_data_normalized:
+            colour_map_object = pyplot.get_cmap('seismic', lut=1001)
+            colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
+        else:
+            colour_map_object, colour_norm_object = (
+                satellite_plotting.get_colour_scheme_for_bdrf()
+            )
+
         if plot_with_coords:
             plotting_utils.plot_borders(
                 border_latitudes_deg_n=border_latitudes_deg_n,
@@ -222,7 +240,9 @@ def plot_data_one_time(
                 latitude_array_deg_n=grid_latitudes_deg_n,
                 longitude_array_deg_e=grid_longitudes_deg_e,
                 plotting_brightness_temp=False,
-                cbar_orientation_string=None
+                cbar_orientation_string=None,
+                colour_map_object=colour_map_object,
+                colour_norm_object=colour_norm_object
             )
             plotting_utils.plot_grid_lines(
                 plot_latitudes_deg_n=numpy.ravel(grid_latitudes_deg_n),
@@ -237,7 +257,9 @@ def plot_data_one_time(
                 ].values[time_index, ..., j],
                 axes_object=axes_object,
                 plotting_brightness_temp=False,
-                cbar_orientation_string=None
+                cbar_orientation_string=None,
+                colour_map_object=colour_map_object,
+                colour_norm_object=colour_norm_object
             )
 
         title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
@@ -273,6 +295,14 @@ def plot_data_one_time(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
 
+        if are_data_normalized:
+            colour_map_object = pyplot.get_cmap('seismic', lut=1001)
+            colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
+        else:
+            colour_map_object, colour_norm_object = (
+                satellite_plotting.get_colour_scheme_for_brightness_temp()
+            )
+
         if plot_with_coords:
             plotting_utils.plot_borders(
                 border_latitudes_deg_n=border_latitudes_deg_n,
@@ -295,7 +325,9 @@ def plot_data_one_time(
                 latitude_array_deg_n=grid_latitudes_deg_n,
                 longitude_array_deg_e=grid_longitudes_deg_e,
                 plotting_brightness_temp=True,
-                cbar_orientation_string=None
+                cbar_orientation_string=None,
+                colour_map_object=colour_map_object,
+                colour_norm_object=colour_norm_object
             )
             plotting_utils.plot_grid_lines(
                 plot_latitudes_deg_n=numpy.ravel(grid_latitudes_deg_n),
@@ -310,7 +342,9 @@ def plot_data_one_time(
                 ].values[time_index, ..., j],
                 axes_object=axes_object,
                 plotting_brightness_temp=True,
-                cbar_orientation_string=None
+                cbar_orientation_string=None,
+                colour_map_object=colour_map_object,
+                colour_norm_object=colour_norm_object
             )
 
         title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
@@ -354,16 +388,23 @@ def plot_data_one_time(
     )
 
     if len(high_res_wavelengths_microns) > 0:
-        colour_map_object, colour_norm_object = (
-            satellite_plotting.get_colour_scheme_for_bdrf()
-        )
+        if are_data_normalized:
+            colour_map_object = pyplot.get_cmap('seismic', lut=1001)
+            colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
+        else:
+            colour_map_object, colour_norm_object = (
+                satellite_plotting.get_colour_scheme_for_bdrf()
+            )
 
         plotting_utils.add_colour_bar(
             figure_file_name=concat_figure_file_name,
             colour_map_object=colour_map_object,
             colour_norm_object=colour_norm_object,
             orientation_string='vertical', font_size=20,
-            cbar_label_string='BDRF (unitless)',
+            cbar_label_string=(
+                r'BDRF ($z$-score)' if are_data_normalized
+                else 'BDRF (unitless)'
+            ),
             tick_label_format_string='{0:.2f}', log_space=False,
             temporary_cbar_file_name='{0:s}_cbar.jpg'.format(
                 concat_figure_file_name[:-4]
@@ -371,16 +412,23 @@ def plot_data_one_time(
         )
 
     if len(low_res_wavelengths_microns) > 0:
-        colour_map_object, colour_norm_object = (
-            satellite_plotting.get_colour_scheme_for_brightness_temp()
-        )
+        if are_data_normalized:
+            colour_map_object = pyplot.get_cmap('seismic', lut=1001)
+            colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
+        else:
+            colour_map_object, colour_norm_object = (
+                satellite_plotting.get_colour_scheme_for_brightness_temp()
+            )
 
         plotting_utils.add_colour_bar(
             figure_file_name=concat_figure_file_name,
             colour_map_object=colour_map_object,
             colour_norm_object=colour_norm_object,
             orientation_string='vertical', font_size=20,
-            cbar_label_string=r'$T_b$ (Kelvins)',
+            cbar_label_string=(
+                r'$T_b$ ($z-score$)' if are_data_normalized
+                else r'$T_b$ (Kelvins)'
+            ),
             tick_label_format_string='{0:.0f}', log_space=False,
             temporary_cbar_file_name='{0:s}_cbar.jpg'.format(
                 concat_figure_file_name[:-4]
@@ -389,7 +437,8 @@ def plot_data_one_time(
 
 
 def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
-         first_date_string, last_date_string, plot_latlng_coords,
+         first_date_string, last_date_string,
+         plot_latlng_coords, are_data_normalized,
          low_res_wavelengths_microns, high_res_wavelengths_microns,
          num_grid_rows_low_res, num_grid_columns_low_res, output_dir_name):
     """Plots satellite images for one cyclone at the given times.
@@ -403,6 +452,7 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
     :param first_date_string: Same.
     :param last_date_string: Same.
     :param plot_latlng_coords: Same.
+    :param are_data_normalized: Same.
     :param low_res_wavelengths_microns: Same.
     :param high_res_wavelengths_microns: Same.
     :param num_grid_rows_low_res: Same.
@@ -575,6 +625,7 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
             satellite_table_xarray=satellite_table_xarray, time_index=i,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
+            are_data_normalized=are_data_normalized,
             output_dir_name=output_dir_name
         )
 
@@ -591,6 +642,9 @@ if __name__ == '__main__':
         last_date_string=getattr(INPUT_ARG_OBJECT, LAST_DATE_ARG_NAME),
         plot_latlng_coords=bool(
             getattr(INPUT_ARG_OBJECT, PLOT_LATLNG_ARG_NAME)
+        ),
+        are_data_normalized=bool(
+            getattr(INPUT_ARG_OBJECT, ARE_DATA_NORMALIZED_ARG_NAME)
         ),
         low_res_wavelengths_microns=numpy.array(
             getattr(INPUT_ARG_OBJECT, LOW_RES_WAVELENGTHS_ARG_NAME), dtype=float
