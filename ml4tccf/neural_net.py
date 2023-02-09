@@ -364,6 +364,8 @@ def _read_satellite_data_one_cyclone(
         low-resolution data.
     """
 
+    # TODO(thunderhoser): If I ever start using visible data, I will need to
+    # choose target times during the day here.
     target_times_unix_sec = numpy.concatenate([
         xarray.open_dataset(f).coords[satellite_utils.TIME_DIM].values
         for f in input_file_names
@@ -408,6 +410,18 @@ def _read_satellite_data_one_cyclone(
             )
         )
 
+        orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
+            satellite_table_xarray=orig_satellite_tables_xarray[i],
+            wavelengths_to_keep_microns=low_res_wavelengths_microns,
+            for_high_res=False
+        )
+
+        orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
+            satellite_table_xarray=orig_satellite_tables_xarray[i],
+            wavelengths_to_keep_microns=high_res_wavelengths_microns,
+            for_high_res=True
+        )
+
         if not (
                 num_rows_low_res is None
                 or num_columns_low_res is None
@@ -426,19 +440,6 @@ def _read_satellite_data_one_cyclone(
                     num_columns_to_keep=4 * num_columns_low_res,
                     for_high_res=True
                 )
-
-        orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
-            satellite_table_xarray=orig_satellite_tables_xarray[i],
-            wavelengths_to_keep_microns=low_res_wavelengths_microns,
-            for_high_res=False
-        )
-
-        if len(high_res_wavelengths_microns) > 0:
-            orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
-                satellite_table_xarray=orig_satellite_tables_xarray[i],
-                wavelengths_to_keep_microns=high_res_wavelengths_microns,
-                for_high_res=True
-            )
 
     satellite_table_xarray = satellite_utils.concat_over_time(
         orig_satellite_tables_xarray
@@ -1054,11 +1055,6 @@ def data_generator(option_dict):
             row_translations_low_res_px, column_translations_low_res_px,
             grid_spacings_km
         )))
-
-        print('GENERATOR SHAPES')
-        print(predictor_matrices[0].shape)
-        print(predictor_matrices[-1].shape)
-        print(target_matrix_low_res_px.shape)
 
         yield predictor_matrices, target_matrix_low_res_px
 

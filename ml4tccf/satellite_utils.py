@@ -17,6 +17,8 @@ import error_checking
 import misc_utils
 
 TOLERANCE = 1e-6
+DUMMY_TIME_UNIX_SEC = int(-1e10)
+
 METRES_TO_MICRONS = 1e6
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
@@ -366,7 +368,7 @@ def subset_grid(satellite_table_xarray, num_rows_to_keep, num_columns_to_keep,
     :param num_columns_to_keep: Number of grid columns to keep.
     :param for_high_res: Boolean flag.  If True (False), will subset grid for
         high- (low-)resolution data.
-    :return: satellite_table_xarray: Same as input but with smaller grid.
+    :return: new_table_xarray: Same as input but with smaller grid.
     """
 
     # Error-checking.
@@ -428,8 +430,7 @@ def subset_wavelengths(satellite_table_xarray, wavelengths_to_keep_microns,
     :param wavelengths_to_keep_microns: 1-D numpy array of wavelengths to keep.
     :param for_high_res: Boolean flag.  If True (False), will subset wavelengths
         for high- (low-)resolution data.
-    :return: satellite_table_xarray: Same as input but maybe with fewer
-        wavelengths.
+    :return: new_table_xarray: Same as input but maybe with fewer wavelengths.
     """
 
     error_checking.assert_is_numpy_array(
@@ -457,6 +458,22 @@ def subset_wavelengths(satellite_table_xarray, wavelengths_to_keep_microns,
         for w in wavelengths_to_keep_microns
     ], dtype=int)
 
+    if len(good_indices) == 0:
+        if for_high_res:
+            satellite_table_xarray = satellite_table_xarray.drop_vars(
+                names=BIDIRECTIONAL_REFLECTANCE_KEY
+            )
+            # satellite_table_xarray = satellite_table_xarray.drop_dims(
+            #     HIGH_RES_WAVELENGTH_DIM
+            # )
+        else:
+            satellite_table_xarray = satellite_table_xarray.drop_vars(
+                names=BRIGHTNESS_TEMPERATURE_KEY
+            )
+            # satellite_table_xarray = satellite_table_xarray.drop_dims(
+            #     LOW_RES_WAVELENGTH_DIM
+            # )
+
     return satellite_table_xarray.isel(
         indexers={wavelength_dim: good_indices}
     )
@@ -474,7 +491,7 @@ def subset_to_multiple_time_windows(
         window.
     :param end_times_unix_sec: length-W numpy array with end of each time
         window.
-    :return: satellite_table_xarray: Same as input but maybe with fewer times.
+    :return: new_table_xarray: Same as input but maybe with fewer times.
     """
 
     # Check input args.
@@ -509,6 +526,40 @@ def subset_to_multiple_time_windows(
     return satellite_table_xarray.isel(
         indexers={TIME_DIM: good_indices}
     )
+
+
+def _find_times_with_all_nan_maps(satellite_table_xarray):
+    """Finds every time with at least one all-NaN map.
+
+    An "all-NaN map" is a spatial map, for one wavelength, that contains only
+    NaN -- no real values.
+
+    T = number of times in table
+
+    :param satellite_table_xarray: xarray table in format returned by
+        `read_file`.
+    :return: bad_time_flags: length-T numpy array of Boolean flags.
+    """
+
+    t = satellite_table_xarray
+
+    if BIDIRECTIONAL_REFLECTANCE_KEY in t:
+        bad_time_wavelength_flag_matrix = numpy.all(
+            numpy.isnan(t[BIDIRECTIONAL_REFLECTANCE_KEY].values), axis=(1, 2)
+        )
+        bad_time_flags = numpy.any(bad_time_wavelength_flag_matrix, axis=1)
+    else:
+        num_times = len(t.coords[TIME_DIM].values)
+        bad_time_flags = numpy.full(num_times, 0, dtype=bool)
+
+    if BRIGHTNESS_TEMPERATURE_KEY in t:
+        bad_time_wavelength_flag_matrix = numpy.all(
+            numpy.isnan(t[BRIGHTNESS_TEMPERATURE_KEY].values), axis=(1, 2)
+        )
+        new_bad_time_flags = numpy.any(bad_time_wavelength_flag_matrix, axis=1)
+        bad_time_flags = numpy.logical_or(bad_time_flags, new_bad_time_flags)
+
+    return bad_time_flags
 
 
 def subset_times(satellite_table_xarray, desired_times_unix_sec,
@@ -561,12 +612,17 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     error_checking.assert_is_geq_numpy_array(max_interp_gaps_sec, 0)
 
     # Do actual stuff.
-    orig_times_unix_sec = satellite_table_xarray.coords[TIME_DIM].values
+    orig_times_with_dummy_unix_sec = (
+        satellite_table_xarray.coords[TIME_DIM].values + 0
+    )
+    bad_time_flags = _find_times_with_all_nan_maps(satellite_table_xarray)
+    orig_times_with_dummy_unix_sec[bad_time_flags] = DUMMY_TIME_UNIX_SEC
+
     desired_indices = numpy.full(num_desired_times, -1, dtype=int)
 
     for i in range(num_desired_times):
         these_diffs_sec = numpy.absolute(
-            orig_times_unix_sec - desired_times_unix_sec[i]
+            orig_times_with_dummy_unix_sec - desired_times_unix_sec[i]
         )
         if numpy.min(these_diffs_sec) > tolerances_sec[i]:
             continue
@@ -600,66 +656,125 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     if num_missing_times == 0:
         return new_table_xarray
 
-    main_data_keys = [BRIGHTNESS_TEMPERATURE_KEY, BIDIRECTIONAL_REFLECTANCE_KEY]
-    main_data_keys = [
-        k for k in main_data_keys if k in new_table_xarray
-    ]
+    low_res_wavelengths_microns = (
+        METRES_TO_MICRONS *
+        satellite_table_xarray.coords[LOW_RES_WAVELENGTH_DIM].values
+    )
+    high_res_wavelengths_microns = (
+        METRES_TO_MICRONS *
+        satellite_table_xarray.coords[HIGH_RES_WAVELENGTH_DIM].values
+    )
+
+    failed_to_interp = False
 
     for i in range(num_desired_times):
         if desired_indices[i] != -1:
             continue
 
-        interp_gap_sec = _compute_interpolation_gap(
-            source_times_unix_sec=orig_times_unix_sec,
-            target_time_unix_sec=desired_times_unix_sec[i]
-        )
+        for j in range(len(low_res_wavelengths_microns)):
+            source_table_xarray = subset_wavelengths(
+                satellite_table_xarray=satellite_table_xarray,
+                wavelengths_to_keep_microns=low_res_wavelengths_microns[[j]],
+                for_high_res=False
+            )
 
-        if interp_gap_sec > max_interp_gaps_sec[i]:
-            for this_key in main_data_keys:
-                new_table_xarray[this_key].values[i, ...] = numpy.nan
+            bad_time_flags = _find_times_with_all_nan_maps(source_table_xarray)
+            good_time_indices = numpy.where(numpy.invert(bad_time_flags))[0]
+            source_table_xarray = source_table_xarray.isel(
+                indexers={TIME_DIM: good_time_indices}
+            )
 
-            continue
+            interp_gap_sec = _compute_interpolation_gap(
+                source_times_unix_sec=
+                source_table_xarray.coords[TIME_DIM].values,
+                target_time_unix_sec=desired_times_unix_sec[i]
+            )
 
-        for this_key in main_data_keys:
+            if interp_gap_sec > max_interp_gaps_sec[i]:
+                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
+                    i, ..., j
+                ] = numpy.nan
+
+                failed_to_interp = True
+                break
+
             interp_object = interp1d(
-                x=satellite_table_xarray.coords[TIME_DIM].values,
-                y=satellite_table_xarray[this_key].values,
+                x=source_table_xarray.coords[TIME_DIM].values,
+                y=source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
+                    ..., 0
+                ],
                 kind='linear', axis=0, bounds_error=False,
                 fill_value='extrapolate', assume_sorted=True
             )
 
-            new_table_xarray[this_key].values[i, ...] = interp_object(
-                new_table_xarray.coords[TIME_DIM].values[i]
+            new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] = (
+                interp_object(new_table_xarray.coords[TIME_DIM].values[i])
             )
 
-    if numpy.all(numpy.isnan(
-            new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values
-    )):
-        error_string = (
-            'All brightness temperatures are NaN, even after attempted '
-            'interpolation.  {0:d} of {1:d} desired times were found.'
-        ).format(
-            num_desired_times - num_missing_times, num_desired_times
-        )
+        if failed_to_interp:
+            break
 
-        warning_string = 'POTENTIAL ERROR: {0:s}'.format(error_string)
-        warnings.warn(warning_string)
+        for j in range(len(high_res_wavelengths_microns)):
+            source_table_xarray = subset_wavelengths(
+                satellite_table_xarray=satellite_table_xarray,
+                wavelengths_to_keep_microns=high_res_wavelengths_microns[[j]],
+                for_high_res=True
+            )
 
-        raise ValueError(error_string)
+            bad_time_flags = _find_times_with_all_nan_maps(source_table_xarray)
+            good_time_indices = numpy.where(numpy.invert(bad_time_flags))[0]
+            source_table_xarray = source_table_xarray.isel(
+                indexers={TIME_DIM: good_time_indices}
+            )
 
-    if numpy.all(numpy.isnan(
-            new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values
-    )):
-        error_string = (
-            'All bidirectional reflectances are NaN, even after attempted '
-            'interpolation.  {0:d} of {1:d} desired times were found.'
-        ).format(
-            num_desired_times - num_missing_times, num_desired_times
-        )
+            interp_gap_sec = _compute_interpolation_gap(
+                source_times_unix_sec=
+                source_table_xarray.coords[TIME_DIM].values,
+                target_time_unix_sec=desired_times_unix_sec[i]
+            )
 
-        warning_string = 'POTENTIAL ERROR: {0:s}'.format(error_string)
-        warnings.warn(warning_string)
+            if interp_gap_sec > max_interp_gaps_sec[i]:
+                new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
+                    i, ..., j
+                ] = numpy.nan
 
-        raise ValueError(error_string)
+                failed_to_interp = True
+                break
 
-    return new_table_xarray
+            interp_object = interp1d(
+                x=source_table_xarray.coords[TIME_DIM].values,
+                y=source_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
+                    ..., 0
+                ],
+                kind='linear', axis=0, bounds_error=False,
+                fill_value='extrapolate', assume_sorted=True
+            )
+
+            new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
+                i, ..., j
+            ] = interp_object(new_table_xarray.coords[TIME_DIM].values[i])
+
+        if failed_to_interp:
+            break
+
+    bad_time_flags = _find_times_with_all_nan_maps(new_table_xarray)
+    if not numpy.any(bad_time_flags):
+        return new_table_xarray
+
+    bad_times_unix_sec = (
+        new_table_xarray.coords[TIME_DIM].values[bad_time_flags]
+    )
+    bad_time_strings = [
+        time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES)
+        for t in bad_times_unix_sec
+    ]
+
+    error_string = (
+        'After interpolation, all-NaN maps still exist for the following '
+        'times:\n{0:s}'
+    ).format(str(bad_time_strings))
+
+    warning_string = 'POTENTIAL ERROR: {0:s}'.format(error_string)
+    warnings.warn(warning_string)
+
+    raise ValueError(error_string)
