@@ -979,10 +979,11 @@ def data_generator(option_dict):
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
 
-    num_extra_rowcols = int(numpy.ceil(
+    num_extra_rowcols = 2 * int(numpy.ceil(
         data_aug_mean_translation_low_res_px +
         5 * data_aug_stdev_translation_low_res_px
     ))
+    print('num_extra_rowcols = {0:d}'.format(num_extra_rowcols))
     num_rows_low_res += num_extra_rowcols
     num_columns_low_res += num_extra_rowcols
 
