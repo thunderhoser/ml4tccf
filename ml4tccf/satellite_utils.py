@@ -680,6 +680,15 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
             bad_time_flags = _find_times_with_all_nan_maps(source_table_xarray)
             good_time_indices = numpy.where(numpy.invert(bad_time_flags))[0]
+
+            if len(good_time_indices) == 0:
+                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
+                    i, ..., j
+                ] = numpy.nan
+
+                failed_to_interp = True
+                break
+
             source_table_xarray = source_table_xarray.isel(
                 indexers={TIME_DIM: good_time_indices}
             )
@@ -723,6 +732,15 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
             bad_time_flags = _find_times_with_all_nan_maps(source_table_xarray)
             good_time_indices = numpy.where(numpy.invert(bad_time_flags))[0]
+
+            if len(good_time_indices) == 0:
+                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
+                    i, ..., j
+                ] = numpy.nan
+
+                failed_to_interp = True
+                break
+
             source_table_xarray = source_table_xarray.isel(
                 indexers={TIME_DIM: good_time_indices}
             )
