@@ -22,7 +22,8 @@ OUTPUT_DIR_NAME = (
 )
 
 NUM_CONV_BLOCKS = 8
-ENSEMBLE_SIZE = 25
+# ENSEMBLE_SIZE = 25
+ENSEMBLE_SIZE = 5
 
 DEFAULT_OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
@@ -42,7 +43,7 @@ DEFAULT_OPTION_DICT = {
     # cnn_architecture.L2_WEIGHT_KEY: 1e-7,
     cnn_architecture.USE_BATCH_NORM_KEY: True,
     cnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
-    cnn_architecture.LOSS_FUNCTION_KEY: custom_losses.weird_crps_kilometres2
+    cnn_architecture.LOSS_FUNCTION_KEY: custom_losses.mean_squared_distance_kilometres2
 }
 
 DENSE_LAYER_DROPOUT_RATES = numpy.array([0.2, 0.3, 0.4, 0.5])
@@ -158,7 +159,7 @@ def _run():
                         num_validation_batches_per_epoch=16,
                         validation_option_dict=None,
                         loss_function_string=
-                        'custom_losses.weird_crps_kilometres2',
+                        'custom_losses.mean_squared_distance_kilometres2',
                         plateau_patience_epochs=10,
                         plateau_learning_rate_multiplier=0.6,
                         early_stopping_patience_epochs=50,
