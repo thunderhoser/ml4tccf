@@ -820,7 +820,7 @@ def _subset_grid_after_data_aug(data_matrix, num_rows_to_keep,
             0, num_columns - 1, num=num_columns, dtype=int
         ),
         wavelength_dim: numpy.linspace(
-            1, num_wavelengths, num=num_columns, dtype=float
+            1, num_wavelengths, num=num_wavelengths, dtype=float
         )
     }
 
