@@ -69,7 +69,6 @@ def mean_grid_spacing_kilometres(target_tensor, prediction_tensor):
 def mean_distance_kilometres(target_tensor, prediction_tensor):
     """Computes mean distance between predicted and actual TC centers.
 
-
     :param target_tensor: See doc for
         `custom_losses.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
@@ -101,35 +100,36 @@ def crps_kilometres(target_tensor, prediction_tensor):
     """
 
     mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
-    row_distances_km = (
+    mean_row_errors_km = (
         target_tensor[:, 2] *
-        (mean_prediction_tensor[:, 0] - target_tensor[:, 0])
+        K.abs(mean_prediction_tensor[:, 0] - target_tensor[:, 0])
     )
-    column_distances_km = (
+    mean_column_errors_km = (
         target_tensor[:, 2] *
-        (mean_prediction_tensor[:, 1] - target_tensor[:, 1])
+        K.abs(mean_prediction_tensor[:, 1] - target_tensor[:, 1])
     )
-    mean_error_tensor_km = K.sqrt(
-        row_distances_km ** 2 + column_distances_km ** 2
+    mean_distance_errors_km = K.sqrt(
+        mean_row_errors_km ** 2 + mean_column_errors_km ** 2
     )
 
-    prediction_diff_tensor = K.abs(
+    prediction_diff_tensor_rowcol = K.abs(
         K.expand_dims(prediction_tensor, axis=-1) -
         K.expand_dims(prediction_tensor, axis=-2)
     )
-
-    all_rowcol_diff_tensor = K.sqrt(
-        prediction_diff_tensor[:, 0, ...] ** 2
-        + prediction_diff_tensor[:, 1, ...] ** 2
+    prediction_diff_tensor_rowcol = K.sqrt(
+        prediction_diff_tensor_rowcol[:, 0, ...] ** 2
+        + prediction_diff_tensor_rowcol[:, 1, ...] ** 2
     )
-    all_diff_tensor_km = (
-        K.expand_dims(K.expand_dims(target_tensor[:, 2], axis=-1), axis=-1)
-        * all_rowcol_diff_tensor
+
+    grid_spacing_tensor_km = K.expand_dims(target_tensor[:, 2], axis=-1)
+    grid_spacing_tensor_km = K.expand_dims(grid_spacing_tensor_km, axis=-1)
+    prediction_diff_tensor_km = (
+        grid_spacing_tensor_km * prediction_diff_tensor_rowcol
     )
     mean_prediction_diff_tensor_km = K.mean(
-        all_diff_tensor_km, axis=(-2, -1)
+        prediction_diff_tensor_km, axis=(-2, -1)
     )
 
     return K.mean(
-        mean_error_tensor_km - 0.5 * mean_prediction_diff_tensor_km
+        mean_distance_errors_km - 0.5 * mean_prediction_diff_tensor_km
     )

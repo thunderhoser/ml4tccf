@@ -983,7 +983,6 @@ def data_generator(option_dict):
         data_aug_mean_translation_low_res_px +
         5 * data_aug_stdev_translation_low_res_px
     ))
-    print('num_extra_rowcols = {0:d}'.format(num_extra_rowcols))
     num_rows_low_res += num_extra_rowcols
     num_columns_low_res += num_extra_rowcols
 
