@@ -813,7 +813,7 @@ def _subset_grid_after_data_aug(data_matrix, num_rows_to_keep,
             0, num_columns - 1, num=num_columns, dtype=int
         ),
         wavelength_dim: numpy.linspace(
-            1, num_wavelengths, num=num_columns, dtype=float
+            1, num_wavelengths, num=num_wavelengths, dtype=float
         )
     }
 
@@ -972,7 +972,7 @@ def data_generator(option_dict):
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
 
-    num_extra_rowcols = int(numpy.ceil(
+    num_extra_rowcols = 2 * int(numpy.ceil(
         data_aug_mean_translation_low_res_px +
         5 * data_aug_stdev_translation_low_res_px
     ))
