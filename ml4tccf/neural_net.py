@@ -81,8 +81,6 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     LOW_RES_WAVELENGTHS_KEY: None,
     BATCH_SIZE_KEY: 8,
     MAX_EXAMPLES_PER_CYCLONE_KEY: 1,
-    NUM_GRID_ROWS_KEY: None,
-    NUM_GRID_COLUMNS_KEY: None,
     DATA_AUG_NUM_TRANS_KEY: 8,
     DATA_AUG_MEAN_TRANS_KEY: 15.,
     DATA_AUG_STDEV_TRANS_KEY: 7.5,
@@ -171,29 +169,18 @@ def _check_generator_args(option_dict):
         option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
     )
 
-    if option_dict[NUM_GRID_ROWS_KEY] is not None:
-        error_checking.assert_is_integer(option_dict[NUM_GRID_ROWS_KEY])
-        error_checking.assert_is_geq(option_dict[NUM_GRID_ROWS_KEY], 100)
-        assert numpy.mod(option_dict[NUM_GRID_ROWS_KEY], 2) == 0
+    error_checking.assert_is_integer(option_dict[NUM_GRID_ROWS_KEY])
+    error_checking.assert_is_geq(option_dict[NUM_GRID_ROWS_KEY], 100)
+    assert numpy.mod(option_dict[NUM_GRID_ROWS_KEY], 2) == 0
 
-    if option_dict[NUM_GRID_COLUMNS_KEY] is not None:
-        error_checking.assert_is_integer(option_dict[NUM_GRID_COLUMNS_KEY])
-        error_checking.assert_is_geq(option_dict[NUM_GRID_COLUMNS_KEY], 100)
-        assert numpy.mod(option_dict[NUM_GRID_COLUMNS_KEY], 2) == 0
+    error_checking.assert_is_integer(option_dict[NUM_GRID_COLUMNS_KEY])
+    error_checking.assert_is_geq(option_dict[NUM_GRID_COLUMNS_KEY], 100)
+    assert numpy.mod(option_dict[NUM_GRID_COLUMNS_KEY], 2) == 0
 
     error_checking.assert_is_integer(option_dict[DATA_AUG_NUM_TRANS_KEY])
-
-    if option_dict[DATA_AUG_NUM_TRANS_KEY] > 0:
-        error_checking.assert_is_greater(
-            option_dict[DATA_AUG_MEAN_TRANS_KEY], 0.
-        )
-        error_checking.assert_is_greater(
-            option_dict[DATA_AUG_STDEV_TRANS_KEY], 0.
-        )
-    else:
-        option_dict[DATA_AUG_NUM_TRANS_KEY] = 0
-        option_dict[DATA_AUG_MEAN_TRANS_KEY] = None
-        option_dict[DATA_AUG_STDEV_TRANS_KEY] = None
+    error_checking.assert_is_greater(option_dict[DATA_AUG_NUM_TRANS_KEY], 0)
+    error_checking.assert_is_greater(option_dict[DATA_AUG_MEAN_TRANS_KEY], 0.)
+    error_checking.assert_is_greater(option_dict[DATA_AUG_STDEV_TRANS_KEY], 0.)
 
     error_checking.assert_is_integer(option_dict[LAG_TIME_TOLERANCE_KEY])
     error_checking.assert_is_geq(option_dict[LAG_TIME_TOLERANCE_KEY], 0)
@@ -419,24 +406,20 @@ def _read_satellite_data_one_cyclone(
             for_high_res=True
         )
 
-        if not (
-                num_rows_low_res is None
-                or num_columns_low_res is None
-        ):
+        orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
+            satellite_table_xarray=orig_satellite_tables_xarray[i],
+            num_rows_to_keep=num_rows_low_res,
+            num_columns_to_keep=num_columns_low_res,
+            for_high_res=False
+        )
+
+        if len(high_res_wavelengths_microns) > 0:
             orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
                 satellite_table_xarray=orig_satellite_tables_xarray[i],
-                num_rows_to_keep=num_rows_low_res,
-                num_columns_to_keep=num_columns_low_res,
-                for_high_res=False
+                num_rows_to_keep=4 * num_rows_low_res,
+                num_columns_to_keep=4 * num_columns_low_res,
+                for_high_res=True
             )
-
-            if len(high_res_wavelengths_microns) > 0:
-                orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
-                    satellite_table_xarray=orig_satellite_tables_xarray[i],
-                    num_rows_to_keep=4 * num_rows_low_res,
-                    num_columns_to_keep=4 * num_columns_low_res,
-                    for_high_res=True
-                )
 
     satellite_table_xarray = satellite_utils.concat_over_time(
         orig_satellite_tables_xarray
@@ -785,6 +768,81 @@ def _augment_data(
     )
 
 
+def _subset_grid_after_data_aug(data_matrix, num_rows_to_keep,
+                                num_columns_to_keep, for_high_res):
+    """Subsets grid after data augmentation (more cropping than first time).
+
+    E = number of examples
+    M = number of rows in original grid
+    N = number of columns in original grid
+    m = number of rows in subset grid
+    n = number of columns in subset grid
+    W = number of wavelengths in grid
+
+    :param data_matrix: E-by-M-by-N-by-W numpy array of data.
+    :param num_rows_to_keep: m in the above discussion.
+    :param num_columns_to_keep: n in the above discussion.
+    :param for_high_res: Boolean flag.
+    :return: data_matrix: E-by-m-by-n-by-W numpy array of data (subset of
+        input).
+    """
+
+    num_examples = data_matrix.shape[0]
+    num_rows = data_matrix.shape[1]
+    num_columns = data_matrix.shape[2]
+    num_wavelengths = data_matrix.shape[3]
+
+    row_dim = (
+        satellite_utils.HIGH_RES_ROW_DIM if for_high_res
+        else satellite_utils.LOW_RES_ROW_DIM
+    )
+    column_dim = (
+        satellite_utils.HIGH_RES_COLUMN_DIM if for_high_res
+        else satellite_utils.LOW_RES_COLUMN_DIM
+    )
+    wavelength_dim = (
+        satellite_utils.HIGH_RES_WAVELENGTH_DIM if for_high_res
+        else satellite_utils.LOW_RES_WAVELENGTH_DIM
+    )
+    main_data_key = (
+        satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY if for_high_res
+        else satellite_utils.BRIGHTNESS_TEMPERATURE_KEY
+    )
+
+    metadata_dict = {
+        satellite_utils.TIME_DIM: numpy.linspace(
+            0, num_examples - 1, num=num_examples, dtype=int
+        ),
+        row_dim: numpy.linspace(
+            0, num_rows - 1, num=num_rows, dtype=int
+        ),
+        column_dim: numpy.linspace(
+            0, num_columns - 1, num=num_columns, dtype=int
+        ),
+        wavelength_dim: numpy.linspace(
+            1, num_wavelengths, num=num_columns, dtype=float
+        )
+    }
+
+    main_data_dict = {
+        main_data_key: (
+            (satellite_utils.TIME_DIM, row_dim, column_dim, wavelength_dim),
+            data_matrix
+        )
+    }
+    dummy_satellite_table_xarray = xarray.Dataset(
+        data_vars=main_data_dict, coords=metadata_dict
+    )
+
+    dummy_satellite_table_xarray = satellite_utils.subset_grid(
+        satellite_table_xarray=dummy_satellite_table_xarray,
+        num_rows_to_keep=num_rows_to_keep,
+        num_columns_to_keep=num_columns_to_keep,
+        for_high_res=for_high_res
+    )
+    return dummy_satellite_table_xarray[main_data_key].values
+
+
 def _write_metafile(
         pickle_file_name, num_epochs, num_training_batches_per_epoch,
         training_option_dict, num_validation_batches_per_epoch,
@@ -918,6 +976,16 @@ def data_generator(option_dict):
     max_interp_gap_sec = option_dict[MAX_INTERP_GAP_KEY]
     sentinel_value = option_dict[SENTINEL_VALUE_KEY]
 
+    orig_num_rows_low_res = num_rows_low_res + 0
+    orig_num_columns_low_res = num_columns_low_res + 0
+
+    num_extra_rowcols = int(numpy.ceil(
+        data_aug_mean_translation_low_res_px +
+        5 * data_aug_stdev_translation_low_res_px
+    ))
+    num_rows_low_res += num_extra_rowcols
+    num_columns_low_res += num_extra_rowcols
+
     cyclone_id_strings = satellite_io.find_cyclones(
         directory_name=satellite_dir_name, raise_error_if_all_missing=True
     )
@@ -1037,6 +1105,21 @@ def data_generator(option_dict):
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=sentinel_value
         )
+
+        brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
+            data_matrix=brightness_temp_matrix_kelvins,
+            num_rows_to_keep=orig_num_rows_low_res,
+            num_columns_to_keep=orig_num_columns_low_res,
+            for_high_res=False
+        )
+
+        if bidirectional_reflectance_matrix is not None:
+            bidirectional_reflectance_matrix = _subset_grid_after_data_aug(
+                data_matrix=bidirectional_reflectance_matrix,
+                num_rows_to_keep=orig_num_rows_low_res * 4,
+                num_columns_to_keep=orig_num_columns_low_res * 4,
+                for_high_res=True
+            )
 
         grid_spacings_km = numpy.repeat(
             numpy.expand_dims(grid_spacings_km, axis=1),
