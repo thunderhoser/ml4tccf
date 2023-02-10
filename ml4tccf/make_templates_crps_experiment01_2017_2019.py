@@ -18,7 +18,7 @@ import custom_losses
 
 OUTPUT_DIR_NAME = (
     '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/'
-    'crps_experiment01_2017-2019'
+    'crps_experiment01_2017-2019/templates'
 )
 
 NUM_CONV_BLOCKS = 8
