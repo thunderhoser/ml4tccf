@@ -435,6 +435,9 @@ def plot_data_one_time(
             )
         )
 
+    for i in range(num_panels):
+        os.remove(panel_file_names[i])
+
 
 def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
          first_date_string, last_date_string,
@@ -497,7 +500,7 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
         first_date_unix_sec = None
         last_date_unix_sec = None
 
-    if num_grid_rows_low_res <= 0 or num_grid_columns_low_res:
+    if num_grid_rows_low_res <= 0 or num_grid_columns_low_res <= 0:
         num_grid_rows_low_res = None
         num_grid_columns_low_res = None
 
