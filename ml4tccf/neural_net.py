@@ -160,7 +160,7 @@ def _check_generator_args(option_dict):
     )
 
     error_checking.assert_is_integer(option_dict[BATCH_SIZE_KEY])
-    error_checking.assert_is_greater(option_dict[BATCH_SIZE_KEY], 1)
+    error_checking.assert_is_geq(option_dict[BATCH_SIZE_KEY], 1)
 
     error_checking.assert_is_integer(option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY])
     error_checking.assert_is_geq(option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY], 1)
