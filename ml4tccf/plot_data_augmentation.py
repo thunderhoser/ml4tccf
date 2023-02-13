@@ -397,12 +397,13 @@ def _run(satellite_dir_name, years, num_grid_rows_low_res,
     for _ in range(num_batches):
         predictor_matrices, target_matrix = next(generator_handle)
 
-        for i in range(len(predictor_matrices)):
-            predictor_matrices[i][
-                predictor_matrices[i] < SENTINEL_VALUE + 1
-            ] = numpy.nan
+        for k in range(len(predictor_matrices)):
+            predictor_matrices[k] = predictor_matrices[k].astype(numpy.float64)
+            predictor_matrices[k][
+                predictor_matrices[k] < SENTINEL_VALUE + 1
+                ] = numpy.nan
 
-        for i in range(predictor_matrices[0].shape[0]):
+        for i in range(num_translations):
             overall_example_index += 1
 
             _plot_data_one_example(
