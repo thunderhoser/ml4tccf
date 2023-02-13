@@ -29,8 +29,8 @@ set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/s
 python3 -u "${CODE_DIR_NAME}/plot_data_augmentation.py" \
 --input_satellite_dir_name="${INPUT_DIR_NAME}" \
 --years 2017 2018 2019 \
---num_grid_rows_low_res=600 \
---num_grid_columns_low_res=600 \
+--num_grid_rows_low_res=100 \
+--num_grid_columns_low_res=100 \
 --num_translations=4 \
 --mean_translation_low_res_px=15 \
 --stdev_translation_low_res_px=7.5 \
