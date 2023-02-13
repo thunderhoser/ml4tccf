@@ -188,7 +188,8 @@ def _plot_data_one_example(
             marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
             markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
             markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgewidth=0
+            markeredgewidth=0,
+            transform=axes_object.transAxes, zorder=1e10
         )
 
         axes_object.plot(
@@ -198,7 +199,8 @@ def _plot_data_one_example(
             marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
             markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
             markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgewidth=0
+            markeredgewidth=0,
+            transform=axes_object.transAxes, zorder=1e10
         )
 
         title_string = '{0:.3f}-micron BDRF'.format(
@@ -253,7 +255,8 @@ def _plot_data_one_example(
             marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
             markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
             markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgewidth=0
+            markeredgewidth=0,
+            transform=axes_object.transAxes, zorder=1e10
         )
 
         axes_object.plot(
@@ -263,7 +266,8 @@ def _plot_data_one_example(
             marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
             markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
             markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgewidth=0
+            markeredgewidth=0,
+            transform=axes_object.transAxes, zorder=1e10
         )
 
         title_string = r'{0:.3f}-micron $T_b$'.format(
