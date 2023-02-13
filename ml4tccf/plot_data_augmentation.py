@@ -36,7 +36,7 @@ IMAGE_CENTER_MARKER = 'o'
 IMAGE_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
 IMAGE_CENTER_MARKER_SIZE = 18
 CYCLONE_CENTER_MARKER = '*'
-CYCLONE_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
+CYCLONE_CENTER_MARKER_COLOUR = numpy.array([27, 158, 119], dtype=float)
 CYCLONE_CENTER_MARKER_SIZE = 24
 
 FIGURE_WIDTH_INCHES = 15
@@ -154,7 +154,7 @@ def _plot_data_one_example(
     num_grid_columns_low_res = predictor_matrices[1].shape[2]
 
     num_panels = (
-        len(HIGH_RES_WAVELENGTHS_MICRONS) + len(LOW_RES_WAVELENGTHS_MICRONS)
+            len(HIGH_RES_WAVELENGTHS_MICRONS) + len(LOW_RES_WAVELENGTHS_MICRONS)
     )
     panel_file_names = [''] * num_panels
     panel_index = -1
@@ -196,9 +196,9 @@ def _plot_data_one_example(
             0.5 - target_matrix[example_index, 1] / num_grid_columns_low_res,
             0.5 - target_matrix[example_index, 0] / num_grid_rows_low_res,
             linestyle='None',
-            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
-            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
+            marker=CYCLONE_CENTER_MARKER, markersize=CYCLONE_CENTER_MARKER_SIZE,
+            markerfacecolor=CYCLONE_CENTER_MARKER_COLOUR,
+            markeredgecolor=CYCLONE_CENTER_MARKER_COLOUR,
             markeredgewidth=0,
             transform=axes_object.transAxes, zorder=1e10
         )
@@ -263,9 +263,9 @@ def _plot_data_one_example(
             0.5 - target_matrix[example_index, 1] / num_grid_columns_low_res,
             0.5 - target_matrix[example_index, 0] / num_grid_rows_low_res,
             linestyle='None',
-            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
-            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
+            marker=CYCLONE_CENTER_MARKER, markersize=CYCLONE_CENTER_MARKER_SIZE,
+            markerfacecolor=CYCLONE_CENTER_MARKER_COLOUR,
+            markeredgecolor=CYCLONE_CENTER_MARKER_COLOUR,
             markeredgewidth=0,
             transform=axes_object.transAxes, zorder=1e10
         )
@@ -345,9 +345,6 @@ def _plot_data_one_example(
         tick_label_format_string='{0:.0f}', log_space=False,
         temporary_cbar_file_name='{0:s}_cbar.jpg'.format(output_file_name[:-4])
     )
-
-    for i in range(num_panels):
-        os.remove(panel_file_names[i])
 
 
 def _run(satellite_dir_name, years, num_grid_rows_low_res,
