@@ -37,4 +37,4 @@ python3 -u "${CODE_DIR_NAME}/plot_data_augmentation.py" \
 --stdev_translation_low_res_px=25 \
 --are_data_normalized=0 \
 --num_batches=1 \
---output_dir_name="${INPUT_DIR_NAME}/data_augmentation_plots/slurm_array_task_id=${SLURM_ARRAY_TASK_ID}"
+--output_dir_name="${INPUT_DIR_NAME}/data_augmentation_plots/with_padding/slurm_array_task_id=${SLURM_ARRAY_TASK_ID}"

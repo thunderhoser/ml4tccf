@@ -1106,20 +1106,20 @@ def data_generator(option_dict):
             sentinel_value=sentinel_value
         )
 
-        brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
-            data_matrix=brightness_temp_matrix_kelvins,
-            num_rows_to_keep=orig_num_rows_low_res,
-            num_columns_to_keep=orig_num_columns_low_res,
-            for_high_res=False
-        )
-
-        if bidirectional_reflectance_matrix is not None:
-            bidirectional_reflectance_matrix = _subset_grid_after_data_aug(
-                data_matrix=bidirectional_reflectance_matrix,
-                num_rows_to_keep=orig_num_rows_low_res * 4,
-                num_columns_to_keep=orig_num_columns_low_res * 4,
-                for_high_res=True
-            )
+        # brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
+        #     data_matrix=brightness_temp_matrix_kelvins,
+        #     num_rows_to_keep=orig_num_rows_low_res,
+        #     num_columns_to_keep=orig_num_columns_low_res,
+        #     for_high_res=False
+        # )
+        #
+        # if bidirectional_reflectance_matrix is not None:
+        #     bidirectional_reflectance_matrix = _subset_grid_after_data_aug(
+        #         data_matrix=bidirectional_reflectance_matrix,
+        #         num_rows_to_keep=orig_num_rows_low_res * 4,
+        #         num_columns_to_keep=orig_num_columns_low_res * 4,
+        #         for_high_res=True
+        #     )
 
         grid_spacings_km = numpy.repeat(
             numpy.expand_dims(grid_spacings_km, axis=1),
