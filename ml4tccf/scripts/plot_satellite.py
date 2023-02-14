@@ -1,6 +1,5 @@
 """Plots satellite images for one cyclone at the given times."""
 
-import os
 import argparse
 import numpy
 import xarray
@@ -427,9 +426,6 @@ def plot_data_one_time(
                 concat_figure_file_name[:-4]
             )
         )
-
-    for i in range(num_panels):
-        os.remove(panel_file_names[i])
 
 
 def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
