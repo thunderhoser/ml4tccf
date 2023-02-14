@@ -1,6 +1,7 @@
 """Custom metrics."""
 
 from tensorflow.keras import backend as K
+from ml4tccf.machine_learning import custom_losses
 
 
 def mean_prediction(target_tensor, prediction_tensor):
@@ -90,6 +91,38 @@ def mean_distance_kilometres(target_tensor, prediction_tensor):
     ))
 
 
+def discretized_mean_dist_kilometres(target_tensor, prediction_tensor):
+    """Computes discretized mean distance btw predicted and actual TC centers.
+
+    :param target_tensor: See doc for
+        `custom_losses.mean_squared_distance_kilometres2`.
+    :param prediction_tensor: Same.
+    :return: discretized_mean_distance_km: Discretized mean distance.
+    """
+
+    mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+    row_distances_km = (
+        target_tensor[:, 2] *
+        (mean_prediction_tensor[:, 0] - target_tensor[:, 0])
+    )
+    column_distances_km = (
+        target_tensor[:, 2] *
+        (mean_prediction_tensor[:, 1] - target_tensor[:, 1])
+    )
+
+    row_distances_km, column_distances_km = (
+        custom_losses.discretize_distance_errors(
+            row_distances_km=row_distances_km,
+            column_distances_km=column_distances_km,
+            true_center_latitudes_deg_n=target_tensor[:, 3]
+        )
+    )
+
+    return K.mean(K.sqrt(
+        row_distances_km ** 2 + column_distances_km ** 2
+    ))
+
+
 def crps_kilometres(target_tensor, prediction_tensor):
     """Computes CRPS between predicted and actual TC centers.
 
@@ -107,6 +140,59 @@ def crps_kilometres(target_tensor, prediction_tensor):
     mean_column_errors_km = (
         target_tensor[:, 2] *
         K.abs(mean_prediction_tensor[:, 1] - target_tensor[:, 1])
+    )
+    mean_distance_errors_km = K.sqrt(
+        mean_row_errors_km ** 2 + mean_column_errors_km ** 2
+    )
+
+    prediction_diff_tensor_rowcol = K.abs(
+        K.expand_dims(prediction_tensor, axis=-1) -
+        K.expand_dims(prediction_tensor, axis=-2)
+    )
+    prediction_diff_tensor_rowcol = K.sqrt(
+        prediction_diff_tensor_rowcol[:, 0, ...] ** 2
+        + prediction_diff_tensor_rowcol[:, 1, ...] ** 2
+    )
+
+    grid_spacing_tensor_km = K.expand_dims(target_tensor[:, 2], axis=-1)
+    grid_spacing_tensor_km = K.expand_dims(grid_spacing_tensor_km, axis=-1)
+    prediction_diff_tensor_km = (
+        grid_spacing_tensor_km * prediction_diff_tensor_rowcol
+    )
+    mean_prediction_diff_tensor_km = K.mean(
+        prediction_diff_tensor_km, axis=(-2, -1)
+    )
+
+    return K.mean(
+        mean_distance_errors_km - 0.5 * mean_prediction_diff_tensor_km
+    )
+
+
+def discretized_crps_kilometres(target_tensor, prediction_tensor):
+    """Computes discretized CRPS between predicted and actual TC centers.
+
+    :param target_tensor: See doc for
+        `custom_losses.mean_squared_distance_kilometres2`.
+    :param prediction_tensor: Same.
+    :return: discretized_crps_km: Discretized CRPS.
+    """
+
+    mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+    mean_row_errors_km = (
+        target_tensor[:, 2] *
+        K.abs(mean_prediction_tensor[:, 0] - target_tensor[:, 0])
+    )
+    mean_column_errors_km = (
+        target_tensor[:, 2] *
+        K.abs(mean_prediction_tensor[:, 1] - target_tensor[:, 1])
+    )
+
+    mean_row_errors_km, mean_column_errors_km = (
+        custom_losses.discretize_distance_errors(
+            row_distances_km=mean_row_errors_km,
+            column_distances_km=mean_column_errors_km,
+            true_center_latitudes_deg_n=target_tensor[:, 3]
+        )
     )
     mean_distance_errors_km = K.sqrt(
         mean_row_errors_km ** 2 + mean_column_errors_km ** 2

@@ -21,13 +21,18 @@ METRIC_FUNCTION_LIST = [
     custom_losses.mean_squared_distance_kilometres2,
     custom_losses.weird_crps_kilometres2,
     custom_losses.coord_avg_crps_kilometres,
+    custom_losses.discretized_mean_sq_dist_kilometres2,
+    custom_losses.discretized_weird_crps_kilometres2,
+    custom_losses.discretized_coord_avg_crps_kilometres,
     custom_metrics.mean_distance_kilometres,
     custom_metrics.mean_prediction,
     custom_metrics.mean_predictive_stdev,
     custom_metrics.mean_predictive_range,
     custom_metrics.mean_target,
     custom_metrics.mean_grid_spacing_kilometres,
-    custom_metrics.crps_kilometres
+    custom_metrics.crps_kilometres,
+    custom_metrics.discretized_mean_dist_kilometres,
+    custom_metrics.discretized_crps_kilometres
 ]
 
 METRIC_FUNCTION_DICT = {
@@ -35,13 +40,22 @@ METRIC_FUNCTION_DICT = {
         custom_losses.mean_squared_distance_kilometres2,
     'weird_crps_kilometres2': custom_losses.weird_crps_kilometres2,
     'coord_avg_crps_kilometres': custom_losses.coord_avg_crps_kilometres,
+    'discretized_mean_sq_dist_kilometres2':
+        custom_losses.discretized_mean_sq_dist_kilometres2,
+    'discretized_weird_crps_kilometres2':
+        custom_losses.discretized_weird_crps_kilometres2,
+    'discretized_coord_avg_crps_kilometres':
+        custom_losses.discretized_coord_avg_crps_kilometres,
     'mean_distance_kilometres': custom_metrics.mean_distance_kilometres,
     'mean_prediction': custom_metrics.mean_prediction,
     'mean_predictive_stdev': custom_metrics.mean_predictive_stdev,
     'mean_predictive_range': custom_metrics.mean_predictive_range,
     'mean_target': custom_metrics.mean_target,
     'mean_grid_spacing_kilometres': custom_metrics.mean_grid_spacing_kilometres,
-    'crps_kilometres': custom_metrics.crps_kilometres
+    'crps_kilometres': custom_metrics.crps_kilometres,
+    'discretized_mean_dist_kilometres':
+        custom_metrics.discretized_mean_dist_kilometres,
+    'discretized_crps_kilometres': custom_metrics.discretized_crps_kilometres
 }
 
 METRES_TO_KM = 0.001
@@ -102,6 +116,7 @@ METADATA_KEYS = [
 BIDIRECTIONAL_REFLECTANCES_KEY = 'bidirectional_reflectance_matrix'
 BRIGHTNESS_TEMPS_KEY = 'brightness_temp_matrix_kelvins'
 GRID_SPACINGS_KEY = 'grid_spacings_low_res_km'
+CENTER_LATITUDES_KEY = 'cyclone_center_latitudes_deg_n'
 TARGET_TIMES_KEY = 'target_times_unix_sec'
 HIGH_RES_LATITUDES_KEY = 'high_res_latitude_matrix_deg_n'
 HIGH_RES_LONGITUDES_KEY = 'high_res_longitude_matrix_deg_e'
@@ -355,6 +370,8 @@ def _read_satellite_data_one_cyclone(
         array of brightness temperatures.
     data_dict["grid_spacings_low_res_km"]: length-T numpy array of grid spacings
         for low-resolution data.
+    data_dict["cyclone_center_latitudes_deg_n"]: length-T numpy array of
+        center latitudes (deg north).
     data_dict["target_times_unix_sec"]: length-T numpy array of target times.
     data_dict["high_res_latitude_matrix_deg_n"]: T-by-M-by-L numpy array of
         latitudes (deg north).
@@ -504,6 +521,7 @@ def _read_satellite_data_one_cyclone(
         high_res_longitude_matrix_deg_e = None
 
     grid_spacings_low_res_km = numpy.full(num_target_times, numpy.nan)
+    cyclone_center_latitudes_deg_n = numpy.full(num_target_times, numpy.nan)
 
     lag_times_sec = MINUTES_TO_SECONDS * lag_times_minutes
     target_time_success_flags = numpy.full(num_target_times, 0, dtype=bool)
@@ -551,16 +569,18 @@ def _read_satellite_data_one_cyclone(
             this_bt_matrix_kelvins, 1, 2
         )
 
-        these_x_diffs_metres = numpy.mean(
-            numpy.diff(t[satellite_utils.X_COORD_LOW_RES_KEY].values, axis=1),
-            axis=1
+        these_x_diffs_metres = numpy.diff(
+            t[satellite_utils.X_COORD_LOW_RES_KEY].values[-1, :]
         )
-        these_y_diffs_metres = numpy.mean(
-            numpy.diff(t[satellite_utils.Y_COORD_LOW_RES_KEY].values, axis=1),
-            axis=1
+        these_y_diffs_metres = numpy.diff(
+            t[satellite_utils.Y_COORD_LOW_RES_KEY].values[-1, :]
         )
         grid_spacings_low_res_km[i] = METRES_TO_KM * numpy.mean(
             numpy.concatenate((these_x_diffs_metres, these_y_diffs_metres))
+        )
+
+        cyclone_center_latitudes_deg_n[i] = numpy.median(
+            t[satellite_utils.LATITUDE_LOW_RES_KEY].values[-1, :]
         )
 
         if return_coords:
@@ -616,6 +636,9 @@ def _read_satellite_data_one_cyclone(
     ] = sentinel_value
 
     grid_spacings_low_res_km = grid_spacings_low_res_km[good_indices]
+    cyclone_center_latitudes_deg_n = (
+        cyclone_center_latitudes_deg_n[good_indices]
+    )
 
     if return_coords:
         low_res_latitude_matrix_deg_n = low_res_latitude_matrix_deg_n[
@@ -629,6 +652,7 @@ def _read_satellite_data_one_cyclone(
         BIDIRECTIONAL_REFLECTANCES_KEY: bidirectional_reflectance_matrix,
         BRIGHTNESS_TEMPS_KEY: brightness_temp_matrix_kelvins,
         GRID_SPACINGS_KEY: grid_spacings_low_res_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
         TARGET_TIMES_KEY: target_times_unix_sec,
         HIGH_RES_LATITUDES_KEY: high_res_latitude_matrix_deg_n,
         HIGH_RES_LONGITUDES_KEY: high_res_longitude_matrix_deg_e,
@@ -1109,6 +1133,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     bidirectional_reflectance_matrix = data_dict[BIDIRECTIONAL_REFLECTANCES_KEY]
     brightness_temp_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
     grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
+    cyclone_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
     target_times_unix_sec = data_dict[TARGET_TIMES_KEY]
     low_res_latitude_matrix_deg_n = data_dict[LOW_RES_LATITUDES_KEY]
     low_res_longitude_matrix_deg_e = data_dict[LOW_RES_LONGITUDES_KEY]
@@ -1207,6 +1232,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     grid_spacings_km = numpy.repeat(
         grid_spacings_km, repeats=data_aug_num_translations
     )
+    cyclone_center_latitudes_deg_n = numpy.repeat(
+        cyclone_center_latitudes_deg_n, repeats=data_aug_num_translations
+    )
     target_times_unix_sec = numpy.repeat(
         target_times_unix_sec, repeats=data_aug_num_translations
     )
@@ -1235,7 +1263,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
 
     target_matrix_low_res_px = numpy.transpose(numpy.vstack((
         row_translations_low_res_px, column_translations_low_res_px,
-        grid_spacings_km
+        grid_spacings_km, cyclone_center_latitudes_deg_n
     )))
 
     predictor_matrices = [p.astype('float16') for p in predictor_matrices]
@@ -1310,7 +1338,7 @@ def data_generator(option_dict):
         brightness_temp_matrix_kelvins: T-by-m-by-n-by-(w * L) numpy array of
             brightness temperatures.
 
-    :return: target_matrix_low_res_px: E-by-3 numpy array with distances (in
+    :return: target_matrix_low_res_px: E-by-4 numpy array with distances (in
         low-resolution pixels) between the image center and actual cyclone
         center.  target_matrix[:, 0] contains row offsets, and
         target_matrix[:, 1] contains column offsets.  For example, if
@@ -1320,6 +1348,9 @@ def data_generator(option_dict):
 
         target_matrix[:, 2] contains the grid spacing for each data sample in
         km.
+
+        target_matrix[:, 3] contains the true latitude of each cyclone center in
+        deg north.
     """
 
     option_dict = _check_generator_args(option_dict)
@@ -1379,6 +1410,7 @@ def data_generator(option_dict):
         bidirectional_reflectance_matrix = None
         brightness_temp_matrix_kelvins = None
         grid_spacings_km = None
+        cyclone_center_latitudes_deg_n = None
         num_examples_in_memory = 0
 
         while num_examples_in_memory < num_examples_per_batch:
@@ -1410,6 +1442,7 @@ def data_generator(option_dict):
             this_reflectance_matrix = data_dict[BIDIRECTIONAL_REFLECTANCES_KEY]
             this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
             these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
+            these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
 
             if this_bt_matrix_kelvins is None:
                 continue
@@ -1440,6 +1473,9 @@ def data_generator(option_dict):
                 )
 
                 grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
+                cyclone_center_latitudes_deg_n = numpy.full(
+                    num_examples_per_batch, numpy.nan
+                )
 
                 if this_reflectance_matrix is not None:
                     these_dim = (
@@ -1456,6 +1492,9 @@ def data_generator(option_dict):
                 this_bt_matrix_kelvins
             )
             grid_spacings_km[first_index:last_index] = these_grid_spacings_km
+            cyclone_center_latitudes_deg_n[first_index:last_index] = (
+                these_center_latitudes_deg_n
+            )
 
             if this_reflectance_matrix is not None:
                 bidirectional_reflectance_matrix[
@@ -1493,10 +1532,11 @@ def data_generator(option_dict):
             )
 
         grid_spacings_km = numpy.repeat(
-            numpy.expand_dims(grid_spacings_km, axis=1),
-            axis=1, repeats=data_aug_num_translations
+            grid_spacings_km, repeats=data_aug_num_translations
         )
-        grid_spacings_km = numpy.ravel(grid_spacings_km)
+        cyclone_center_latitudes_deg_n = numpy.repeat(
+            cyclone_center_latitudes_deg_n, repeats=data_aug_num_translations
+        )
 
         predictor_matrices = [brightness_temp_matrix_kelvins]
         if bidirectional_reflectance_matrix is not None:
@@ -1504,7 +1544,7 @@ def data_generator(option_dict):
 
         target_matrix_low_res_px = numpy.transpose(numpy.vstack((
             row_translations_low_res_px, column_translations_low_res_px,
-            grid_spacings_km
+            grid_spacings_km, cyclone_center_latitudes_deg_n
         )))
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
