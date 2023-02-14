@@ -983,8 +983,8 @@ def _grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
         (deg east).
     """
 
-    num_target_times = latitude_matrix_deg_n.shape[-1]
-    num_lag_times = latitude_matrix_deg_n.shape[0]
+    num_target_times = latitude_matrix_deg_n.shape[0]
+    num_lag_times = latitude_matrix_deg_n.shape[-1]
 
     latitude_matrix_deg_n = numpy.stack(
         [
@@ -1166,14 +1166,14 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         num_rows_to_keep=orig_num_rows_low_res,
         num_columns_to_keep=orig_num_columns_low_res,
         for_high_res=False
-    )
+    )[:, :, 0, :]
 
     low_res_longitude_matrix_deg_e = _subset_grid_after_data_aug(
         data_matrix=low_res_longitude_matrix_deg_e,
         num_rows_to_keep=orig_num_rows_low_res,
         num_columns_to_keep=orig_num_columns_low_res,
         for_high_res=False
-    )
+    )[:, 0, :, :]
 
     if bidirectional_reflectance_matrix is not None:
         bidirectional_reflectance_matrix = _subset_grid_after_data_aug(
@@ -1195,14 +1195,14 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
             num_rows_to_keep=orig_num_rows_low_res * 4,
             num_columns_to_keep=orig_num_columns_low_res * 4,
             for_high_res=True
-        )
+        )[:, :, 0, :]
 
         high_res_longitude_matrix_deg_e = _subset_grid_after_data_aug(
             data_matrix=high_res_longitude_matrix_deg_e,
             num_rows_to_keep=orig_num_rows_low_res * 4,
             num_columns_to_keep=orig_num_columns_low_res * 4,
             for_high_res=True
-        )
+        )[:, 0, :, :]
 
     grid_spacings_km = numpy.repeat(
         grid_spacings_km, repeats=data_aug_num_translations

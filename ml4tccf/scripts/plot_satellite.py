@@ -23,6 +23,10 @@ DATE_FORMAT = '%Y-%m-%d'
 
 METRES_TO_MICRONS = 1e6
 
+IMAGE_CENTER_MARKER = 'o'
+IMAGE_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
+IMAGE_CENTER_MARKER_SIZE = 18
+
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
@@ -254,6 +258,15 @@ def plot_data_one_time(
                 colour_norm_object=colour_norm_object
             )
 
+        axes_object.plot(
+            0.5, 0.5, linestyle='None',
+            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
+            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
+            markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
+            markeredgewidth=0,
+            transform=axes_object.transAxes, zorder=1e10
+        )
+
         title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
             high_res_wavelengths_microns[j], cyclone_id_string,
             valid_time_string
@@ -338,6 +351,15 @@ def plot_data_one_time(
                 colour_map_object=colour_map_object,
                 colour_norm_object=colour_norm_object
             )
+
+        axes_object.plot(
+            0.5, 0.5, linestyle='None',
+            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
+            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
+            markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
+            markeredgewidth=0,
+            transform=axes_object.transAxes, zorder=1e10
+        )
 
         title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
             low_res_wavelengths_microns[j], cyclone_id_string,

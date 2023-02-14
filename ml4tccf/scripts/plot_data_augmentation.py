@@ -166,8 +166,8 @@ def _plot_data_one_example(
     :param output_file_name: Path to output file.  Figure will be saved here.
     """
 
-    num_grid_rows_low_res = predictor_matrices[1].shape[1]
-    num_grid_columns_low_res = predictor_matrices[1].shape[2]
+    num_grid_rows_low_res = predictor_matrices[1].shape[0]
+    num_grid_columns_low_res = predictor_matrices[1].shape[1]
 
     num_panels = (
         len(HIGH_RES_WAVELENGTHS_MICRONS) + len(LOW_RES_WAVELENGTHS_MICRONS)
