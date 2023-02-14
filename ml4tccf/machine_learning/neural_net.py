@@ -1679,6 +1679,63 @@ def train_model(
     )
 
 
+def apply_model(
+        model_object, predictor_matrices, num_examples_per_batch, verbose=True):
+    """Applies trained neural net -- inference time!
+
+    E = number of examples
+    S = ensemble size
+
+    :param model_object: Trained neural net (instance of `keras.models.Model` or
+        `keras.models.Sequential`).
+    :param predictor_matrices: See output doc for `data_generator`.
+    :param num_examples_per_batch: Batch size.
+    :param verbose: Boolean flag.  If True, will print progress messages.
+    :return: prediction_matrix: E-by-2-by-S numpy array.
+        prediction_tensor[:, 0, :] contains predicted row positions of TC
+        centers, and prediction_tensor[:, 1, :] contains predicted column
+        positions of TC centers.
+    """
+
+    # Check input args.
+    for this_matrix in predictor_matrices:
+        error_checking.assert_is_numpy_array_without_nan(this_matrix)
+
+    error_checking.assert_is_integer(num_examples_per_batch)
+    error_checking.assert_is_geq(num_examples_per_batch, 1)
+    num_examples = predictor_matrices[0].shape[0]
+    num_examples_per_batch = min([num_examples_per_batch, num_examples])
+
+    error_checking.assert_is_boolean(verbose)
+
+    # Do actual stuff.
+    prediction_matrix = None
+
+    for i in range(0, num_examples, num_examples_per_batch):
+        first_index = i
+        last_index = min([i + num_examples_per_batch, num_examples])
+
+        if verbose:
+            print('Applying model to examples {0:d}-{1:d} of {2:d}...'.format(
+                first_index + 1, last_index, num_examples
+            ))
+
+        this_prediction_matrix = model_object.predict_on_batch(
+            [a[first_index:last_index, ...] for a in predictor_matrices]
+        )
+
+        if prediction_matrix is None:
+            dimensions = (num_examples,) + this_prediction_matrix.shape[1:]
+            prediction_matrix = numpy.full(dimensions, numpy.nan)
+
+        prediction_matrix[first_index:last_index, ...] = this_prediction_matrix
+
+    if verbose:
+        print('Have applied model to all {0:d} examples!'.format(num_examples))
+
+    return prediction_matrix
+
+
 def find_metafile(model_dir_name, raise_error_if_missing=True):
     """Finds metafile for neural net.
 
