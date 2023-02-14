@@ -990,8 +990,8 @@ def _grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
         (deg east).
     """
 
-    num_target_times = latitude_matrix_deg_n.shape[-1]
-    num_lag_times = latitude_matrix_deg_n.shape[0]
+    num_target_times = latitude_matrix_deg_n.shape[0]
+    num_lag_times = latitude_matrix_deg_n.shape[-1]
 
     latitude_matrix_deg_n = numpy.stack(
         [
