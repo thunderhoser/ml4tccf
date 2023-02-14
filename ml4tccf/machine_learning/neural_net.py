@@ -965,6 +965,64 @@ def _write_metafile(
     pickle_file_handle.close()
 
 
+def _grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
+    """Converts grid coordinates from 3-D matrices to 4-D matrices.
+
+    T = number of target times
+    M = number of rows per grid
+    N = number of columns per grid
+    L = number of lag times
+
+    :param latitude_matrix_deg_n: T-by-M-by-L numpy array of latitudes (deg
+        north).
+    :param longitude_matrix_deg_e: T-by-N-by-L numpy array of longitudes (deg
+        east).
+    :return: latitude_matrix_deg_n: T-by-M-by-N-by-L numpy array of latitudes
+        (deg north).
+    :return: longitude_matrix_deg_e: T-by-M-by-N-by-L numpy array of longitudes
+        (deg east).
+    """
+
+    num_target_times = latitude_matrix_deg_n.shape[-1]
+    num_lag_times = latitude_matrix_deg_n.shape[0]
+
+    latitude_matrix_deg_n = numpy.stack(
+        [
+            numpy.stack(
+                [
+                    numpy.meshgrid(
+                        longitude_matrix_deg_e[i, :, j],
+                        latitude_matrix_deg_n[i, :, j]
+                    )[1]
+                    for j in range(num_lag_times)
+                ],
+                axis=-1
+            )
+            for i in range(num_target_times)
+        ],
+        axis=0
+    )
+
+    longitude_matrix_deg_e = numpy.stack(
+        [
+            numpy.stack(
+                [
+                    numpy.meshgrid(
+                        longitude_matrix_deg_e[i, :, j],
+                        latitude_matrix_deg_n[i, :, j]
+                    )[0]
+                    for j in range(num_lag_times)
+                ],
+                axis=-1
+            )
+            for i in range(num_target_times)
+        ],
+        axis=0
+    )
+
+    return latitude_matrix_deg_n, longitude_matrix_deg_e
+
+
 def create_data(option_dict, cyclone_id_string, num_target_times):
     """Creates input data for neural net (without being a generator).
 
@@ -1096,9 +1154,51 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         for_high_res=False
     )
 
+    low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
+        _grid_coords_3d_to_4d(
+            latitude_matrix_deg_n=low_res_latitude_matrix_deg_n,
+            longitude_matrix_deg_e=low_res_longitude_matrix_deg_e
+        )
+    )
+
+    low_res_latitude_matrix_deg_n = _subset_grid_after_data_aug(
+        data_matrix=low_res_latitude_matrix_deg_n,
+        num_rows_to_keep=orig_num_rows_low_res,
+        num_columns_to_keep=orig_num_columns_low_res,
+        for_high_res=False
+    )
+
+    low_res_longitude_matrix_deg_e = _subset_grid_after_data_aug(
+        data_matrix=low_res_longitude_matrix_deg_e,
+        num_rows_to_keep=orig_num_rows_low_res,
+        num_columns_to_keep=orig_num_columns_low_res,
+        for_high_res=False
+    )
+
     if bidirectional_reflectance_matrix is not None:
         bidirectional_reflectance_matrix = _subset_grid_after_data_aug(
             data_matrix=bidirectional_reflectance_matrix,
+            num_rows_to_keep=orig_num_rows_low_res * 4,
+            num_columns_to_keep=orig_num_columns_low_res * 4,
+            for_high_res=True
+        )
+
+        high_res_latitude_matrix_deg_n, high_res_longitude_matrix_deg_e = (
+            _grid_coords_3d_to_4d(
+                latitude_matrix_deg_n=high_res_latitude_matrix_deg_n,
+                longitude_matrix_deg_e=high_res_longitude_matrix_deg_e
+            )
+        )
+
+        high_res_latitude_matrix_deg_n = _subset_grid_after_data_aug(
+            data_matrix=high_res_latitude_matrix_deg_n,
+            num_rows_to_keep=orig_num_rows_low_res * 4,
+            num_columns_to_keep=orig_num_columns_low_res * 4,
+            for_high_res=True
+        )
+
+        high_res_longitude_matrix_deg_e = _subset_grid_after_data_aug(
+            data_matrix=high_res_longitude_matrix_deg_e,
             num_rows_to_keep=orig_num_rows_low_res * 4,
             num_columns_to_keep=orig_num_columns_low_res * 4,
             for_high_res=True

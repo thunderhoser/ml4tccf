@@ -470,6 +470,14 @@ def _run(satellite_dir_name, cyclone_id_string, num_target_times,
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
 
     for i in range(num_examples):
+        output_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
+            output_dir_name,
+            cyclone_id_string,
+            time_conversion.unix_sec_to_string(
+                target_times_unix_sec[i], TIME_FORMAT
+            )
+        )
+
         _plot_data_one_example(
             predictor_matrices=[p[i, ...] for p in predictor_matrices],
             target_values=target_matrix[i, ...],
@@ -482,9 +490,7 @@ def _run(satellite_dir_name, cyclone_id_string, num_target_times,
             are_data_normalized=are_data_normalized,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            output_file_name='{0:s}/example{1:05d}.jpg'.format(
-                output_dir_name, i
-            )
+            output_file_name=output_file_name
         )
 
 
