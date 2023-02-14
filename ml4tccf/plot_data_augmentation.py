@@ -14,12 +14,15 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import time_conversion
 import file_system_utils
-import error_checking
 import imagemagick_utils
+import border_io
 import neural_net
 import plotting_utils
 import satellite_plotting
+
+TIME_FORMAT = '%Y-%m-%d-%H%M'
 
 LAG_TIMES_MINUTES = numpy.array([0], dtype=int)
 LOW_RES_WAVELENGTHS_MICRONS = numpy.array([
@@ -46,24 +49,29 @@ PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
 INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
-YEARS_ARG_NAME = 'years'
+CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
+NUM_TARGET_TIMES_ARG_NAME = 'num_target_times'
 NUM_GRID_ROWS_ARG_NAME = 'num_grid_rows_low_res'
 NUM_GRID_COLUMNS_ARG_NAME = 'num_grid_columns_low_res'
 NUM_TRANSLATIONS_ARG_NAME = 'num_translations'
 MEAN_TRANSLATION_ARG_NAME = 'mean_translation_low_res_px'
 STDEV_TRANSLATION_ARG_NAME = 'stdev_translation_low_res_px'
 ARE_DATA_NORMALIZED_ARG_NAME = 'are_data_normalized'
-NUM_BATCHES_ARG_NAME = 'num_batches'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
     'Name of input directory, containing satellite data.  Files therein will '
     'be found by `satellite_io.find_file` and read by `satellite_io.read_file`.'
 )
-YEARS_HELP_STRING = (
-    'List of years.  Will plot data augmentation for random cyclones in these '
-    'years.'
+CYCLONE_ID_HELP_STRING = (
+    'Cyclone ID in format "yyyyBBnn".  Will plot data augmentation only for '
+    'this cyclone.'
 )
+NUM_TARGET_TIMES_HELP_STRING = (
+    'Will plot data augmentation at this many target times for the given '
+    'cyclone.  Number of figures will be {0:s} * {1:s}.'
+).format(NUM_TARGET_TIMES_ARG_NAME, NUM_TRANSLATIONS_ARG_NAME)
+
 NUM_GRID_ROWS_HELP_STRING = (
     'Number of grid rows to retain in low-resolution (infrared) data.'
 )
@@ -85,10 +93,6 @@ ARE_DATA_NORMALIZED_HELP_STRING = (
     'Boolean flag.  If 1 (0), plotting code will assume that satellite data '
     'are (un)normalized.'
 )
-NUM_BATCHES_HELP_STRING = (
-    'Number of batches to yield (i.e., number of times to run generator).  '
-    'Total number of figures will be {0:s} * {1:s}.'
-).format(NUM_BATCHES_ARG_NAME, NUM_TRANSLATIONS_ARG_NAME)
 
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -100,8 +104,12 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + YEARS_ARG_NAME, type=int, nargs='+', required=True,
-    help=YEARS_HELP_STRING
+    '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
+    help=CYCLONE_ID_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_TARGET_TIMES_ARG_NAME, type=int, required=True,
+    help=NUM_TARGET_TIMES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_GRID_ROWS_ARG_NAME, type=int, required=True,
@@ -128,25 +136,40 @@ INPUT_ARG_PARSER.add_argument(
     help=ARE_DATA_NORMALIZED_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_BATCHES_ARG_NAME, type=int, required=True,
-    help=NUM_BATCHES_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
 def _plot_data_one_example(
-        predictor_matrices, target_matrix, example_index, are_data_normalized,
+        predictor_matrices, target_values, cyclone_id_string,
+        target_time_unix_sec, low_res_latitudes_deg_n, low_res_longitudes_deg_e,
+        high_res_latitudes_deg_n, high_res_longitudes_deg_e,
+        are_data_normalized, border_latitudes_deg_n, border_longitudes_deg_e,
         output_file_name):
     """Plots satellite data for one example.
 
-    :param predictor_matrices: See output doc for `neural_net.data_generator`.
-    :param target_matrix: Same.
-    :param example_index: Will plot the [i]th example, where
-        i = `example_index`.
+    P = number of points in border set
+
+    :param predictor_matrices: Same as output from `neural_net.create_data` but
+        without first axis.
+    :param target_values: Same as output from `neural_net.create_data` but
+        without first axis.
+    :param cyclone_id_string: Cyclone ID.
+    :param target_time_unix_sec: Target time.
+    :param low_res_latitudes_deg_n: Same as output from `neural_net.create_data`
+        but without first or last axis.
+    :param low_res_longitudes_deg_e: Same as output from
+        `neural_net.create_data` but without first or last axis.
+    :param high_res_latitudes_deg_n: Same as output from
+        `neural_net.create_data` but without first or last axis.
+    :param high_res_longitudes_deg_e: Same as output from
+        `neural_net.create_data` but without first or last axis.
     :param are_data_normalized: See documentation at top of file.
+    :param border_latitudes_deg_n: length-P numpy array of latitudes
+        (deg north).  If None, will plot without coords.
+    :param border_longitudes_deg_e: length-P numpy array of longitudes
+        (deg east).  If None, will plot without coords.
     :param output_file_name: Path to output file.  Figure will be saved here.
     """
 
@@ -154,7 +177,7 @@ def _plot_data_one_example(
     num_grid_columns_low_res = predictor_matrices[1].shape[2]
 
     num_panels = (
-            len(HIGH_RES_WAVELENGTHS_MICRONS) + len(LOW_RES_WAVELENGTHS_MICRONS)
+        len(HIGH_RES_WAVELENGTHS_MICRONS) + len(LOW_RES_WAVELENGTHS_MICRONS)
     )
     panel_file_names = [''] * num_panels
     panel_index = -1
@@ -174,13 +197,27 @@ def _plot_data_one_example(
                 satellite_plotting.get_colour_scheme_for_bdrf()
             )
 
-        satellite_plotting.plot_2d_grid_no_coords(
-            data_matrix=predictor_matrices[0][example_index, ..., j],
+        plotting_utils.plot_borders(
+            border_latitudes_deg_n=border_latitudes_deg_n,
+            border_longitudes_deg_e=border_longitudes_deg_e,
+            axes_object=axes_object
+        )
+
+        satellite_plotting.plot_2d_grid_latlng(
+            data_matrix=predictor_matrices[0][..., j],
             axes_object=axes_object,
+            latitude_array_deg_n=high_res_latitudes_deg_n,
+            longitude_array_deg_e=high_res_longitudes_deg_e,
             plotting_brightness_temp=False,
             cbar_orientation_string=None,
             colour_map_object=colour_map_object,
             colour_norm_object=colour_norm_object
+        )
+        plotting_utils.plot_grid_lines(
+            plot_latitudes_deg_n=numpy.ravel(high_res_latitudes_deg_n),
+            plot_longitudes_deg_e=numpy.ravel(high_res_longitudes_deg_e),
+            axes_object=axes_object,
+            parallel_spacing_deg=2., meridian_spacing_deg=2.
         )
 
         axes_object.plot(
@@ -193,8 +230,8 @@ def _plot_data_one_example(
         )
 
         axes_object.plot(
-            0.5 - target_matrix[example_index, 1] / num_grid_columns_low_res,
-            0.5 - target_matrix[example_index, 0] / num_grid_rows_low_res,
+            0.5 + target_values[1] / num_grid_columns_low_res,
+            0.5 + target_values[0] / num_grid_rows_low_res,
             linestyle='None',
             marker=CYCLONE_CENTER_MARKER, markersize=CYCLONE_CENTER_MARKER_SIZE,
             markerfacecolor=CYCLONE_CENTER_MARKER_COLOUR,
@@ -203,8 +240,12 @@ def _plot_data_one_example(
             transform=axes_object.transAxes, zorder=1e10
         )
 
-        title_string = '{0:.3f}-micron BDRF'.format(
-            HIGH_RES_WAVELENGTHS_MICRONS[j]
+        title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
+            HIGH_RES_WAVELENGTHS_MICRONS[j],
+            cyclone_id_string,
+            time_conversion.unix_sec_to_string(
+                target_time_unix_sec, TIME_FORMAT
+            )
         )
         axes_object.set_title(title_string)
 
@@ -241,13 +282,27 @@ def _plot_data_one_example(
                 satellite_plotting.get_colour_scheme_for_brightness_temp()
             )
 
-        satellite_plotting.plot_2d_grid_no_coords(
-            data_matrix=predictor_matrices[1][example_index, ..., j],
+        plotting_utils.plot_borders(
+            border_latitudes_deg_n=border_latitudes_deg_n,
+            border_longitudes_deg_e=border_longitudes_deg_e,
+            axes_object=axes_object
+        )
+
+        satellite_plotting.plot_2d_grid_latlng(
+            data_matrix=predictor_matrices[1][..., j],
             axes_object=axes_object,
+            latitude_array_deg_n=low_res_latitudes_deg_n,
+            longitude_array_deg_e=low_res_longitudes_deg_e,
             plotting_brightness_temp=True,
             cbar_orientation_string=None,
             colour_map_object=colour_map_object,
             colour_norm_object=colour_norm_object
+        )
+        plotting_utils.plot_grid_lines(
+            plot_latitudes_deg_n=numpy.ravel(low_res_latitudes_deg_n),
+            plot_longitudes_deg_e=numpy.ravel(low_res_longitudes_deg_e),
+            axes_object=axes_object,
+            parallel_spacing_deg=2., meridian_spacing_deg=2.
         )
 
         axes_object.plot(
@@ -260,8 +315,8 @@ def _plot_data_one_example(
         )
 
         axes_object.plot(
-            0.5 - target_matrix[example_index, 1] / num_grid_columns_low_res,
-            0.5 - target_matrix[example_index, 0] / num_grid_rows_low_res,
+            0.5 + target_values[1] / num_grid_columns_low_res,
+            0.5 + target_values[0] / num_grid_rows_low_res,
             linestyle='None',
             marker=CYCLONE_CENTER_MARKER, markersize=CYCLONE_CENTER_MARKER_SIZE,
             markerfacecolor=CYCLONE_CENTER_MARKER_COLOUR,
@@ -270,8 +325,12 @@ def _plot_data_one_example(
             transform=axes_object.transAxes, zorder=1e10
         )
 
-        title_string = r'{0:.3f}-micron $T_b$'.format(
-            LOW_RES_WAVELENGTHS_MICRONS[j]
+        title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
+            LOW_RES_WAVELENGTHS_MICRONS[j],
+            cyclone_id_string,
+            time_conversion.unix_sec_to_string(
+                target_time_unix_sec, TIME_FORMAT
+            )
         )
         axes_object.set_title(title_string)
 
@@ -347,31 +406,29 @@ def _plot_data_one_example(
     )
 
 
-def _run(satellite_dir_name, years, num_grid_rows_low_res,
-         num_grid_columns_low_res, num_translations,
+def _run(satellite_dir_name, cyclone_id_string, num_target_times,
+         num_grid_rows_low_res, num_grid_columns_low_res, num_translations,
          mean_translation_low_res_px, stdev_translation_low_res_px,
-         are_data_normalized, num_batches, output_dir_name):
+         are_data_normalized, output_dir_name):
     """Plots data augmentation.
 
     This is effectively the main method.
 
     :param satellite_dir_name: See documentation at top of file.
-    :param years: Same.
+    :param cyclone_id_string: Same.
+    :param num_target_times: Same.
     :param num_grid_rows_low_res: Same.
     :param num_grid_columns_low_res: Same.
     :param num_translations: Same.
     :param mean_translation_low_res_px: Same.
     :param stdev_translation_low_res_px: Same.
     :param are_data_normalized: Same.
-    :param num_batches: Same.
     :param output_dir_name: Same.
     """
 
-    error_checking.assert_is_greater(num_batches, 0)
-
     option_dict = {
         neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name,
-        neural_net.YEARS_KEY: years,
+        neural_net.YEARS_KEY: numpy.array([2000], dtype=int),
         neural_net.LAG_TIMES_KEY: LAG_TIMES_MINUTES,
         neural_net.HIGH_RES_WAVELENGTHS_KEY: HIGH_RES_WAVELENGTHS_MICRONS,
         neural_net.LOW_RES_WAVELENGTHS_KEY: LOW_RES_WAVELENGTHS_MICRONS,
@@ -388,29 +445,60 @@ def _run(satellite_dir_name, years, num_grid_rows_low_res,
         neural_net.SENTINEL_VALUE_KEY: SENTINEL_VALUE
     }
 
-    generator_handle = neural_net.data_generator(option_dict)
-    overall_example_index = -1
+    data_dict = neural_net.create_data(
+        option_dict=option_dict, cyclone_id_string=cyclone_id_string,
+        num_target_times=num_target_times
+    )
 
-    for _ in range(num_batches):
-        predictor_matrices, target_matrix = next(generator_handle)
+    if data_dict is None:
+        return
 
-        for k in range(len(predictor_matrices)):
-            predictor_matrices[k] = predictor_matrices[k].astype(numpy.float64)
-            predictor_matrices[k][
-                predictor_matrices[k] < SENTINEL_VALUE + 1
-                ] = numpy.nan
+    predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
+    target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]
+    target_times_unix_sec = data_dict[neural_net.TARGET_TIMES_KEY]
+    low_res_latitude_matrix_deg_n = data_dict[neural_net.LOW_RES_LATITUDES_KEY]
+    low_res_longitude_matrix_deg_e = (
+        data_dict[neural_net.LOW_RES_LONGITUDES_KEY]
+    )
+    high_res_latitude_matrix_deg_n = (
+        data_dict[neural_net.HIGH_RES_LATITUDES_KEY]
+    )
+    high_res_longitude_matrix_deg_e = (
+        data_dict[neural_net.HIGH_RES_LONGITUDES_KEY]
+    )
 
-        for i in range(num_translations):
-            overall_example_index += 1
+    for k in range(len(predictor_matrices)):
+        predictor_matrices[k] = predictor_matrices[k].astype(numpy.float64)
+        predictor_matrices[k][
+            predictor_matrices[k] < SENTINEL_VALUE + 1
+        ] = numpy.nan
 
-            _plot_data_one_example(
-                predictor_matrices=predictor_matrices,
-                target_matrix=target_matrix, example_index=i,
-                are_data_normalized=are_data_normalized,
-                output_file_name='{0:s}/example{1:05d}.jpg'.format(
-                    output_dir_name, overall_example_index
-                )
+    num_examples = predictor_matrices[0].shape[0]
+    border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
+
+    for i in range(num_examples):
+        output_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
+            output_dir_name,
+            cyclone_id_string,
+            time_conversion.unix_sec_to_string(
+                target_times_unix_sec[i], TIME_FORMAT
             )
+        )
+
+        _plot_data_one_example(
+            predictor_matrices=[p[i, ...] for p in predictor_matrices],
+            target_values=target_matrix[i, ...],
+            cyclone_id_string=cyclone_id_string,
+            target_time_unix_sec=target_times_unix_sec[i],
+            low_res_latitudes_deg_n=low_res_latitude_matrix_deg_n[i, :, 0],
+            low_res_longitudes_deg_e=low_res_longitude_matrix_deg_e[i, :, 0],
+            high_res_latitudes_deg_n=high_res_latitude_matrix_deg_n[i, :, 0],
+            high_res_longitudes_deg_e=high_res_longitude_matrix_deg_e[i, :, 0],
+            are_data_normalized=are_data_normalized,
+            border_latitudes_deg_n=border_latitudes_deg_n,
+            border_longitudes_deg_e=border_longitudes_deg_e,
+            output_file_name=output_file_name
+        )
 
 
 if __name__ == '__main__':
@@ -418,7 +506,8 @@ if __name__ == '__main__':
 
     _run(
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
-        years=numpy.array(getattr(INPUT_ARG_OBJECT, YEARS_ARG_NAME), dtype=int),
+        cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
+        num_target_times=getattr(INPUT_ARG_OBJECT, NUM_TARGET_TIMES_ARG_NAME),
         num_grid_rows_low_res=getattr(INPUT_ARG_OBJECT, NUM_GRID_ROWS_ARG_NAME),
         num_grid_columns_low_res=getattr(
             INPUT_ARG_OBJECT, NUM_GRID_COLUMNS_ARG_NAME
@@ -433,6 +522,5 @@ if __name__ == '__main__':
         are_data_normalized=bool(getattr(
             INPUT_ARG_OBJECT, ARE_DATA_NORMALIZED_ARG_NAME
         )),
-        num_batches=getattr(INPUT_ARG_OBJECT, NUM_BATCHES_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

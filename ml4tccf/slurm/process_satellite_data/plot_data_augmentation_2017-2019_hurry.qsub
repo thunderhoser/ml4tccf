@@ -12,7 +12,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=24:00:00
-#SBATCH --array=1-75
+#SBATCH --array=1-52
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -27,14 +27,16 @@ conda activate base
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed"
 
+set CYCLONE_ID_STRINGS=("2017AL01" "2017AL02" "2017AL03" "2017AL04" "2017AL05" "2017AL06" "2017AL07" "2017AL08" "2017AL09" "2017AL10" "2017AL11" "2017AL12" "2017AL13" "2017AL14" "2017AL15" "2017AL16" "2017AL17" "2017AL18" "2017AL19" "2018AL01" "2018AL02" "2018AL03" "2018AL04" "2018AL05" "2018AL06" "2018AL07" "2018AL08" "2018AL09" "2018AL10" "2018AL11" "2018AL12" "2018AL13" "2019AL01" "2019AL02" "2019AL03" "2019AL04" "2019AL05" "2019AL06" "2019AL07" "2019AL08" "2019AL09" "2019AL10" "2019AL11" "2019AL12" "2019AL13" "2019AL14" "2019AL15" "2019AL16" "2019AL17" "2019AL18" "2019AL19" "2019AL20")
+
 python3 -u "${CODE_DIR_NAME}/plot_data_augmentation.py" \
 --input_satellite_dir_name="${INPUT_DIR_NAME}" \
---years 2017 2018 2019 \
+--cyclone_id_string="${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--num_target_times=2 \
 --num_grid_rows_low_res=600 \
 --num_grid_columns_low_res=600 \
 --num_translations=2 \
 --mean_translation_low_res_px=50 \
 --stdev_translation_low_res_px=25 \
 --are_data_normalized=0 \
---num_batches=1 \
---output_dir_name="${INPUT_DIR_NAME}/data_augmentation_plots/with_padding/slurm_array_task_id=${SLURM_ARRAY_TASK_ID}"
+--output_dir_name="${INPUT_DIR_NAME}/data_augmentation_plots"
