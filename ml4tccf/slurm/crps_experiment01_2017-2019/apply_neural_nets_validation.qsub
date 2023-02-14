@@ -39,7 +39,7 @@ set l2_weight=${CONV_LAYER_L2_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
 set num_conv_layers_per_block=${CONV_LAYER_BY_BLOCK_COUNTS[$SLURM_ARRAY_TASK_ID]}
 
 set model_dir_name="${TOP_MODEL_DIR_NAME}/num-dense-layers=${num_dense_layers}_dense-dropout-rate=${dense_layer_dropout_rate}_num-conv-layers-per-block=${num_conv_layers_per_block}_l2-weight=${l2_weight}"
-echo $output_dir_name
+echo $model_dir_name
 
 set CYCLONE_ID_STRINGS=("2020AL01" "2020AL02" "2020AL03" "2020AL04" "2020AL05" "2020AL06" "2020AL07" "2020AL08" "2020AL09" "2020AL10" "2020AL11" "2020AL12" "2020AL13" "2020AL14" "2020AL15" "2020AL16" "2020AL17" "2020AL18" "2020AL19" "2020AL20" "2020AL21" "2020AL22" "2020AL23" "2020AL24" "2020AL25" "2020AL26" "2020AL27" "2020AL28" "2020AL29" "2020AL30" "2020AL31")
 set i=1
