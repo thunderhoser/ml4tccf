@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_data_augmentation_2017-2019"
+#SBATCH --job-name="plot_satellite_unnormalized_2019AL03"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -12,12 +12,13 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=24:00:00
+#SBATCH --array=1
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_data_augmentation_2017-2019_%A.out
+#SBATCH --output=plot_satellite_unnormalized_2019AL03_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -25,15 +26,17 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed"
+set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/plots"
 
-python3 -u "${CODE_DIR_NAME}/plot_data_augmentation.py" \
+set CYCLONE_ID_STRINGS=("2019AL03")
+set DATE_STRINGS=("2019-07-22")
+
+python3 -u "${CODE_DIR_NAME}/plot_satellite.py" \
 --input_satellite_dir_name="${INPUT_DIR_NAME}" \
---years 2017 2018 2019 \
---num_grid_rows_low_res=600 \
---num_grid_columns_low_res=600 \
---num_translations=2 \
---mean_translation_low_res_px=50 \
---stdev_translation_low_res_px=25 \
+--cyclone_id_string="${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--num_times=48 \
+--first_date_string="${DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--last_date_string="${DATE_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--plot_latlng_coords=1 \
 --are_data_normalized=0 \
---num_batches=50 \
---output_dir_name="${INPUT_DIR_NAME}/data_augmentation_plots"
+--output_dir_name="${TOP_OUTPUT_DIR_NAME}/${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}"
