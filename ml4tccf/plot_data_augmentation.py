@@ -22,6 +22,10 @@ import neural_net
 import plotting_utils
 import satellite_plotting
 
+# TODO(thunderhoser): Keep in mind that data augmentation is not applied to
+# lat/long coordinates, so all images plotted by this script will NOT line up
+# properly with lat/long coordinates.  I could fix this, but meh... later.
+
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
 LAG_TIMES_MINUTES = numpy.array([0], dtype=int)
