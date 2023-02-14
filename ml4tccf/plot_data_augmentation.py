@@ -229,6 +229,9 @@ def _plot_data_one_example(
             transform=axes_object.transAxes, zorder=1e10
         )
 
+        print(0.5 + target_values[1] / num_grid_columns_low_res)
+        print(0.5 + target_values[0] / num_grid_rows_low_res)
+
         axes_object.plot(
             0.5 + target_values[1] / num_grid_columns_low_res,
             0.5 + target_values[0] / num_grid_rows_low_res,
