@@ -1,4 +1,4 @@
-"""Plots data augmentation."""
+"""Plots predictions."""
 
 import os
 import argparse
@@ -10,34 +10,35 @@ import matplotlib.colors
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
+from ml4tccf.io import prediction_io
 from ml4tccf.io import border_io
 from ml4tccf.machine_learning import neural_net
 from ml4tccf.plotting import plotting_utils
 from ml4tccf.plotting import satellite_plotting
 
-# TODO(thunderhoser): Keep in mind that data augmentation is not applied to
-# lat/long coordinates, so all images plotted by this script will NOT line up
-# properly with lat/long coordinates.  I could fix this, but meh... later.
-
+SENTINEL_VALUE = -9999.
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
-LAG_TIMES_MINUTES = numpy.array([0], dtype=int)
-LOW_RES_WAVELENGTHS_MICRONS = numpy.array([
-    3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
-])
-HIGH_RES_WAVELENGTHS_MICRONS = numpy.array([0.64])
+PREDICTED_CENTER_MARKER = 'o'
+PREDICTED_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
+PREDICTED_CENTER_MARKER_COLOUR = matplotlib.colors.to_rgba(
+    PREDICTED_CENTER_MARKER_COLOUR, alpha=0.5
+)
+PREDICTED_CENTER_MARKER_SIZE = 18
+PREDICTED_CENTER_MARKER_EDGE_WIDTH = 0
+PREDICTED_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
-LAG_TIME_TOLERANCE_SEC = 900
-MAX_NUM_MISSING_LAG_TIMES = 1
-MAX_INTERP_GAP_SEC = 3600
-SENTINEL_VALUE = -9999.
+ACTUAL_CENTER_MARKER = '*'
+ACTUAL_CENTER_MARKER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+ACTUAL_CENTER_MARKER_SIZE = 48
+ACTUAL_CENTER_MARKER_EDGE_WIDTH = 3
+ACTUAL_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
-IMAGE_CENTER_MARKER = 'o'
-IMAGE_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
-IMAGE_CENTER_MARKER_SIZE = 18
-CYCLONE_CENTER_MARKER = '*'
-CYCLONE_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
-CYCLONE_CENTER_MARKER_SIZE = 36
+IMAGE_CENTER_MARKER = 's'
+IMAGE_CENTER_MARKER_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
+IMAGE_CENTER_MARKER_SIZE = 36
+IMAGE_CENTER_MARKER_EDGE_WIDTH = 3
+IMAGE_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -45,46 +46,19 @@ FIGURE_RESOLUTION_DPI = 300
 PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
-INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
-CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
-NUM_TARGET_TIMES_ARG_NAME = 'num_target_times'
-NUM_GRID_ROWS_ARG_NAME = 'num_grid_rows_low_res'
-NUM_GRID_COLUMNS_ARG_NAME = 'num_grid_columns_low_res'
-NUM_TRANSLATIONS_ARG_NAME = 'num_translations'
-MEAN_TRANSLATION_ARG_NAME = 'mean_translation_low_res_px'
-STDEV_TRANSLATION_ARG_NAME = 'stdev_translation_low_res_px'
+PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
+SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
 ARE_DATA_NORMALIZED_ARG_NAME = 'are_data_normalized'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
-INPUT_DIR_HELP_STRING = (
-    'Name of input directory, containing satellite data.  Files therein will '
+PREDICTION_FILE_HELP_STRING = (
+    'Path to prediction file, containing predictions and targets for one '
+    'cyclone.  Will be read by `prediction_io.read_file`.  One figure will be '
+    'created for each data sample in this file.'
+)
+SATELLITE_DIR_HELP_STRING = (
+    'Name of directory with satellite data (predictors).  Files therein will '
     'be found by `satellite_io.find_file` and read by `satellite_io.read_file`.'
-)
-CYCLONE_ID_HELP_STRING = (
-    'Cyclone ID in format "yyyyBBnn".  Will plot data augmentation only for '
-    'this cyclone.'
-)
-NUM_TARGET_TIMES_HELP_STRING = (
-    'Will plot data augmentation at this many target times for the given '
-    'cyclone.  Number of figures will be {0:s} * {1:s}.'
-).format(NUM_TARGET_TIMES_ARG_NAME, NUM_TRANSLATIONS_ARG_NAME)
-
-NUM_GRID_ROWS_HELP_STRING = (
-    'Number of grid rows to retain in low-resolution (infrared) data.'
-)
-NUM_GRID_COLUMNS_HELP_STRING = (
-    'Number of grid columns to retain in low-resolution (infrared) data.'
-)
-NUM_TRANSLATIONS_HELP_STRING = (
-    'Number of translations (i.e., augmentations) for each cyclone.'
-)
-MEAN_TRANSLATION_HELP_STRING = (
-    'Mean translation distance (in units of low-resolution pixels) for data '
-    'augmentation.'
-)
-STDEV_TRANSLATION_HELP_STRING = (
-    'Standard deviation of translation distance (in units of low-resolution '
-    'pixels) for data augmentation.'
 )
 ARE_DATA_NORMALIZED_HELP_STRING = (
     'Boolean flag.  If 1 (0), plotting code will assume that satellite data '
@@ -96,36 +70,12 @@ OUTPUT_DIR_HELP_STRING = (
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
-    '--' + INPUT_DIR_ARG_NAME, type=str, required=True,
-    help=INPUT_DIR_HELP_STRING
+    '--' + PREDICTION_FILE_ARG_NAME, type=str, required=True,
+    help=PREDICTION_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
-    help=CYCLONE_ID_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_TARGET_TIMES_ARG_NAME, type=int, required=True,
-    help=NUM_TARGET_TIMES_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_GRID_ROWS_ARG_NAME, type=int, required=True,
-    help=NUM_GRID_ROWS_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_GRID_COLUMNS_ARG_NAME, type=int, required=True,
-    help=NUM_GRID_COLUMNS_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_TRANSLATIONS_ARG_NAME, type=int, required=False, default=1,
-    help=NUM_TRANSLATIONS_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + MEAN_TRANSLATION_ARG_NAME, type=float, required=False,
-    default=15, help=MEAN_TRANSLATION_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + STDEV_TRANSLATION_ARG_NAME, type=float, required=False,
-    default=7.5, help=STDEV_TRANSLATION_HELP_STRING
+    '--' + SATELLITE_DIR_ARG_NAME, type=str, required=True,
+    help=SATELLITE_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + ARE_DATA_NORMALIZED_ARG_NAME, type=int, required=True,
@@ -138,19 +88,27 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _plot_data_one_example(
-        predictor_matrices, target_values, cyclone_id_string,
-        target_time_unix_sec, low_res_latitudes_deg_n, low_res_longitudes_deg_e,
+        predictor_matrices, target_values, prediction_matrix,
+        model_metadata_dict, cyclone_id_string, target_time_unix_sec,
+        low_res_latitudes_deg_n, low_res_longitudes_deg_e,
         high_res_latitudes_deg_n, high_res_longitudes_deg_e,
         are_data_normalized, border_latitudes_deg_n, border_longitudes_deg_e,
         output_file_name):
     """Plots satellite data for one example.
 
     P = number of points in border set
+    S = ensemble size
 
     :param predictor_matrices: Same as output from `neural_net.create_data` but
         without first axis.
     :param target_values: Same as output from `neural_net.create_data` but
         without first axis.
+    :param prediction_matrix: 2-by-S numpy array of predictions.
+        prediction_matrix[0, :] contains predicted row positions of TC centers,
+        and prediction_matrix[1, :] contains predicted column positions of TC
+        centers.
+    :param model_metadata_dict: Dictionary with model metadata, in format
+        returned by `neural_net.read_metafile`.
     :param cyclone_id_string: Cyclone ID.
     :param target_time_unix_sec: Target time.
     :param low_res_latitudes_deg_n: Same as output from `neural_net.create_data`
@@ -171,14 +129,20 @@ def _plot_data_one_example(
 
     num_grid_rows_low_res = predictor_matrices[-1].shape[0]
     num_grid_columns_low_res = predictor_matrices[-1].shape[1]
+    ensemble_size = prediction_matrix.shape[1]
+
+    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    d = training_option_dict
+    high_res_wavelengths_microns = d[neural_net.HIGH_RES_WAVELENGTHS_KEY]
+    low_res_wavelengths_microns = d[neural_net.LOW_RES_WAVELENGTHS_KEY]
 
     num_panels = (
-        len(HIGH_RES_WAVELENGTHS_MICRONS) + len(LOW_RES_WAVELENGTHS_MICRONS)
+        len(high_res_wavelengths_microns) + len(low_res_wavelengths_microns)
     )
     panel_file_names = [''] * num_panels
     panel_index = -1
 
-    for j in range(len(HIGH_RES_WAVELENGTHS_MICRONS)):
+    for j in range(len(high_res_wavelengths_microns)):
         panel_index += 1
 
         figure_object, axes_object = pyplot.subplots(
@@ -217,27 +181,40 @@ def _plot_data_one_example(
         )
 
         axes_object.plot(
-            0.5, 0.5, linestyle='None',
-            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
-            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgewidth=0,
+            0.5 + target_values[1] / num_grid_columns_low_res,
+            0.5 + target_values[0] / num_grid_rows_low_res,
+            linestyle='None',
+            marker=ACTUAL_CENTER_MARKER, markersize=ACTUAL_CENTER_MARKER_SIZE,
+            markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
+            markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
+            markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
             transform=axes_object.transAxes, zorder=1e10
         )
 
         axes_object.plot(
-            0.5 + target_values[1] / num_grid_columns_low_res,
-            0.5 + target_values[0] / num_grid_rows_low_res,
-            linestyle='None',
-            marker=CYCLONE_CENTER_MARKER, markersize=CYCLONE_CENTER_MARKER_SIZE,
-            markerfacecolor=CYCLONE_CENTER_MARKER_COLOUR,
-            markeredgecolor=CYCLONE_CENTER_MARKER_COLOUR,
-            markeredgewidth=0,
+            0.5, 0.5, linestyle='None',
+            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
+            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
+            markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
+            markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
             transform=axes_object.transAxes, zorder=1e10
         )
 
+        for k in range(ensemble_size):
+            axes_object.plot(
+                0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
+                0.5 + prediction_matrix[0, k] / num_grid_rows_low_res,
+                linestyle='None',
+                marker=PREDICTED_CENTER_MARKER,
+                markersize=PREDICTED_CENTER_MARKER_SIZE,
+                markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
+                markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
+                markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
+                transform=axes_object.transAxes, zorder=1e10
+            )
+
         title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
-            HIGH_RES_WAVELENGTHS_MICRONS[j],
+            high_res_wavelengths_microns[j],
             cyclone_id_string,
             time_conversion.unix_sec_to_string(
                 target_time_unix_sec, TIME_FORMAT
@@ -247,7 +224,7 @@ def _plot_data_one_example(
 
         panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.jpg'.format(
             os.path.splitext(output_file_name)[0],
-            HIGH_RES_WAVELENGTHS_MICRONS[j]
+            high_res_wavelengths_microns[j]
         )
 
         file_system_utils.mkdir_recursive_if_necessary(
@@ -263,7 +240,7 @@ def _plot_data_one_example(
         )
         pyplot.close(figure_object)
 
-    for j in range(len(LOW_RES_WAVELENGTHS_MICRONS)):
+    for j in range(len(low_res_wavelengths_microns)):
         panel_index += 1
 
         figure_object, axes_object = pyplot.subplots(
@@ -302,27 +279,40 @@ def _plot_data_one_example(
         )
 
         axes_object.plot(
-            0.5, 0.5, linestyle='None',
-            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
-            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgewidth=0,
+            0.5 + target_values[1] / num_grid_columns_low_res,
+            0.5 + target_values[0] / num_grid_rows_low_res,
+            linestyle='None',
+            marker=ACTUAL_CENTER_MARKER, markersize=ACTUAL_CENTER_MARKER_SIZE,
+            markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
+            markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
+            markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
             transform=axes_object.transAxes, zorder=1e10
         )
 
         axes_object.plot(
-            0.5 + target_values[1] / num_grid_columns_low_res,
-            0.5 + target_values[0] / num_grid_rows_low_res,
-            linestyle='None',
-            marker=CYCLONE_CENTER_MARKER, markersize=CYCLONE_CENTER_MARKER_SIZE,
-            markerfacecolor=CYCLONE_CENTER_MARKER_COLOUR,
-            markeredgecolor=CYCLONE_CENTER_MARKER_COLOUR,
-            markeredgewidth=0,
+            0.5, 0.5, linestyle='None',
+            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
+            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
+            markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
+            markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
             transform=axes_object.transAxes, zorder=1e10
         )
 
+        for k in range(ensemble_size):
+            axes_object.plot(
+                0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
+                0.5 + prediction_matrix[0, k] / num_grid_rows_low_res,
+                linestyle='None',
+                marker=PREDICTED_CENTER_MARKER,
+                markersize=PREDICTED_CENTER_MARKER_SIZE,
+                markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
+                markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
+                markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
+                transform=axes_object.transAxes, zorder=1e10
+            )
+
         title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
-            LOW_RES_WAVELENGTHS_MICRONS[j],
+            low_res_wavelengths_microns[j],
             cyclone_id_string,
             time_conversion.unix_sec_to_string(
                 target_time_unix_sec, TIME_FORMAT
@@ -332,7 +322,7 @@ def _plot_data_one_example(
 
         panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.jpg'.format(
             os.path.splitext(output_file_name)[0],
-            LOW_RES_WAVELENGTHS_MICRONS[j]
+            low_res_wavelengths_microns[j]
         )
 
         file_system_utils.mkdir_recursive_if_necessary(
@@ -359,7 +349,7 @@ def _plot_data_one_example(
         concat_figure_file_name=output_file_name
     )
 
-    if len(HIGH_RES_WAVELENGTHS_MICRONS) > 0:
+    if len(high_res_wavelengths_microns) > 0:
         if are_data_normalized:
             colour_map_object = pyplot.get_cmap('seismic', lut=1001)
             colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
@@ -405,48 +395,65 @@ def _plot_data_one_example(
     )
 
 
-def _run(satellite_dir_name, cyclone_id_string, num_target_times,
-         num_grid_rows_low_res, num_grid_columns_low_res, num_translations,
-         mean_translation_low_res_px, stdev_translation_low_res_px,
-         are_data_normalized, output_dir_name):
-    """Plots data augmentation.
+def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
+         output_dir_name):
+    """Plots predictions.
 
     This is effectively the main method.
 
-    :param satellite_dir_name: See documentation at top of file.
-    :param cyclone_id_string: Same.
-    :param num_target_times: Same.
-    :param num_grid_rows_low_res: Same.
-    :param num_grid_columns_low_res: Same.
-    :param num_translations: Same.
-    :param mean_translation_low_res_px: Same.
-    :param stdev_translation_low_res_px: Same.
+    :param prediction_file_name: See documentation at top of file.
+    :param satellite_dir_name: Same.
     :param are_data_normalized: Same.
     :param output_dir_name: Same.
     """
 
-    option_dict = {
-        neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name,
-        neural_net.YEARS_KEY: numpy.array([2000], dtype=int),
-        neural_net.LAG_TIMES_KEY: LAG_TIMES_MINUTES,
-        neural_net.HIGH_RES_WAVELENGTHS_KEY: HIGH_RES_WAVELENGTHS_MICRONS,
-        neural_net.LOW_RES_WAVELENGTHS_KEY: LOW_RES_WAVELENGTHS_MICRONS,
-        neural_net.BATCH_SIZE_KEY: 1,
-        neural_net.MAX_EXAMPLES_PER_CYCLONE_KEY: 1,
-        neural_net.NUM_GRID_ROWS_KEY: num_grid_rows_low_res,
-        neural_net.NUM_GRID_COLUMNS_KEY: num_grid_columns_low_res,
-        neural_net.DATA_AUG_NUM_TRANS_KEY: num_translations,
-        neural_net.DATA_AUG_MEAN_TRANS_KEY: mean_translation_low_res_px,
-        neural_net.DATA_AUG_STDEV_TRANS_KEY: stdev_translation_low_res_px,
-        neural_net.LAG_TIME_TOLERANCE_KEY: LAG_TIME_TOLERANCE_SEC,
-        neural_net.MAX_MISSING_LAG_TIMES_KEY: MAX_NUM_MISSING_LAG_TIMES,
-        neural_net.MAX_INTERP_GAP_KEY: MAX_INTERP_GAP_SEC,
-        neural_net.SENTINEL_VALUE_KEY: SENTINEL_VALUE
-    }
+    print('Reading data from: "{0:s}"...'.format(prediction_file_name))
+    prediction_table_xarray = prediction_io.read_file(prediction_file_name)
 
-    data_dict = neural_net.create_data(
-        option_dict=option_dict, cyclone_id_string=cyclone_id_string,
-        num_target_times=num_target_times
+    # TODO(thunderhoser): This is a HACK.
+    # cutoff_time_unix_sec = time_conversion.string_to_unix_sec(
+    #     '2020-05-16-2359', TIME_FORMAT
+    # )
+    # good_indices = numpy.where(
+    #     prediction_table_xarray[prediction_io.TARGET_TIME_KEY].values <
+    #     cutoff_time_unix_sec
+    # )[0]
+    # prediction_table_xarray = prediction_table_xarray.isel(
+    #     indexers={prediction_io.EXAMPLE_DIM_KEY: good_indices}
+    # )
+
+    model_file_name = (
+        prediction_table_xarray.attrs[prediction_io.MODEL_FILE_KEY]
+    )
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    validation_option_dict = (
+        model_metadata_dict[neural_net.VALIDATION_OPTIONS_KEY]
+    )
+    validation_option_dict[neural_net.SATELLITE_DIRECTORY_KEY] = (
+        satellite_dir_name
+    )
+    validation_option_dict[neural_net.SENTINEL_VALUE_KEY] = SENTINEL_VALUE
+
+    pt = prediction_table_xarray
+    cyclone_id_string = pt.attrs[prediction_io.CYCLONE_ID_KEY]
+    target_times_unix_sec = pt[prediction_io.TARGET_TIME_KEY].values
+
+    data_dict = neural_net.create_data_specific_trans(
+        option_dict=validation_option_dict,
+        cyclone_id_string=cyclone_id_string,
+        target_times_unix_sec=target_times_unix_sec,
+        row_translations_low_res_px=numpy.round(
+            pt[prediction_io.ACTUAL_ROW_OFFSET_KEY].values
+        ).astype(int),
+        column_translations_low_res_px=numpy.round(
+            pt[prediction_io.ACTUAL_COLUMN_OFFSET_KEY].values
+        ).astype(int)
     )
 
     if data_dict is None:
@@ -454,7 +461,6 @@ def _run(satellite_dir_name, cyclone_id_string, num_target_times,
 
     predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
     target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]
-    target_times_unix_sec = data_dict[neural_net.TARGET_TIMES_KEY]
     low_res_latitude_matrix_deg_n = data_dict[neural_net.LOW_RES_LATITUDES_KEY]
     low_res_longitude_matrix_deg_e = (
         data_dict[neural_net.LOW_RES_LONGITUDES_KEY]
@@ -472,21 +478,41 @@ def _run(satellite_dir_name, cyclone_id_string, num_target_times,
             predictor_matrices[k] < SENTINEL_VALUE + 1
         ] = numpy.nan
 
+    # target_matrix = numpy.transpose(numpy.vstack((
+    #     pt[prediction_io.ACTUAL_ROW_OFFSET_KEY].values,
+    #     pt[prediction_io.ACTUAL_COLUMN_OFFSET_KEY].values,
+    #     pt[prediction_io.GRID_SPACING_KEY].values,
+    #     pt[prediction_io.ACTUAL_CENTER_LATITUDE_KEY].values
+    # )))
+
+    prediction_matrix = numpy.stack((
+        pt[prediction_io.PREDICTED_ROW_OFFSET_KEY].values,
+        pt[prediction_io.PREDICTED_COLUMN_OFFSET_KEY].values
+    ), axis=-2)
+
     num_examples = predictor_matrices[0].shape[0]
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
 
     for i in range(num_examples):
-        output_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
+        same_time_indices = numpy.where(
+            target_times_unix_sec == target_times_unix_sec[i]
+        )[0]
+        this_index = numpy.where(same_time_indices == i)[0][0]
+
+        output_file_name = '{0:s}/{1:s}_{2:s}_{3:03d}th.jpg'.format(
             output_dir_name,
             cyclone_id_string,
             time_conversion.unix_sec_to_string(
                 target_times_unix_sec[i], TIME_FORMAT
-            )
+            ),
+            this_index
         )
 
         _plot_data_one_example(
             predictor_matrices=[p[i, ...] for p in predictor_matrices],
             target_values=target_matrix[i, ...],
+            prediction_matrix=prediction_matrix[i, ...],
+            model_metadata_dict=model_metadata_dict,
             cyclone_id_string=cyclone_id_string,
             target_time_unix_sec=target_times_unix_sec[i],
             low_res_latitudes_deg_n=low_res_latitude_matrix_deg_n[i, :, 0],
@@ -510,20 +536,10 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        satellite_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
-        cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
-        num_target_times=getattr(INPUT_ARG_OBJECT, NUM_TARGET_TIMES_ARG_NAME),
-        num_grid_rows_low_res=getattr(INPUT_ARG_OBJECT, NUM_GRID_ROWS_ARG_NAME),
-        num_grid_columns_low_res=getattr(
-            INPUT_ARG_OBJECT, NUM_GRID_COLUMNS_ARG_NAME
+        prediction_file_name=getattr(
+            INPUT_ARG_OBJECT, PREDICTION_FILE_ARG_NAME
         ),
-        num_translations=getattr(INPUT_ARG_OBJECT, NUM_TRANSLATIONS_ARG_NAME),
-        mean_translation_low_res_px=getattr(
-            INPUT_ARG_OBJECT, MEAN_TRANSLATION_ARG_NAME
-        ),
-        stdev_translation_low_res_px=getattr(
-            INPUT_ARG_OBJECT, STDEV_TRANSLATION_ARG_NAME
-        ),
+        satellite_dir_name=getattr(INPUT_ARG_OBJECT, SATELLITE_DIR_ARG_NAME),
         are_data_normalized=bool(getattr(
             INPUT_ARG_OBJECT, ARE_DATA_NORMALIZED_ARG_NAME
         )),
