@@ -49,8 +49,9 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --lag_times_minutes 0 \
 --num_examples_per_batch=8 \
 --max_examples_per_cyclone=2 \
---num_rows_low_res=600 \
---num_columns_low_res=600 \
+--num_rows_low_res=1000 \
+--num_columns_low_res=1000 \
+--low_res_wavelengths_microns 11.2 \
 --data_aug_num_translations=8 \
 --data_aug_mean_translation_low_res_px=15 \
 --data_aug_stdev_translation_low_res_px=7.5 \

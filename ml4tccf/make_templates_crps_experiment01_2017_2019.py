@@ -27,7 +27,7 @@ ENSEMBLE_SIZE = 5
 
 DEFAULT_OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
-        numpy.array([600, 600, 10], dtype=int),
+        numpy.array([600, 600, 1], dtype=int),
     cnn_architecture.INCLUDE_HIGH_RES_KEY: False,
     # cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(7, 2, dtype=int),
     # cnn_architecture.NUM_CHANNELS_KEY: numpy.array(
@@ -81,7 +81,7 @@ def _run():
                     )
 
                     num_channels_by_conv_layer = numpy.array(
-                        [16, 24, 32, 40, 48, 56, 64, 64], dtype=int
+                        [8, 16, 24, 32, 40, 48, 56, 64], dtype=int
                     )
                     num_channels_by_conv_layer = numpy.ravel(numpy.repeat(
                         numpy.expand_dims(num_channels_by_conv_layer, axis=1),
