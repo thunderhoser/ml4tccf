@@ -68,7 +68,7 @@ def concat_over_examples(prediction_tables_xarray):
     """
 
     model_file_names = [
-        t.attrs(MODEL_FILE_KEY) for t in prediction_tables_xarray
+        t.attrs[MODEL_FILE_KEY] for t in prediction_tables_xarray
     ]
     unique_model_file_names = list(set(model_file_names))
 
