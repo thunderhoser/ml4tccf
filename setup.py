@@ -4,7 +4,7 @@ from setuptools import setup
 
 PACKAGE_NAMES = [
     'ml4tccf', 'ml4tccf.io', 'ml4tccf.utils', 'ml4tccf.machine_learning',
-    'ml4tccf.plotting', 'ml4tccf.scripts'
+    'ml4tccf.plotting', 'ml4tccf.outside_code', 'ml4tccf.scripts'
 ]
 KEYWORDS = [
     'machine learning', 'deep learning', 'artificial intelligence',

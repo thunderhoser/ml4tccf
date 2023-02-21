@@ -7,20 +7,7 @@ import netCDF4
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import misc_utils
-
-CYCLONE_ID_KEY = 'cyclone_id_string'
-MODEL_FILE_KEY = 'model_file_name'
-
-EXAMPLE_DIM_KEY = 'example'
-ENSEMBLE_MEMBER_DIM_KEY = 'ensemble_member'
-
-PREDICTED_ROW_OFFSET_KEY = 'predicted_row_offset'
-PREDICTED_COLUMN_OFFSET_KEY = 'predicted_column_offset'
-ACTUAL_ROW_OFFSET_KEY = 'actual_row_offset'
-ACTUAL_COLUMN_OFFSET_KEY = 'actual_column_offset'
-GRID_SPACING_KEY = 'grid_spacing_low_res_km'
-ACTUAL_CENTER_LATITUDE_KEY = 'actual_cyclone_center_latitude_deg_n'
-TARGET_TIME_KEY = 'target_time_unix_sec'
+from ml4tccf.utils import prediction_utils
 
 
 def find_file(directory_name, cyclone_id_string, raise_error_if_missing=True):
@@ -114,56 +101,96 @@ def write_file(
         netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
     )
 
-    dataset_object.setncattr(CYCLONE_ID_KEY, cyclone_id_string)
-    dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
-    dataset_object.createDimension(EXAMPLE_DIM_KEY, num_examples)
-    dataset_object.createDimension(ENSEMBLE_MEMBER_DIM_KEY, ensemble_size)
+    num_cyclone_id_chars = len(cyclone_id_string)
+
+    dataset_object.setncattr(prediction_utils.MODEL_FILE_KEY, model_file_name)
+    dataset_object.createDimension(
+        prediction_utils.EXAMPLE_DIM_KEY, num_examples
+    )
+    dataset_object.createDimension(
+        prediction_utils.ENSEMBLE_MEMBER_DIM_KEY, ensemble_size
+    )
+    dataset_object.createDimension(
+        prediction_utils.CYCLONE_ID_CHAR_DIM_KEY, num_cyclone_id_chars
+    )
 
     dataset_object.createVariable(
-        PREDICTED_ROW_OFFSET_KEY, datatype=numpy.float32,
-        dimensions=(EXAMPLE_DIM_KEY, ENSEMBLE_MEMBER_DIM_KEY)
+        prediction_utils.PREDICTED_ROW_OFFSET_KEY, datatype=numpy.float32,
+        dimensions=(
+            prediction_utils.EXAMPLE_DIM_KEY,
+            prediction_utils.ENSEMBLE_MEMBER_DIM_KEY
+        )
     )
-    dataset_object.variables[PREDICTED_ROW_OFFSET_KEY][:] = (
+    dataset_object.variables[prediction_utils.PREDICTED_ROW_OFFSET_KEY][:] = (
         prediction_matrix[:, 0, :]
     )
 
     dataset_object.createVariable(
-        PREDICTED_COLUMN_OFFSET_KEY, datatype=numpy.float32,
-        dimensions=(EXAMPLE_DIM_KEY, ENSEMBLE_MEMBER_DIM_KEY)
+        prediction_utils.PREDICTED_COLUMN_OFFSET_KEY, datatype=numpy.float32,
+        dimensions=(
+            prediction_utils.EXAMPLE_DIM_KEY,
+            prediction_utils.ENSEMBLE_MEMBER_DIM_KEY
+        )
     )
-    dataset_object.variables[PREDICTED_COLUMN_OFFSET_KEY][:] = (
-        prediction_matrix[:, 1, :]
+    dataset_object.variables[
+        prediction_utils.PREDICTED_COLUMN_OFFSET_KEY
+    ][:] = prediction_matrix[:, 1, :]
+
+    dataset_object.createVariable(
+        prediction_utils.ACTUAL_ROW_OFFSET_KEY, datatype=numpy.float32,
+        dimensions=prediction_utils.EXAMPLE_DIM_KEY
+    )
+    dataset_object.variables[prediction_utils.ACTUAL_ROW_OFFSET_KEY][:] = (
+        target_matrix[:, 0]
     )
 
     dataset_object.createVariable(
-        ACTUAL_ROW_OFFSET_KEY, datatype=numpy.float32,
-        dimensions=EXAMPLE_DIM_KEY
+        prediction_utils.ACTUAL_COLUMN_OFFSET_KEY, datatype=numpy.float32,
+        dimensions=prediction_utils.EXAMPLE_DIM_KEY
     )
-    dataset_object.variables[ACTUAL_ROW_OFFSET_KEY][:] = target_matrix[:, 0]
+    dataset_object.variables[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY][:] = (
+        target_matrix[:, 1]
+    )
 
     dataset_object.createVariable(
-        ACTUAL_COLUMN_OFFSET_KEY, datatype=numpy.float32,
-        dimensions=EXAMPLE_DIM_KEY
+        prediction_utils.GRID_SPACING_KEY, datatype=numpy.float32,
+        dimensions=prediction_utils.EXAMPLE_DIM_KEY
     )
-    dataset_object.variables[ACTUAL_COLUMN_OFFSET_KEY][:] = target_matrix[:, 1]
+    dataset_object.variables[prediction_utils.GRID_SPACING_KEY][:] = (
+        target_matrix[:, 2]
+    )
 
     dataset_object.createVariable(
-        GRID_SPACING_KEY, datatype=numpy.float32, dimensions=EXAMPLE_DIM_KEY
+        prediction_utils.ACTUAL_CENTER_LATITUDE_KEY, datatype=numpy.float32,
+        dimensions=prediction_utils.EXAMPLE_DIM_KEY
     )
-    dataset_object.variables[GRID_SPACING_KEY][:] = target_matrix[:, 2]
-
-    dataset_object.createVariable(
-        ACTUAL_CENTER_LATITUDE_KEY, datatype=numpy.float32,
-        dimensions=EXAMPLE_DIM_KEY
-    )
-    dataset_object.variables[ACTUAL_CENTER_LATITUDE_KEY][:] = (
+    dataset_object.variables[prediction_utils.ACTUAL_CENTER_LATITUDE_KEY][:] = (
         target_matrix[:, 3]
     )
 
     dataset_object.createVariable(
-        TARGET_TIME_KEY, datatype=numpy.int32, dimensions=EXAMPLE_DIM_KEY
+        prediction_utils.TARGET_TIME_KEY, datatype=numpy.int32,
+        dimensions=prediction_utils.EXAMPLE_DIM_KEY
     )
-    dataset_object.variables[TARGET_TIME_KEY][:] = target_times_unix_sec
+    dataset_object.variables[prediction_utils.TARGET_TIME_KEY][:] = (
+        target_times_unix_sec
+    )
+
+    this_string_format = 'S{0:d}'.format(num_cyclone_id_chars)
+    cyclone_ids_char_array = netCDF4.stringtochar(numpy.array(
+        [cyclone_id_string] * num_examples, dtype=this_string_format
+    ))
+
+    dataset_object.createVariable(
+        prediction_utils.CYCLONE_ID_KEY, datatype='S1',
+        dimensions=(
+            prediction_utils.EXAMPLE_DIM_KEY,
+            prediction_utils.CYCLONE_ID_CHAR_DIM_KEY
+        )
+    )
+    dataset_object.variables[prediction_utils.CYCLONE_ID_KEY][:] = numpy.array(
+        cyclone_ids_char_array
+    )
 
     dataset_object.close()
 
