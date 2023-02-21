@@ -103,9 +103,6 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             mean_predictions_km, mean_observations_km
         ))
 
-        # TODO(thunderhoser): Recall that
-        # `inv_mean_observations=these_mean_observations` is a HACK to make
-        # x-ticks be the same in both inset histograms.
         evaluation_plotting.plot_attributes_diagram(
             figure_object=figure_object, axes_object=axes_object,
             mean_predictions=mean_predictions_km,
@@ -113,45 +110,69 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             mean_value_in_training=0.,
             min_value_to_plot=numpy.nanmin(all_mean_values_km),
             max_value_to_plot=numpy.nanmax(all_mean_values_km),
-            example_counts=
-            t[evaluation_sans_uq.XY_OFFSET_BIN_COUNT_KEY].values[j, :],
-            inv_mean_observations=mean_observations_km,
-            inv_example_counts=
-            t[evaluation_sans_uq.XY_OFFSET_INV_BIN_COUNT_KEY].values[j, :]
+            # example_counts=
+            # t[evaluation_sans_uq.XY_OFFSET_BIN_COUNT_KEY].values[j, :],
+            # inv_mean_observations=mean_observations_km,
+            # inv_example_counts=
+            # t[evaluation_sans_uq.XY_OFFSET_INV_BIN_COUNT_KEY].values[j, :]
         )
 
-        brier_scores = t[evaluation_sans_uq.BRIER_SCORE_KEY].values[j, :]
-        bss_values = t[evaluation_sans_uq.BRIER_SKILL_SCORE_KEY].values[j, :]
+        evaluation_plotting.plot_inset_histogram(
+            figure_object=figure_object,
+            bin_centers=
+            t[evaluation_sans_uq.XY_OFFSET_BIN_CENTER_KEY].values[j, :],
+            bin_counts=
+            t[evaluation_sans_uq.XY_OFFSET_BIN_COUNT_KEY].values[j, :],
+            has_predictions=True,
+            bar_colour=evaluation_plotting.RELIABILITY_LINE_COLOUR
+        )
+
+        evaluation_plotting.plot_inset_histogram(
+            figure_object=figure_object,
+            bin_centers=
+            t[evaluation_sans_uq.XY_OFFSET_INV_BIN_CENTER_KEY].values[j, :],
+            bin_counts=
+            t[evaluation_sans_uq.XY_OFFSET_INV_BIN_COUNT_KEY].values[j, :],
+            has_predictions=False,
+            bar_colour=evaluation_plotting.RELIABILITY_LINE_COLOUR
+        )
+
+        mean_squared_errors = (
+            t[evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY].values[j, :]
+        )
+        mse_skill_scores = (
+            t[evaluation_sans_uq.MSE_SKILL_SCORE_KEY].values[j, :]
+        )
         reliabilities = t[evaluation_sans_uq.RELIABILITY_KEY].values[j, :]
         resolutions = t[evaluation_sans_uq.RESOLUTION_KEY].values[j, :]
-        num_bootstrap_reps = len(brier_scores)
+        num_bootstrap_reps = len(mean_squared_errors)
 
         if num_bootstrap_reps == 1:
             title_string = (
-                'Attr diag for {0:s} (BS = {1:.3f}; BSS = {2:.3f};\n'
+                'Attr diag for {0:s} (MSE = {1:.3f}; MSESS = {2:.3f};\n'
                 'REL = {3:.3f}; RES = {4:.3f})'
             ).format(
                 r'$x$-offset'
                 if target_field_names[j] == evaluation_sans_uq.X_OFFSET_NAME
                 else r'$y$-offset',
-                brier_scores[0],
-                bss_values[0],
+                mean_squared_errors[0],
+                mse_skill_scores[0],
                 reliabilities[0],
                 resolutions[0]
             )
         else:
             title_string = (
                 'Attr diag for {0:s} '
-                '(BS = {1:.3f}-{2:.3f}; BSS = {3:.3f}-{4:.3f};\n'
+                '(MSE = {1:.3f}-{2:.3f}; MSESS = {3:.3f}-{4:.3f};\n'
                 'REL = {5:.3f}-{6:.3f}; RES = {7:.3f}-{8:.3f})'
             ).format(
                 r'$x$-offset'
                 if target_field_names[j] == evaluation_sans_uq.X_OFFSET_NAME
                 else r'$y$-offset',
-                numpy.nanpercentile(brier_scores, min_percentile),
-                numpy.nanpercentile(brier_scores, max_percentile),
-                numpy.nanpercentile(bss_values, min_percentile),
-                numpy.nanpercentile(bss_values, max_percentile),
+                numpy.nanpercentile(mean_squared_errors, min_percentile),
+                numpy.nanpercentile(mean_squared_errors, max_percentile),
+                numpy.nanpercentile(mse_skill_scores, min_percentile),
+                numpy.nanpercentile(mse_skill_scores, max_percentile),
                 numpy.nanpercentile(reliabilities, min_percentile),
                 numpy.nanpercentile(reliabilities, max_percentile),
                 numpy.nanpercentile(resolutions, min_percentile),
@@ -196,47 +217,72 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
         all_mean_values_km = numpy.concatenate((
             mean_predictions_km, mean_observations_km
         ))
+        climo_offset_distance_km = (
+            METRES_TO_KM * t.attrs[evaluation_sans_uq.CLIMO_OFFSET_DISTANCE_KEY]
+        )
 
         evaluation_plotting.plot_attributes_diagram(
             figure_object=figure_object, axes_object=axes_object,
             mean_predictions=mean_predictions_km,
             mean_observations=mean_observations_km,
-            mean_value_in_training=0.,
+            mean_value_in_training=climo_offset_distance_km,
             min_value_to_plot=numpy.nanmin(all_mean_values_km),
             max_value_to_plot=numpy.nanmax(all_mean_values_km),
-            example_counts=
-            t[evaluation_sans_uq.OFFSET_DIST_BIN_COUNT_KEY].values,
-            inv_mean_observations=mean_observations_km,
-            inv_example_counts=
-            t[evaluation_sans_uq.OFFSET_DIST_INV_BIN_COUNT_KEY].values
+            # example_counts=
+            # t[evaluation_sans_uq.OFFSET_DIST_BIN_COUNT_KEY].values,
+            # inv_mean_observations=mean_observations_km,
+            # inv_example_counts=
+            # t[evaluation_sans_uq.OFFSET_DIST_INV_BIN_COUNT_KEY].values
         )
 
-        brier_scores = t[evaluation_sans_uq.BRIER_SCORE_KEY].values[j, :]
-        bss_values = t[evaluation_sans_uq.BRIER_SKILL_SCORE_KEY].values[j, :]
+        evaluation_plotting.plot_inset_histogram(
+            figure_object=figure_object,
+            bin_centers=t[evaluation_sans_uq.OFFSET_DIST_BIN_CENTER_KEY].values,
+            bin_counts=t[evaluation_sans_uq.OFFSET_DIST_BIN_COUNT_KEY].values,
+            has_predictions=True,
+            bar_colour=evaluation_plotting.RELIABILITY_LINE_COLOUR
+        )
+
+        evaluation_plotting.plot_inset_histogram(
+            figure_object=figure_object,
+            bin_centers=
+            t[evaluation_sans_uq.OFFSET_DIST_INV_BIN_CENTER_KEY].values,
+            bin_counts=
+            t[evaluation_sans_uq.OFFSET_DIST_INV_BIN_COUNT_KEY].values,
+            has_predictions=False,
+            bar_colour=evaluation_plotting.RELIABILITY_LINE_COLOUR
+        )
+
+        mean_squared_errors = (
+            t[evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY].values[j, :]
+        )
+        mse_skill_scores = (
+            t[evaluation_sans_uq.MSE_SKILL_SCORE_KEY].values[j, :]
+        )
         reliabilities = t[evaluation_sans_uq.RELIABILITY_KEY].values[j, :]
         resolutions = t[evaluation_sans_uq.RESOLUTION_KEY].values[j, :]
-        num_bootstrap_reps = len(brier_scores)
+        num_bootstrap_reps = len(mean_squared_errors)
 
         if num_bootstrap_reps == 1:
             title_string = (
-                'Attr diag for Euclidean offset (BS = {0:.3f}; BSS = {1:.3f};\n'
-                'REL = {2:.3f}; RES = {3:.3f})'
+                'Attr diag for Euclidean offset '
+                '(MSE = {0:.3f}; MSESS = {1:.3f}; REL = {2:.3f}; RES = {3:.3f})'
             ).format(
-                brier_scores[0],
-                bss_values[0],
+                mean_squared_errors[0],
+                mse_skill_scores[0],
                 reliabilities[0],
                 resolutions[0]
             )
         else:
             title_string = (
                 'Attr diag for Euclidean offset '
-                '(BS = {0:.3f}-{1:.3f}; BSS = {2:.3f}-{3:.3f};\n'
+                '(MSE = {0:.3f}-{1:.3f}; MSESS = {2:.3f}-{3:.3f};\n'
                 'REL = {4:.3f}-{5:.3f}; RES = {6:.3f}-{7:.3f})'
             ).format(
-                numpy.nanpercentile(brier_scores, min_percentile),
-                numpy.nanpercentile(brier_scores, max_percentile),
-                numpy.nanpercentile(bss_values, min_percentile),
-                numpy.nanpercentile(bss_values, max_percentile),
+                numpy.nanpercentile(mean_squared_errors, min_percentile),
+                numpy.nanpercentile(mean_squared_errors, max_percentile),
+                numpy.nanpercentile(mse_skill_scores, min_percentile),
+                numpy.nanpercentile(mse_skill_scores, max_percentile),
                 numpy.nanpercentile(reliabilities, min_percentile),
                 numpy.nanpercentile(reliabilities, max_percentile),
                 numpy.nanpercentile(resolutions, min_percentile),
@@ -290,39 +336,61 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             mean_value_in_training=180.,
             min_value_to_plot=numpy.nanmin(all_mean_values_deg),
             max_value_to_plot=numpy.nanmax(all_mean_values_deg),
-            example_counts=
-            t[evaluation_sans_uq.OFFSET_DIR_BIN_COUNT_KEY].values,
-            inv_mean_observations=mean_observations_deg,
-            inv_example_counts=
-            t[evaluation_sans_uq.OFFSET_DIR_INV_BIN_COUNT_KEY].values
+            # example_counts=
+            # t[evaluation_sans_uq.OFFSET_DIR_BIN_COUNT_KEY].values,
+            # inv_mean_observations=mean_observations_deg,
+            # inv_example_counts=
+            # t[evaluation_sans_uq.OFFSET_DIR_INV_BIN_COUNT_KEY].values
         )
 
-        brier_scores = t[evaluation_sans_uq.BRIER_SCORE_KEY].values[j, :]
-        bss_values = t[evaluation_sans_uq.BRIER_SKILL_SCORE_KEY].values[j, :]
+        evaluation_plotting.plot_inset_histogram(
+            figure_object=figure_object,
+            bin_centers=t[evaluation_sans_uq.OFFSET_DIR_BIN_CENTER_KEY].values,
+            bin_counts=t[evaluation_sans_uq.OFFSET_DIR_BIN_COUNT_KEY].values,
+            has_predictions=True,
+            bar_colour=evaluation_plotting.RELIABILITY_LINE_COLOUR
+        )
+
+        evaluation_plotting.plot_inset_histogram(
+            figure_object=figure_object,
+            bin_centers=
+            t[evaluation_sans_uq.OFFSET_DIR_INV_BIN_CENTER_KEY].values,
+            bin_counts=
+            t[evaluation_sans_uq.OFFSET_DIR_INV_BIN_COUNT_KEY].values,
+            has_predictions=False,
+            bar_colour=evaluation_plotting.RELIABILITY_LINE_COLOUR
+        )
+
+        mean_squared_errors = (
+            t[evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY].values[j, :]
+        )
+        mse_skill_scores = (
+            t[evaluation_sans_uq.MSE_SKILL_SCORE_KEY].values[j, :]
+        )
         reliabilities = t[evaluation_sans_uq.RELIABILITY_KEY].values[j, :]
         resolutions = t[evaluation_sans_uq.RESOLUTION_KEY].values[j, :]
-        num_bootstrap_reps = len(brier_scores)
+        num_bootstrap_reps = len(mean_squared_errors)
 
         if num_bootstrap_reps == 1:
             title_string = (
-                'Attr diag for offset direction (BS = {0:.3f}; BSS = {1:.3f};\n'
-                'REL = {2:.3f}; RES = {3:.3f})'
+                'Attr diag for offset direction '
+                '(MSE = {0:.3f}; MSESS = {1:.3f}; REL = {2:.3f}; RES = {3:.3f})'
             ).format(
-                brier_scores[0],
-                bss_values[0],
+                mean_squared_errors[0],
+                mse_skill_scores[0],
                 reliabilities[0],
                 resolutions[0]
             )
         else:
             title_string = (
                 'Attr diag for offset direction '
-                '(BS = {0:.3f}-{1:.3f}; BSS = {2:.3f}-{3:.3f};\n'
+                '(MSE = {0:.3f}-{1:.3f}; MSESS = {2:.3f}-{3:.3f};\n'
                 'REL = {4:.3f}-{5:.3f}; RES = {6:.3f}-{7:.3f})'
             ).format(
-                numpy.nanpercentile(brier_scores, min_percentile),
-                numpy.nanpercentile(brier_scores, max_percentile),
-                numpy.nanpercentile(bss_values, min_percentile),
-                numpy.nanpercentile(bss_values, max_percentile),
+                numpy.nanpercentile(mean_squared_errors, min_percentile),
+                numpy.nanpercentile(mean_squared_errors, max_percentile),
+                numpy.nanpercentile(mse_skill_scores, min_percentile),
+                numpy.nanpercentile(mse_skill_scores, max_percentile),
                 numpy.nanpercentile(reliabilities, min_percentile),
                 numpy.nanpercentile(reliabilities, max_percentile),
                 numpy.nanpercentile(resolutions, min_percentile),

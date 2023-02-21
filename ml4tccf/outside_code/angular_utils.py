@@ -15,6 +15,14 @@ def mean(angles, deg=True):
     mean = cmath.phase(angles_complex.sum()) % (2 * np.pi)
     return round(np.rad2deg(mean) if deg else mean, 7)
 
+def weighted_mean(angles, weights, deg=True):
+    '''Circular weighted mean of angle data(default to degree)
+    '''
+    a = np.deg2rad(angles) if deg else np.array(angles)
+    angles_complex = np.frompyfunc(cmath.exp, 1, 1)(a * 1j)
+    mean = cmath.phase(np.sum(angles_complex * weights)) % (2 * np.pi)
+    return round(np.rad2deg(mean) if deg else mean, 7)
+
 def var(angles, deg=True):
     '''Circular variance of angle data(default to degree)
     0 <= var <= 1

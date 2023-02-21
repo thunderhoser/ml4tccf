@@ -3,6 +3,7 @@
 In other words, evaluation of the mean prediction only.
 """
 
+import os
 import numpy
 import xarray
 from gewittergefahr.gg_utils import histograms
@@ -11,6 +12,7 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import prediction_io
 from ml4tccf.utils import prediction_utils
+from ml4tccf.machine_learning import neural_net
 from ml4tccf.outside_code import angular_utils
 
 # TODO(thunderhoser): Fuck, I still need to account for the 0.1-deg discretization.
@@ -20,6 +22,8 @@ TOLERANCE = 1e-6
 DEGREES_TO_RADIANS = numpy.pi / 180
 RADIANS_TO_DEGREES = 180. / numpy.pi
 KM_TO_METRES = 1000.
+
+MEAN_GRID_SPACING_METRES = 2000.
 
 X_OFFSET_NAME = 'x_offset_metres'
 Y_OFFSET_NAME = 'y_offset_metres'
@@ -50,11 +54,8 @@ MEAN_SQUARED_DISTANCE_KEY = 'mean_squared_distance'
 MEAN_DIST_SKILL_SCORE_KEY = 'mean_distance_skill_score'
 MEAN_SQ_DIST_SKILL_SCORE_KEY = 'mean_squared_distance_skill_score'
 
-BRIER_SKILL_SCORE_KEY = 'brier_skill_score'
-BRIER_SCORE_KEY = 'brier_score'
 RELIABILITY_KEY = 'reliability'
 RESOLUTION_KEY = 'resolution'
-BSS_UNCERTAINTY_KEY = 'bss_uncertainty'
 
 XY_OFFSET_MEAN_PREDICTION_KEY = 'xy_offset_mean_prediction_metres'
 XY_OFFSET_MEAN_OBSERVATION_KEY = 'xy_offset_mean_observation_metres'
@@ -79,6 +80,7 @@ OFFSET_DIR_INV_BIN_COUNT_KEY = 'offset_direction_inv_bin_count'
 
 MODEL_FILE_KEY = 'model_file_name'
 PREDICTION_FILES_KEY = 'prediction_file_names'
+CLIMO_OFFSET_DISTANCE_KEY = 'climo_offset_distance_metres'
 
 
 def _get_angular_diffs(target_angles_deg, predicted_angles_deg):
@@ -566,12 +568,20 @@ def _get_scores_one_replicate(
             t[MSE_SKILL_SCORE_KEY].values[j, i] = _get_mse_ss_one_variable(
                 target_values=bootstrapped_target_matrix[:, j],
                 predicted_values=bootstrapped_prediction_matrix[:, j],
-                mean_training_target_value=0., is_var_direction=False
+                mean_training_target_value=(
+                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY] if
+                    TARGET_FIELD_NAMES[j] == OFFSET_DISTANCE_NAME else 0.
+                ),
+                is_var_direction=False
             )
             t[MAE_SKILL_SCORE_KEY].values[j, i] = _get_mae_ss_one_variable(
                 target_values=bootstrapped_target_matrix[:, j],
                 predicted_values=bootstrapped_prediction_matrix[:, j],
-                mean_training_target_value=0., is_var_direction=False
+                mean_training_target_value=(
+                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY] if
+                    TARGET_FIELD_NAMES[j] == OFFSET_DISTANCE_NAME else 0.
+                ),
+                is_var_direction=False
             )
 
         t[BIAS_KEY].values[j, i] = _get_bias_one_variable(
@@ -640,22 +650,22 @@ def _get_scores_one_replicate(
             min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge, invert=False
         )
 
-        # TODO(thunderhoser): Fuck... BSS and components will be different for direction.
-
         # TODO(thunderhoser): Need to fuck with climo for Euclidean distance.
-        this_dict = _get_bss_and_components(
+        t[RELIABILITY_KEY].values[j, i] = _get_reliability(
             binned_mean_predictions=
             t[XY_OFFSET_MEAN_PREDICTION_KEY].values[j, :, i],
             binned_mean_observations=
             t[XY_OFFSET_MEAN_OBSERVATION_KEY].values[j, :, i],
-            binned_example_counts=these_counts, climo_value=0.
+            binned_example_counts=these_counts,
+            is_var_direction=False
         )
 
-        for this_key in [
-                BRIER_SKILL_SCORE_KEY, BRIER_SCORE_KEY,
-                RESOLUTION_KEY, RELIABILITY_KEY
-        ]:
-            t[this_key].values[j, i] = this_dict[this_key]
+        t[RESOLUTION_KEY].values[j, i] = _get_resolution(
+            binned_mean_observations=
+            t[XY_OFFSET_MEAN_OBSERVATION_KEY].values[j, :, i],
+            binned_example_counts=these_counts,
+            is_var_direction=False
+        )
 
         if i == 0:
             (
@@ -712,19 +722,21 @@ def _get_scores_one_replicate(
             min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge, invert=False
         )
 
-        this_dict = _get_bss_and_components(
+        t[RELIABILITY_KEY].values[j, i] = _get_reliability(
             binned_mean_predictions=
             t[OFFSET_DIST_MEAN_PREDICTION_KEY].values[:, i],
             binned_mean_observations=
             t[OFFSET_DIST_MEAN_OBSERVATION_KEY].values[:, i],
-            binned_example_counts=these_counts, climo_value=0.
+            binned_example_counts=these_counts,
+            is_var_direction=False
         )
 
-        for this_key in [
-                BRIER_SKILL_SCORE_KEY, BRIER_SCORE_KEY,
-                RESOLUTION_KEY, RELIABILITY_KEY
-        ]:
-            t[this_key].values[j, i] = this_dict[this_key]
+        t[RESOLUTION_KEY].values[j, i] = _get_resolution(
+            binned_mean_observations=
+            t[OFFSET_DIST_MEAN_OBSERVATION_KEY].values[:, i],
+            binned_example_counts=these_counts,
+            is_var_direction=False
+        )
 
         if i == 0:
             (
@@ -767,19 +779,21 @@ def _get_scores_one_replicate(
             min_bin_edge=0., max_bin_edge=360., invert=False
         )
 
-        this_dict = _get_bss_and_components(
+        t[RELIABILITY_KEY].values[j, i] = _get_reliability(
             binned_mean_predictions=
             t[OFFSET_DIR_MEAN_PREDICTION_KEY].values[:, i],
             binned_mean_observations=
             t[OFFSET_DIR_MEAN_OBSERVATION_KEY].values[:, i],
-            binned_example_counts=these_counts, climo_value=0.
+            binned_example_counts=these_counts,
+            is_var_direction=True
         )
 
-        for this_key in [
-                BRIER_SKILL_SCORE_KEY, BRIER_SCORE_KEY,
-                RESOLUTION_KEY, RELIABILITY_KEY
-        ]:
-            t[this_key].values[j, i] = this_dict[this_key]
+        t[RESOLUTION_KEY].values[j, i] = _get_resolution(
+            binned_mean_observations=
+            t[OFFSET_DIR_MEAN_OBSERVATION_KEY].values[:, i],
+            binned_example_counts=these_counts,
+            is_var_direction=True
+        )
 
         if i == 0:
             (
@@ -808,58 +822,63 @@ def _get_scores_one_replicate(
     return result_table_xarray
 
 
-def _get_bss_and_components(
+def _get_reliability(
         binned_mean_predictions, binned_mean_observations,
-        binned_example_counts, climo_value):
-    """Computes Brier skill score (BSS) and its components.
+        binned_example_counts, is_var_direction):
+    """Computes reliability.
 
     B = number of bins
 
     :param binned_mean_predictions: length-B numpy array of mean predictions.
     :param binned_mean_observations: length-B numpy array of mean observations.
     :param binned_example_counts: length-B numpy array of bin-membership counts.
-    :param climo_value: Mean observed value in training data.
-    :return: bss_dict: Dictionary with the following keys.
-    bss_dict['brier_skill_score']: Brier skill score.
-    bss_dict['brier_score']: Brier score.
-    bss_dict['reliability']: Reliability.
-    bss_dict['resolution']: Resolution.
-    bss_dict['uncertainty']: Uncertainty.
+    :param is_var_direction: Boolean flag.  If True (False), the target variable
+        at hand is direction (anything else).
+    :return: reliability: Obvious.
     """
 
-    climo_uncertainty = climo_value * (1. - climo_value)
+    if is_var_direction:
+        numerator = numpy.nansum(
+            binned_example_counts *
+            _get_angular_diffs(binned_mean_predictions, binned_mean_observations)
+            ** 2
+        )
+    else:
+        numerator = numpy.nansum(
+            binned_example_counts *
+            (binned_mean_predictions - binned_mean_observations) ** 2
+        )
 
-    sample_climatology = numpy.average(
-        binned_mean_observations[binned_example_counts > 0],
-        weights=binned_example_counts[binned_example_counts > 0]
-    )
-    sample_uncertainty = sample_climatology * (1. - sample_climatology)
+    return numerator / numpy.sum(binned_example_counts)
 
-    this_numerator = numpy.nansum(
-        binned_example_counts *
-        (binned_mean_predictions - binned_mean_observations) ** 2
-    )
-    reliability = this_numerator / numpy.sum(binned_example_counts)
 
-    this_numerator = numpy.nansum(
+def _get_resolution(
+        binned_mean_observations, binned_example_counts, is_var_direction):
+    """Computes resolution.
+
+    :param binned_mean_observations: See doc for `_get_reliability.`
+    :param binned_example_counts: Same.
+    :param is_var_direction: Same.
+    :return: resolution: Obvious.
+    """
+
+    if is_var_direction:
+        sample_climatology = angular_utils.weighted_mean(
+            angles=binned_mean_observations[binned_example_counts > 0],
+            weights=binned_example_counts[binned_example_counts > 0],
+            deg=True
+        )
+    else:
+        sample_climatology = numpy.average(
+            binned_mean_observations[binned_example_counts > 0],
+            weights=binned_example_counts[binned_example_counts > 0]
+        )
+
+    numerator = numpy.nansum(
         binned_example_counts *
         (binned_mean_observations - sample_climatology) ** 2
     )
-    resolution = this_numerator / numpy.sum(binned_example_counts)
-    brier_score = sample_uncertainty + reliability - resolution
-
-    try:
-        brier_skill_score = 1. - brier_score / climo_uncertainty
-    except ZeroDivisionError:
-        brier_skill_score = numpy.nan
-
-    return {
-        BRIER_SKILL_SCORE_KEY: brier_skill_score,
-        BRIER_SCORE_KEY: brier_score,
-        RELIABILITY_KEY: reliability,
-        RESOLUTION_KEY: resolution,
-        BSS_UNCERTAINTY_KEY: sample_uncertainty
-    }
+    return numerator / numpy.sum(binned_example_counts)
 
 
 def get_scores_all_variables(
@@ -1029,12 +1048,6 @@ def get_scores_all_variables(
         PREDICTION_STDEV_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
-        BRIER_SCORE_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
-        ),
-        BRIER_SKILL_SCORE_KEY: (
-            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
-        ),
         RELIABILITY_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
@@ -1169,8 +1182,23 @@ def get_scores_all_variables(
     model_file_name = (
         prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
     )
+    model_metafile_name = neural_net.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    climo_xy_offset_metres = MEAN_GRID_SPACING_METRES * (
+        training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY]
+    )
+    climo_offset_distance_metres = numpy.sqrt(2 * (climo_xy_offset_metres ** 2))
+
     result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
     result_table_xarray.attrs[PREDICTION_FILES_KEY] = prediction_file_names
+    result_table_xarray.attrs[CLIMO_OFFSET_DISTANCE_KEY] = (
+        climo_offset_distance_metres
+    )
 
     num_examples = target_matrix.shape[0]
     example_indices = numpy.linspace(

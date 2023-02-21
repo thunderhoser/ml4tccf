@@ -201,8 +201,7 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
             'MSE and skill score = {3:f}, {4:f} ... '
             'MAE and skill score = {5:f}, {6:f} ... '
             'bias = {7:f} ... correlation = {8:f} ... KGE = {9:f} ...'
-            'Brier score and BSS = {10:f}, {11:f} ... '
-            'reliability = {12:f} ... resolution = {13:f}'
+            'reliability = {10:f} ... resolution = {11:f}'
         ).format(
             target_field_names[j],
             numpy.nanmean(t[evaluation_sans_uq.TARGET_STDEV_KEY].values[j, :]),
@@ -224,10 +223,6 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
             numpy.nanmean(t[evaluation_sans_uq.BIAS_KEY].values[j, :]),
             numpy.nanmean(t[evaluation_sans_uq.CORRELATION_KEY].values[j, :]),
             numpy.nanmean(t[evaluation_sans_uq.KGE_KEY].values[j, :]),
-            numpy.nanmean(t[evaluation_sans_uq.BRIER_SCORE_KEY].values[j, :]),
-            numpy.nanmean(
-                t[evaluation_sans_uq.BRIER_SKILL_SCORE_KEY].values[j, :]
-            ),
             numpy.nanmean(t[evaluation_sans_uq.RELIABILITY_KEY].values[j, :]),
             numpy.nanmean(t[evaluation_sans_uq.RESOLUTION_KEY].values[j, :])
         ))
