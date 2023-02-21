@@ -88,7 +88,9 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
     evaluation_table_xarray = evaluation_sans_uq.read_file(evaluation_file_name)
     t = evaluation_table_xarray
 
-    target_field_names = t.coords[evaluation_sans_uq.TARGET_FIELD_DIM].values
+    target_field_names = (
+        t.coords[evaluation_sans_uq.TARGET_FIELD_DIM].values.tolist()
+    )
     xy_indices = numpy.array([
         target_field_names.index(evaluation_sans_uq.X_OFFSET_NAME),
         target_field_names.index(evaluation_sans_uq.Y_OFFSET_NAME)
