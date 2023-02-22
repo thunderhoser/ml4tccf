@@ -442,5 +442,6 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
 
     taylor_diagram_object.add_grid()
     taylor_diagram_object._ax.axis[:].major_ticks.set_tick_out(True)
+    taylor_diagram_object._ax.axis['left'].label.set_text('')
 
     return taylor_diagram_object

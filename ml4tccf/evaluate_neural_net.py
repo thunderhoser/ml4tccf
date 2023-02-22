@@ -208,7 +208,7 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
             'stdev of target and predicted values = {1:f}, {2:f} ... '
             'MSE and skill score = {3:f}, {4:f} ... '
             'MAE and skill score = {5:f}, {6:f} ... '
-            'bias = {7:f} ... correlation = {8:f} ... KGE = {9:f} ...'
+            'bias = {7:f} ... correlation = {8:f} ... KGE = {9:f} ... '
             'reliability = {10:f} ... resolution = {11:f}'
         ).format(
             target_field_names[j],

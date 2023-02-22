@@ -129,8 +129,10 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         evaluation_plotting.plot_inset_histogram(
             figure_object=figure_object,
-            bin_centers=
-            t[evaluation_sans_uq.XY_OFFSET_BIN_CENTER_KEY].values[j, :],
+            bin_centers=(
+                METRES_TO_KM *
+                t[evaluation_sans_uq.XY_OFFSET_BIN_CENTER_KEY].values[j, :]
+            ),
             bin_counts=
             t[evaluation_sans_uq.XY_OFFSET_BIN_COUNT_KEY].values[j, :],
             has_predictions=True,
@@ -139,28 +141,34 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         evaluation_plotting.plot_inset_histogram(
             figure_object=figure_object,
-            bin_centers=
-            t[evaluation_sans_uq.XY_OFFSET_INV_BIN_CENTER_KEY].values[j, :],
+            bin_centers=(
+                METRES_TO_KM *
+                t[evaluation_sans_uq.XY_OFFSET_INV_BIN_CENTER_KEY].values[j, :]
+            ),
             bin_counts=
             t[evaluation_sans_uq.XY_OFFSET_INV_BIN_COUNT_KEY].values[j, :],
             has_predictions=False,
             bar_colour=evaluation_plotting.RELIABILITY_LINE_COLOUR
         )
 
-        mean_squared_errors = (
+        mean_squared_errors = (METRES_TO_KM ** 2) * (
             t[evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY].values[j, :]
         )
         mse_skill_scores = (
             t[evaluation_sans_uq.MSE_SKILL_SCORE_KEY].values[j, :]
         )
-        reliabilities = t[evaluation_sans_uq.RELIABILITY_KEY].values[j, :]
-        resolutions = t[evaluation_sans_uq.RESOLUTION_KEY].values[j, :]
+        reliabilities = (METRES_TO_KM ** 2) * (
+            t[evaluation_sans_uq.RELIABILITY_KEY].values[j, :]
+        )
+        resolutions = (METRES_TO_KM ** 2) * (
+            t[evaluation_sans_uq.RESOLUTION_KEY].values[j, :]
+        )
         num_bootstrap_reps = len(mean_squared_errors)
 
         if num_bootstrap_reps == 1:
             title_string = (
-                'Attr diag for {0:s} (MSE = {1:.3f}; MSESS = {2:.3f};\n'
-                'REL = {3:.3f}; RES = {4:.3f})'
+                'Attributes diagram for {0:s}\n'
+                '(MSE = {1:.1f}; MSESS = {2:.3f}; REL = {3:.1f}; RES = {4:.1f})'
             ).format(
                 r'$x$-offset'
                 if target_field_names[j] == evaluation_sans_uq.X_OFFSET_NAME
@@ -172,9 +180,9 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             )
         else:
             title_string = (
-                'Attr diag for {0:s} '
-                '(MSE = {1:.3f}-{2:.3f}; MSESS = {3:.3f}-{4:.3f};\n'
-                'REL = {5:.3f}-{6:.3f}; RES = {7:.3f}-{8:.3f})'
+                'Attributes diagram for {0:s}\n'
+                '(MSE = [{1:.1f}, {2:.1f}]; MSESS = [{3:.3f}, {4:.3f}];\n'
+                'REL = [{5:.1f}, {6:.1f}]; RES = [{7:.1f}, {8:.1f}])'
             ).format(
                 r'$x$-offset'
                 if target_field_names[j] == evaluation_sans_uq.X_OFFSET_NAME
@@ -247,7 +255,10 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         evaluation_plotting.plot_inset_histogram(
             figure_object=figure_object,
-            bin_centers=t[evaluation_sans_uq.OFFSET_DIST_BIN_CENTER_KEY].values,
+            bin_centers=(
+                METRES_TO_KM *
+                t[evaluation_sans_uq.OFFSET_DIST_BIN_CENTER_KEY].values
+            ),
             bin_counts=t[evaluation_sans_uq.OFFSET_DIST_BIN_COUNT_KEY].values,
             has_predictions=True,
             bar_colour=evaluation_plotting.RELIABILITY_LINE_COLOUR
@@ -255,28 +266,34 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         evaluation_plotting.plot_inset_histogram(
             figure_object=figure_object,
-            bin_centers=
-            t[evaluation_sans_uq.OFFSET_DIST_INV_BIN_CENTER_KEY].values,
+            bin_centers=(
+                METRES_TO_KM *
+                t[evaluation_sans_uq.OFFSET_DIST_INV_BIN_CENTER_KEY].values
+            ),
             bin_counts=
             t[evaluation_sans_uq.OFFSET_DIST_INV_BIN_COUNT_KEY].values,
             has_predictions=False,
             bar_colour=evaluation_plotting.RELIABILITY_LINE_COLOUR
         )
 
-        mean_squared_errors = (
+        mean_squared_errors = (METRES_TO_KM ** 2) * (
             t[evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY].values[j, :]
         )
         mse_skill_scores = (
             t[evaluation_sans_uq.MSE_SKILL_SCORE_KEY].values[j, :]
         )
-        reliabilities = t[evaluation_sans_uq.RELIABILITY_KEY].values[j, :]
-        resolutions = t[evaluation_sans_uq.RESOLUTION_KEY].values[j, :]
+        reliabilities = (METRES_TO_KM ** 2) * (
+            t[evaluation_sans_uq.RELIABILITY_KEY].values[j, :]
+        )
+        resolutions = (METRES_TO_KM ** 2) * (
+            t[evaluation_sans_uq.RESOLUTION_KEY].values[j, :]
+        )
         num_bootstrap_reps = len(mean_squared_errors)
 
         if num_bootstrap_reps == 1:
             title_string = (
-                'Attr diag for Euclidean offset '
-                '(MSE = {0:.3f}; MSESS = {1:.3f}; REL = {2:.3f}; RES = {3:.3f})'
+                'Attributes diagram for Euclidean offset\n'
+                '(MSE = {0:.1f}; MSESS = {1:.3f}; REL = {2:.1f}; RES = {3:.1f})'
             ).format(
                 mean_squared_errors[0],
                 mse_skill_scores[0],
@@ -285,9 +302,9 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             )
         else:
             title_string = (
-                'Attr diag for Euclidean offset '
-                '(MSE = {0:.3f}-{1:.3f}; MSESS = {2:.3f}-{3:.3f};\n'
-                'REL = {4:.3f}-{5:.3f}; RES = {6:.3f}-{7:.3f})'
+                'Attributes diagram for Euclidean offset\n'
+                '(MSE = [{0:.1f}, {1:.1f}]; MSESS = [{2:.3f}, {3:.3f}];\n'
+                'REL = [{4:.1f}, {5:.1f}]; RES = [{6:.1f}, {7:.1f}])'
             ).format(
                 numpy.nanpercentile(mean_squared_errors, min_percentile),
                 numpy.nanpercentile(mean_squared_errors, max_percentile),
@@ -383,8 +400,8 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         if num_bootstrap_reps == 1:
             title_string = (
-                'Attr diag for offset direction '
-                '(MSE = {0:.3f}; MSESS = {1:.3f}; REL = {2:.3f}; RES = {3:.3f})'
+                'Attributes diagram for offset direction\n'
+                '(MSE = {0:.1f}; MSESS = {1:.3f}; REL = {2:.1f}; RES = {3:.1f})'
             ).format(
                 mean_squared_errors[0],
                 mse_skill_scores[0],
@@ -393,9 +410,9 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             )
         else:
             title_string = (
-                'Attr diag for offset direction '
-                '(MSE = {0:.3f}-{1:.3f}; MSESS = {2:.3f}-{3:.3f};\n'
-                'REL = {4:.3f}-{5:.3f}; RES = {6:.3f}-{7:.3f})'
+                'Attributes diagram for offset direction\n'
+                '(MSE = [{0:.1f}, {1:.1f}]; MSESS = [{2:.3f}, {3:.3f}];\n'
+                'REL = [{4:.1f}, {5:.1f}]; RES = [{6:.1f}, {7:.1f}])'
             ).format(
                 numpy.nanpercentile(mean_squared_errors, min_percentile),
                 numpy.nanpercentile(mean_squared_errors, max_percentile),
@@ -429,6 +446,8 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
+        axes_object.set_xticks([], [])
+        axes_object.set_yticks([], [])
 
         if target_field_names[j] == evaluation_sans_uq.OFFSET_DIRECTION_NAME:
             conv_ratio = 1.
@@ -449,6 +468,8 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             figure_object=figure_object
         )
 
+        axes_object.set_ylabel('Stdev of mean predictions', labelpad=40)
+        axes_object.set_xlabel('Stdev of targets', labelpad=40)
         figure_object.suptitle('Taylor diagram for {0:s}'.format(
             TARGET_FIELD_TO_VERBOSE_WITH_UNITS[target_field_names[j]]
         ))
