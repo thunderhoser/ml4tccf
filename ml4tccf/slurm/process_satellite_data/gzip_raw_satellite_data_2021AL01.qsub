@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="get_normalization_params_2017-2019"
+#SBATCH --job-name="gzip_raw_satellite_data_2021AL01"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -12,23 +12,24 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=24:00:00
+#SBATCH --array=1
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=get_normalization_params_2017-2019_%A.out
+#SBATCH --output=gzip_raw_satellite_data_2021AL01_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set WORKING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/v0.0.4"
 
-python3 -u "${CODE_DIR_NAME}/get_normalization_params.py" \
---input_satellite_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed" \
---years 2017 2018 2019 \
---num_satellite_files=200 \
---num_values_per_high_res_channel=200000 \
---num_values_per_low_res_channel=100000 \
---output_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalization_params_2017-2019.zarr"
+set CYCLONE_ID_STRINGS=("2021AL01" "2021AL02" "2021AL03" "2021AL04" "2021AL05" "2021AL06" "2021AL07" "2021AL08" "2021AL09" "2021AL10" "2021AL11" "2021AL12" "2021AL13" "2021AL14" "2021AL15" "2021AL16" "2021AL17" "2021AL18" "2021AL19")
+
+python3 -u "${CODE_DIR_NAME}/gzip_or_gunzip_raw_satellite.py" \
+--raw_satellite_dir_name="${WORKING_DIR_NAME}" \
+--cyclone_id_string="${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--compress_flag=1
