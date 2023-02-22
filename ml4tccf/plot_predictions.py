@@ -437,7 +437,10 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     validation_option_dict[neural_net.SENTINEL_VALUE_KEY] = SENTINEL_VALUE
 
     pt = prediction_table_xarray
-    cyclone_id_string = pt.attrs[prediction_utils.CYCLONE_ID_KEY]
+
+    # TODO(thunderhoser): This will not work if I ever have multiple cyclones in
+    # one prediction file.
+    cyclone_id_string = pt[prediction_utils.CYCLONE_ID_KEY].values[0]
     target_times_unix_sec = pt[prediction_utils.TARGET_TIME_KEY].values
 
     data_dict = neural_net.create_data_specific_trans(
