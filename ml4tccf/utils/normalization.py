@@ -1,5 +1,7 @@
 """Methods for normalizing predictor variables."""
 
+import os
+import shutil
 import numpy
 import xarray
 import scipy.stats
@@ -456,27 +458,31 @@ def denormalize_data(satellite_table_xarray, normalization_param_table_xarray):
     return satellite_table_xarray
 
 
-def write_file(normalization_param_table_xarray, netcdf_file_name):
-    """Writes normalization params to NetCDF file.
+def write_file(normalization_param_table_xarray, zarr_file_name):
+    """Writes normalization params to zarr file.
 
     :param normalization_param_table_xarray: xarray table in format returned by
         `read_file`.
-    :param netcdf_file_name: Path to output file.
+    :param zarr_file_name: Path to output file.
     """
 
-    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    error_checking.assert_is_string(zarr_file_name)
+    if os.path.isdir(zarr_file_name):
+        shutil.rmtree(zarr_file_name)
 
-    normalization_param_table_xarray.to_netcdf(
-        path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=zarr_file_name
     )
 
+    normalization_param_table_xarray.to_zarr(store=zarr_file_name, mode='w')
 
-def read_file(netcdf_file_name):
-    """Reads normalization params from NetCDF file.
 
-    :param netcdf_file_name: Path to input file.
+def read_file(zarr_file_name):
+    """Reads normalization params from zarr file.
+
+    :param zarr_file_name: Path to input file.
     :return: normalization_param_table_xarray: xarray table.  Metadata and
         variable names should make the table self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    return xarray.open_zarr(zarr_file_name)

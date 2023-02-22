@@ -179,7 +179,7 @@ def _run(input_dir_name, cyclone_id_string, max_bad_pixels_low_res,
             print('Writing data to: "{0:s}"...'.format(this_output_file_name))
             satellite_io.write_file(
                 satellite_table_xarray=satellite_table_xarray,
-                netcdf_file_name=this_output_file_name
+                zarr_file_name=this_output_file_name
             )
 
             del satellite_table_xarray
