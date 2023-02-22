@@ -650,7 +650,6 @@ def _get_scores_one_replicate(
             min_bin_edge=min_bin_edge, max_bin_edge=max_bin_edge, invert=False
         )
 
-        # TODO(thunderhoser): Need to fuck with climo for Euclidean distance.
         t[RELIABILITY_KEY].values[j, i] = _get_reliability(
             binned_mean_predictions=
             t[XY_OFFSET_MEAN_PREDICTION_KEY].values[j, :, i],
@@ -681,8 +680,8 @@ def _get_scores_one_replicate(
             )
 
             (
-                t[XY_OFFSET_INV_BIN_CENTER_KEY].values[j, :],
                 _,
+                t[XY_OFFSET_INV_BIN_CENTER_KEY].values[j, :],
                 t[XY_OFFSET_INV_BIN_COUNT_KEY].values[j, :]
             ) = _get_reliability_curve_one_variable(
                 target_values=full_target_matrix[:, j],
@@ -752,8 +751,8 @@ def _get_scores_one_replicate(
             )
 
             (
-                t[OFFSET_DIST_INV_BIN_CENTER_KEY].values[:],
                 _,
+                t[OFFSET_DIST_INV_BIN_CENTER_KEY].values[:],
                 t[OFFSET_DIST_INV_BIN_COUNT_KEY].values[:]
             ) = _get_reliability_curve_one_variable(
                 target_values=full_target_matrix[:, j],
@@ -808,8 +807,8 @@ def _get_scores_one_replicate(
             )
 
             (
-                t[OFFSET_DIR_INV_BIN_CENTER_KEY].values[:],
                 _,
+                t[OFFSET_DIR_INV_BIN_CENTER_KEY].values[:],
                 t[OFFSET_DIR_INV_BIN_COUNT_KEY].values[:]
             ) = _get_reliability_curve_one_variable(
                 target_values=full_target_matrix[:, j],
@@ -1249,7 +1248,12 @@ def read_file(netcdf_file_name):
         this table self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    result_table_xarray = xarray.open_dataset(netcdf_file_name)
+    result_table_xarray.attrs[PREDICTION_FILES_KEY] = (
+        result_table_xarray.attrs[PREDICTION_FILES_KEY].split()
+    )
+
+    return result_table_xarray
 
 
 def write_file(result_table_xarray, netcdf_file_name):
@@ -1262,6 +1266,9 @@ def write_file(result_table_xarray, netcdf_file_name):
     """
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    result_table_xarray.attrs[PREDICTION_FILES_KEY] = ' '.join(
+        result_table_xarray.attrs[PREDICTION_FILES_KEY]
+    )
 
     result_table_xarray.to_netcdf(
         path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
