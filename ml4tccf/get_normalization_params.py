@@ -135,7 +135,7 @@ def _run(satellite_dir_name, years, num_satellite_files,
     ))
     normalization.write_file(
         normalization_param_table_xarray=normalization_param_table_xarray,
-        netcdf_file_name=output_file_name
+        zarr_file_name=output_file_name
     )
 
 
