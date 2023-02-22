@@ -440,10 +440,12 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
 
     # TODO(thunderhoser): This will not work if I ever have multiple cyclones in
     # one prediction file.
-    cyclone_id_string = str(pt[prediction_utils.CYCLONE_ID_KEY].values[0])
-    print(cyclone_id_string)
-    print('\n\n\n\n\n\n')
+    cyclone_id_string = pt[prediction_utils.CYCLONE_ID_KEY].values[0].decode(
+        'utf-8'
+    )
     target_times_unix_sec = pt[prediction_utils.TARGET_TIME_KEY].values
+
+    print(cyclone_id_string)
 
     data_dict = neural_net.create_data_specific_trans(
         option_dict=validation_option_dict,
