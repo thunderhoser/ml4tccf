@@ -25,20 +25,20 @@ PREDICTED_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
 PREDICTED_CENTER_MARKER_COLOUR = matplotlib.colors.to_rgba(
     PREDICTED_CENTER_MARKER_COLOUR, alpha=0.5
 )
-PREDICTED_CENTER_MARKER_SIZE = 18
+PREDICTED_CENTER_MARKER_SIZE = 12
 PREDICTED_CENTER_MARKER_EDGE_WIDTH = 0
 PREDICTED_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
 ACTUAL_CENTER_MARKER = '*'
 ACTUAL_CENTER_MARKER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
-ACTUAL_CENTER_MARKER_SIZE = 48
-ACTUAL_CENTER_MARKER_EDGE_WIDTH = 3
+ACTUAL_CENTER_MARKER_SIZE = 16
+ACTUAL_CENTER_MARKER_EDGE_WIDTH = 2
 ACTUAL_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
 IMAGE_CENTER_MARKER = 's'
 IMAGE_CENTER_MARKER_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
-IMAGE_CENTER_MARKER_SIZE = 36
-IMAGE_CENTER_MARKER_EDGE_WIDTH = 3
+IMAGE_CENTER_MARKER_SIZE = 12
+IMAGE_CENTER_MARKER_EDGE_WIDTH = 2
 IMAGE_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
 FIGURE_WIDTH_INCHES = 15
@@ -430,7 +430,10 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     validation_option_dict[neural_net.SENTINEL_VALUE_KEY] = SENTINEL_VALUE
 
     pt = prediction_table_xarray
-    cyclone_id_string = pt.attrs[prediction_utils.CYCLONE_ID_KEY]
+
+    # TODO(thunderhoser): This will not work if I ever have multiple cyclones in
+    # one prediction file.
+    cyclone_id_string = pt[prediction_utils.CYCLONE_ID_KEY].values[0]
     target_times_unix_sec = pt[prediction_utils.TARGET_TIME_KEY].values
 
     data_dict = neural_net.create_data_specific_trans(

@@ -1,6 +1,8 @@
 """Miscellaneous helper methods."""
 
 import os
+import gzip
+import shutil
 import warnings
 import tempfile
 import numpy
@@ -9,6 +11,7 @@ from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import error_checking
 
+GZIP_FILE_EXTENSION = '.gz'
 TIME_FORMAT = '%Y %m %d %H %M %S'
 ERROR_STRING = (
     '\nUnix command failed (log messages shown above should explain why).'
@@ -335,3 +338,43 @@ def is_regular_grid_valid(latitudes_deg_n, longitudes_deg_e):
         increasing_longitudes_deg_e = negative_longitudes_deg_e
 
     return True, increasing_latitudes_deg_n, increasing_longitudes_deg_e
+
+
+def gzip_file(input_file_name):
+    """Compresses file via gzip.
+
+    :param input_file_name: Path to input file.
+    :raises: ValueError: if file is already gzipped.
+    """
+
+    error_checking.assert_file_exists(input_file_name)
+    if input_file_name.endswith(GZIP_FILE_EXTENSION):
+        raise ValueError(
+            'File is already gzipped: "{0:s}"'.format(input_file_name)
+        )
+
+    gzipped_file_name = '{0:s}{1:s}'.format(input_file_name, GZIP_FILE_EXTENSION)
+
+    with open(input_file_name, 'rb') as netcdf_handle:
+        with gzip.open(gzipped_file_name, 'wb') as gzip_handle:
+            shutil.copyfileobj(netcdf_handle, gzip_handle)
+
+
+def gunzip_file(gzipped_file_name):
+    """Deompresses file via gunzip.
+
+    :param gzipped_file_name: Path to gzipped file.
+    :raises: ValueError: if file is not gzipped.
+    """
+
+    error_checking.assert_is_string(gzipped_file_name)
+    if not gzipped_file_name.endswith(GZIP_FILE_EXTENSION):
+        raise ValueError(
+            'File is not gzipped: "{0:s}"'.format(gzipped_file_name)
+        )
+
+    unzipped_file_name = gzipped_file_name[:-len(GZIP_FILE_EXTENSION)]
+
+    with gzip.open(gzipped_file_name, 'rb') as gzip_handle:
+        with open(unzipped_file_name, 'wb') as unzipped_handle:
+            shutil.copyfileobj(gzip_handle, unzipped_handle)

@@ -2,11 +2,13 @@
 
 import os
 import glob
+import shutil
 import xarray
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import misc_utils
+from ml4tccf.utils import satellite_utils
 
 DATE_FORMAT = '%Y-%m-%d'
 CYCLONE_ID_REGEX = '[0-9][0-9][0-9][0-9][A-Z][A-Z][0-9][0-9]'
@@ -24,7 +26,7 @@ def find_file(directory_name, cyclone_id_string, valid_date_string,
         `raise_error_if_missing == True`, this method will raise an error.  If
         file is not found and `raise_error_if_missing == False`, this method
         will return the expected file path.
-    :return: satellite_file_name: Actual or expected file path.
+    :return: zarr_file_name: Actual or expected file path.
     :raises: ValueError: if file is not found and
         `raise_error_if_missing == True`.
     """
@@ -34,18 +36,18 @@ def find_file(directory_name, cyclone_id_string, valid_date_string,
     _ = misc_utils.parse_cyclone_id(cyclone_id_string)
     _ = time_conversion.string_to_unix_sec(valid_date_string, DATE_FORMAT)
 
-    satellite_file_name = '{0:s}/satellite_{1:s}_{2:s}.nc'.format(
+    zarr_file_name = '{0:s}/satellite_{1:s}_{2:s}.zarr'.format(
         directory_name, cyclone_id_string, valid_date_string
     )
 
-    if os.path.isfile(satellite_file_name):
-        return satellite_file_name
+    if os.path.isdir(zarr_file_name):
+        return zarr_file_name
 
     if not raise_error_if_missing:
-        return satellite_file_name
+        return zarr_file_name
 
     error_string = 'Cannot find satellite file.  Expected at: "{0:s}"'.format(
-        satellite_file_name
+        zarr_file_name
     )
     raise ValueError(error_string)
 
@@ -60,7 +62,7 @@ def find_files_one_cyclone(
         `raise_error_if_all_missing == True`, this method will raise an error.
         If no files are found and `raise_error_if_all_missing == False`, this
         method will return an empty list.
-    :return: satellite_file_names: 1-D list of paths to existing files.
+    :return: zarr_file_names: 1-D list of paths to existing files.
     :raises: ValueError: if no files are found and
         `raise_error_if_all_missing == True`.
     """
@@ -69,14 +71,14 @@ def find_files_one_cyclone(
     _ = misc_utils.parse_cyclone_id(cyclone_id_string)
     error_checking.assert_is_boolean(raise_error_if_all_missing)
 
-    file_pattern = '{0:s}/satellite_{1:s}_{2:s}.nc'.format(
+    file_pattern = '{0:s}/satellite_{1:s}_{2:s}.zarr'.format(
         directory_name, cyclone_id_string, DATE_REGEX
     )
-    satellite_file_names = glob.glob(file_pattern)
-    satellite_file_names.sort()
+    zarr_file_names = glob.glob(file_pattern)
+    zarr_file_names.sort()
 
-    if len(satellite_file_names) > 0 or not raise_error_if_all_missing:
-        return satellite_file_names
+    if len(zarr_file_names) > 0 or not raise_error_if_all_missing:
+        return zarr_file_names
 
     error_string = (
         'No files were found for cyclone {0:s} in directory: "{1:s}"'
@@ -85,15 +87,15 @@ def find_files_one_cyclone(
     raise ValueError(error_string)
 
 
-def file_name_to_cyclone_id(satellite_file_name):
+def file_name_to_cyclone_id(zarr_file_name):
     """Parses cyclone ID from name of satellite file.
 
-    :param satellite_file_name: File path.
+    :param zarr_file_name: File path.
     :return: cyclone_id_string: Cyclone ID.
     """
 
-    error_checking.assert_is_string(satellite_file_name)
-    pathless_file_name = os.path.split(satellite_file_name)[1]
+    error_checking.assert_is_string(zarr_file_name)
+    pathless_file_name = os.path.split(zarr_file_name)[1]
 
     cyclone_id_string = pathless_file_name.split('.')[0].split('_')[-2]
     _ = misc_utils.parse_cyclone_id(cyclone_id_string)
@@ -101,15 +103,15 @@ def file_name_to_cyclone_id(satellite_file_name):
     return cyclone_id_string
 
 
-def file_name_to_date(satellite_file_name):
+def file_name_to_date(zarr_file_name):
     """Parses date from name of satellite file.
 
-    :param satellite_file_name: File path.
+    :param zarr_file_name: File path.
     :return: valid_date_string: Valid date.
     """
 
-    error_checking.assert_is_string(satellite_file_name)
-    pathless_file_name = os.path.split(satellite_file_name)[1]
+    error_checking.assert_is_string(zarr_file_name)
+    pathless_file_name = os.path.split(zarr_file_name)[1]
 
     valid_date_string = pathless_file_name.split('.')[0].split('_')[-1]
     _ = time_conversion.string_to_unix_sec(valid_date_string, DATE_FORMAT)
@@ -133,17 +135,14 @@ def find_cyclones(directory_name, raise_error_if_all_missing=True):
     error_checking.assert_is_string(directory_name)
     error_checking.assert_is_boolean(raise_error_if_all_missing)
 
-    file_pattern = '{0:s}/satellite_{1:s}_{2:s}.nc'.format(
+    file_pattern = '{0:s}/satellite_{1:s}_{2:s}.zarr'.format(
         directory_name, CYCLONE_ID_REGEX, DATE_REGEX
     )
-    satellite_file_names = glob.glob(file_pattern)
-
-    # file_pattern = '{0:s}{1:s}'.format(file_pattern, GZIP_FILE_EXTENSION)
-    # satellite_file_names += glob.glob(file_pattern)
+    zarr_file_names = glob.glob(file_pattern)
 
     cyclone_id_strings = []
 
-    for this_file_name in satellite_file_names:
+    for this_file_name in zarr_file_names:
         try:
             cyclone_id_strings.append(
                 file_name_to_cyclone_id(this_file_name)
@@ -164,27 +163,37 @@ def find_cyclones(directory_name, raise_error_if_all_missing=True):
     return cyclone_id_strings
 
 
-def read_file(netcdf_file_name):
-    """Reads satellite data from NetCDF file.
+def read_file(zarr_file_name):
+    """Reads satellite data from zarr file.
 
-    :param netcdf_file_name: Path to input file.
+    :param zarr_file_name: Path to input file.
     :return: satellite_table_xarray: xarray table.  Documentation in the xarray
         table should make values self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    return xarray.open_zarr(zarr_file_name)
 
 
-def write_file(satellite_table_xarray, netcdf_file_name):
-    """Writes satellite data to NetCDF file.
+def write_file(satellite_table_xarray, zarr_file_name):
+    """Writes satellite data to zarr file.
 
     :param satellite_table_xarray: xarray table in format returned by
         `read_file`.
-    :param netcdf_file_name: Path to output file.
+    :param zarr_file_name: Path to output file.
     """
 
-    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    error_checking.assert_is_string(zarr_file_name)
+    if os.path.isdir(zarr_file_name):
+        shutil.rmtree(zarr_file_name)
 
-    satellite_table_xarray.to_netcdf(
-        path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=zarr_file_name
+    )
+
+    satellite_table_xarray.to_zarr(
+        store=zarr_file_name, mode='w',
+        encoding={
+            satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY: {'dtype': 'float16'},
+            satellite_utils.BRIGHTNESS_TEMPERATURE_KEY: {'dtype': 'float16'}
+        }
     )

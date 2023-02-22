@@ -15,6 +15,8 @@ MICRONS_TO_METRES = 1e-6
 PYPROJ_KEYWORD = 'PROJ CRS string: '
 
 TIME_FORMAT = '%Y-%m-%dT%H-%M-%S'
+GZIP_FILE_EXTENSION = '.gz'
+
 DATE_REGEX = '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'
 TIME_REGEX = (
     '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'
@@ -62,17 +64,95 @@ def _cyclone_id_new_to_orig(cyclone_id_string):
     )
 
 
+def find_file(
+        directory_name, cyclone_id_string, valid_time_unix_sec,
+        look_for_high_res, prefer_zipped_format=False, allow_other_format=True,
+        raise_error_if_missing=True):
+    """Finds file with satellite data.
+
+    :param directory_name: Name of directory.
+    :param cyclone_id_string: Cyclone ID.
+    :param valid_time_unix_sec: Valid time.
+    :param look_for_high_res: Boolean flag.  If True (False), will look for
+        high- (low-)resolution data.
+    :param prefer_zipped_format: Boolean flag.  If True (False), will look for
+        gzipped (not-zipped) file first.
+    :param allow_other_format: Boolean flag.
+        If True and prefer_zipped_format == True, will look for gzipped file
+        first but will accept not-zipped file.
+        If True and prefer_zipped_format == False, will look for not-zipped file
+        first but will accept gzipped file.
+        If False and prefer_zipped_format == True, will accept only gzipped
+        file.
+        If False and prefer_zipped_format == False, will accept only not-zipped
+        file.
+    :param raise_error_if_missing: Boolean flag.  If file is not found and
+        `raise_error_if_missing == True`, this method will raise an error.  If
+        file is not found and `raise_error_if_missing == False`, this method
+        will return the expected file path.
+    :return: satellite_file_name: Actual or expected file path.
+    :raises: ValueError: if file is not found and
+        `raise_error_if_missing == True`.
+    """
+
+    error_checking.assert_is_string(directory_name)
+    error_checking.assert_is_boolean(look_for_high_res)
+    error_checking.assert_is_boolean(prefer_zipped_format)
+    error_checking.assert_is_boolean(allow_other_format)
+    error_checking.assert_is_boolean(raise_error_if_missing)
+    orig_cyclone_id_string = _cyclone_id_new_to_orig(cyclone_id_string)
+
+    valid_time_string = time_conversion.unix_sec_to_string(
+        valid_time_unix_sec, TIME_FORMAT
+    )
+    valid_date_string = valid_time_string[:10]
+
+    satellite_file_name = (
+        '{0:s}/{1:s}/{2:s}/{3:s}/{4:s}_{3:s}_{1:s}.nc{5:s}'
+    ).format(
+        directory_name,
+        orig_cyclone_id_string,
+        valid_date_string,
+        valid_time_string,
+        '0500m' if look_for_high_res else '2000m',
+        GZIP_FILE_EXTENSION if prefer_zipped_format else ''
+    )
+
+    if os.path.isfile(satellite_file_name):
+        return satellite_file_name
+
+    if allow_other_format:
+        if prefer_zipped_format:
+            satellite_file_name = (
+                satellite_file_name[:-len(GZIP_FILE_EXTENSION)]
+            )
+        else:
+            satellite_file_name += GZIP_FILE_EXTENSION
+
+    if os.path.isfile(satellite_file_name) or not raise_error_if_missing:
+        return satellite_file_name
+
+    error_string = 'Cannot find satellite file.  Expected at: "{0:s}"'.format(
+        satellite_file_name
+    )
+    raise ValueError(error_string)
+
+
 def find_files_one_tc(
         directory_name, cyclone_id_string, look_for_high_res,
-        raise_error_if_all_missing=True):
+        prefer_zipped_format=False, allow_other_format=True,
+        raise_error_if_all_missing=True, test_mode=False):
     """Finds all files with satellite data for one tropical cyclone.
 
     :param directory_name: Name of directory.
     :param cyclone_id_string: Cyclone ID.
     :param look_for_high_res: Boolean flag.  If True (False), will look for
         high- (low-)resolution data.
+    :param prefer_zipped_format: See documentation for `find_file`.
+    :param allow_other_format: Same.
     :param raise_error_if_all_missing: Boolean flag.  If all files are missing
         and `raise_error_if_all_missing == True`, will throw error.
+    :param test_mode: Don't worry about it, guy!  Put your feet up!  Relax!
     :return: satellite_file_names: 1-D list of paths to satellite files.  This
         list does *not* contain expected paths to non-existent files.
     :raises: ValueError: if all files are missing.
@@ -80,20 +160,52 @@ def find_files_one_tc(
 
     error_checking.assert_is_string(directory_name)
     error_checking.assert_is_boolean(look_for_high_res)
+    error_checking.assert_is_boolean(prefer_zipped_format)
+    error_checking.assert_is_boolean(allow_other_format)
     error_checking.assert_is_boolean(raise_error_if_all_missing)
+    error_checking.assert_is_boolean(test_mode)
     orig_cyclone_id_string = _cyclone_id_new_to_orig(cyclone_id_string)
 
     satellite_file_pattern = (
-        '{0:s}/{1:s}/{2:s}/{3:s}/{4:s}_{3:s}_{1:s}.nc'
+        '{0:s}/{1:s}/{2:s}/{3:s}/{4:s}_{3:s}_{1:s}.nc{5:s}'
     ).format(
         directory_name,
         orig_cyclone_id_string,
         DATE_REGEX,
         TIME_REGEX,
-        '0500m' if look_for_high_res else '2000m'
+        '0500m' if look_for_high_res else '2000m',
+        GZIP_FILE_EXTENSION if prefer_zipped_format else ''
     )
 
-    satellite_file_names = glob.glob(satellite_file_pattern)
+    if test_mode:
+        satellite_file_names = [satellite_file_pattern]
+    else:
+        satellite_file_names = glob.glob(satellite_file_pattern)
+
+    if allow_other_format:
+        if prefer_zipped_format:
+            satellite_file_pattern = (
+                satellite_file_pattern[:-len(GZIP_FILE_EXTENSION)]
+            )
+        else:
+            satellite_file_pattern += GZIP_FILE_EXTENSION
+
+        if test_mode:
+            satellite_file_names.append(satellite_file_pattern)
+        else:
+            satellite_file_names += glob.glob(satellite_file_pattern)
+
+        satellite_file_names_format_agnostic = [
+            f[:-len(GZIP_FILE_EXTENSION)] if f.endswith(GZIP_FILE_EXTENSION)
+            else f
+            for f in satellite_file_names
+        ]
+
+        _, unique_indices = numpy.unique(
+            numpy.array(satellite_file_names_format_agnostic),
+            return_index=True
+        )
+        satellite_file_names = [satellite_file_names[k] for k in unique_indices]
 
     if len(satellite_file_names) > 0:
         satellite_file_names.sort()
@@ -110,54 +222,6 @@ def find_files_one_tc(
     raise ValueError(error_string)
 
 
-def find_file(directory_name, cyclone_id_string, valid_time_unix_sec,
-              look_for_high_res, raise_error_if_missing=True):
-    """Finds file with satellite data.
-
-    :param directory_name: Name of directory.
-    :param cyclone_id_string: Cyclone ID.
-    :param valid_time_unix_sec: Valid time.
-    :param look_for_high_res: Boolean flag.  If True (False), will look for
-        high- (low-)resolution data.
-    :param raise_error_if_missing: Boolean flag.  If file is not found and
-        `raise_error_if_missing == True`, this method will raise an error.  If
-        file is not found and `raise_error_if_missing == False`, this method
-        will return the expected file path.
-    :return: satellite_file_name: Actual or expected file path.
-    :raises: ValueError: if file is not found and
-        `raise_error_if_missing == True`.
-    """
-
-    error_checking.assert_is_string(directory_name)
-    error_checking.assert_is_boolean(raise_error_if_missing)
-    error_checking.assert_is_boolean(look_for_high_res)
-    orig_cyclone_id_string = _cyclone_id_new_to_orig(cyclone_id_string)
-
-    valid_time_string = time_conversion.unix_sec_to_string(
-        valid_time_unix_sec, TIME_FORMAT
-    )
-    valid_date_string = valid_time_string[:10]
-
-    satellite_file_name = '{0:s}/{1:s}/{2:s}/{3:s}/{4:s}_{3:s}_{1:s}.nc'.format(
-        directory_name,
-        orig_cyclone_id_string,
-        valid_date_string,
-        valid_time_string,
-        '0500m' if look_for_high_res else '2000m'
-    )
-
-    if os.path.isfile(satellite_file_name):
-        return satellite_file_name
-
-    if not raise_error_if_missing:
-        return satellite_file_name
-
-    error_string = 'Cannot find satellite file.  Expected at: "{0:s}"'.format(
-        satellite_file_name
-    )
-    raise ValueError(error_string)
-
-
 def file_name_to_time(satellite_file_name):
     """Parses valid time from file name.
 
@@ -166,7 +230,7 @@ def file_name_to_time(satellite_file_name):
     """
 
     pathless_file_name = os.path.split(satellite_file_name)[1]
-    extensionless_file_name = os.path.splitext(pathless_file_name)[0]
+    extensionless_file_name = pathless_file_name.split('.')[0]
     valid_time_string = extensionless_file_name.split('_')[1]
 
     return time_conversion.string_to_unix_sec(valid_time_string, TIME_FORMAT)
