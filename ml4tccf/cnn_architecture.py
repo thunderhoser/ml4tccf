@@ -179,7 +179,7 @@ def check_input_args(option_dict):
     return option_dict
 
 
-def create_model(option_dict):
+def create_model(option_dict, optimizer=None):
     """Creates CNN.
 
     :param option_dict: See documentation for `check_input_args`.
@@ -360,10 +360,18 @@ def create_model(option_dict):
     model_object = keras.models.Model(
         inputs=input_layer_objects, outputs=layer_object
     )
-    model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(),
-        metrics=neural_net.METRIC_FUNCTION_LIST
-    )
+
+    if optimizer is None:
+        model_object.compile(
+            loss=loss_function, optimizer=keras.optimizers.Adam(),
+            metrics=neural_net.METRIC_FUNCTION_LIST
+        )
+    else:
+        model_object.compile(
+            loss=loss_function, optimizer=optimizer,
+            metrics=neural_net.METRIC_FUNCTION_LIST
+        )
+
     model_object.summary()
 
     return model_object

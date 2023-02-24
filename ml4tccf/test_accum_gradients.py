@@ -1,7 +1,51 @@
 """Tests optimizer with 'accumulated gradients' over many batches."""
 
+import os
+import sys
+import copy
+import numpy
 import keras.backend as K
 from keras.optimizers import Optimizer
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import architecture_utils
+import cnn_architecture
+import custom_losses
+
+NUM_CONV_BLOCKS = 8
+# ENSEMBLE_SIZE = 25
+ENSEMBLE_SIZE = 5
+
+DEFAULT_OPTION_DICT = {
+    cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
+        numpy.array([600, 600, 1], dtype=int),
+    cnn_architecture.INCLUDE_HIGH_RES_KEY: False,
+    # cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(7, 2, dtype=int),
+    # cnn_architecture.NUM_CHANNELS_KEY: numpy.array(
+    #     [16, 16, 24, 24, 32, 32, 40, 40, 48, 48, 56, 56, 64, 64], dtype=int
+    # ),
+    # cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(14, 0.),
+    # cnn_architecture.NUM_NEURONS_KEY:
+    #     numpy.array([1024, 128, 50, 50], dtype=int),
+    # cnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.25, 0.25, 0.25, 0]),
+    cnn_architecture.INNER_ACTIV_FUNCTION_KEY:
+        architecture_utils.RELU_FUNCTION_STRING,
+    cnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
+    # cnn_architecture.L2_WEIGHT_KEY: 1e-7,
+    cnn_architecture.USE_BATCH_NORM_KEY: True,
+    cnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
+    cnn_architecture.LOSS_FUNCTION_KEY:
+        custom_losses.discretized_mean_sq_dist_kilometres2
+}
+
+DENSE_LAYER_DROPOUT_RATES = numpy.array([0.2, 0.3, 0.4, 0.5])
+DENSE_LAYER_COUNTS = numpy.array([2, 3, 4], dtype=int)
+CONV_LAYER_L2_WEIGHTS = numpy.logspace(-7, -5, num=5)
+CONV_LAYER_BY_BLOCK_COUNTS = numpy.array([1, 2], dtype=int)
 
 
 class AdamAccumulate(Optimizer):
@@ -98,3 +142,63 @@ class AdamAccumulate(Optimizer):
 
 if __name__ == '__main__':
     opt = AdamAccumulate(lr=0.001, decay=1e-5, accum_iters=5)
+
+    i = 0
+    j = 0
+    k = 0
+    m = 0
+
+    option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
+
+    dense_dropout_rates = numpy.full(
+        DENSE_LAYER_COUNTS[j], DENSE_LAYER_DROPOUT_RATES[i]
+    )
+    dense_dropout_rates[-1] = 0.
+
+    num_conv_layers_by_block = numpy.full(
+        NUM_CONV_BLOCKS, CONV_LAYER_BY_BLOCK_COUNTS[m],
+        dtype=int
+    )
+
+    num_channels_by_conv_layer = numpy.array(
+        [8, 16, 24, 32, 40, 48, 56, 64], dtype=int
+    )
+    num_channels_by_conv_layer = numpy.ravel(numpy.repeat(
+        numpy.expand_dims(num_channels_by_conv_layer, axis=1),
+        repeats=CONV_LAYER_BY_BLOCK_COUNTS[m],
+        axis=1
+    ))
+
+    conv_dropout_rates = numpy.full(
+        len(num_channels_by_conv_layer), 0.
+    )
+
+    dense_neuron_counts = (
+        architecture_utils.get_dense_layer_dimensions(
+            num_input_units=
+            4 * 4 * num_channels_by_conv_layer[-1],
+            num_classes=2,
+            num_dense_layers=DENSE_LAYER_COUNTS[j],
+            for_classification=False
+        )[1]
+    )
+
+    dense_neuron_counts[-1] = 2 * ENSEMBLE_SIZE
+    dense_neuron_counts[-2] = max([
+        dense_neuron_counts[-1], dense_neuron_counts[-2]
+    ])
+
+    option_dict.update({
+        cnn_architecture.NUM_CONV_LAYERS_KEY:
+            num_conv_layers_by_block,
+        cnn_architecture.NUM_CHANNELS_KEY:
+            num_channels_by_conv_layer,
+        cnn_architecture.CONV_DROPOUT_RATES_KEY:
+            conv_dropout_rates,
+        cnn_architecture.NUM_NEURONS_KEY: dense_neuron_counts,
+        cnn_architecture.DENSE_DROPOUT_RATES_KEY:
+            dense_dropout_rates,
+        cnn_architecture.L2_WEIGHT_KEY: CONV_LAYER_L2_WEIGHTS[k]
+    })
+
+    model_object = cnn_architecture.create_model(option_dict)
