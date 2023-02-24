@@ -1058,6 +1058,8 @@ def _write_metafile(
         IS_MODEL_BNN_KEY: is_model_bnn
     }
 
+    print(metadata_dict)
+
     file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
 
     pickle_file_handle = open(pickle_file_name, 'wb')
