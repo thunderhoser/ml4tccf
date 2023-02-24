@@ -5,7 +5,6 @@ import sys
 import copy
 import numpy
 import keras
-from tensorflow import keras as tf_keras
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -30,7 +29,7 @@ ENSEMBLE_SIZE = 5
 
 OPTIMIZER_STRING = (
     'accum_grad_optimizer.convert_to_accumulate_gradient_optimizer('
-    'orig_optimizer=tf_keras.optimizers.Adam(), update_params_frequency=5, '
+    'orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5, '
     'accumulate_sum_or_mean=True)'
 )
 
@@ -54,11 +53,12 @@ DEFAULT_OPTION_DICT = {
     cnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     cnn_architecture.LOSS_FUNCTION_KEY:
         custom_losses.discretized_mean_sq_dist_kilometres2,
-    cnn_architecture.OPTIMIZER_FUNCTION_KEY:
-        accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
-            orig_optimizer=tf_keras.optimizers.Adam(), update_params_frequency=5,
-            accumulate_sum_or_mean=True
-        )
+    cnn_architecture.OPTIMIZER_FUNCTION_KEY: keras.optimizers.Adam()
+    # cnn_architecture.OPTIMIZER_FUNCTION_KEY:
+    #     accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
+    #         orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5,
+    #         accumulate_sum_or_mean=True
+    #     )
 }
 
 # DENSE_LAYER_DROPOUT_RATES = numpy.array([0.2, 0.3, 0.4, 0.5])
