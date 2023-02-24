@@ -10,7 +10,6 @@ import xarray
 import keras
 import tensorflow.keras as tf_keras
 
-
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
 ))
@@ -1038,6 +1037,9 @@ def _write_metafile(
     :param architecture_dict: Same.
     :param is_model_bnn: Same.
     """
+
+    print(loss_function_string)
+    print(optimizer_function_string)
 
     metadata_dict = {
         NUM_EPOCHS_KEY: num_epochs,
