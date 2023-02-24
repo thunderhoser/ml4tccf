@@ -6,7 +6,7 @@ import copy
 import numpy
 import tensorflow
 from tensorflow.python.keras import backend as K
-from tensorflow.python.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
