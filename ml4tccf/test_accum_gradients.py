@@ -85,12 +85,13 @@ def convert_to_accumulate_gradient_optimizer(orig_optimizer, update_params_frequ
 
     orig_optimizer.get_gradients = updated_get_gradients.__get__(orig_optimizer, type(orig_optimizer))
     orig_optimizer.get_updates = updated_get_updates.__get__(orig_optimizer, type(orig_optimizer))
+    return orig_optimizer
 
 
 if __name__ == '__main__':
     # opt = AdamAccumulate(lr=0.001, decay=1e-5, accum_iters=5)
-    print(tf_keras.optimizers.Adam)
-    opt = convert_to_accumulate_gradient_optimizer(orig_optimizer=tf_keras.optimizers.Adam, update_params_frequency=5, accumulate_sum_or_mean=True)
+    print(tf_keras.optimizers.Adam())
+    opt = convert_to_accumulate_gradient_optimizer(orig_optimizer=tf_keras.optimizers.Adam(), update_params_frequency=5, accumulate_sum_or_mean=True)
     # opt = Adam()
     DEFAULT_OPTION_DICT[cnn_architecture.OPTIMIZER_FUNCTION_KEY] = opt
 
