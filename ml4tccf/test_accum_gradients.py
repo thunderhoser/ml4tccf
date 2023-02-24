@@ -243,7 +243,7 @@ if __name__ == '__main__':
     })
 
     model_object = cnn_architecture.create_model(
-        option_dict=option_dict, optimizer=opt
+        option_dict=option_dict
     )
 
     training_option_dict = {
