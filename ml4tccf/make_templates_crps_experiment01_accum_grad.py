@@ -29,8 +29,8 @@ ENSEMBLE_SIZE = 5
 
 OPTIMIZER_STRING = (
     'accum_grad_optimizer.convert_to_accumulate_gradient_optimizer('
-    'orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5'
-    ')'
+    'orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5, '
+    'accumulate_sum_or_mean=True)'
 )
 
 DEFAULT_OPTION_DICT = {
@@ -55,9 +55,12 @@ DEFAULT_OPTION_DICT = {
         custom_losses.discretized_mean_sq_dist_kilometres2,
     cnn_architecture.OPTIMIZER_FUNCTION_KEY:
         accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
-            orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5
+            orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5,
+            accumulate_sum_or_mean=True
         )
 }
+
+convert_to_accumulate_gradient_optimizer(orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5, accumulate_sum_or_mean=True)
 
 # DENSE_LAYER_DROPOUT_RATES = numpy.array([0.2, 0.3, 0.4, 0.5])
 # DENSE_LAYER_COUNTS = numpy.array([2, 3, 4], dtype=int)
