@@ -41,6 +41,7 @@ L2_WEIGHT_KEY = cnn_architecture.L2_WEIGHT_KEY
 USE_BATCH_NORM_KEY = cnn_architecture.USE_BATCH_NORM_KEY
 ENSEMBLE_SIZE_KEY = cnn_architecture.ENSEMBLE_SIZE_KEY
 LOSS_FUNCTION_KEY = cnn_architecture.LOSS_FUNCTION_KEY
+OPTIMIZER_FUNCTION_KEY = cnn_architecture.OPTIMIZER_FUNCTION_KEY
 
 KL_SCALING_FACTOR_KEY = 'kl_divergence_scaling_factor'
 CONV_LAYER_TYPES_KEY = 'conv_layer_type_strings'
@@ -242,6 +243,7 @@ def create_model(option_dict):
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
     loss_function = option_dict[LOSS_FUNCTION_KEY]
+    optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
 
     kl_divergence_scaling_factor = option_dict[KL_SCALING_FACTOR_KEY]
@@ -399,7 +401,7 @@ def create_model(option_dict):
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(),
+        loss=loss_function, optimizer=optimizer_function,
         metrics=neural_net.METRIC_FUNCTION_LIST
     )
     model_object.summary()

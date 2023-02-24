@@ -558,7 +558,7 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
         del file_dates_unix_sec
 
     all_times_unix_sec = numpy.concatenate([
-        xarray.open_dataset(f).coords[satellite_utils.TIME_DIM].values
+        xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
         for f in satellite_file_names
     ])
 

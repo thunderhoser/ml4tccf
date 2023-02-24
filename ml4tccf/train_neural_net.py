@@ -124,11 +124,13 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
         loss_function_string=model_metadata_dict[neural_net.LOSS_FUNCTION_KEY],
+        optimizer_function_string=
+        model_metadata_dict[neural_net.OPTIMIZER_FUNCTION_KEY],
         plateau_patience_epochs=plateau_patience_epochs,
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
-        bnn_architecture_dict=
-        model_metadata_dict[neural_net.BNN_ARCHITECTURE_KEY]
+        architecture_dict=model_metadata_dict[neural_net.ARCHITECTURE_KEY],
+        is_model_bnn=model_metadata_dict[neural_net.IS_MODEL_BNN_KEY]
     )
 
 
