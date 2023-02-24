@@ -4,8 +4,7 @@ Source: https://github.com/keras-team/keras/issues/3556#issuecomment-490375678
 """
 
 import tensorflow
-from tensorflow.keras import backend as K
-# import keras.backend as K
+import keras.backend as K
 
 
 def convert_to_accumulate_gradient_optimizer(orig_optimizer, update_params_frequency, accumulate_sum_or_mean=True):
@@ -43,3 +42,4 @@ def convert_to_accumulate_gradient_optimizer(orig_optimizer, update_params_frequ
 
     orig_optimizer.get_gradients = updated_get_gradients.__get__(orig_optimizer, type(orig_optimizer))
     orig_optimizer.get_updates = updated_get_updates.__get__(orig_optimizer, type(orig_optimizer))
+    return orig_optimizer

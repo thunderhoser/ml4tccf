@@ -10,6 +10,7 @@ import xarray
 import keras
 import tensorflow.keras as tf_keras
 
+
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
 ))
@@ -23,7 +24,6 @@ import misc_utils
 import satellite_utils
 import custom_losses
 import custom_metrics
-import accum_grad_optimizer
 
 METRIC_FUNCTION_LIST = [
     custom_losses.mean_squared_distance_kilometres2,

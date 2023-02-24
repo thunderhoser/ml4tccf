@@ -9,6 +9,7 @@ import tensorflow_probability as tf_prob
 from tensorflow_probability.python.distributions import \
     kullback_leibler as kl_lib
 
+
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
 ))
