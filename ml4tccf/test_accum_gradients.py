@@ -201,4 +201,6 @@ if __name__ == '__main__':
         cnn_architecture.L2_WEIGHT_KEY: CONV_LAYER_L2_WEIGHTS[k]
     })
 
-    model_object = cnn_architecture.create_model(option_dict)
+    model_object = cnn_architecture.create_model(
+        option_dict=option_dict, optimizer=opt
+    )
