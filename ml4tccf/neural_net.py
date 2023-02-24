@@ -1040,6 +1040,8 @@ def _write_metafile(
 
     print(loss_function_string)
     print(optimizer_function_string)
+    print(type(loss_function_string))
+    print(type(optimizer_function_string))
 
     metadata_dict = {
         NUM_EPOCHS_KEY: num_epochs,
@@ -2116,7 +2118,7 @@ def read_metafile(pickle_file_name):
     pickle_file_handle.close()
 
     if OPTIMIZER_FUNCTION_KEY not in metadata_dict:
-        metadata_dict[OPTIMIZER_FUNCTION_KEY] = keras.optimizers.Adam()
+        metadata_dict[OPTIMIZER_FUNCTION_KEY] = 'keras.optimizers.Adam()'
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
