@@ -402,7 +402,7 @@ def _read_satellite_data_one_cyclone(
 
     if num_target_times is not None:
         target_times_unix_sec = numpy.concatenate([
-            xarray.open_dataset(f).coords[satellite_utils.TIME_DIM].values
+            xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
             for f in input_file_names
         ])
         target_times_unix_sec = target_times_unix_sec[
