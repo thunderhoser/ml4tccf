@@ -183,7 +183,7 @@ def convert_to_accumulate_gradient_optimizer(orig_optimizer, update_params_frequ
 
 if __name__ == '__main__':
     # opt = AdamAccumulate(lr=0.001, decay=1e-5, accum_iters=5)
-    opt = convert_to_accumulate_gradient_optimizer(orig_optimizer=Adam(), update_params_frequency=5, accumulate_sum_or_mean=True)
+    opt = convert_to_accumulate_gradient_optimizer(orig_optimizer=Adam, update_params_frequency=5, accumulate_sum_or_mean=True)
     DEFAULT_OPTION_DICT[cnn_architecture.OPTIMIZER_FUNCTION_KEY] = opt
 
     i = 0
