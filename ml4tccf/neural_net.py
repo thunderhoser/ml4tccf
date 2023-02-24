@@ -23,6 +23,7 @@ import misc_utils
 import satellite_utils
 import custom_losses
 import custom_metrics
+import accum_grad_optimizer
 
 METRIC_FUNCTION_LIST = [
     custom_losses.mean_squared_distance_kilometres2,
@@ -1038,11 +1039,6 @@ def _write_metafile(
     :param is_model_bnn: Same.
     """
 
-    print(loss_function_string)
-    print(optimizer_function_string)
-    print(type(loss_function_string))
-    print(type(optimizer_function_string))
-
     metadata_dict = {
         NUM_EPOCHS_KEY: num_epochs,
         NUM_TRAINING_BATCHES_KEY: num_training_batches_per_epoch,
@@ -1057,8 +1053,6 @@ def _write_metafile(
         ARCHITECTURE_KEY: architecture_dict,
         IS_MODEL_BNN_KEY: is_model_bnn
     }
-
-    print(metadata_dict)
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
 
@@ -2154,7 +2148,7 @@ def read_model(hdf5_file_name):
 
     if architecture_dict is not None:
         if is_model_bnn:
-            from ml4tccf.machine_learning import cnn_architecture_bayesian
+            import cnn_architecture_bayesian
 
             for this_key in [
                     cnn_architecture_bayesian.LOSS_FUNCTION_KEY,
@@ -2166,7 +2160,7 @@ def read_model(hdf5_file_name):
                 architecture_dict
             )
         else:
-            from ml4tccf.machine_learning import cnn_architecture
+            import cnn_architecture
 
             for this_key in [
                     cnn_architecture.LOSS_FUNCTION_KEY,

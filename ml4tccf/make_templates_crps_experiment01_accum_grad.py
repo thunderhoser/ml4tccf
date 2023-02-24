@@ -27,6 +27,7 @@ NUM_CONV_BLOCKS = 8
 # ENSEMBLE_SIZE = 25
 ENSEMBLE_SIZE = 5
 
+LOSS_FUNCTION_STRING = 'custom_losses.discretized_mean_sq_dist_kilometres2'
 OPTIMIZER_STRING = (
     'accum_grad_optimizer.convert_to_accumulate_gradient_optimizer('
     'orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5, '
@@ -53,7 +54,6 @@ DEFAULT_OPTION_DICT = {
     cnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     cnn_architecture.LOSS_FUNCTION_KEY:
         custom_losses.discretized_mean_sq_dist_kilometres2,
-    # cnn_architecture.OPTIMIZER_FUNCTION_KEY: keras.optimizers.Adam()
     cnn_architecture.OPTIMIZER_FUNCTION_KEY:
         accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
             orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5,
@@ -171,6 +171,13 @@ def _run():
                         raise_error_if_missing=False
                     )
 
+                    option_dict[cnn_architecture.LOSS_FUNCTION_KEY] = (
+                        LOSS_FUNCTION_STRING
+                    )
+                    option_dict[cnn_architecture.OPTIMIZER_FUNCTION_KEY] = (
+                        OPTIMIZER_STRING
+                    )
+
                     neural_net._write_metafile(
                         pickle_file_name=metafile_name,
                         num_epochs=100,
@@ -178,8 +185,7 @@ def _run():
                         training_option_dict=None,
                         num_validation_batches_per_epoch=16,
                         validation_option_dict=None,
-                        loss_function_string=
-                        'custom_losses.discretized_mean_sq_dist_kilometres2',
+                        loss_function_string=LOSS_FUNCTION_STRING,
                         optimizer_function_string=OPTIMIZER_STRING,
                         plateau_patience_epochs=10,
                         plateau_learning_rate_multiplier=0.6,
