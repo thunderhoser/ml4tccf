@@ -1,7 +1,7 @@
 """Tests optimizer with 'accumulated gradients' over many batches."""
 
 import keras.backend as K
-from keras.legacy import interfaces
+from tensorflow.keras.legacy import interfaces
 from keras.optimizers import Optimizer
 
 
