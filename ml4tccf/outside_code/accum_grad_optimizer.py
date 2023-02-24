@@ -42,3 +42,4 @@ def convert_to_accumulate_gradient_optimizer(orig_optimizer, update_params_frequ
 
     orig_optimizer.get_gradients = updated_get_gradients.__get__(orig_optimizer, type(orig_optimizer))
     orig_optimizer.get_updates = updated_get_updates.__get__(orig_optimizer, type(orig_optimizer))
+    return orig_optimizer
