@@ -1,7 +1,6 @@
 """Tests optimizer with 'accumulated gradients' over many batches."""
 
 import keras.backend as K
-from tensorflow.keras.legacy import interfaces
 from keras.optimizers import Optimizer
 
 
@@ -26,7 +25,6 @@ class AdamAccumulate(Optimizer):
         self.accum_iters = K.variable(accum_iters, K.dtype(self.iterations))
         self.accum_iters_float = K.cast(self.accum_iters, K.floatx())
 
-    @interfaces.legacy_get_updates_support
     def get_updates(self, loss, params):
         grads = self.get_gradients(loss, params)
         self.updates = [K.update_add(self.iterations, 1)]
