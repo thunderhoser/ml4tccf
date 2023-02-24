@@ -21,6 +21,7 @@ L2_WEIGHT_KEY = 'l2_weight'
 USE_BATCH_NORM_KEY = 'use_batch_normalization'
 ENSEMBLE_SIZE_KEY = 'ensemble_size'
 LOSS_FUNCTION_KEY = 'loss_function'
+OPTIMIZER_FUNCTION_KEY = 'optimizer_function'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
@@ -79,6 +80,7 @@ def check_input_args(option_dict):
         batch normalization after each non-output layer.
     option_dict["ensemble_size"]: Number of ensemble members.
     option_dict["loss_function"]: Loss function.
+    option_dict["optimizer_function"]: Optimizer function.
 
     :return: option_dict: Same as input but maybe with default values added.
     """
@@ -193,6 +195,7 @@ def create_model(option_dict):
     l2_weight = option_dict[L2_WEIGHT_KEY]
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
     loss_function = option_dict[LOSS_FUNCTION_KEY]
+    optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
 
     input_layer_object_low_res = keras.layers.Input(
@@ -353,7 +356,7 @@ def create_model(option_dict):
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
-        loss=loss_function, optimizer=keras.optimizers.Adam(),
+        loss=loss_function, optimizer=optimizer_function,
         metrics=neural_net.METRIC_FUNCTION_LIST
     )
     model_object.summary()
