@@ -13,6 +13,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import architecture_utils
+import neural_net
 import cnn_architecture
 import custom_losses
 
@@ -203,4 +204,45 @@ if __name__ == '__main__':
 
     model_object = cnn_architecture.create_model(
         option_dict=option_dict, optimizer=opt
+    )
+
+    training_option_dict = {
+        neural_net.SATELLITE_DIRECTORY_KEY: '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2019',
+        neural_net.YEARS_KEY: numpy.array([2017, 2018, 2019], dtype=int),
+        neural_net.LAG_TIMES_KEY: numpy.array([0], dtype=int),
+        neural_net.HIGH_RES_WAVELENGTHS_KEY: numpy.array([]),
+        neural_net.LOW_RES_WAVELENGTHS_KEY: numpy.array([11.2]),
+        neural_net.BATCH_SIZE_KEY: 8,
+        neural_net.MAX_EXAMPLES_PER_CYCLONE_KEY: 2,
+        neural_net.NUM_GRID_ROWS_KEY: 600,
+        neural_net.NUM_GRID_COLUMNS_KEY: 600,
+        neural_net.DATA_AUG_NUM_TRANS_KEY: 8,
+        neural_net.DATA_AUG_MEAN_TRANS_KEY: 15.,
+        neural_net.DATA_AUG_STDEV_TRANS_KEY: 7.5,
+        neural_net.LAG_TIME_TOLERANCE_KEY: 900,
+        neural_net.MAX_MISSING_LAG_TIMES_KEY: 1,
+        neural_net.MAX_INTERP_GAP_KEY: 3600,
+        neural_net.SENTINEL_VALUE_KEY: -10.
+    }
+
+    validation_option_dict = {
+        neural_net.SATELLITE_DIRECTORY_KEY: '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2019',
+        neural_net.YEARS_KEY: numpy.array([2020], dtype=int),
+        neural_net.LAG_TIME_TOLERANCE_KEY: 900,
+        neural_net.MAX_MISSING_LAG_TIMES_KEY: 1,
+        neural_net.MAX_INTERP_GAP_KEY: 3600
+    }
+
+    neural_net.train_model(
+        model_object=model_object, output_dir_name='/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/test_accum_gradients',
+        num_epochs=1000,
+        num_training_batches_per_epoch=64,
+        training_option_dict=training_option_dict,
+        num_validation_batches_per_epoch=32,
+        validation_option_dict=validation_option_dict,
+        loss_function_string='custom_losses.discretized_mean_sq_dist_kilometres2',
+        plateau_patience_epochs=10,
+        plateau_learning_rate_multiplier=0.6,
+        early_stopping_patience_epochs=50,
+        bnn_architecture_dict=None
     )
