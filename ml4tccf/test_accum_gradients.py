@@ -181,8 +181,13 @@ def convert_to_accumulate_gradient_optimizer(orig_optimizer, update_params_frequ
 
 
 if __name__ == '__main__':
-    # opt = AdamAccumulate(lr=0.001, decay=1e-5, accum_iters=5)
-    opt = convert_to_accumulate_gradient_optimizer(orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5, accumulate_sum_or_mean=True)
+    DEFAULT_OPTION_DICT.update({
+        cnn_architecture.OPTIMIZER_FUNCTION_KEY:
+            convert_to_accumulate_gradient_optimizer(
+                orig_optimizer=keras.optimizers.Adam(),
+                update_params_frequency=5, accumulate_sum_or_mean=True
+            )
+    })
 
     i = 0
     j = 0
@@ -281,8 +286,10 @@ if __name__ == '__main__':
         num_validation_batches_per_epoch=32,
         validation_option_dict=validation_option_dict,
         loss_function_string='custom_losses.discretized_mean_sq_dist_kilometres2',
+        optimizer_function_string='convert_to_accumulate_gradient_optimizer(orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5, accumulate_sum_or_mean=True)',
         plateau_patience_epochs=10,
         plateau_learning_rate_multiplier=0.6,
         early_stopping_patience_epochs=50,
-        bnn_architecture_dict=None
+        architecture_dict=option_dict,
+        is_model_bnn=False
     )
