@@ -2062,12 +2062,6 @@ def find_metafile(model_dir_name, raise_error_if_missing=True):
 
     metafile_name = '{0:s}/model_metadata.p'.format(model_dir_name)
 
-    # TODO(thunderhoser): This is a HACK.
-    if not os.path.isfile(metafile_name):
-        metafile_name = metafile_name.replace(
-            '/scratch1', '/home/ralager/condo/swatwork/ralager/scratch1'
-        )
-
     if raise_error_if_missing and not os.path.isfile(metafile_name):
         error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
             metafile_name
