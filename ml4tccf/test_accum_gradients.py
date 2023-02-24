@@ -5,9 +5,9 @@ import sys
 import copy
 import numpy
 import tensorflow
-import keras
-import keras.backend as K
-from keras.optimizers import Optimizer
+from tensorflow import keras as tf_keras
+from tensorflow.keras import backend as K
+from tensorflow.keras.optimizers import Optimizer
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -182,7 +182,7 @@ def convert_to_accumulate_gradient_optimizer(orig_optimizer, update_params_frequ
 
 if __name__ == '__main__':
     # opt = AdamAccumulate(lr=0.001, decay=1e-5, accum_iters=5)
-    opt = convert_to_accumulate_gradient_optimizer(orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5, accumulate_sum_or_mean=True)
+    opt = convert_to_accumulate_gradient_optimizer(orig_optimizer=tf_keras.optimizers.Adam(), update_params_frequency=5, accumulate_sum_or_mean=True)
     DEFAULT_OPTION_DICT[cnn_architecture.OPTIMIZER_FUNCTION_KEY] = opt
 
     i = 0
