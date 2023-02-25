@@ -96,11 +96,6 @@ def _run():
                 dense_neuron_counts[-1], dense_neuron_counts[-2]
             ])
 
-            option_dict.update({
-                cnn_architecture.NUM_CHANNELS_KEY: num_channels_by_conv_layer,
-                cnn_architecture.NUM_NEURONS_KEY: dense_neuron_counts
-            })
-
             optimizer_function = (
                 accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
                     orig_optimizer=keras.optimizers.Adam(),
@@ -108,6 +103,12 @@ def _run():
                     accumulate_sum_or_mean=True
                 )
             )
+
+            option_dict.update({
+                cnn_architecture.NUM_CHANNELS_KEY: num_channels_by_conv_layer,
+                cnn_architecture.NUM_NEURONS_KEY: dense_neuron_counts,
+                cnn_architecture.OPTIMIZER_FUNCTION_KEY: optimizer_function
+            })
 
             optimizer_string = (
                 'accum_grad_optimizer.convert_to_accumulate_gradient_optimizer('
