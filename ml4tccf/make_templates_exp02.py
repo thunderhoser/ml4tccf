@@ -112,7 +112,7 @@ def _run():
             optimizer_string = (
                 'accum_grad_optimizer.convert_to_accumulate_gradient_optimizer('
                 'orig_optimizer=keras.optimizers.Adam(), '
-                'update_params_frequency={0:s}, '
+                'update_params_frequency={0:d}, '
                 'accumulate_sum_or_mean=True)'.format(
                     BATCHES_PER_UPDATE_COUNTS[j]
                 )
