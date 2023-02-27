@@ -45,12 +45,12 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --input_template_file_name="${template_file_name}" \
 --output_model_dir_name="${output_dir_name}" \
 --lag_times_minutes 0 \
---num_examples_per_batch=8 \
+--num_examples_per_batch=21 \
 --max_examples_per_cyclone=${max_examples_per_cyclone} \
 --num_rows_low_res=600 \
 --num_columns_low_res=600 \
 --low_res_wavelengths_microns 11.2 \
---data_aug_num_translations=8 \
+--data_aug_num_translations=3 \
 --data_aug_mean_translation_low_res_px=15 \
 --data_aug_stdev_translation_low_res_px=7.5 \
 --sentinel_value=-10 \
