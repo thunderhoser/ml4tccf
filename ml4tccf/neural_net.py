@@ -805,52 +805,12 @@ def _augment_data(
     num_examples_orig = brightness_temp_matrix_kelvins.shape[0]
     num_examples_new = num_examples_orig * num_translations_per_example
 
-    row_translations_low_res_px = numpy.random.normal(
-        loc=mean_translation_low_res_px, scale=stdev_translation_low_res_px,
-        size=num_examples_new
-    )
-    column_translations_low_res_px = numpy.random.normal(
-        loc=mean_translation_low_res_px, scale=stdev_translation_low_res_px,
-        size=num_examples_new
-    )
-
-    row_translations_low_res_px *= _get_random_signs(num_examples_new)
-    column_translations_low_res_px *= _get_random_signs(num_examples_new)
-
-    these_flags = numpy.logical_and(
-        row_translations_low_res_px < 0, row_translations_low_res_px >= -0.5
-    )
-    row_translations_low_res_px[these_flags] = -1.
-
-    these_flags = numpy.logical_and(
-        row_translations_low_res_px > 0, row_translations_low_res_px <= 0.5
-    )
-    row_translations_low_res_px[these_flags] = 1.
-
-    these_flags = numpy.logical_and(
-        column_translations_low_res_px < 0,
-        column_translations_low_res_px >= -0.5
-    )
-    column_translations_low_res_px[these_flags] = -1.
-
-    these_flags = numpy.logical_and(
-        column_translations_low_res_px > 0,
-        column_translations_low_res_px <= 0.5
-    )
-    column_translations_low_res_px[these_flags] = 1.
-
-    row_translations_low_res_px = (
-        numpy.round(row_translations_low_res_px).astype(int)
-    )
-    column_translations_low_res_px = (
-        numpy.round(column_translations_low_res_px).astype(int)
-    )
-
-    error_checking.assert_is_greater_numpy_array(
-        numpy.absolute(row_translations_low_res_px), 0
-    )
-    error_checking.assert_is_greater_numpy_array(
-        numpy.absolute(column_translations_low_res_px), 0
+    row_translations_low_res_px, column_translations_low_res_px = (
+        get_translation_distances(
+            mean_translation_px=mean_translation_low_res_px,
+            stdev_translation_px=stdev_translation_low_res_px,
+            num_translations=num_examples_new
+        )
     )
 
     # Do actual stuff.
@@ -1117,6 +1077,85 @@ def _grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
     )
 
     return latitude_matrix_deg_n, longitude_matrix_deg_e
+
+
+def get_translation_distances(
+        mean_translation_px, stdev_translation_px, num_translations):
+    """Samples translation distances from normal distribution.
+
+    T = number of translations
+
+    :param mean_translation_px: Mean translation distance (pixels).
+    :param stdev_translation_px: Standard deviation of translation distance
+        (pixels).
+    :param num_translations: T in the above discussion.
+    :return: row_translations_px: length-T numpy array of translation distances
+        (pixels).
+    :return: column_translations_px: Same but for columns.
+    """
+
+    error_checking.assert_is_greater(mean_translation_px, 0.)
+    error_checking.assert_is_greater(stdev_translation_px, 0.)
+    error_checking.assert_is_integer(num_translations)
+    error_checking.assert_is_greater(num_translations, 0)
+
+    euclidean_translations_low_res_px = numpy.random.normal(
+        loc=mean_translation_px, scale=stdev_translation_px,
+        size=num_translations
+    )
+    euclidean_translations_low_res_px = numpy.maximum(
+        euclidean_translations_low_res_px, 0.
+    )
+    translation_directions_rad = numpy.random.uniform(
+        low=0., high=2 * numpy.pi - 1e-6, size=num_translations
+    )
+
+    row_translations_low_res_px = (
+        euclidean_translations_low_res_px *
+        numpy.sin(translation_directions_rad)
+    )
+    column_translations_low_res_px = (
+        euclidean_translations_low_res_px *
+        numpy.cos(translation_directions_rad)
+    )
+
+    # these_flags = numpy.logical_and(
+    #     row_translations_low_res_px < 0, row_translations_low_res_px >= -0.5
+    # )
+    # row_translations_low_res_px[these_flags] = -1.
+    #
+    # these_flags = numpy.logical_and(
+    #     row_translations_low_res_px > 0, row_translations_low_res_px <= 0.5
+    # )
+    # row_translations_low_res_px[these_flags] = 1.
+    #
+    # these_flags = numpy.logical_and(
+    #     column_translations_low_res_px < 0,
+    #     column_translations_low_res_px >= -0.5
+    # )
+    # column_translations_low_res_px[these_flags] = -1.
+    #
+    # these_flags = numpy.logical_and(
+    #     column_translations_low_res_px > 0,
+    #     column_translations_low_res_px <= 0.5
+    # )
+    # column_translations_low_res_px[these_flags] = 1.
+
+    row_translations_low_res_px = (
+        numpy.round(row_translations_low_res_px).astype(int)
+    )
+    column_translations_low_res_px = (
+        numpy.round(column_translations_low_res_px).astype(int)
+    )
+
+    error_checking.assert_is_geq_numpy_array(
+        numpy.absolute(row_translations_low_res_px), 0
+    )
+    error_checking.assert_is_geq_numpy_array(
+        numpy.absolute(column_translations_low_res_px), 0
+    )
+
+    return row_translations_low_res_px, column_translations_low_res_px
 
 
 def create_data(option_dict, cyclone_id_string, num_target_times):
@@ -2077,6 +2116,12 @@ def find_metafile(model_dir_name, raise_error_if_missing=True):
 
     metafile_name = '{0:s}/model_metadata.p'.format(model_dir_name)
 
+    # if raise_error_if_missing and not os.path.isfile(metafile_name):
+    #     metafile_name = metafile_name.replace(
+    #         '/scratch1/RDARCH',
+    #         '/home/ralager/condo/swatwork/ralager/scratch1/RDARCH'
+    #     )
+
     if raise_error_if_missing and not os.path.isfile(metafile_name):
         error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
             metafile_name
@@ -2116,6 +2161,12 @@ def read_metafile(pickle_file_name):
     if OPTIMIZER_FUNCTION_KEY not in metadata_dict:
         metadata_dict[OPTIMIZER_FUNCTION_KEY] = 'keras.optimizers.Adam()'
 
+    # if IS_MODEL_BNN_KEY not in metadata_dict:
+    #     metadata_dict[IS_MODEL_BNN_KEY] = False
+    #
+    # if ARCHITECTURE_KEY not in metadata_dict:
+    #     metadata_dict[ARCHITECTURE_KEY] = None
+
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
         return metadata_dict
@@ -2148,7 +2199,7 @@ def read_model(hdf5_file_name):
 
     if architecture_dict is not None:
         if is_model_bnn:
-            import cnn_architecture_bayesian
+            from ml4tccf.machine_learning import cnn_architecture_bayesian
 
             for this_key in [
                     cnn_architecture_bayesian.LOSS_FUNCTION_KEY,
@@ -2160,7 +2211,7 @@ def read_model(hdf5_file_name):
                 architecture_dict
             )
         else:
-            import cnn_architecture
+            from ml4tccf.machine_learning import cnn_architecture
 
             for this_key in [
                     cnn_architecture.LOSS_FUNCTION_KEY,
