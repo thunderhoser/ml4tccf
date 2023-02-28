@@ -16,6 +16,7 @@ from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
 from ml4tccf.machine_learning import custom_losses
 from ml4tccf.machine_learning import custom_metrics
+from ml4tccf.outside_code import accum_grad_optimizer
 
 METRIC_FUNCTION_LIST = [
     custom_losses.mean_squared_distance_kilometres2,
@@ -797,52 +798,12 @@ def _augment_data(
     num_examples_orig = brightness_temp_matrix_kelvins.shape[0]
     num_examples_new = num_examples_orig * num_translations_per_example
 
-    row_translations_low_res_px = numpy.random.normal(
-        loc=mean_translation_low_res_px, scale=stdev_translation_low_res_px,
-        size=num_examples_new
-    )
-    column_translations_low_res_px = numpy.random.normal(
-        loc=mean_translation_low_res_px, scale=stdev_translation_low_res_px,
-        size=num_examples_new
-    )
-
-    row_translations_low_res_px *= _get_random_signs(num_examples_new)
-    column_translations_low_res_px *= _get_random_signs(num_examples_new)
-
-    these_flags = numpy.logical_and(
-        row_translations_low_res_px < 0, row_translations_low_res_px >= -0.5
-    )
-    row_translations_low_res_px[these_flags] = -1.
-
-    these_flags = numpy.logical_and(
-        row_translations_low_res_px > 0, row_translations_low_res_px <= 0.5
-    )
-    row_translations_low_res_px[these_flags] = 1.
-
-    these_flags = numpy.logical_and(
-        column_translations_low_res_px < 0,
-        column_translations_low_res_px >= -0.5
-    )
-    column_translations_low_res_px[these_flags] = -1.
-
-    these_flags = numpy.logical_and(
-        column_translations_low_res_px > 0,
-        column_translations_low_res_px <= 0.5
-    )
-    column_translations_low_res_px[these_flags] = 1.
-
-    row_translations_low_res_px = (
-        numpy.round(row_translations_low_res_px).astype(int)
-    )
-    column_translations_low_res_px = (
-        numpy.round(column_translations_low_res_px).astype(int)
-    )
-
-    error_checking.assert_is_greater_numpy_array(
-        numpy.absolute(row_translations_low_res_px), 0
-    )
-    error_checking.assert_is_greater_numpy_array(
-        numpy.absolute(column_translations_low_res_px), 0
+    row_translations_low_res_px, column_translations_low_res_px = (
+        get_translation_distances(
+            mean_translation_px=mean_translation_low_res_px,
+            stdev_translation_px=stdev_translation_low_res_px,
+            num_translations=num_examples_new
+        )
     )
 
     # Do actual stuff.
@@ -1109,6 +1070,77 @@ def _grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
     )
 
     return latitude_matrix_deg_n, longitude_matrix_deg_e
+
+
+def get_translation_distances(
+        mean_translation_px, stdev_translation_px, num_translations):
+    """Samples translation distances from normal distribution.
+
+    T = number of translations
+
+    :param mean_translation_px: Mean translation distance (pixels).
+    :param stdev_translation_px: Standard deviation of translation distance
+        (pixels).
+    :param num_translations: T in the above discussion.
+    :return: row_translations_px: length-T numpy array of translation distances
+        (pixels).
+    :return: column_translations_px: Same but for columns.
+    """
+
+    error_checking.assert_is_greater(mean_translation_px, 0.)
+    error_checking.assert_is_greater(stdev_translation_px, 0.)
+    error_checking.assert_is_integer(num_translations)
+    error_checking.assert_is_greater(num_translations, 0)
+
+    row_translations_low_res_px = numpy.random.normal(
+        loc=mean_translation_px, scale=stdev_translation_px,
+        size=num_translations
+    )
+    column_translations_low_res_px = numpy.random.normal(
+        loc=mean_translation_px, scale=stdev_translation_px,
+        size=num_translations
+    )
+
+    row_translations_low_res_px *= _get_random_signs(num_translations)
+    column_translations_low_res_px *= _get_random_signs(num_translations)
+
+    these_flags = numpy.logical_and(
+        row_translations_low_res_px < 0, row_translations_low_res_px >= -0.5
+    )
+    row_translations_low_res_px[these_flags] = -1.
+
+    these_flags = numpy.logical_and(
+        row_translations_low_res_px > 0, row_translations_low_res_px <= 0.5
+    )
+    row_translations_low_res_px[these_flags] = 1.
+
+    these_flags = numpy.logical_and(
+        column_translations_low_res_px < 0,
+        column_translations_low_res_px >= -0.5
+    )
+    column_translations_low_res_px[these_flags] = -1.
+
+    these_flags = numpy.logical_and(
+        column_translations_low_res_px > 0,
+        column_translations_low_res_px <= 0.5
+    )
+    column_translations_low_res_px[these_flags] = 1.
+
+    row_translations_low_res_px = (
+        numpy.round(row_translations_low_res_px).astype(int)
+    )
+    column_translations_low_res_px = (
+        numpy.round(column_translations_low_res_px).astype(int)
+    )
+
+    error_checking.assert_is_greater_numpy_array(
+        numpy.absolute(row_translations_low_res_px), 0
+    )
+    error_checking.assert_is_greater_numpy_array(
+        numpy.absolute(column_translations_low_res_px), 0
+    )
+
+    return row_translations_low_res_px, column_translations_low_res_px
 
 
 def create_data(option_dict, cyclone_id_string, num_target_times):
@@ -2106,7 +2138,7 @@ def read_metafile(pickle_file_name):
     pickle_file_handle.close()
 
     if OPTIMIZER_FUNCTION_KEY not in metadata_dict:
-        metadata_dict[OPTIMIZER_FUNCTION_KEY] = keras.optimizers.Adam()
+        metadata_dict[OPTIMIZER_FUNCTION_KEY] = 'keras.optimizers.Adam()'
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
