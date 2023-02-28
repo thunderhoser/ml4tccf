@@ -1092,39 +1092,47 @@ def get_translation_distances(
     error_checking.assert_is_integer(num_translations)
     error_checking.assert_is_greater(num_translations, 0)
 
-    row_translations_low_res_px = numpy.random.normal(
+    euclidean_translations_low_res_px = numpy.random.normal(
         loc=mean_translation_px, scale=stdev_translation_px,
         size=num_translations
     )
-    column_translations_low_res_px = numpy.random.normal(
-        loc=mean_translation_px, scale=stdev_translation_px,
-        size=num_translations
+    euclidean_translations_low_res_px = numpy.maximum(
+        euclidean_translations_low_res_px, 0.
+    )
+    translation_directions_rad = numpy.random.uniform(
+        low=0., high=2 * numpy.pi - 1e-6, size=num_translations
     )
 
-    row_translations_low_res_px *= _get_random_signs(num_translations)
-    column_translations_low_res_px *= _get_random_signs(num_translations)
-
-    these_flags = numpy.logical_and(
-        row_translations_low_res_px < 0, row_translations_low_res_px >= -0.5
+    row_translations_low_res_px = (
+        euclidean_translations_low_res_px *
+        numpy.sin(translation_directions_rad)
     )
-    row_translations_low_res_px[these_flags] = -1.
-
-    these_flags = numpy.logical_and(
-        row_translations_low_res_px > 0, row_translations_low_res_px <= 0.5
+    column_translations_low_res_px = (
+        euclidean_translations_low_res_px *
+        numpy.cos(translation_directions_rad)
     )
-    row_translations_low_res_px[these_flags] = 1.
 
-    these_flags = numpy.logical_and(
-        column_translations_low_res_px < 0,
-        column_translations_low_res_px >= -0.5
-    )
-    column_translations_low_res_px[these_flags] = -1.
-
-    these_flags = numpy.logical_and(
-        column_translations_low_res_px > 0,
-        column_translations_low_res_px <= 0.5
-    )
-    column_translations_low_res_px[these_flags] = 1.
+    # these_flags = numpy.logical_and(
+    #     row_translations_low_res_px < 0, row_translations_low_res_px >= -0.5
+    # )
+    # row_translations_low_res_px[these_flags] = -1.
+    #
+    # these_flags = numpy.logical_and(
+    #     row_translations_low_res_px > 0, row_translations_low_res_px <= 0.5
+    # )
+    # row_translations_low_res_px[these_flags] = 1.
+    #
+    # these_flags = numpy.logical_and(
+    #     column_translations_low_res_px < 0,
+    #     column_translations_low_res_px >= -0.5
+    # )
+    # column_translations_low_res_px[these_flags] = -1.
+    #
+    # these_flags = numpy.logical_and(
+    #     column_translations_low_res_px > 0,
+    #     column_translations_low_res_px <= 0.5
+    # )
+    # column_translations_low_res_px[these_flags] = 1.
 
     row_translations_low_res_px = (
         numpy.round(row_translations_low_res_px).astype(int)
@@ -1133,10 +1141,10 @@ def get_translation_distances(
         numpy.round(column_translations_low_res_px).astype(int)
     )
 
-    error_checking.assert_is_greater_numpy_array(
+    error_checking.assert_is_geq_numpy_array(
         numpy.absolute(row_translations_low_res_px), 0
     )
-    error_checking.assert_is_greater_numpy_array(
+    error_checking.assert_is_geq_numpy_array(
         numpy.absolute(column_translations_low_res_px), 0
     )
 
@@ -2101,6 +2109,12 @@ def find_metafile(model_dir_name, raise_error_if_missing=True):
 
     metafile_name = '{0:s}/model_metadata.p'.format(model_dir_name)
 
+    # if raise_error_if_missing and not os.path.isfile(metafile_name):
+    #     metafile_name = metafile_name.replace(
+    #         '/scratch1/RDARCH',
+    #         '/home/ralager/condo/swatwork/ralager/scratch1/RDARCH'
+    #     )
+
     if raise_error_if_missing and not os.path.isfile(metafile_name):
         error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
             metafile_name
@@ -2139,6 +2153,12 @@ def read_metafile(pickle_file_name):
 
     if OPTIMIZER_FUNCTION_KEY not in metadata_dict:
         metadata_dict[OPTIMIZER_FUNCTION_KEY] = 'keras.optimizers.Adam()'
+
+    # if IS_MODEL_BNN_KEY not in metadata_dict:
+    #     metadata_dict[IS_MODEL_BNN_KEY] = False
+    #
+    # if ARCHITECTURE_KEY not in metadata_dict:
+    #     metadata_dict[ARCHITECTURE_KEY] = None
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:

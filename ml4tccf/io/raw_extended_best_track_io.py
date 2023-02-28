@@ -6,6 +6,7 @@ import xarray
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
+from ml4tccf.utils import misc_utils
 from ml4tccf.utils import extended_best_track_utils as xbt_utils
 
 TIME_FORMAT = '%Y%m%d%H'
@@ -97,6 +98,22 @@ DATA_SOURCE_CONVERSION_DICT = {
 }
 
 
+def _cyclone_id_orig_to_new(orig_cyclone_id_string):
+    """Converts cyclone ID from original format to new format.
+
+    :param orig_cyclone_id_string: Original ID (format BBYYYYNN), where bb is
+        the basin; YYYY is the year; and NN is the ordinal number.
+    :return: cyclone_id_string: Proper ID (format YYYYBBNN).
+    """
+
+    cyclone_id_string = '{0:s}{1:s}'.format(
+        orig_cyclone_id_string[-4:], orig_cyclone_id_string[:4].upper()
+    )
+    _ = misc_utils.parse_cyclone_id(cyclone_id_string)
+
+    return cyclone_id_string
+
+
 def _remove_sentinel_values(xbt_table_pandas, variable_name):
     """Removes sentinel values of one variable, by replacing with NaN.
 
@@ -158,9 +175,14 @@ def read_file(ascii_file_name):
         valid_times_unix_sec * SECONDS_TO_HOURS
     ).astype(int)
 
+    storm_id_strings = numpy.array([
+        _cyclone_id_orig_to_new(c)
+        for c in xbt_table_pandas[STORM_ID_KEY].values
+    ])
+
     these_dim = (xbt_utils.STORM_OBJECT_DIM,)
     main_data_dict = {
-        STORM_ID_KEY: (these_dim, xbt_table_pandas[STORM_ID_KEY].values),
+        STORM_ID_KEY: (these_dim, storm_id_strings),
         STORM_NAME_KEY: (these_dim, xbt_table_pandas[STORM_NAME_KEY].values),
         VALID_TIME_KEY: (these_dim, valid_times_unix_hours)
     }
