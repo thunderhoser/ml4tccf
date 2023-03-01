@@ -114,6 +114,7 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
     :param colour_map_limits: Same.
     :param plot_orig_errors: Same.
     :param output_dir_name: Same.
+    :raises: ValueError: if no prediction files could be found.
     """
 
     # Check input args.

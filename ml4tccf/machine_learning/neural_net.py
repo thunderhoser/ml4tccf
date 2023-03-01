@@ -2109,11 +2109,11 @@ def find_metafile(model_dir_name, raise_error_if_missing=True):
 
     metafile_name = '{0:s}/model_metadata.p'.format(model_dir_name)
 
-    # if raise_error_if_missing and not os.path.isfile(metafile_name):
-    #     metafile_name = metafile_name.replace(
-    #         '/scratch1/RDARCH',
-    #         '/home/ralager/condo/swatwork/ralager/scratch1/RDARCH'
-    #     )
+    if raise_error_if_missing and not os.path.isfile(metafile_name):
+        metafile_name = metafile_name.replace(
+            '/scratch1/RDARCH',
+            '/home/ralager/condo/swatwork/ralager/scratch1/RDARCH'
+        )
 
     if raise_error_if_missing and not os.path.isfile(metafile_name):
         error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
@@ -2154,11 +2154,11 @@ def read_metafile(pickle_file_name):
     if OPTIMIZER_FUNCTION_KEY not in metadata_dict:
         metadata_dict[OPTIMIZER_FUNCTION_KEY] = 'keras.optimizers.Adam()'
 
-    # if IS_MODEL_BNN_KEY not in metadata_dict:
-    #     metadata_dict[IS_MODEL_BNN_KEY] = False
-    #
-    # if ARCHITECTURE_KEY not in metadata_dict:
-    #     metadata_dict[ARCHITECTURE_KEY] = None
+    if IS_MODEL_BNN_KEY not in metadata_dict:
+        metadata_dict[IS_MODEL_BNN_KEY] = False
+
+    if ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[ARCHITECTURE_KEY] = None
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
