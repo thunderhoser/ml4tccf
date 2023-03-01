@@ -1,4 +1,4 @@
-"""Runs all unit tests in ml4rt library."""
+"""Runs all unit tests in ml4tccf library."""
 
 import os
 import sys
@@ -8,7 +8,7 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 
 def _run():
-    """Runs all unit tests in ml4rt library.
+    """Runs all unit tests in ml4tccf library.
 
     This is effectively the main method.
     """

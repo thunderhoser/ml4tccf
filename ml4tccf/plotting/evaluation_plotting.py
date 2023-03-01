@@ -7,7 +7,86 @@ import matplotlib.colors
 import matplotlib.patches
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import error_checking
-from ml4rt.outside_code import taylor_diagram
+from ml4tccf.utils import misc_utils
+from ml4tccf.utils import evaluation_sans_uq
+from ml4tccf.outside_code import taylor_diagram
+
+METRES_TO_KM = 0.001
+
+BASIC_TARGET_FIELD_NAMES = [
+    evaluation_sans_uq.X_OFFSET_NAME,
+    evaluation_sans_uq.Y_OFFSET_NAME,
+    evaluation_sans_uq.OFFSET_DIRECTION_NAME
+]
+
+BASIC_METRIC_NAMES = [
+    evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY,
+    evaluation_sans_uq.MSE_SKILL_SCORE_KEY,
+    evaluation_sans_uq.MEAN_ABSOLUTE_ERROR_KEY,
+    evaluation_sans_uq.MAE_SKILL_SCORE_KEY,
+    evaluation_sans_uq.BIAS_KEY,
+    evaluation_sans_uq.CORRELATION_KEY,
+    evaluation_sans_uq.KGE_KEY
+]
+
+ADVANCED_METRIC_NAMES = [
+    evaluation_sans_uq.MEAN_DISTANCE_KEY,
+    evaluation_sans_uq.MEAN_DIST_SKILL_SCORE_KEY,
+    evaluation_sans_uq.MEAN_SQUARED_DISTANCE_KEY,
+    evaluation_sans_uq.MEAN_SQ_DIST_SKILL_SCORE_KEY
+]
+
+TARGET_FIELD_TO_CONV_RATIO = {
+    evaluation_sans_uq.X_OFFSET_NAME: METRES_TO_KM,
+    evaluation_sans_uq.Y_OFFSET_NAME: METRES_TO_KM,
+    evaluation_sans_uq.OFFSET_DIRECTION_NAME: 1.,
+    evaluation_sans_uq.OFFSET_DISTANCE_NAME: METRES_TO_KM
+}
+
+TARGET_FIELD_TO_FANCY_NAME = {
+    evaluation_sans_uq.X_OFFSET_NAME: r' for $x$-position',
+    evaluation_sans_uq.Y_OFFSET_NAME: r' for $y$-position',
+    evaluation_sans_uq.OFFSET_DIRECTION_NAME: ' for offset direction',
+    evaluation_sans_uq.OFFSET_DISTANCE_NAME: ''
+}
+
+TARGET_FIELD_TO_UNIT_STRING = {
+    evaluation_sans_uq.X_OFFSET_NAME: 'km',
+    evaluation_sans_uq.Y_OFFSET_NAME: 'km',
+    evaluation_sans_uq.OFFSET_DIRECTION_NAME: 'deg',
+    evaluation_sans_uq.OFFSET_DISTANCE_NAME: 'km'
+}
+
+METRIC_TO_UNIT_EXPONENT = {
+    evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY: 2,
+    evaluation_sans_uq.MSE_SKILL_SCORE_KEY: 0,
+    evaluation_sans_uq.MEAN_ABSOLUTE_ERROR_KEY: 1,
+    evaluation_sans_uq.MAE_SKILL_SCORE_KEY: 0,
+    evaluation_sans_uq.BIAS_KEY: 1,
+    evaluation_sans_uq.CORRELATION_KEY: 0,
+    evaluation_sans_uq.KGE_KEY: 0,
+    evaluation_sans_uq.MEAN_DISTANCE_KEY: 1,
+    evaluation_sans_uq.MEAN_DIST_SKILL_SCORE_KEY: 0,
+    evaluation_sans_uq.MEAN_SQUARED_DISTANCE_KEY: 2,
+    evaluation_sans_uq.MEAN_SQ_DIST_SKILL_SCORE_KEY: 0
+}
+
+METRIC_TO_FANCY_NAME = {
+    evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY: 'root mean squared error',
+    evaluation_sans_uq.MSE_SKILL_SCORE_KEY: 'Mean-squared-error skill score',
+    evaluation_sans_uq.MEAN_ABSOLUTE_ERROR_KEY: 'mean absolute error',
+    evaluation_sans_uq.MAE_SKILL_SCORE_KEY: 'Mean-absolute-error skill score',
+    evaluation_sans_uq.BIAS_KEY: 'bias',
+    evaluation_sans_uq.CORRELATION_KEY: 'correlation',
+    evaluation_sans_uq.KGE_KEY: 'Kling-Gupta efficiency',
+    evaluation_sans_uq.MEAN_DISTANCE_KEY: 'mean Euclidean distance',
+    evaluation_sans_uq.MEAN_DIST_SKILL_SCORE_KEY:
+        'mean-Euclidean-distance skill score',
+    evaluation_sans_uq.MEAN_SQUARED_DISTANCE_KEY:
+        'root mean squared Euclidean distance',
+    evaluation_sans_uq.MEAN_SQ_DIST_SKILL_SCORE_KEY:
+        'mean-squared-Euclidean-distance skill score'
+}
 
 RELIABILITY_LINE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
 RELIABILITY_LINE_WIDTH = 3.
@@ -29,6 +108,16 @@ TAYLOR_TARGET_MARKER_TYPE = '*'
 TAYLOR_TARGET_MARKER_SIZE = 24
 TAYLOR_PREDICTION_MARKER_TYPE = 'o'
 TAYLOR_PREDICTION_MARKER_SIZE = 20
+
+METRIC_LINE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
+METRIC_LINE_WIDTH = 3
+METRIC_MARKER_TYPE = 'o'
+METRIC_MARKER_SIZE = 16
+METRIC_MARKER_COLOUR = numpy.full(3, 0.)
+POLYGON_OPACITY = 0.5
+
+FIGURE_WIDTH_INCHES = 15
+FIGURE_HEIGHT_INCHES = 15
 
 FONT_SIZE = 36
 pyplot.rc('font', size=FONT_SIZE)
@@ -208,6 +297,96 @@ def _plot_attr_diagram_background(
         climo_y_coords, climo_x_coords, color=CLIMO_LINE_COLOUR,
         linestyle='dashed', linewidth=CLIMO_LINE_WIDTH
     )
+
+
+def plot_metric_by_category(
+        metric_matrix, metric_name, target_field_name,
+        category_description_strings, x_label_string, confidence_level):
+    """Plots one evaluation metric across categories (stratified evaluation).
+
+    C = number of categories
+    B = number of bootstrap replicates
+
+    :param metric_matrix: C-by-B numpy array of metric values.
+    :param metric_name: Name of error metric.
+    :param target_field_name: Name of target variable.
+    :param category_description_strings: length-C list of category descriptions.
+    :param x_label_string: Label for entire x-axis (all categories).
+    :param confidence_level: See documentation at top of file.
+    :return: figure_object: Figure handle (instance of
+        `matplotlib.figure.Figure`).
+    :return: axes_object: Axes handle (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    """
+
+    conv_ratio = (
+        TARGET_FIELD_TO_CONV_RATIO[target_field_name] **
+        METRIC_TO_UNIT_EXPONENT[metric_name]
+    )
+    metric_matrix_to_plot = metric_matrix * conv_ratio
+
+    if METRIC_TO_UNIT_EXPONENT[metric_name] == 2:
+        metric_matrix_to_plot = numpy.sqrt(metric_matrix_to_plot)
+
+    num_bootstrap_reps = metric_matrix_to_plot.shape[1]
+    num_categories = metric_matrix_to_plot.shape[0]
+    category_indices = 0.5 + numpy.linspace(
+        0, num_categories - 1, num=num_categories, dtype=float
+    )
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+
+    if (
+            num_bootstrap_reps > 1 and
+            not numpy.all(numpy.isnan(metric_matrix_to_plot))
+    ):
+        polygon_coord_matrix = misc_utils.confidence_interval_to_polygon(
+            x_value_matrix=
+            numpy.expand_dims(category_indices.astype(float), axis=-1),
+            y_value_matrix=metric_matrix_to_plot,
+            confidence_level=confidence_level,
+            same_order=True
+        )
+
+        polygon_colour = matplotlib.colors.to_rgba(
+            METRIC_LINE_COLOUR, POLYGON_OPACITY
+        )
+        patch_object = matplotlib.patches.Polygon(
+            polygon_coord_matrix, lw=0, ec=polygon_colour, fc=polygon_colour
+        )
+        axes_object.add_patch(patch_object)
+
+    axes_object.plot(
+        category_indices, numpy.nanmedian(metric_matrix_to_plot, axis=-1),
+        color=METRIC_LINE_COLOUR, linewidth=METRIC_LINE_WIDTH,
+        linestyle='solid',
+        marker=METRIC_MARKER_TYPE, markersize=METRIC_MARKER_SIZE,
+        markerfacecolor=METRIC_MARKER_COLOUR,
+        markeredgecolor=METRIC_MARKER_COLOUR,
+        markeredgewidth=0
+    )
+
+    axes_object.set_xticks(category_indices)
+    axes_object.set_xticklabels(category_description_strings, rotation=90.)
+    axes_object.set_xlabel(x_label_string)
+
+    title_string = '{0:s}{1:s}{2:s}'.format(
+        METRIC_TO_FANCY_NAME[metric_name][0].upper(),
+        METRIC_TO_FANCY_NAME[metric_name][1:],
+        TARGET_FIELD_TO_FANCY_NAME[target_field_name]
+    )
+
+    unit_exponent = METRIC_TO_UNIT_EXPONENT[metric_name]
+    if unit_exponent == 1 or unit_exponent == 2:
+        title_string += ' ({0:s})'.format(
+            TARGET_FIELD_TO_UNIT_STRING[target_field_name]
+        )
+
+    axes_object.set_title(title_string)
+
+    return figure_object, axes_object
 
 
 def plot_inset_histogram(

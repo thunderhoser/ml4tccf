@@ -44,6 +44,23 @@ def find_file(directory_name, cyclone_id_string, raise_error_if_missing=True):
     raise ValueError(error_string)
 
 
+def file_name_to_cyclone_id(prediction_file_name):
+    """Parses cyclone ID from name of prediction file.
+
+    :param prediction_file_name: Path to prediction file.
+    :return: cyclone_id_string: Cyclone ID.
+    """
+
+    error_checking.assert_is_string(prediction_file_name)
+
+    pathless_file_name = os.path.split(prediction_file_name)[1]
+    extensionless_file_name = os.path.splitext(pathless_file_name)[0]
+    cyclone_id_string = extensionless_file_name.split('_')[-1]
+
+    misc_utils.parse_cyclone_id(cyclone_id_string)
+    return cyclone_id_string
+
+
 def write_file(
         netcdf_file_name, target_matrix, prediction_matrix, cyclone_id_string,
         target_times_unix_sec, model_file_name):
