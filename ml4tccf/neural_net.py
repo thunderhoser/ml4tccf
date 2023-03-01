@@ -2199,7 +2199,7 @@ def read_model(hdf5_file_name):
 
     if architecture_dict is not None:
         if is_model_bnn:
-            from ml4tccf.machine_learning import cnn_architecture_bayesian
+            import cnn_architecture_bayesian
 
             for this_key in [
                     cnn_architecture_bayesian.LOSS_FUNCTION_KEY,
@@ -2211,7 +2211,7 @@ def read_model(hdf5_file_name):
                 architecture_dict
             )
         else:
-            from ml4tccf.machine_learning import cnn_architecture
+            import cnn_architecture
 
             for this_key in [
                     cnn_architecture.LOSS_FUNCTION_KEY,
