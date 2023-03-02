@@ -316,6 +316,107 @@ DATA_MATRIX_5D_SECOND_TRANS = numpy.stack(
     (DATA_MATRIX_4D_SECOND_TRANS,) * 5, axis=-2
 )
 
+# The following constants are used to test _make_targets_for_semantic_seg.
+ROW_TRANSLATIONS_PX = numpy.array([-3, -2, -1, 1, 2, 3], dtype=int)
+COLUMN_TRANSLATIONS_PX = numpy.array([-3, -2, -1, 1, 2, 3], dtype=int)
+GRID_SPACINGS_KM = numpy.array([2, 2, 2, 2, 2, 2], dtype=float)
+CYCLONE_CENTER_LATITUDES_DEG_N = numpy.array([0, 0, 0, 0, 0, 0], dtype=float)
+GAUSSIAN_SMOOTHER_STDEV_KM = 1e-6
+NUM_GRID_ROWS = 10
+NUM_GRID_COLUMNS = 12
+
+FIRST_TARGET_MATRIX = numpy.array([
+    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+SECOND_TARGET_MATRIX = numpy.array([
+    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+THIRD_TARGET_MATRIX = numpy.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+FOURTH_TARGET_MATRIX = numpy.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+], dtype=float)
+
+FIFTH_TARGET_MATRIX = numpy.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0]
+], dtype=float)
+
+SIXTH_TARGET_MATRIX = numpy.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
+], dtype=float)
+
+FIRST_TARGET_MATRIX = FIRST_TARGET_MATRIX / numpy.sum(FIRST_TARGET_MATRIX)
+SECOND_TARGET_MATRIX = SECOND_TARGET_MATRIX / numpy.sum(SECOND_TARGET_MATRIX)
+THIRD_TARGET_MATRIX = THIRD_TARGET_MATRIX / numpy.sum(THIRD_TARGET_MATRIX)
+FOURTH_TARGET_MATRIX = FOURTH_TARGET_MATRIX / numpy.sum(FOURTH_TARGET_MATRIX)
+FIFTH_TARGET_MATRIX = FIFTH_TARGET_MATRIX / numpy.sum(FIFTH_TARGET_MATRIX)
+SIXTH_TARGET_MATRIX = SIXTH_TARGET_MATRIX / numpy.sum(SIXTH_TARGET_MATRIX)
+
+TARGET_MATRIX = numpy.stack((
+    FIRST_TARGET_MATRIX, SECOND_TARGET_MATRIX, THIRD_TARGET_MATRIX,
+    FOURTH_TARGET_MATRIX, FIFTH_TARGET_MATRIX, SIXTH_TARGET_MATRIX
+), axis=0)
+
+TARGET_MATRIX = numpy.expand_dims(TARGET_MATRIX, axis=-1)
+
 
 def _compare_file_to_times_dicts(first_dict, second_dict):
     """Determines whether or not two dictionaries are equal.
@@ -582,6 +683,22 @@ class NeuralNetTests(unittest.TestCase):
 
         self.assertTrue(numpy.allclose(
             this_image_matrix, DATA_MATRIX_5D_SECOND_TRANS, atol=TOLERANCE
+        ))
+
+    def test_make_targets_for_semantic_seg(self):
+        """Ensures correct output from _make_targets_for_semantic_seg."""
+
+        this_target_matrix = neural_net._make_targets_for_semantic_seg(
+            row_translations_px=ROW_TRANSLATIONS_PX,
+            column_translations_px=COLUMN_TRANSLATIONS_PX,
+            grid_spacings_km=GRID_SPACINGS_KM,
+            cyclone_center_latitudes_deg_n=CYCLONE_CENTER_LATITUDES_DEG_N,
+            gaussian_smoother_stdev_km=GAUSSIAN_SMOOTHER_STDEV_KM,
+            num_grid_rows=NUM_GRID_ROWS, num_grid_columns=NUM_GRID_COLUMNS
+        )
+
+        self.assertTrue(numpy.allclose(
+            this_target_matrix, TARGET_MATRIX, atol=TOLERANCE
         ))
 
 

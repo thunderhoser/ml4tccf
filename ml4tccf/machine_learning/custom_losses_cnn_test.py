@@ -1,10 +1,10 @@
-"""Unit tests for custom_losses.py."""
+"""Unit tests for custom_losses_cnn.py."""
 
 import unittest
 import numpy
 import tensorflow
 from keras import backend as K
-from ml4tccf.machine_learning import custom_losses
+from ml4tccf.machine_learning import custom_losses_cnn
 
 TOLERANCE = 1e-6
 
@@ -266,14 +266,14 @@ DISCRETIZED_WEIRD_CRPS_KILOMETRES2 = numpy.mean(
 )
 
 
-class CustomLossesTests(unittest.TestCase):
-    """Each method is a unit test for custom_losses.py."""
+class CustomLossesCnnTests(unittest.TestCase):
+    """Each method is a unit test for custom_losses_cnn.py."""
 
     def test_mean_squared_distance_kilometres2(self):
         """Ensures correct output from mean_squared_distance_kilometres2."""
 
         this_mean_squared_dist_km2 = (
-            custom_losses.mean_squared_distance_kilometres2(
+            custom_losses_cnn.mean_squared_distance_kilometres2(
                 target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
             )
         )
@@ -288,7 +288,7 @@ class CustomLossesTests(unittest.TestCase):
         """Ensures correct output from discretized_mean_sq_dist_kilometres2."""
 
         this_mean_squared_dist_km2 = (
-            custom_losses.discretized_mean_sq_dist_kilometres2(
+            custom_losses_cnn.discretized_mean_sq_dist_kilometres2(
                 target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
             )
         )
@@ -304,7 +304,7 @@ class CustomLossesTests(unittest.TestCase):
     def test_coord_avg_crps_kilometres(self):
         """Ensures correct output from coord_avg_crps_kilometres."""
 
-        this_crps_kilometres = custom_losses.coord_avg_crps_kilometres(
+        this_crps_kilometres = custom_losses_cnn.coord_avg_crps_kilometres(
             target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
         )
         self.assertTrue(numpy.isclose(
@@ -315,7 +315,7 @@ class CustomLossesTests(unittest.TestCase):
         """Ensures correct output from discretized_coord_avg_crps_kilometres."""
 
         this_crps_kilometres = (
-            custom_losses.discretized_coord_avg_crps_kilometres(
+            custom_losses_cnn.discretized_coord_avg_crps_kilometres(
                 target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
             )
         )
@@ -327,7 +327,7 @@ class CustomLossesTests(unittest.TestCase):
     def test_weird_crps_kilometres2(self):
         """Ensures correct output from weird_crps_kilometres2."""
 
-        this_weird_crps_km2 = custom_losses.weird_crps_kilometres2(
+        this_weird_crps_km2 = custom_losses_cnn.weird_crps_kilometres2(
             target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
         )
         self.assertTrue(numpy.isclose(
@@ -337,9 +337,12 @@ class CustomLossesTests(unittest.TestCase):
     def test_discretized_weird_crps_kilometres2(self):
         """Ensures correct output from discretized_weird_crps_kilometres2."""
 
-        this_weird_crps_km2 = custom_losses.discretized_weird_crps_kilometres2(
-            target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
+        this_weird_crps_km2 = (
+            custom_losses_cnn.discretized_weird_crps_kilometres2(
+                target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
+            )
         )
+
         self.assertTrue(numpy.isclose(
             K.eval(this_weird_crps_km2), DISCRETIZED_WEIRD_CRPS_KILOMETRES2,
             atol=TOLERANCE

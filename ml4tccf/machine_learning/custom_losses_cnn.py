@@ -1,4 +1,4 @@
-"""Custom loss functions."""
+"""Custom loss functions for CNN (as opposed to semantic segmentation)."""
 
 import numpy
 import tensorflow
