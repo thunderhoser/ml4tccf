@@ -415,8 +415,6 @@ TARGET_MATRIX = numpy.stack((
     FOURTH_TARGET_MATRIX, FIFTH_TARGET_MATRIX, SIXTH_TARGET_MATRIX
 ), axis=0)
 
-TARGET_MATRIX = numpy.expand_dims(TARGET_MATRIX, axis=-1)
-
 
 def _compare_file_to_times_dicts(first_dict, second_dict):
     """Determines whether or not two dictionaries are equal.

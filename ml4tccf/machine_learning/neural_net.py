@@ -15,92 +15,91 @@ from ml4tccf.io import satellite_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
 from ml4tccf.utils import image_filtering
-from ml4tccf.machine_learning import custom_losses_cnn
-from ml4tccf.machine_learning import custom_metrics_cnn
-from ml4tccf.machine_learning import \
-    custom_losses_semantic_seg as custom_losses_ss
+from ml4tccf.machine_learning import custom_losses_scalar
+from ml4tccf.machine_learning import custom_metrics_scalar
+from ml4tccf.machine_learning import custom_losses_gridded
 from ml4tccf.outside_code import accum_grad_optimizer
 
 DEG_LATITUDE_TO_KM = 60 * 1.852
 DEGREES_TO_RADIANS = numpy.pi / 180
 TARGET_DISCRETIZATION_DEG = 0.1
 
-METRIC_FUNCTION_LIST_CNN = [
-    custom_losses_cnn.mean_squared_distance_kilometres2,
-    custom_losses_cnn.weird_crps_kilometres2,
-    custom_losses_cnn.coord_avg_crps_kilometres,
-    custom_losses_cnn.discretized_mean_sq_dist_kilometres2,
-    custom_losses_cnn.discretized_weird_crps_kilometres2,
-    custom_losses_cnn.discretized_coord_avg_crps_kilometres,
-    custom_metrics_cnn.mean_distance_kilometres,
-    custom_metrics_cnn.mean_prediction,
-    custom_metrics_cnn.mean_predictive_stdev,
-    custom_metrics_cnn.mean_predictive_range,
-    custom_metrics_cnn.mean_target,
-    custom_metrics_cnn.mean_grid_spacing_kilometres,
-    custom_metrics_cnn.crps_kilometres,
-    custom_metrics_cnn.discretized_mean_dist_kilometres,
-    custom_metrics_cnn.discretized_crps_kilometres
+METRIC_FUNCTION_LIST_SCALAR = [
+    custom_losses_scalar.mean_squared_distance_kilometres2,
+    custom_losses_scalar.weird_crps_kilometres2,
+    custom_losses_scalar.coord_avg_crps_kilometres,
+    custom_losses_scalar.discretized_mean_sq_dist_kilometres2,
+    custom_losses_scalar.discretized_weird_crps_kilometres2,
+    custom_losses_scalar.discretized_coord_avg_crps_kilometres,
+    custom_metrics_scalar.mean_distance_kilometres,
+    custom_metrics_scalar.mean_prediction,
+    custom_metrics_scalar.mean_predictive_stdev,
+    custom_metrics_scalar.mean_predictive_range,
+    custom_metrics_scalar.mean_target,
+    custom_metrics_scalar.mean_grid_spacing_kilometres,
+    custom_metrics_scalar.crps_kilometres,
+    custom_metrics_scalar.discretized_mean_dist_kilometres,
+    custom_metrics_scalar.discretized_crps_kilometres
 ]
 
-METRIC_FUNCTION_DICT_CNN = {
+METRIC_FUNCTION_DICT_SCALAR = {
     'mean_squared_distance_kilometres2':
-        custom_losses_cnn.mean_squared_distance_kilometres2,
-    'weird_crps_kilometres2': custom_losses_cnn.weird_crps_kilometres2,
-    'coord_avg_crps_kilometres': custom_losses_cnn.coord_avg_crps_kilometres,
+        custom_losses_scalar.mean_squared_distance_kilometres2,
+    'weird_crps_kilometres2': custom_losses_scalar.weird_crps_kilometres2,
+    'coord_avg_crps_kilometres': custom_losses_scalar.coord_avg_crps_kilometres,
     'discretized_mean_sq_dist_kilometres2':
-        custom_losses_cnn.discretized_mean_sq_dist_kilometres2,
+        custom_losses_scalar.discretized_mean_sq_dist_kilometres2,
     'discretized_weird_crps_kilometres2':
-        custom_losses_cnn.discretized_weird_crps_kilometres2,
+        custom_losses_scalar.discretized_weird_crps_kilometres2,
     'discretized_coord_avg_crps_kilometres':
-        custom_losses_cnn.discretized_coord_avg_crps_kilometres,
-    'mean_distance_kilometres': custom_metrics_cnn.mean_distance_kilometres,
-    'mean_prediction': custom_metrics_cnn.mean_prediction,
-    'mean_predictive_stdev': custom_metrics_cnn.mean_predictive_stdev,
-    'mean_predictive_range': custom_metrics_cnn.mean_predictive_range,
-    'mean_target': custom_metrics_cnn.mean_target,
+        custom_losses_scalar.discretized_coord_avg_crps_kilometres,
+    'mean_distance_kilometres': custom_metrics_scalar.mean_distance_kilometres,
+    'mean_prediction': custom_metrics_scalar.mean_prediction,
+    'mean_predictive_stdev': custom_metrics_scalar.mean_predictive_stdev,
+    'mean_predictive_range': custom_metrics_scalar.mean_predictive_range,
+    'mean_target': custom_metrics_scalar.mean_target,
     'mean_grid_spacing_kilometres':
-        custom_metrics_cnn.mean_grid_spacing_kilometres,
-    'crps_kilometres': custom_metrics_cnn.crps_kilometres,
+        custom_metrics_scalar.mean_grid_spacing_kilometres,
+    'crps_kilometres': custom_metrics_scalar.crps_kilometres,
     'discretized_mean_dist_kilometres':
-        custom_metrics_cnn.discretized_mean_dist_kilometres,
+        custom_metrics_scalar.discretized_mean_dist_kilometres,
     'discretized_crps_kilometres':
-        custom_metrics_cnn.discretized_crps_kilometres
+        custom_metrics_scalar.discretized_crps_kilometres
 }
 
-FSS_FUNCTION_1BY1 = custom_losses_ss.fractions_skill_score(
+FSS_FUNCTION_1BY1 = custom_losses_gridded.fractions_skill_score(
     half_window_size_px=0, use_as_loss_function=False,
     function_name='fss_1by1'
 )
-FSS_FUNCTION_9BY9 = custom_losses_ss.fractions_skill_score(
+FSS_FUNCTION_9BY9 = custom_losses_gridded.fractions_skill_score(
     half_window_size_px=4, use_as_loss_function=False,
     function_name='fss_9by9'
 )
-FSS_FUNCTION_17BY17 = custom_losses_ss.fractions_skill_score(
+FSS_FUNCTION_17BY17 = custom_losses_gridded.fractions_skill_score(
     half_window_size_px=8, use_as_loss_function=False,
     function_name='fss_17by17'
 )
-FSS_FUNCTION_25BY25 = custom_losses_ss.fractions_skill_score(
+FSS_FUNCTION_25BY25 = custom_losses_gridded.fractions_skill_score(
     half_window_size_px=12, use_as_loss_function=False,
     function_name='fss_25by25'
 )
-HEIDKE_FUNCTION = custom_losses_ss.heidke_score(
+HEIDKE_FUNCTION = custom_losses_gridded.heidke_score(
     use_as_loss_function=False, function_name='heidke_score'
 )
-PEIRCE_FUNCTION = custom_losses_ss.peirce_score(
+PEIRCE_FUNCTION = custom_losses_gridded.peirce_score(
     use_as_loss_function=False, function_name='peirce_score'
 )
-GERRITY_FUNCTION = custom_losses_ss.gerrity_score(
+GERRITY_FUNCTION = custom_losses_gridded.gerrity_score(
     use_as_loss_function=False, function_name='gerrity_score'
 )
 
-METRIC_FUNCTION_LIST_SS = [
+METRIC_FUNCTION_LIST_GRIDDED = [
     FSS_FUNCTION_1BY1, FSS_FUNCTION_9BY9,
     FSS_FUNCTION_17BY17, FSS_FUNCTION_25BY25,
     HEIDKE_FUNCTION, PEIRCE_FUNCTION, GERRITY_FUNCTION
 ]
 
-METRIC_FUNCTION_DICT_SS = {
+METRIC_FUNCTION_DICT_GRIDDED = {
     'fss1by1': FSS_FUNCTION_1BY1,
     'fss9by9': FSS_FUNCTION_9BY9,
     'fss17b17': FSS_FUNCTION_17BY17,
@@ -246,11 +245,11 @@ def _check_generator_args(option_dict):
     )
 
     error_checking.assert_is_integer(option_dict[NUM_GRID_ROWS_KEY])
-    error_checking.assert_is_geq(option_dict[NUM_GRID_ROWS_KEY], 100)
+    error_checking.assert_is_geq(option_dict[NUM_GRID_ROWS_KEY], 10)
     assert numpy.mod(option_dict[NUM_GRID_ROWS_KEY], 2) == 0
 
     error_checking.assert_is_integer(option_dict[NUM_GRID_COLUMNS_KEY])
-    error_checking.assert_is_geq(option_dict[NUM_GRID_COLUMNS_KEY], 100)
+    error_checking.assert_is_geq(option_dict[NUM_GRID_COLUMNS_KEY], 10)
     assert numpy.mod(option_dict[NUM_GRID_COLUMNS_KEY], 2) == 0
 
     error_checking.assert_is_integer(option_dict[DATA_AUG_NUM_TRANS_KEY])
@@ -1189,7 +1188,7 @@ def _make_targets_for_semantic_seg(
             stdev_distance_km=gaussian_smoother_stdev_km
         )
 
-    return numpy.expand_dims(target_matrix, axis=-1)
+    return target_matrix
 
 
 def get_translation_distances(
@@ -1292,6 +1291,10 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     data_dict["predictor_matrices"]: See doc for `data_generator`.
     data_dict["target_matrix"]: Same.
     data_dict["target_times_unix_sec"]: length-E numpy array of target times.
+    data_dict["grid_spacings_low_res_km"]: length-E numpy array of grid
+        spacings.
+    data_dict["cyclone_center_latitudes_deg_n"]: length-E numpy array of true
+        TC-center latitudes (deg north).
     data_dict["high_res_latitude_matrix_deg_n"]: E-by-M-by-L numpy array of
         latitudes (deg north).
     data_dict["high_res_longitude_matrix_deg_e"]: E-by-N-by-L numpy array of
@@ -1509,6 +1512,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         PREDICTOR_MATRICES_KEY: predictor_matrices,
         TARGET_MATRIX_KEY: target_matrix,
         TARGET_TIMES_KEY: target_times_unix_sec,
+        GRID_SPACINGS_KEY: grid_spacings_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
         HIGH_RES_LATITUDES_KEY: high_res_latitude_matrix_deg_n,
         HIGH_RES_LONGITUDES_KEY: high_res_longitude_matrix_deg_e,
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
@@ -1769,6 +1774,8 @@ def create_data_specific_trans(
         PREDICTOR_MATRICES_KEY: predictor_matrices,
         TARGET_MATRIX_KEY: target_matrix,
         TARGET_TIMES_KEY: target_times_unix_sec,
+        GRID_SPACINGS_KEY: grid_spacings_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
         HIGH_RES_LATITUDES_KEY: high_res_latitude_matrix_deg_n,
         HIGH_RES_LONGITUDES_KEY: high_res_longitude_matrix_deg_e,
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
@@ -2208,6 +2215,8 @@ def apply_model(
     """Applies trained neural net -- inference time!
 
     E = number of examples
+    M = number of rows in grid
+    N = number of columns grid
     S = ensemble size
 
     :param model_object: Trained neural net (instance of `keras.models.Model` or
@@ -2215,10 +2224,15 @@ def apply_model(
     :param predictor_matrices: See output doc for `data_generator`.
     :param num_examples_per_batch: Batch size.
     :param verbose: Boolean flag.  If True, will print progress messages.
-    :return: prediction_matrix: E-by-2-by-S numpy array.
-        prediction_tensor[:, 0, :] contains predicted row positions of TC
-        centers, and prediction_tensor[:, 1, :] contains predicted column
-        positions of TC centers.
+    :return: prediction_matrix: If the model predicts scalar coordinates...
+
+        E-by-2-by-S numpy array.  prediction_tensor[:, 0, :] contains predicted
+        row positions of TC centers, and prediction_tensor[:, 1, :] contains
+        predicted column positions of TC centers.
+
+    If the model predicts gridded probabilities...
+
+        E-by-M-by-N-by-S numpy array of probabilities.
     """
 
     # Check input args.
@@ -2398,7 +2412,7 @@ def read_model(hdf5_file_name):
         return model_object
 
     # TODO(thunderhoser): This code should never be reached.
-    custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT_CNN)
+    custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT_SCALAR)
     custom_object_dict['loss'] = eval(metadata_dict[LOSS_FUNCTION_KEY])
 
     return tf_keras.models.load_model(

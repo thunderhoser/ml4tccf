@@ -10,8 +10,8 @@ import xarray
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import prediction_io
-from ml4tccf.utils import evaluation_sans_uq
-from ml4tccf.plotting import evaluation_plotting as eval_plotting
+from ml4tccf.utils import scalar_evaluation
+from ml4tccf.plotting import scalar_evaluation_plotting as scalar_eval_plotting
 
 FIGURE_RESOLUTION_DPI = 300
 
@@ -24,7 +24,7 @@ INPUT_FILES_HELP_STRING = (
     'This argument may be formatted in two ways: (1) a space-separated list of '
     'paths to evaluation files or (2) a glob pattern for evaluation files.  '
     'Either way, there must be one evaluation file per TC, and they will be '
-    'read by `evaluation.read_file`.'
+    'read by `scalar_evaluation.read_file` or `gridded_evaluation.read_file`.'
 )
 CONFIDENCE_LEVEL_HELP_STRING = (
     'Confidence level for uncertainty intervals.  Must be in range 0...1.'
@@ -90,22 +90,32 @@ def _run(input_file_names_or_pattern, confidence_level, cyclone_id_font_size,
 
     for i in range(num_cyclones):
         print('Reading data from: "{0:s}"...'.format(input_file_names[i]))
-        eval_table_by_cyclone[i] = evaluation_sans_uq.read_file(
-            input_file_names[i]
-        )
+
+        try:
+            eval_table_by_cyclone[i] = scalar_evaluation.read_file(
+                input_file_names[i]
+            )
+            assert (
+                scalar_evaluation.TARGET_FIELD_DIM
+                in eval_table_by_cyclone[i].coords
+            )
+        except:
+            raise ValueError(
+                'This script does not yet work for gridded predictions.'
+            )
 
         etbc = eval_table_by_cyclone
 
         num_bootstrap_reps = len(
-            etbc[0].coords[evaluation_sans_uq.BOOTSTRAP_REP_DIM].values
+            etbc[0].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
         )
         this_num_bootstrap_reps = len(
-            etbc[i].coords[evaluation_sans_uq.BOOTSTRAP_REP_DIM].values
+            etbc[i].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
         these_prediction_file_names = (
-            etbc[i].attrs[evaluation_sans_uq.PREDICTION_FILES_KEY]
+            etbc[i].attrs[scalar_evaluation.PREDICTION_FILES_KEY]
         )
         assert len(these_prediction_file_names) == 1
 
@@ -115,27 +125,29 @@ def _run(input_file_names_or_pattern, confidence_level, cyclone_id_font_size,
 
     etbc = eval_table_by_cyclone
 
-    for metric_name in eval_plotting.BASIC_METRIC_NAMES:
-        for target_field_name in eval_plotting.BASIC_TARGET_FIELD_NAMES:
+    for metric_name in scalar_eval_plotting.BASIC_METRIC_NAMES:
+        for target_field_name in scalar_eval_plotting.BASIC_TARGET_FIELD_NAMES:
             metric_matrix = numpy.full(
                 (num_cyclones, num_bootstrap_reps), numpy.nan
             )
 
             for i in range(num_cyclones):
                 j = numpy.where(
-                    etbc[i].coords[evaluation_sans_uq.TARGET_FIELD_DIM].values
+                    etbc[i].coords[scalar_evaluation.TARGET_FIELD_DIM].values
                     == target_field_name
                 )[0][0]
 
                 metric_matrix[i, :] = etbc[i][metric_name].values[j, :]
 
-            figure_object, axes_object = eval_plotting.plot_metric_by_category(
-                metric_matrix=metric_matrix,
-                metric_name=metric_name,
-                target_field_name=target_field_name,
-                category_description_strings=cyclone_id_strings,
-                x_label_string='Cyclone ID',
-                confidence_level=confidence_level
+            figure_object, axes_object = (
+                scalar_eval_plotting.plot_metric_by_category(
+                    metric_matrix=metric_matrix,
+                    metric_name=metric_name,
+                    target_field_name=target_field_name,
+                    category_description_strings=cyclone_id_strings,
+                    x_label_string='Cyclone ID',
+                    confidence_level=confidence_level
+                )
             )
             axes_object.set_xticklabels(
                 cyclone_id_strings, fontdict={'fontsize': cyclone_id_font_size},
@@ -155,7 +167,7 @@ def _run(input_file_names_or_pattern, confidence_level, cyclone_id_font_size,
             )
             pyplot.close(figure_object)
 
-    for metric_name in eval_plotting.ADVANCED_METRIC_NAMES:
+    for metric_name in scalar_eval_plotting.ADVANCED_METRIC_NAMES:
         metric_matrix = numpy.full(
             (num_cyclones, num_bootstrap_reps), numpy.nan
         )
@@ -163,13 +175,15 @@ def _run(input_file_names_or_pattern, confidence_level, cyclone_id_font_size,
         for i in range(num_cyclones):
             metric_matrix[i, :] = etbc[i][metric_name].values[:]
 
-        figure_object, axes_object = eval_plotting.plot_metric_by_category(
-            metric_matrix=metric_matrix,
-            metric_name=metric_name,
-            target_field_name=evaluation_sans_uq.OFFSET_DISTANCE_NAME,
-            category_description_strings=cyclone_id_strings,
-            x_label_string='Cyclone ID',
-            confidence_level=confidence_level
+        figure_object, axes_object = (
+            scalar_eval_plotting.plot_metric_by_category(
+                metric_matrix=metric_matrix,
+                metric_name=metric_name,
+                target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
+                category_description_strings=cyclone_id_strings,
+                x_label_string='Cyclone ID',
+                confidence_level=confidence_level
+            )
         )
         axes_object.set_xticklabels(
             cyclone_id_strings, fontdict={'fontsize': cyclone_id_font_size},

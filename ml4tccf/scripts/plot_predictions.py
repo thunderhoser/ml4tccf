@@ -11,7 +11,7 @@ from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4tccf.io import prediction_io
-from ml4tccf.utils import prediction_utils
+from ml4tccf.utils import scalar_prediction_utils
 from ml4tccf.io import border_io
 from ml4tccf.machine_learning import neural_net
 from ml4tccf.plotting import plotting_utils
@@ -411,8 +411,17 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_table_xarray = prediction_io.read_file(prediction_file_name)
 
+    are_predictions_gridded = (
+        scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY
+        not in prediction_table_xarray
+    )
+    if are_predictions_gridded:
+        raise ValueError(
+            'This script does not yet work for gridded predictions.'
+        )
+
     model_file_name = (
-        prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
+        prediction_table_xarray.attrs[scalar_prediction_utils.MODEL_FILE_KEY]
     )
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
@@ -433,18 +442,18 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
 
     # TODO(thunderhoser): This will not work if I ever have multiple cyclones in
     # one prediction file.
-    cyclone_id_string = pt[prediction_utils.CYCLONE_ID_KEY].values[0]
-    target_times_unix_sec = pt[prediction_utils.TARGET_TIME_KEY].values
+    cyclone_id_string = pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[0]
+    target_times_unix_sec = pt[scalar_prediction_utils.TARGET_TIME_KEY].values
 
     data_dict = neural_net.create_data_specific_trans(
         option_dict=validation_option_dict,
         cyclone_id_string=cyclone_id_string,
         target_times_unix_sec=target_times_unix_sec,
         row_translations_low_res_px=numpy.round(
-            pt[prediction_utils.ACTUAL_ROW_OFFSET_KEY].values
+            pt[scalar_prediction_utils.ACTUAL_ROW_OFFSET_KEY].values
         ).astype(int),
         column_translations_low_res_px=numpy.round(
-            pt[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
+            pt[scalar_prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
         ).astype(int)
     )
 
@@ -478,8 +487,8 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     # )))
 
     prediction_matrix = numpy.stack((
-        pt[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values,
-        pt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
+        pt[scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY].values,
+        pt[scalar_prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
     ), axis=-2)
 
     num_examples = predictor_matrices[0].shape[0]

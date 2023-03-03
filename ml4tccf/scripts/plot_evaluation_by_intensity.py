@@ -9,8 +9,8 @@ import xarray
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
-from ml4tccf.utils import evaluation_sans_uq
-from ml4tccf.plotting import evaluation_plotting as eval_plotting
+from ml4tccf.utils import scalar_evaluation
+from ml4tccf.plotting import scalar_evaluation_plotting as scalar_eval_plotting
 
 MAX_WIND_KT = 250.
 MAX_PRESSURE_MB = 1030.
@@ -36,14 +36,14 @@ MIN_PRESSURE_CUTOFFS_HELP_STRING = (
 )
 MAX_WIND_BASED_FILES_HELP_STRING = (
     'List of paths to max-wind-specific evaluation files (each will be read by '
-    '`evaluation_sans_uq.read_file`).  This list should have length N + 1, '
-    'where N = length of {0:s}.'
+    '`scalar_evaluation.read_file` or `gridded_evaluation.read_file`).  This '
+    'list should have length N + 1, where N = length of {0:s}.'
 ).format(MAX_WIND_CUTOFFS_ARG_NAME)
 
 MIN_PRESSURE_BASED_FILES_HELP_STRING = (
     'List of paths to min-pressure-specific evaluation files (each will be '
-    'read by `evaluation_sans_uq.read_file`).  This list should have length '
-    'N + 1, where N = length of {0:s}.'
+    'read by `scalar_evaluation.read_file` or `gridded_evaluation.read_file`).'
+    '  This list should have length N + 1, where N = length of {0:s}.'
 ).format(MIN_PRESSURE_CUTOFFS_ARG_NAME)
 
 CONFIDENCE_LEVEL_HELP_STRING = (
@@ -168,17 +168,27 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         print('Reading data from: "{0:s}"...'.format(
             max_wind_based_eval_file_names[i]
         ))
-        eval_table_by_wind_category[i] = evaluation_sans_uq.read_file(
-            max_wind_based_eval_file_names[i]
-        )
+
+        try:
+            eval_table_by_wind_category[i] = scalar_evaluation.read_file(
+                max_wind_based_eval_file_names[i]
+            )
+            assert (
+                scalar_evaluation.TARGET_FIELD_DIM
+                in eval_table_by_wind_category[i].coords
+            )
+        except:
+            raise ValueError(
+                'This script does not yet work for gridded predictions.'
+            )
 
         etbwc = eval_table_by_wind_category
 
         num_bootstrap_reps = len(
-            etbwc[0].coords[evaluation_sans_uq.BOOTSTRAP_REP_DIM].values
+            etbwc[0].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
         )
         this_num_bootstrap_reps = len(
-            etbwc[i].coords[evaluation_sans_uq.BOOTSTRAP_REP_DIM].values
+            etbwc[i].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
@@ -196,8 +206,8 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
         etbwc = eval_table_by_wind_category
 
-        for metric_name in eval_plotting.BASIC_METRIC_NAMES:
-            for target_field_name in eval_plotting.BASIC_TARGET_FIELD_NAMES:
+        for metric_name in scalar_eval_plotting.BASIC_METRIC_NAMES:
+            for target_field_name in scalar_eval_plotting.BASIC_TARGET_FIELD_NAMES:
                 metric_matrix = numpy.full(
                     (num_wind_categories, num_bootstrap_reps), numpy.nan
                 )
@@ -205,14 +215,14 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 for i in range(num_wind_categories):
                     j = numpy.where(
                         etbwc[i].coords[
-                            evaluation_sans_uq.TARGET_FIELD_DIM
+                            scalar_evaluation.TARGET_FIELD_DIM
                         ].values
                         == target_field_name
                     )[0][0]
 
                     metric_matrix[i, :] = etbwc[i][metric_name].values[j, :]
 
-                figure_object = eval_plotting.plot_metric_by_category(
+                figure_object = scalar_eval_plotting.plot_metric_by_category(
                     metric_matrix=metric_matrix,
                     metric_name=metric_name,
                     target_field_name=target_field_name,
@@ -234,7 +244,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 )
                 pyplot.close(figure_object)
 
-        for metric_name in eval_plotting.ADVANCED_METRIC_NAMES:
+        for metric_name in scalar_eval_plotting.ADVANCED_METRIC_NAMES:
             metric_matrix = numpy.full(
                 (num_wind_categories, num_bootstrap_reps), numpy.nan
             )
@@ -242,10 +252,10 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             for i in range(num_wind_categories):
                 metric_matrix[i, :] = etbwc[i][metric_name].values[:]
 
-            figure_object = eval_plotting.plot_metric_by_category(
+            figure_object = scalar_eval_plotting.plot_metric_by_category(
                 metric_matrix=metric_matrix,
                 metric_name=metric_name,
-                target_field_name=evaluation_sans_uq.OFFSET_DISTANCE_NAME,
+                target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
                 category_description_strings=category_description_strings,
                 x_label_string='Max sustained wind (kt)',
                 confidence_level=confidence_level
@@ -273,17 +283,17 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         print('Reading data from: "{0:s}"...'.format(
             min_pressure_based_eval_file_names[i]
         ))
-        eval_table_by_pressure_category[i] = evaluation_sans_uq.read_file(
+        eval_table_by_pressure_category[i] = scalar_evaluation.read_file(
             min_pressure_based_eval_file_names[i]
         )
 
         etbpc = eval_table_by_pressure_category
 
         num_bootstrap_reps = len(
-            etbpc[0].coords[evaluation_sans_uq.BOOTSTRAP_REP_DIM].values
+            etbpc[0].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
         )
         this_num_bootstrap_reps = len(
-            etbpc[i].coords[evaluation_sans_uq.BOOTSTRAP_REP_DIM].values
+            etbpc[i].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
@@ -305,21 +315,21 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
     etbpc = eval_table_by_pressure_category
 
-    for metric_name in eval_plotting.BASIC_METRIC_NAMES:
-        for target_field_name in eval_plotting.BASIC_TARGET_FIELD_NAMES:
+    for metric_name in scalar_eval_plotting.BASIC_METRIC_NAMES:
+        for target_field_name in scalar_eval_plotting.BASIC_TARGET_FIELD_NAMES:
             metric_matrix = numpy.full(
                 (num_pressure_categories, num_bootstrap_reps), numpy.nan
             )
 
             for i in range(num_pressure_categories):
                 j = numpy.where(
-                    etbpc[i].coords[evaluation_sans_uq.TARGET_FIELD_DIM].values
+                    etbpc[i].coords[scalar_evaluation.TARGET_FIELD_DIM].values
                     == target_field_name
                 )[0][0]
 
                 metric_matrix[i, :] = etbpc[i][metric_name].values[j, :]
 
-            figure_object = eval_plotting.plot_metric_by_category(
+            figure_object = scalar_eval_plotting.plot_metric_by_category(
                 metric_matrix=metric_matrix,
                 metric_name=metric_name,
                 target_field_name=target_field_name,
@@ -341,7 +351,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             )
             pyplot.close(figure_object)
 
-    for metric_name in eval_plotting.ADVANCED_METRIC_NAMES:
+    for metric_name in scalar_eval_plotting.ADVANCED_METRIC_NAMES:
         metric_matrix = numpy.full(
             (num_wind_categories, num_bootstrap_reps), numpy.nan
         )
@@ -349,10 +359,10 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         for i in range(num_wind_categories):
             metric_matrix[i, :] = etbpc[i][metric_name].values[:]
 
-        figure_object = eval_plotting.plot_metric_by_category(
+        figure_object = scalar_eval_plotting.plot_metric_by_category(
             metric_matrix=metric_matrix,
             metric_name=metric_name,
-            target_field_name=evaluation_sans_uq.OFFSET_DISTANCE_NAME,
+            target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
             category_description_strings=category_description_strings,
             x_label_string='Minimum central pressure (mb)',
             confidence_level=confidence_level

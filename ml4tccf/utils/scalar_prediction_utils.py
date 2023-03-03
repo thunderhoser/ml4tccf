@@ -1,4 +1,4 @@
-"""Helper methods for prediction data."""
+"""Helper methods for scalar predictions (x- and y-coords)."""
 
 import numpy
 import xarray

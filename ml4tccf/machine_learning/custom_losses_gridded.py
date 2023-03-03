@@ -1,4 +1,4 @@
-"""Custom loss functions for semantic segmentation."""
+"""Custom loss functions for gridded predictions."""
 
 from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import error_checking
@@ -43,9 +43,10 @@ def fractions_skill_score(
         E = number of examples
         M = number of grid rows
         N = number of grid columns
+        S = ensemble size
 
-        :param target_tensor: E-by-M-by-N-by-1 tensor of target values.
-        :param prediction_tensor: E-by-M-by-N-by-1 tensor of predicted values.
+        :param target_tensor: E-by-M-by-N tensor of target values.
+        :param prediction_tensor: E-by-M-by-N-by-S tensor of predicted values.
         :return: loss: Fractions skill score.
         """
 
@@ -55,7 +56,7 @@ def fractions_skill_score(
         )
 
         smoothed_prediction_tensor = K.conv2d(
-            x=prediction_tensor, kernel=weight_matrix,
+            x=K.mean(prediction_tensor, axis=-1), kernel=weight_matrix,
             padding='same', strides=(1, 1), data_format='channels_last'
         )
 
@@ -96,11 +97,17 @@ def heidke_score(use_as_loss_function, function_name=None):
         :return: heidke_value: Heidke score (scalar).
         """
 
-        num_true_positives = K.sum(target_tensor * prediction_tensor)
-        num_false_positives = K.sum((1 - target_tensor) * prediction_tensor)
-        num_false_negatives = K.sum(target_tensor * (1 - prediction_tensor))
+        mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+
+        num_true_positives = K.sum(target_tensor * mean_prediction_tensor)
+        num_false_positives = K.sum(
+            (1 - target_tensor) * mean_prediction_tensor
+        )
+        num_false_negatives = K.sum(
+            target_tensor * (1 - mean_prediction_tensor)
+        )
         num_true_negatives = K.sum(
-            (1 - target_tensor) * (1 - prediction_tensor)
+            (1 - target_tensor) * (1 - mean_prediction_tensor)
         )
 
         random_num_correct = (
@@ -147,11 +154,17 @@ def peirce_score(use_as_loss_function, function_name=None):
         :return: peirce_value: Peirce score (scalar).
         """
 
-        num_true_positives = K.sum(target_tensor * prediction_tensor)
-        num_false_positives = K.sum((1 - target_tensor) * prediction_tensor)
-        num_false_negatives = K.sum(target_tensor * (1 - prediction_tensor))
+        mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+
+        num_true_positives = K.sum(target_tensor * mean_prediction_tensor)
+        num_false_positives = K.sum(
+            (1 - target_tensor) * mean_prediction_tensor
+        )
+        num_false_negatives = K.sum(
+            target_tensor * (1 - mean_prediction_tensor)
+        )
         num_true_negatives = K.sum(
-            (1 - target_tensor) * (1 - prediction_tensor)
+            (1 - target_tensor) * (1 - mean_prediction_tensor)
         )
 
         pod_value = (
@@ -192,11 +205,17 @@ def gerrity_score(use_as_loss_function, function_name=None):
         :return: gerrity_value: Gerrity score (scalar).
         """
 
-        num_true_positives = K.sum(target_tensor * prediction_tensor)
-        num_false_positives = K.sum((1 - target_tensor) * prediction_tensor)
-        num_false_negatives = K.sum(target_tensor * (1 - prediction_tensor))
+        mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+
+        num_true_positives = K.sum(target_tensor * mean_prediction_tensor)
+        num_false_positives = K.sum(
+            (1 - target_tensor) * mean_prediction_tensor
+        )
+        num_false_negatives = K.sum(
+            target_tensor * (1 - mean_prediction_tensor)
+        )
         num_true_negatives = K.sum(
-            (1 - target_tensor) * (1 - prediction_tensor)
+            (1 - target_tensor) * (1 - mean_prediction_tensor)
         )
 
         event_ratio = (

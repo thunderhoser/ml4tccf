@@ -6,10 +6,12 @@ import shutil
 import warnings
 import tempfile
 import numpy
-from scipy.ndimage import distance_transform_edt
+from scipy.ndimage import center_of_mass, distance_transform_edt
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import error_checking
+
+TOLERANCE = 1e-6
 
 GZIP_FILE_EXTENSION = '.gz'
 TIME_FORMAT = '%Y %m %d %H %M %S'
@@ -456,3 +458,89 @@ def confidence_interval_to_polygon(
     return numpy.transpose(numpy.vstack((
         x_vertices, y_vertices
     )))
+
+
+def target_matrix_to_centroid(target_matrix):
+    """Converts target matrix to centroid (x- and y-coord).
+
+    M = number of rows in grid
+    N = number of columns in grid
+
+    :param target_matrix: M-by-N numpy array of "true probabilities" for
+        TC-center location.
+    :return: row_offset_px: Row offset (pixels north of grid center).
+    :return: column_offset_px: Column offset (pixels east of grid center).
+    """
+
+    error_checking.assert_is_numpy_array(target_matrix, num_dimensions=2)
+    error_checking.assert_is_geq_numpy_array(target_matrix, 0.)
+    error_checking.assert_is_leq_numpy_array(target_matrix, 1.)
+    assert numpy.isclose(numpy.sum(target_matrix), 1.)
+
+    num_grid_rows = target_matrix.shape[0]
+    num_grid_columns = target_matrix.shape[1]
+    error_checking.assert_equals(numpy.mod(num_grid_rows, 2), 0)
+    error_checking.assert_equals(numpy.mod(num_grid_columns, 2), 0)
+
+    sorted_target_values = numpy.sort(numpy.ravel(target_matrix))[::-1]
+    top_four_range = (
+        numpy.max(sorted_target_values[:4]) -
+        numpy.min(sorted_target_values[:4])
+    )
+    assert top_four_range <= TOLERANCE
+
+    top_five_range = (
+        numpy.max(sorted_target_values[:5]) -
+        numpy.min(sorted_target_values[:5])
+    )
+    assert top_five_range > TOLERANCE
+
+    centroid_indices_linear = numpy.argsort(-1 * numpy.ravel(target_matrix))[:4]
+    centroid_row_indices, centroid_column_indices = numpy.unravel_index(
+        centroid_indices_linear, target_matrix.shape
+    )
+    centroid_row_index = numpy.mean(centroid_row_indices.astype(float))
+    centroid_column_index = numpy.mean(centroid_column_indices.astype(float))
+
+    image_center_row_index = 0.5 * num_grid_rows - 0.5
+    image_center_column_index = 0.5 * num_grid_columns - 0.5
+
+    return (
+        int(numpy.round(centroid_row_index - image_center_row_index)),
+        int(numpy.round(centroid_column_index - image_center_column_index))
+    )
+
+
+def prediction_matrix_to_centroid(prediction_matrix):
+    """Converts prediction matrix to centroid (x- and y-coord).
+
+    M = number of rows in grid
+    N = number of columns in grid
+
+    :param prediction_matrix: M-by-N numpy array of probabilities for TC-center
+        location.
+    :return: row_offset_px: Row offset (pixels north of grid center).
+    :return: column_offset_px: Column offset (pixels east of grid center).
+    """
+
+    error_checking.assert_is_numpy_array(prediction_matrix, num_dimensions=2)
+    error_checking.assert_is_geq_numpy_array(prediction_matrix, 0.)
+    error_checking.assert_is_leq_numpy_array(prediction_matrix, 1.)
+    assert numpy.isclose(numpy.sum(prediction_matrix), 1.)
+
+    num_grid_rows = prediction_matrix.shape[0]
+    num_grid_columns = prediction_matrix.shape[1]
+    error_checking.assert_equals(numpy.mod(num_grid_rows, 2), 0)
+    error_checking.assert_equals(numpy.mod(num_grid_columns, 2), 0)
+
+    centroid_row_index, centroid_column_index = center_of_mass(
+        prediction_matrix
+    )
+
+    image_center_row_index = 0.5 * num_grid_rows - 0.5
+    image_center_column_index = 0.5 * num_grid_columns - 0.5
+
+    return (
+        centroid_row_index - image_center_row_index,
+        centroid_column_index - image_center_column_index
+    )

@@ -4,7 +4,9 @@ import glob
 import argparse
 import numpy
 from gewittergefahr.gg_utils import error_checking
-from ml4tccf.utils import evaluation_sans_uq
+from ml4tccf.io import prediction_io
+from ml4tccf.utils import scalar_prediction_utils
+from ml4tccf.utils import scalar_evaluation
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -174,7 +176,21 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
 
     prediction_file_names.sort()
 
-    result_table_xarray = evaluation_sans_uq.get_scores_all_variables(
+    print('Reading data from: "{0:s}"...'.format(prediction_file_names[0]))
+    first_prediction_table_xarray = prediction_io.read_file(
+        prediction_file_names[0]
+    )
+
+    are_predictions_gridded = (
+        scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY
+        not in first_prediction_table_xarray
+    )
+    if are_predictions_gridded:
+        raise ValueError(
+            'This script does not yet work for gridded predictions.'
+        )
+
+    result_table_xarray = scalar_evaluation.get_scores_all_variables(
         prediction_file_names=prediction_file_names,
         num_bootstrap_reps=num_bootstrap_reps,
         num_xy_offset_bins=num_xy_offset_bins,
@@ -192,7 +208,7 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
     print(SEPARATOR_STRING)
 
     t = result_table_xarray
-    target_field_names = t.coords[evaluation_sans_uq.TARGET_FIELD_DIM].values
+    target_field_names = t.coords[scalar_evaluation.TARGET_FIELD_DIM].values
 
     for j in range(len(target_field_names)):
         print((
@@ -204,43 +220,43 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
             'reliability = {10:f} ... resolution = {11:f}'
         ).format(
             target_field_names[j],
-            numpy.nanmean(t[evaluation_sans_uq.TARGET_STDEV_KEY].values[j, :]),
+            numpy.nanmean(t[scalar_evaluation.TARGET_STDEV_KEY].values[j, :]),
             numpy.nanmean(
-                t[evaluation_sans_uq.PREDICTION_STDEV_KEY].values[j, :]
+                t[scalar_evaluation.PREDICTION_STDEV_KEY].values[j, :]
             ),
             numpy.nanmean(
-                t[evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY].values[j, :]
+                t[scalar_evaluation.MEAN_SQUARED_ERROR_KEY].values[j, :]
             ),
             numpy.nanmean(
-                t[evaluation_sans_uq.MSE_SKILL_SCORE_KEY].values[j, :]
+                t[scalar_evaluation.MSE_SKILL_SCORE_KEY].values[j, :]
             ),
             numpy.nanmean(
-                t[evaluation_sans_uq.MEAN_ABSOLUTE_ERROR_KEY].values[j, :]
+                t[scalar_evaluation.MEAN_ABSOLUTE_ERROR_KEY].values[j, :]
             ),
             numpy.nanmean(
-                t[evaluation_sans_uq.MAE_SKILL_SCORE_KEY].values[j, :]
+                t[scalar_evaluation.MAE_SKILL_SCORE_KEY].values[j, :]
             ),
-            numpy.nanmean(t[evaluation_sans_uq.BIAS_KEY].values[j, :]),
-            numpy.nanmean(t[evaluation_sans_uq.CORRELATION_KEY].values[j, :]),
-            numpy.nanmean(t[evaluation_sans_uq.KGE_KEY].values[j, :]),
-            numpy.nanmean(t[evaluation_sans_uq.RELIABILITY_KEY].values[j, :]),
-            numpy.nanmean(t[evaluation_sans_uq.RESOLUTION_KEY].values[j, :])
+            numpy.nanmean(t[scalar_evaluation.BIAS_KEY].values[j, :]),
+            numpy.nanmean(t[scalar_evaluation.CORRELATION_KEY].values[j, :]),
+            numpy.nanmean(t[scalar_evaluation.KGE_KEY].values[j, :]),
+            numpy.nanmean(t[scalar_evaluation.RELIABILITY_KEY].values[j, :]),
+            numpy.nanmean(t[scalar_evaluation.RESOLUTION_KEY].values[j, :])
         ))
 
     print((
         'Mean distance and skill score = {0:f}, {1:f} ... '
         'mean squared distance and skill score = {2:f}, {3:f}'
     ).format(
-        numpy.nanmean(t[evaluation_sans_uq.MEAN_DISTANCE_KEY].values),
-        numpy.nanmean(t[evaluation_sans_uq.MEAN_DIST_SKILL_SCORE_KEY].values),
-        numpy.nanmean(t[evaluation_sans_uq.MEAN_SQUARED_DISTANCE_KEY].values),
-        numpy.nanmean(t[evaluation_sans_uq.MEAN_SQ_DIST_SKILL_SCORE_KEY].values)
+        numpy.nanmean(t[scalar_evaluation.MEAN_DISTANCE_KEY].values),
+        numpy.nanmean(t[scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY].values),
+        numpy.nanmean(t[scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY].values),
+        numpy.nanmean(t[scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY].values)
     ))
 
     print(SEPARATOR_STRING)
 
     print('Writing results to: "{0:s}"...'.format(output_file_name))
-    evaluation_sans_uq.write_file(
+    scalar_evaluation.write_file(
         result_table_xarray=result_table_xarray,
         netcdf_file_name=output_file_name
     )

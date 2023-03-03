@@ -1,4 +1,4 @@
-"""Custom loss functions for CNN (as opposed to semantic segmentation)."""
+"""Custom loss functions for scalar predictions (x- and y-coord)."""
 
 import numpy
 import tensorflow

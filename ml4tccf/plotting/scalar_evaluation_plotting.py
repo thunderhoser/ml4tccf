@@ -1,4 +1,4 @@
-"""Plotting methods for model evaluation."""
+"""Plotting methods for evaluation of scalar predictions."""
 
 import numpy
 import matplotlib
@@ -8,83 +8,83 @@ import matplotlib.patches
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import misc_utils
-from ml4tccf.utils import evaluation_sans_uq
+from ml4tccf.utils import scalar_evaluation
 from ml4tccf.outside_code import taylor_diagram
 
 METRES_TO_KM = 0.001
 
 BASIC_TARGET_FIELD_NAMES = [
-    evaluation_sans_uq.X_OFFSET_NAME,
-    evaluation_sans_uq.Y_OFFSET_NAME,
-    evaluation_sans_uq.OFFSET_DIRECTION_NAME
+    scalar_evaluation.X_OFFSET_NAME,
+    scalar_evaluation.Y_OFFSET_NAME,
+    scalar_evaluation.OFFSET_DIRECTION_NAME
 ]
 
 BASIC_METRIC_NAMES = [
-    evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY,
-    evaluation_sans_uq.MSE_SKILL_SCORE_KEY,
-    evaluation_sans_uq.MEAN_ABSOLUTE_ERROR_KEY,
-    evaluation_sans_uq.MAE_SKILL_SCORE_KEY,
-    evaluation_sans_uq.BIAS_KEY,
-    evaluation_sans_uq.CORRELATION_KEY,
-    evaluation_sans_uq.KGE_KEY
+    scalar_evaluation.MEAN_SQUARED_ERROR_KEY,
+    scalar_evaluation.MSE_SKILL_SCORE_KEY,
+    scalar_evaluation.MEAN_ABSOLUTE_ERROR_KEY,
+    scalar_evaluation.MAE_SKILL_SCORE_KEY,
+    scalar_evaluation.BIAS_KEY,
+    scalar_evaluation.CORRELATION_KEY,
+    scalar_evaluation.KGE_KEY
 ]
 
 ADVANCED_METRIC_NAMES = [
-    evaluation_sans_uq.MEAN_DISTANCE_KEY,
-    evaluation_sans_uq.MEAN_DIST_SKILL_SCORE_KEY,
-    evaluation_sans_uq.MEAN_SQUARED_DISTANCE_KEY,
-    evaluation_sans_uq.MEAN_SQ_DIST_SKILL_SCORE_KEY
+    scalar_evaluation.MEAN_DISTANCE_KEY,
+    scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY,
+    scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY,
+    scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY
 ]
 
 TARGET_FIELD_TO_CONV_RATIO = {
-    evaluation_sans_uq.X_OFFSET_NAME: METRES_TO_KM,
-    evaluation_sans_uq.Y_OFFSET_NAME: METRES_TO_KM,
-    evaluation_sans_uq.OFFSET_DIRECTION_NAME: 1.,
-    evaluation_sans_uq.OFFSET_DISTANCE_NAME: METRES_TO_KM
+    scalar_evaluation.X_OFFSET_NAME: METRES_TO_KM,
+    scalar_evaluation.Y_OFFSET_NAME: METRES_TO_KM,
+    scalar_evaluation.OFFSET_DIRECTION_NAME: 1.,
+    scalar_evaluation.OFFSET_DISTANCE_NAME: METRES_TO_KM
 }
 
 TARGET_FIELD_TO_FANCY_NAME = {
-    evaluation_sans_uq.X_OFFSET_NAME: r' for $x$-position',
-    evaluation_sans_uq.Y_OFFSET_NAME: r' for $y$-position',
-    evaluation_sans_uq.OFFSET_DIRECTION_NAME: ' for offset direction',
-    evaluation_sans_uq.OFFSET_DISTANCE_NAME: ''
+    scalar_evaluation.X_OFFSET_NAME: r' for $x$-position',
+    scalar_evaluation.Y_OFFSET_NAME: r' for $y$-position',
+    scalar_evaluation.OFFSET_DIRECTION_NAME: ' for offset direction',
+    scalar_evaluation.OFFSET_DISTANCE_NAME: ''
 }
 
 TARGET_FIELD_TO_UNIT_STRING = {
-    evaluation_sans_uq.X_OFFSET_NAME: 'km',
-    evaluation_sans_uq.Y_OFFSET_NAME: 'km',
-    evaluation_sans_uq.OFFSET_DIRECTION_NAME: 'deg',
-    evaluation_sans_uq.OFFSET_DISTANCE_NAME: 'km'
+    scalar_evaluation.X_OFFSET_NAME: 'km',
+    scalar_evaluation.Y_OFFSET_NAME: 'km',
+    scalar_evaluation.OFFSET_DIRECTION_NAME: 'deg',
+    scalar_evaluation.OFFSET_DISTANCE_NAME: 'km'
 }
 
 METRIC_TO_UNIT_EXPONENT = {
-    evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY: 2,
-    evaluation_sans_uq.MSE_SKILL_SCORE_KEY: 0,
-    evaluation_sans_uq.MEAN_ABSOLUTE_ERROR_KEY: 1,
-    evaluation_sans_uq.MAE_SKILL_SCORE_KEY: 0,
-    evaluation_sans_uq.BIAS_KEY: 1,
-    evaluation_sans_uq.CORRELATION_KEY: 0,
-    evaluation_sans_uq.KGE_KEY: 0,
-    evaluation_sans_uq.MEAN_DISTANCE_KEY: 1,
-    evaluation_sans_uq.MEAN_DIST_SKILL_SCORE_KEY: 0,
-    evaluation_sans_uq.MEAN_SQUARED_DISTANCE_KEY: 2,
-    evaluation_sans_uq.MEAN_SQ_DIST_SKILL_SCORE_KEY: 0
+    scalar_evaluation.MEAN_SQUARED_ERROR_KEY: 2,
+    scalar_evaluation.MSE_SKILL_SCORE_KEY: 0,
+    scalar_evaluation.MEAN_ABSOLUTE_ERROR_KEY: 1,
+    scalar_evaluation.MAE_SKILL_SCORE_KEY: 0,
+    scalar_evaluation.BIAS_KEY: 1,
+    scalar_evaluation.CORRELATION_KEY: 0,
+    scalar_evaluation.KGE_KEY: 0,
+    scalar_evaluation.MEAN_DISTANCE_KEY: 1,
+    scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY: 0,
+    scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY: 2,
+    scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY: 0
 }
 
 METRIC_TO_FANCY_NAME = {
-    evaluation_sans_uq.MEAN_SQUARED_ERROR_KEY: 'root mean squared error',
-    evaluation_sans_uq.MSE_SKILL_SCORE_KEY: 'Mean-squared-error skill score',
-    evaluation_sans_uq.MEAN_ABSOLUTE_ERROR_KEY: 'mean absolute error',
-    evaluation_sans_uq.MAE_SKILL_SCORE_KEY: 'Mean-absolute-error skill score',
-    evaluation_sans_uq.BIAS_KEY: 'bias',
-    evaluation_sans_uq.CORRELATION_KEY: 'correlation',
-    evaluation_sans_uq.KGE_KEY: 'Kling-Gupta efficiency',
-    evaluation_sans_uq.MEAN_DISTANCE_KEY: 'mean Euclidean distance',
-    evaluation_sans_uq.MEAN_DIST_SKILL_SCORE_KEY:
+    scalar_evaluation.MEAN_SQUARED_ERROR_KEY: 'root mean squared error',
+    scalar_evaluation.MSE_SKILL_SCORE_KEY: 'Mean-squared-error skill score',
+    scalar_evaluation.MEAN_ABSOLUTE_ERROR_KEY: 'mean absolute error',
+    scalar_evaluation.MAE_SKILL_SCORE_KEY: 'Mean-absolute-error skill score',
+    scalar_evaluation.BIAS_KEY: 'bias',
+    scalar_evaluation.CORRELATION_KEY: 'correlation',
+    scalar_evaluation.KGE_KEY: 'Kling-Gupta efficiency',
+    scalar_evaluation.MEAN_DISTANCE_KEY: 'mean Euclidean distance',
+    scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY:
         'mean-Euclidean-distance skill score',
-    evaluation_sans_uq.MEAN_SQUARED_DISTANCE_KEY:
+    scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY:
         'root mean squared Euclidean distance',
-    evaluation_sans_uq.MEAN_SQ_DIST_SKILL_SCORE_KEY:
+    scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY:
         'mean-squared-Euclidean-distance skill score'
 }
 

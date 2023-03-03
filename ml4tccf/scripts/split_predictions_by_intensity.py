@@ -10,7 +10,7 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import prediction_io
 from ml4tccf.io import extended_best_track_io as xbt_io
-from ml4tccf.utils import prediction_utils
+from ml4tccf.utils import scalar_prediction_utils
 from ml4tccf.utils import extended_best_track_utils as xbt_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
@@ -53,8 +53,8 @@ OUTPUT_DIR_HELP_STRING = (
     'subdirectory will be created for every wind-based intensity category, and '
     'another for every pressure-based intensity category.  Then subset '
     'predictions will be written to these subdirectories by '
-    '`prediction_io.write_file`, to exact locations determined by '
-    '`prediction_io.find_file`.'
+    '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`, '
+    'to exact locations determined by `prediction_io.find_file`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -79,9 +79,9 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _write_predictions_one_category(prediction_table_1cat_xarray,
-                                    output_dir_name_1cat):
-    """Writes predictions for one intensity category.
+def _write_scalar_predictions_1category(prediction_table_1cat_xarray,
+                                        output_dir_name_1cat):
+    """Writes scalar predictions for one intensity category.
 
     :param prediction_table_1cat_xarray: xarray table with predictions for the
         one intensity category.
@@ -91,7 +91,9 @@ def _write_predictions_one_category(prediction_table_1cat_xarray,
 
     all_cyclone_id_strings = numpy.array([
         s.decode('utf-8') for s in
-        prediction_table_1cat_xarray[prediction_utils.CYCLONE_ID_KEY].values
+        prediction_table_1cat_xarray[
+            scalar_prediction_utils.CYCLONE_ID_KEY
+        ].values
     ])
 
     unique_cyclone_id_strings = numpy.unique(all_cyclone_id_strings)
@@ -101,7 +103,7 @@ def _write_predictions_one_category(prediction_table_1cat_xarray,
             all_cyclone_id_strings == cyclone_id_string
         )[0]
         prediction_table_xarray_1cyclone = prediction_table_1cat_xarray.isel(
-            indexers={prediction_utils.EXAMPLE_DIM_KEY: these_indices}
+            indexers={scalar_prediction_utils.EXAMPLE_DIM_KEY: these_indices}
         )
 
         output_file_name = prediction_io.find_file(
@@ -113,26 +115,26 @@ def _write_predictions_one_category(prediction_table_1cat_xarray,
         pt1cyc = prediction_table_xarray_1cyclone
 
         target_matrix = numpy.transpose(numpy.vstack((
-            pt1cyc[prediction_utils.ACTUAL_ROW_OFFSET_KEY].values,
-            pt1cyc[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values,
-            pt1cyc[prediction_utils.GRID_SPACING_KEY].values,
-            pt1cyc[prediction_utils.ACTUAL_CENTER_LATITUDE_KEY].values
+            pt1cyc[scalar_prediction_utils.ACTUAL_ROW_OFFSET_KEY].values,
+            pt1cyc[scalar_prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values,
+            pt1cyc[scalar_prediction_utils.GRID_SPACING_KEY].values,
+            pt1cyc[scalar_prediction_utils.ACTUAL_CENTER_LATITUDE_KEY].values
         )))
 
         prediction_matrix = numpy.stack((
-            pt1cyc[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values,
-            pt1cyc[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
+            pt1cyc[scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY].values,
+            pt1cyc[scalar_prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
         ), axis=-2)
 
         print('Writing data to: "{0:s}"...'.format(output_file_name))
-        prediction_io.write_file(
+        scalar_prediction_io.write_file(
             netcdf_file_name=output_file_name,
             target_matrix=target_matrix,
             prediction_matrix=prediction_matrix,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=
-            pt1cyc[prediction_utils.TARGET_TIME_KEY].values,
-            model_file_name=pt1cyc.attrs[prediction_utils.MODEL_FILE_KEY]
+            pt1cyc[scalar_prediction_utils.TARGET_TIME_KEY].values,
+            model_file_name=pt1cyc.attrs[scalar_prediction_utils.MODEL_FILE_KEY]
         )
 
 
@@ -217,6 +219,7 @@ def _run(input_prediction_file_pattern, xbt_file_name,
 
     num_files = len(input_prediction_file_names)
     prediction_tables_xarray = [None] * num_files
+    are_predictions_gridded = False
 
     for i in range(num_files):
         print('Reading data from: "{0:s}"...'.format(
@@ -225,11 +228,22 @@ def _run(input_prediction_file_pattern, xbt_file_name,
         prediction_tables_xarray[i] = prediction_io.read_file(
             input_prediction_file_names[i]
         )
-        prediction_tables_xarray[i] = prediction_utils.get_ensemble_mean(
+
+        are_predictions_gridded = (
+            scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY
+            not in prediction_tables_xarray[i]
+        )
+
+        if are_predictions_gridded:
+            raise ValueError(
+                'This script does not yet work for gridded predictions.'
+            )
+
+        prediction_tables_xarray[i] = scalar_prediction_utils.get_ensemble_mean(
             prediction_tables_xarray[i]
         )
 
-    prediction_table_xarray = prediction_utils.concat_over_examples(
+    prediction_table_xarray = scalar_prediction_utils.concat_over_examples(
         prediction_tables_xarray
     )
     pt = prediction_table_xarray
@@ -249,7 +263,7 @@ def _run(input_prediction_file_pattern, xbt_file_name,
         xbt_cyclone_id_strings = xbt_table_xarray[xbt_utils.STORM_ID_KEY].values
 
     # Find intensity corresponding to each prediction.
-    num_examples = len(pt[prediction_utils.TARGET_TIME_KEY].values)
+    num_examples = len(pt[scalar_prediction_utils.TARGET_TIME_KEY].values)
     prediction_max_winds_m_s01 = numpy.full(num_examples, numpy.nan)
     prediction_min_pressures_pa = numpy.full(num_examples, numpy.nan)
 
@@ -265,9 +279,11 @@ def _run(input_prediction_file_pattern, xbt_file_name,
             ))
 
         this_cyclone_id_string = (
-            pt[prediction_utils.CYCLONE_ID_KEY].values[i].decode('utf-8')
+            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i].decode('utf-8')
         )
-        this_time_unix_sec = pt[prediction_utils.TARGET_TIME_KEY].values[i]
+        this_time_unix_sec = (
+            pt[scalar_prediction_utils.TARGET_TIME_KEY].values[i]
+        )
 
         these_indices = numpy.where(numpy.logical_and(
             xbt_cyclone_id_strings == this_cyclone_id_string,
@@ -339,9 +355,10 @@ def _run(input_prediction_file_pattern, xbt_file_name,
         if len(these_indices) == 0:
             continue
 
-        _write_predictions_one_category(
+        _write_scalar_predictions_1category(
             prediction_table_1cat_xarray=prediction_table_xarray.isel(
-                indexers={prediction_utils.EXAMPLE_DIM_KEY: these_indices}
+                indexers=
+                {scalar_prediction_utils.EXAMPLE_DIM_KEY: these_indices}
             ),
             output_dir_name_1cat=this_output_dir_name
         )
@@ -363,9 +380,10 @@ def _run(input_prediction_file_pattern, xbt_file_name,
         if len(these_indices) == 0:
             continue
 
-        _write_predictions_one_category(
+        _write_scalar_predictions_1category(
             prediction_table_1cat_xarray=prediction_table_xarray.isel(
-                indexers={prediction_utils.EXAMPLE_DIM_KEY: these_indices}
+                indexers=
+                {scalar_prediction_utils.EXAMPLE_DIM_KEY: these_indices}
             ),
             output_dir_name_1cat=this_output_dir_name
         )

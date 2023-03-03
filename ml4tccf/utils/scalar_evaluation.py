@@ -1,7 +1,4 @@
-"""Model evaluation without uncertainty quantification (UQ).
-
-In other words, evaluation of the mean prediction only.
-"""
+"""Evaluation methods for scalar predictions."""
 
 import os
 import numpy
@@ -11,7 +8,7 @@ from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import prediction_io
-from ml4tccf.utils import prediction_utils
+from ml4tccf.utils import scalar_prediction_utils as prediction_utils
 from ml4tccf.machine_learning import neural_net
 from ml4tccf.outside_code import angular_utils
 

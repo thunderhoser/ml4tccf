@@ -1,18 +1,17 @@
-"""Unit tests for custom_metrics_cnn.py."""
+"""Unit tests for custom_metrics_scalar.py."""
 
 import unittest
 import numpy
-import tensorflow
 from keras import backend as K
-from ml4tccf.machine_learning import custom_metrics_cnn
-from ml4tccf.machine_learning import custom_losses_cnn_test
+from ml4tccf.machine_learning import custom_metrics_scalar
+from ml4tccf.machine_learning import custom_losses_scalar_test
 
 TOLERANCE = 1e-6
 
-TARGET_MATRIX = custom_losses_cnn_test.TARGET_MATRIX
-PREDICTION_MATRIX = custom_losses_cnn_test.PREDICTION_MATRIX
-TARGET_TENSOR = custom_losses_cnn_test.TARGET_TENSOR
-PREDICTION_TENSOR = custom_losses_cnn_test.PREDICTION_TENSOR
+TARGET_MATRIX = custom_losses_scalar_test.TARGET_MATRIX
+PREDICTION_MATRIX = custom_losses_scalar_test.PREDICTION_MATRIX
+TARGET_TENSOR = custom_losses_scalar_test.TARGET_TENSOR
+PREDICTION_TENSOR = custom_losses_scalar_test.PREDICTION_TENSOR
 
 MEAN_PREDICTION = -20. / 48
 
@@ -32,14 +31,14 @@ MEAN_TARGET = 1. / 16
 MEAN_GRID_SPACING_KM = 2.0375
 
 MEAN_DISTANCE_ERRORS_KM = numpy.sqrt(
-    custom_losses_cnn_test.MEAN_ROW_DISTANCES_KM ** 2 +
-    custom_losses_cnn_test.MEAN_COLUMN_DISTANCES_KM ** 2
+    custom_losses_scalar_test.MEAN_ROW_DISTANCES_KM ** 2 +
+    custom_losses_scalar_test.MEAN_COLUMN_DISTANCES_KM ** 2
 )
 MEAN_OVERALL_DISTANCE_KILOMETRES = numpy.mean(MEAN_DISTANCE_ERRORS_KM)
 
 PREDICTION_DIFF_MATRIX_KM = numpy.sqrt(
-    custom_losses_cnn_test.ROW_PREDICTION_DIFF_MATRIX_KM ** 2 +
-    custom_losses_cnn_test.COLUMN_PREDICTION_DIFF_MATRIX_KM ** 2
+    custom_losses_scalar_test.ROW_PREDICTION_DIFF_MATRIX_KM ** 2 +
+    custom_losses_scalar_test.COLUMN_PREDICTION_DIFF_MATRIX_KM ** 2
 )
 MEAN_PREDICTION_DIFFS_KM = numpy.mean(
     PREDICTION_DIFF_MATRIX_KM, axis=(-2, -1)
@@ -49,13 +48,13 @@ CRPS_KILOMETRES = numpy.mean(
 )
 
 
-class CustomMetricsTests(unittest.TestCase):
-    """Each method is a unit test for custom_metrics_cnn.py."""
+class CustomMetricsScalarTests(unittest.TestCase):
+    """Each method is a unit test for custom_metrics_scalar.py."""
 
     def test_mean_prediction(self):
         """Ensures correct output from mean_prediction."""
 
-        this_mean_prediction = custom_metrics_cnn.mean_prediction(
+        this_mean_prediction = custom_metrics_scalar.mean_prediction(
             target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
         )
         self.assertTrue(numpy.isclose(
@@ -65,7 +64,7 @@ class CustomMetricsTests(unittest.TestCase):
     def test_mean_predictive_range(self):
         """Ensures correct output from mean_predictive_range."""
 
-        this_predictive_range = custom_metrics_cnn.mean_predictive_range(
+        this_predictive_range = custom_metrics_scalar.mean_predictive_range(
             target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
         )
         self.assertTrue(numpy.isclose(
@@ -75,7 +74,7 @@ class CustomMetricsTests(unittest.TestCase):
     def test_mean_target(self):
         """Ensures correct output from mean_target."""
 
-        this_mean_target = custom_metrics_cnn.mean_target(
+        this_mean_target = custom_metrics_scalar.mean_target(
             target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
         )
         self.assertTrue(numpy.isclose(
@@ -85,7 +84,7 @@ class CustomMetricsTests(unittest.TestCase):
     def test_mean_grid_spacing_kilometres(self):
         """Ensures correct output from mean_grid_spacing_kilometres."""
 
-        this_mean_spacing_km = custom_metrics_cnn.mean_grid_spacing_kilometres(
+        this_mean_spacing_km = custom_metrics_scalar.mean_grid_spacing_kilometres(
             target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
         )
         self.assertTrue(numpy.isclose(
@@ -95,7 +94,7 @@ class CustomMetricsTests(unittest.TestCase):
     def test_mean_distance_kilometres(self):
         """Ensures correct output from mean_distance_kilometres."""
 
-        this_mean_distance_km = custom_metrics_cnn.mean_distance_kilometres(
+        this_mean_distance_km = custom_metrics_scalar.mean_distance_kilometres(
             target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
         )
         self.assertTrue(numpy.isclose(
@@ -106,7 +105,7 @@ class CustomMetricsTests(unittest.TestCase):
     def test_crps_kilometres(self):
         """Ensures correct output from crps_kilometres."""
 
-        this_crps_kilometres = custom_metrics_cnn.crps_kilometres(
+        this_crps_kilometres = custom_metrics_scalar.crps_kilometres(
             target_tensor=TARGET_TENSOR, prediction_tensor=PREDICTION_TENSOR
         )
         self.assertTrue(numpy.isclose(

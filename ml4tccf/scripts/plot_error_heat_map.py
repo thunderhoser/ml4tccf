@@ -11,7 +11,7 @@ from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import prediction_io
-from ml4tccf.utils import prediction_utils
+from ml4tccf.utils import scalar_prediction_utils
 from ml4tccf.machine_learning import neural_net
 from ml4tccf.plotting import plotting_utils
 
@@ -158,30 +158,42 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
 
     num_files = len(prediction_file_names)
     prediction_tables_xarray = [None] * num_files
+    are_predictions_gridded = False
 
     for i in range(num_files):
         print('Reading data from: "{0:s}"...'.format(prediction_file_names[i]))
         prediction_tables_xarray[i] = prediction_io.read_file(
             prediction_file_names[i]
         )
-        prediction_tables_xarray[i] = prediction_utils.get_ensemble_mean(
+
+        are_predictions_gridded = (
+            scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY
+            not in prediction_tables_xarray[i]
+        )
+
+        if are_predictions_gridded:
+            raise ValueError(
+                'This script does not yet work for gridded predictions.'
+            )
+
+        prediction_tables_xarray[i] = scalar_prediction_utils.get_ensemble_mean(
             prediction_tables_xarray[i]
         )
 
-    prediction_table_xarray = prediction_utils.concat_over_examples(
+    prediction_table_xarray = scalar_prediction_utils.concat_over_examples(
         prediction_tables_xarray
     )
     pt = prediction_table_xarray
 
     # Do actual stuff.
-    grid_spacings_km = pt[prediction_utils.GRID_SPACING_KEY].values
+    grid_spacings_km = pt[scalar_prediction_utils.GRID_SPACING_KEY].values
     x_errors_km = grid_spacings_km * (
-        pt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[:, 0] -
-        pt[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
+        pt[scalar_prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[:, 0] -
+        pt[scalar_prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
     )
     y_errors_km = grid_spacings_km * (
-        pt[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[:, 0] -
-        pt[prediction_utils.ACTUAL_ROW_OFFSET_KEY].values
+        pt[scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[:, 0] -
+        pt[scalar_prediction_utils.ACTUAL_ROW_OFFSET_KEY].values
     )
 
     bin_edges_km = METRES_TO_KM * numpy.linspace(
@@ -270,7 +282,7 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
     if not plot_orig_errors:
         return
 
-    model_file_name = pt.attrs[prediction_utils.MODEL_FILE_KEY]
+    model_file_name = pt.attrs[scalar_prediction_utils.MODEL_FILE_KEY]
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True

@@ -1,8 +1,8 @@
-"""Unit tests for evaluation_sans_uq.py."""
+"""Unit tests for scalar_evaluation.py."""
 
 import unittest
 import numpy
-from ml4tccf.utils import evaluation_sans_uq
+from ml4tccf.utils import scalar_evaluation
 
 TOLERANCE = 1e-6
 
@@ -49,13 +49,13 @@ MEAN_DISTANCE = numpy.mean(
 )
 
 
-class EvaluationSansUqTests(unittest.TestCase):
-    """Each method is a unit test for evaluation_sans_uq.py."""
+class ScalarEvaluationTests(unittest.TestCase):
+    """Each method is a unit test for scalar_evaluation.py."""
 
     def test_get_angular_diffs(self):
         """Ensures correct output from _get_angular_diffs."""
 
-        these_angular_diffs_deg = evaluation_sans_uq._get_angular_diffs(
+        these_angular_diffs_deg = scalar_evaluation._get_angular_diffs(
             target_angles_deg=TARGET_ANGLES_DEG,
             predicted_angles_deg=PREDICTED_ANGLES_DEG
         )
@@ -67,7 +67,7 @@ class EvaluationSansUqTests(unittest.TestCase):
     def test_get_offset_angles(self):
         """Ensures correct output from _get_offset_angles."""
 
-        these_offset_angles_deg = evaluation_sans_uq._get_offset_angles(
+        these_offset_angles_deg = scalar_evaluation._get_offset_angles(
             x_offsets=X_OFFSETS, y_offsets=Y_OFFSETS
         )
 
@@ -79,7 +79,7 @@ class EvaluationSansUqTests(unittest.TestCase):
     def test_get_mean_distance(self):
         """Ensures correct output from _get_mean_distance."""
 
-        this_mean_distance = evaluation_sans_uq._get_mean_distance(
+        this_mean_distance = scalar_evaluation._get_mean_distance(
             target_offset_matrix=TARGET_OFFSET_MATRIX,
             predicted_offset_matrix=PREDICTED_OFFSET_MATRIX
         )
@@ -89,7 +89,7 @@ class EvaluationSansUqTests(unittest.TestCase):
         """Ensures correct output from _get_mean_squared_distance."""
 
         this_mean_squared_distance = (
-            evaluation_sans_uq._get_mean_squared_distance(
+            scalar_evaluation._get_mean_squared_distance(
                 target_offset_matrix=TARGET_OFFSET_MATRIX,
                 predicted_offset_matrix=PREDICTED_OFFSET_MATRIX
             )
