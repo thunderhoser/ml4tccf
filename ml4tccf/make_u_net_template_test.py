@@ -2,6 +2,7 @@
 
 import os
 import sys
+import copy
 import numpy
 import keras
 
@@ -124,6 +125,14 @@ def _run():
         filepath=output_file_name, overwrite=True, include_optimizer=True
     )
 
+    option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
+    option_dict[u_net_architecture.LOSS_FUNCTION_KEY] = (
+        LOSS_FUNCTION_STRING
+    )
+    option_dict[u_net_architecture.OPTIMIZER_FUNCTION_KEY] = (
+        OPTIMIZER_STRING
+    )
+
     neural_net.train_model(
         model_object=model_object,
         output_dir_name=OUTPUT_DIR_NAME, num_epochs=10,
@@ -136,7 +145,7 @@ def _run():
         plateau_patience_epochs=10,
         plateau_learning_rate_multiplier=0.6,
         early_stopping_patience_epochs=50,
-        architecture_dict=DEFAULT_OPTION_DICT, is_model_bnn=False
+        architecture_dict=option_dict, is_model_bnn=False
     )
 
 
