@@ -130,7 +130,7 @@ def _run():
         LOSS_FUNCTION_STRING
     )
     option_dict[u_net_architecture.OPTIMIZER_FUNCTION_KEY] = (
-        OPTIMIZER_STRING
+        'keras.optimizers.Adam()'
     )
 
     neural_net.train_model(
