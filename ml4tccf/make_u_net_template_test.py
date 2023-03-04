@@ -84,7 +84,7 @@ TRAINING_OPTION_DICT = {
     YEARS_KEY: numpy.array([2017], dtype=int),
     LAG_TIMES_KEY: numpy.array([0], dtype=int),
     HIGH_RES_WAVELENGTHS_KEY: numpy.array([]),
-    LOW_RES_WAVELENGTHS_KEY: numpy.array([3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3]),
+    LOW_RES_WAVELENGTHS_KEY: numpy.array([11.2]),
     BATCH_SIZE_KEY: 8,
     MAX_EXAMPLES_PER_CYCLONE_KEY: 2,
     NUM_GRID_ROWS_KEY: 600,
