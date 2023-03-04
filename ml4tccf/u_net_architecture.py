@@ -336,7 +336,7 @@ def create_model(option_dict):
     else:
         layer_object = input_layer_object_low_res
 
-    num_levels = len(num_conv_layers_by_level)
+    num_levels = len(num_conv_layers_by_level) - 1
     conv_layer_by_level = [None] * (num_levels + 1)
     pooling_layer_by_level = [None] * num_levels
 
