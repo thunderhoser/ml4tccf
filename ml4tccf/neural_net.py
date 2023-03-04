@@ -21,49 +21,99 @@ import error_checking
 import satellite_io
 import misc_utils
 import satellite_utils
-import custom_losses
-import custom_metrics
+import image_filtering
+import custom_losses as custom_losses_scalar
+import custom_metrics as custom_metrics_scalar
+import custom_losses_gridded
 import accum_grad_optimizer
 
-METRIC_FUNCTION_LIST = [
-    custom_losses.mean_squared_distance_kilometres2,
-    custom_losses.weird_crps_kilometres2,
-    custom_losses.coord_avg_crps_kilometres,
-    custom_losses.discretized_mean_sq_dist_kilometres2,
-    custom_losses.discretized_weird_crps_kilometres2,
-    custom_losses.discretized_coord_avg_crps_kilometres,
-    custom_metrics.mean_distance_kilometres,
-    custom_metrics.mean_prediction,
-    custom_metrics.mean_predictive_stdev,
-    custom_metrics.mean_predictive_range,
-    custom_metrics.mean_target,
-    custom_metrics.mean_grid_spacing_kilometres,
-    custom_metrics.crps_kilometres,
-    custom_metrics.discretized_mean_dist_kilometres,
-    custom_metrics.discretized_crps_kilometres
+DEG_LATITUDE_TO_KM = 60 * 1.852
+DEGREES_TO_RADIANS = numpy.pi / 180
+TARGET_DISCRETIZATION_DEG = 0.1
+
+METRIC_FUNCTION_LIST_SCALAR = [
+    custom_losses_scalar.mean_squared_distance_kilometres2,
+    custom_losses_scalar.weird_crps_kilometres2,
+    custom_losses_scalar.coord_avg_crps_kilometres,
+    custom_losses_scalar.discretized_mean_sq_dist_kilometres2,
+    custom_losses_scalar.discretized_weird_crps_kilometres2,
+    custom_losses_scalar.discretized_coord_avg_crps_kilometres,
+    custom_metrics_scalar.mean_distance_kilometres,
+    custom_metrics_scalar.mean_prediction,
+    custom_metrics_scalar.mean_predictive_stdev,
+    custom_metrics_scalar.mean_predictive_range,
+    custom_metrics_scalar.mean_target,
+    custom_metrics_scalar.mean_grid_spacing_kilometres,
+    custom_metrics_scalar.crps_kilometres,
+    custom_metrics_scalar.discretized_mean_dist_kilometres,
+    custom_metrics_scalar.discretized_crps_kilometres
 ]
 
-METRIC_FUNCTION_DICT = {
+METRIC_FUNCTION_DICT_SCALAR = {
     'mean_squared_distance_kilometres2':
-        custom_losses.mean_squared_distance_kilometres2,
-    'weird_crps_kilometres2': custom_losses.weird_crps_kilometres2,
-    'coord_avg_crps_kilometres': custom_losses.coord_avg_crps_kilometres,
+        custom_losses_scalar.mean_squared_distance_kilometres2,
+    'weird_crps_kilometres2': custom_losses_scalar.weird_crps_kilometres2,
+    'coord_avg_crps_kilometres': custom_losses_scalar.coord_avg_crps_kilometres,
     'discretized_mean_sq_dist_kilometres2':
-        custom_losses.discretized_mean_sq_dist_kilometres2,
+        custom_losses_scalar.discretized_mean_sq_dist_kilometres2,
     'discretized_weird_crps_kilometres2':
-        custom_losses.discretized_weird_crps_kilometres2,
+        custom_losses_scalar.discretized_weird_crps_kilometres2,
     'discretized_coord_avg_crps_kilometres':
-        custom_losses.discretized_coord_avg_crps_kilometres,
-    'mean_distance_kilometres': custom_metrics.mean_distance_kilometres,
-    'mean_prediction': custom_metrics.mean_prediction,
-    'mean_predictive_stdev': custom_metrics.mean_predictive_stdev,
-    'mean_predictive_range': custom_metrics.mean_predictive_range,
-    'mean_target': custom_metrics.mean_target,
-    'mean_grid_spacing_kilometres': custom_metrics.mean_grid_spacing_kilometres,
-    'crps_kilometres': custom_metrics.crps_kilometres,
+        custom_losses_scalar.discretized_coord_avg_crps_kilometres,
+    'mean_distance_kilometres': custom_metrics_scalar.mean_distance_kilometres,
+    'mean_prediction': custom_metrics_scalar.mean_prediction,
+    'mean_predictive_stdev': custom_metrics_scalar.mean_predictive_stdev,
+    'mean_predictive_range': custom_metrics_scalar.mean_predictive_range,
+    'mean_target': custom_metrics_scalar.mean_target,
+    'mean_grid_spacing_kilometres':
+        custom_metrics_scalar.mean_grid_spacing_kilometres,
+    'crps_kilometres': custom_metrics_scalar.crps_kilometres,
     'discretized_mean_dist_kilometres':
-        custom_metrics.discretized_mean_dist_kilometres,
-    'discretized_crps_kilometres': custom_metrics.discretized_crps_kilometres
+        custom_metrics_scalar.discretized_mean_dist_kilometres,
+    'discretized_crps_kilometres':
+        custom_metrics_scalar.discretized_crps_kilometres
+}
+
+FSS_FUNCTION_1BY1 = custom_losses_gridded.fractions_skill_score(
+    half_window_size_px=0, use_as_loss_function=False,
+    function_name='fss_1by1'
+)
+FSS_FUNCTION_9BY9 = custom_losses_gridded.fractions_skill_score(
+    half_window_size_px=4, use_as_loss_function=False,
+    function_name='fss_9by9'
+)
+FSS_FUNCTION_17BY17 = custom_losses_gridded.fractions_skill_score(
+    half_window_size_px=8, use_as_loss_function=False,
+    function_name='fss_17by17'
+)
+FSS_FUNCTION_25BY25 = custom_losses_gridded.fractions_skill_score(
+    half_window_size_px=12, use_as_loss_function=False,
+    function_name='fss_25by25'
+)
+HEIDKE_FUNCTION = custom_losses_gridded.heidke_score(
+    use_as_loss_function=False, function_name='heidke_score'
+)
+PEIRCE_FUNCTION = custom_losses_gridded.peirce_score(
+    use_as_loss_function=False, function_name='peirce_score'
+)
+GERRITY_FUNCTION = custom_losses_gridded.gerrity_score(
+    use_as_loss_function=False, function_name='gerrity_score'
+)
+
+METRIC_FUNCTION_LIST_GRIDDED = [
+    FSS_FUNCTION_1BY1, FSS_FUNCTION_9BY9,
+    FSS_FUNCTION_17BY17, FSS_FUNCTION_25BY25,
+    HEIDKE_FUNCTION, PEIRCE_FUNCTION, GERRITY_FUNCTION
+]
+
+METRIC_FUNCTION_DICT_GRIDDED = {
+    'fss1by1': FSS_FUNCTION_1BY1,
+    'fss9by9': FSS_FUNCTION_9BY9,
+    'fss17b17': FSS_FUNCTION_17BY17,
+    'fss25by25': FSS_FUNCTION_25BY25,
+    'heidke_score': HEIDKE_FUNCTION,
+    'peirce_score': PEIRCE_FUNCTION,
+    'gerrity_score': GERRITY_FUNCTION
 }
 
 METRES_TO_KM = 0.001
@@ -90,6 +140,8 @@ LAG_TIME_TOLERANCE_KEY = 'lag_time_tolerance_sec'
 MAX_MISSING_LAG_TIMES_KEY = 'max_num_missing_lag_times'
 MAX_INTERP_GAP_KEY = 'max_interp_gap_sec'
 SENTINEL_VALUE_KEY = 'sentinel_value'
+SEMANTIC_SEG_FLAG_KEY = 'semantic_segmentation_flag'
+TARGET_SMOOOTHER_STDEV_KEY = 'target_smoother_stdev_km'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
     HIGH_RES_WAVELENGTHS_KEY: None,
@@ -200,11 +252,11 @@ def _check_generator_args(option_dict):
     )
 
     error_checking.assert_is_integer(option_dict[NUM_GRID_ROWS_KEY])
-    error_checking.assert_is_geq(option_dict[NUM_GRID_ROWS_KEY], 100)
+    error_checking.assert_is_geq(option_dict[NUM_GRID_ROWS_KEY], 10)
     assert numpy.mod(option_dict[NUM_GRID_ROWS_KEY], 2) == 0
 
     error_checking.assert_is_integer(option_dict[NUM_GRID_COLUMNS_KEY])
-    error_checking.assert_is_geq(option_dict[NUM_GRID_COLUMNS_KEY], 100)
+    error_checking.assert_is_geq(option_dict[NUM_GRID_COLUMNS_KEY], 10)
     assert numpy.mod(option_dict[NUM_GRID_COLUMNS_KEY], 2) == 0
 
     error_checking.assert_is_integer(option_dict[DATA_AUG_NUM_TRANS_KEY])
@@ -219,6 +271,15 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_integer(option_dict[MAX_INTERP_GAP_KEY])
     error_checking.assert_is_geq(option_dict[MAX_INTERP_GAP_KEY], 0)
     error_checking.assert_is_not_nan(option_dict[SENTINEL_VALUE_KEY])
+
+    error_checking.assert_is_boolean(option_dict[SEMANTIC_SEG_FLAG_KEY])
+
+    if option_dict[SEMANTIC_SEG_FLAG_KEY]:
+        error_checking.assert_is_greater(
+            option_dict[TARGET_SMOOOTHER_STDEV_KEY], 0.
+        )
+    else:
+        option_dict[TARGET_SMOOOTHER_STDEV_KEY] = None
 
     return option_dict
 
@@ -1079,6 +1140,64 @@ def _grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
     return latitude_matrix_deg_n, longitude_matrix_deg_e
 
 
+def _make_targets_for_semantic_seg(
+        row_translations_px, column_translations_px,
+        grid_spacings_km, cyclone_center_latitudes_deg_n,
+        gaussian_smoother_stdev_km, num_grid_rows, num_grid_columns):
+    """Creates targets for semantic segmentation.
+
+    E = number of examples
+    M = number of rows in full image grid (must be even number)
+    N = number of columns in full image grid (must be even number)
+
+    :param row_translations_px: length-E numpy array of translation distances
+        (pixel units) in +y-direction, or north.
+    :param column_translations_px: length-E numpy array of translation distances
+        (pixel units) in +x-direction, or east.
+    :param grid_spacings_km: length-E numpy array of grid spacings.
+    :param cyclone_center_latitudes_deg_n: length-E numpy array of latitudes at
+        actual TC centers (deg north).
+    :param gaussian_smoother_stdev_km: Standard-deviation distance for Gaussian
+        smoother.
+    :param num_grid_rows: M in the above discussion.
+    :param num_grid_columns: N in the above discussion.
+    :return: target_matrix: E-by-M-by-N-by-1 numpy array of "probabilities" in
+        range 0...1.  The sum over each grid is exactly 1.
+    """
+
+    num_examples = len(row_translations_px)
+    target_matrix = numpy.full(
+        (num_examples, num_grid_rows, num_grid_columns), 0.
+    )
+
+    first_row_index_default = int(numpy.round(0.5 * num_grid_rows - 1))
+    last_row_index_default = int(numpy.round(0.5 * num_grid_rows + 1))
+    first_column_index_default = int(numpy.round(0.5 * num_grid_columns - 1))
+    last_column_index_default = int(numpy.round(0.5 * num_grid_columns + 1))
+
+    for k in range(num_examples):
+        i_start = first_row_index_default + row_translations_px[k]
+        i_end = last_row_index_default + row_translations_px[k]
+        j_start = first_column_index_default + column_translations_px[k]
+        j_end = last_column_index_default + column_translations_px[k]
+
+        target_matrix[k, i_start:i_end, j_start:j_end] = 1.
+
+        target_matrix[k, ...] = image_filtering.undo_target_discretization(
+            integer_target_matrix=target_matrix[k, ...].astype(int),
+            grid_spacing_km=grid_spacings_km[k],
+            cyclone_center_latitude_deg_n=cyclone_center_latitudes_deg_n[k]
+        )
+
+        target_matrix[k, ...] = image_filtering.smooth_targets_with_gaussian(
+            target_matrix=target_matrix[k, ...],
+            grid_spacing_km=grid_spacings_km[k],
+            stdev_distance_km=gaussian_smoother_stdev_km
+        )
+
+    return target_matrix
+
+
 def get_translation_distances(
         mean_translation_px, stdev_translation_px, num_translations):
     """Samples translation distances from normal distribution.
@@ -1179,6 +1298,10 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     data_dict["predictor_matrices"]: See doc for `data_generator`.
     data_dict["target_matrix"]: Same.
     data_dict["target_times_unix_sec"]: length-E numpy array of target times.
+    data_dict["grid_spacings_low_res_km"]: length-E numpy array of grid
+        spacings.
+    data_dict["cyclone_center_latitudes_deg_n"]: length-E numpy array of true
+        TC-center latitudes (deg north).
     data_dict["high_res_latitude_matrix_deg_n"]: E-by-M-by-L numpy array of
         latitudes (deg north).
     data_dict["high_res_longitude_matrix_deg_e"]: E-by-N-by-L numpy array of
@@ -1208,6 +1331,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     max_num_missing_lag_times = option_dict[MAX_MISSING_LAG_TIMES_KEY]
     max_interp_gap_sec = option_dict[MAX_INTERP_GAP_KEY]
     sentinel_value = option_dict[SENTINEL_VALUE_KEY]
+    semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
+    target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -1372,17 +1497,30 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     if bidirectional_reflectance_matrix is not None:
         predictor_matrices.insert(0, bidirectional_reflectance_matrix)
 
-    target_matrix_low_res_px = numpy.transpose(numpy.vstack((
-        row_translations_low_res_px, column_translations_low_res_px,
-        grid_spacings_km, cyclone_center_latitudes_deg_n
-    )))
+    if semantic_segmentation_flag:
+        target_matrix = _make_targets_for_semantic_seg(
+            row_translations_px=row_translations_low_res_px,
+            column_translations_px=column_translations_low_res_px,
+            grid_spacings_km=grid_spacings_km,
+            cyclone_center_latitudes_deg_n=cyclone_center_latitudes_deg_n,
+            gaussian_smoother_stdev_km=target_smoother_stdev_km,
+            num_grid_rows=orig_num_rows_low_res,
+            num_grid_columns=orig_num_columns_low_res
+        )
+    else:
+        target_matrix = numpy.transpose(numpy.vstack((
+            row_translations_low_res_px, column_translations_low_res_px,
+            grid_spacings_km, cyclone_center_latitudes_deg_n
+        )))
 
     predictor_matrices = [p.astype('float16') for p in predictor_matrices]
 
     return {
         PREDICTOR_MATRICES_KEY: predictor_matrices,
-        TARGET_MATRIX_KEY: target_matrix_low_res_px,
+        TARGET_MATRIX_KEY: target_matrix,
         TARGET_TIMES_KEY: target_times_unix_sec,
+        GRID_SPACINGS_KEY: grid_spacings_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
         HIGH_RES_LATITUDES_KEY: high_res_latitude_matrix_deg_n,
         HIGH_RES_LONGITUDES_KEY: high_res_longitude_matrix_deg_e,
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
@@ -1455,6 +1593,8 @@ def create_data_specific_trans(
     max_num_missing_lag_times = option_dict[MAX_MISSING_LAG_TIMES_KEY]
     max_interp_gap_sec = option_dict[MAX_INTERP_GAP_KEY]
     sentinel_value = option_dict[SENTINEL_VALUE_KEY]
+    semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
+    target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -1619,17 +1759,30 @@ def create_data_specific_trans(
     if bidirectional_reflectance_matrix is not None:
         predictor_matrices.insert(0, bidirectional_reflectance_matrix)
 
-    target_matrix_low_res_px = numpy.transpose(numpy.vstack((
-        row_translations_low_res_px, column_translations_low_res_px,
-        grid_spacings_km, cyclone_center_latitudes_deg_n
-    )))
+    if semantic_segmentation_flag:
+        target_matrix = _make_targets_for_semantic_seg(
+            row_translations_px=row_translations_low_res_px,
+            column_translations_px=column_translations_low_res_px,
+            grid_spacings_km=grid_spacings_km,
+            cyclone_center_latitudes_deg_n=cyclone_center_latitudes_deg_n,
+            gaussian_smoother_stdev_km=target_smoother_stdev_km,
+            num_grid_rows=orig_num_rows_low_res,
+            num_grid_columns=orig_num_columns_low_res
+        )
+    else:
+        target_matrix = numpy.transpose(numpy.vstack((
+            row_translations_low_res_px, column_translations_low_res_px,
+            grid_spacings_km, cyclone_center_latitudes_deg_n
+        )))
 
     predictor_matrices = [p.astype('float16') for p in predictor_matrices]
 
     return {
         PREDICTOR_MATRICES_KEY: predictor_matrices,
-        TARGET_MATRIX_KEY: target_matrix_low_res_px,
+        TARGET_MATRIX_KEY: target_matrix,
         TARGET_TIMES_KEY: target_times_unix_sec,
+        GRID_SPACINGS_KEY: grid_spacings_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
         HIGH_RES_LATITUDES_KEY: high_res_latitude_matrix_deg_n,
         HIGH_RES_LONGITUDES_KEY: high_res_longitude_matrix_deg_e,
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
@@ -1696,13 +1849,20 @@ def data_generator(option_dict):
         brightness_temp_matrix_kelvins: T-by-m-by-n-by-(w * L) numpy array of
             brightness temperatures.
 
-    :return: target_matrix_low_res_px: E-by-4 numpy array with distances (in
-        low-resolution pixels) between the image center and actual cyclone
-        center.  target_matrix[:, 0] contains row offsets, and
-        target_matrix[:, 1] contains column offsets.  For example, if
-        target_matrix[20, 0] = -2 and target_matrix[20, 1] = 3, this means that
-        the true cyclone center for the 21st example is 2 rows above, and 3
-        columns to the right of, the image center.
+    :return: target_matrix: If the problem has been cast as semantic
+        segmentation...
+
+        E-by-m-by-n numpy array of true TC-center "probabilities," in range
+        0...1.
+
+    If the problem has been cast as predicting two scalars (x- and y-coords)...
+
+        E-by-4 numpy array with distances (in low-resolution pixels) between the
+        image center and actual cyclone center.  target_matrix[:, 0] contains
+        row offsets, and target_matrix[:, 1] contains column offsets.  For
+        example, if target_matrix[20, 0] = -2 and target_matrix[20, 1] = 3, this
+        means that the true cyclone center for the 21st example is 2 rows above,
+        and 3 columns to the right of, the image center.
 
         target_matrix[:, 2] contains the grid spacing for each data sample in
         km.
@@ -1731,6 +1891,8 @@ def data_generator(option_dict):
     max_num_missing_lag_times = option_dict[MAX_MISSING_LAG_TIMES_KEY]
     max_interp_gap_sec = option_dict[MAX_INTERP_GAP_KEY]
     sentinel_value = option_dict[SENTINEL_VALUE_KEY]
+    semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
+    target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -1900,13 +2062,24 @@ def data_generator(option_dict):
         if bidirectional_reflectance_matrix is not None:
             predictor_matrices.insert(0, bidirectional_reflectance_matrix)
 
-        target_matrix_low_res_px = numpy.transpose(numpy.vstack((
-            row_translations_low_res_px, column_translations_low_res_px,
-            grid_spacings_km, cyclone_center_latitudes_deg_n
-        )))
+        if semantic_segmentation_flag:
+            target_matrix = _make_targets_for_semantic_seg(
+                row_translations_px=row_translations_low_res_px,
+                column_translations_px=column_translations_low_res_px,
+                grid_spacings_km=grid_spacings_km,
+                cyclone_center_latitudes_deg_n=cyclone_center_latitudes_deg_n,
+                gaussian_smoother_stdev_km=target_smoother_stdev_km,
+                num_grid_rows=orig_num_rows_low_res,
+                num_grid_columns=orig_num_columns_low_res
+            )
+        else:
+            target_matrix = numpy.transpose(numpy.vstack((
+                row_translations_low_res_px, column_translations_low_res_px,
+                grid_spacings_km, cyclone_center_latitudes_deg_n
+            )))
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
-        yield predictor_matrices, target_matrix_low_res_px
+        yield predictor_matrices, target_matrix
 
 
 def train_model(
@@ -2049,6 +2222,8 @@ def apply_model(
     """Applies trained neural net -- inference time!
 
     E = number of examples
+    M = number of rows in grid
+    N = number of columns grid
     S = ensemble size
 
     :param model_object: Trained neural net (instance of `keras.models.Model` or
@@ -2056,10 +2231,15 @@ def apply_model(
     :param predictor_matrices: See output doc for `data_generator`.
     :param num_examples_per_batch: Batch size.
     :param verbose: Boolean flag.  If True, will print progress messages.
-    :return: prediction_matrix: E-by-2-by-S numpy array.
-        prediction_tensor[:, 0, :] contains predicted row positions of TC
-        centers, and prediction_tensor[:, 1, :] contains predicted column
-        positions of TC centers.
+    :return: prediction_matrix: If the model predicts scalar coordinates...
+
+        E-by-2-by-S numpy array.  prediction_tensor[:, 0, :] contains predicted
+        row positions of TC centers, and prediction_tensor[:, 1, :] contains
+        predicted column positions of TC centers.
+
+    If the model predicts gridded probabilities...
+
+        E-by-M-by-N-by-S numpy array of probabilities.
     """
 
     # Check input args.
@@ -2116,11 +2296,11 @@ def find_metafile(model_dir_name, raise_error_if_missing=True):
 
     metafile_name = '{0:s}/model_metadata.p'.format(model_dir_name)
 
-    # if raise_error_if_missing and not os.path.isfile(metafile_name):
-    #     metafile_name = metafile_name.replace(
-    #         '/scratch1/RDARCH',
-    #         '/home/ralager/condo/swatwork/ralager/scratch1/RDARCH'
-    #     )
+    if raise_error_if_missing and not os.path.isfile(metafile_name):
+        metafile_name = metafile_name.replace(
+            '/scratch1/RDARCH',
+            '/home/ralager/condo/swatwork/ralager/scratch1/RDARCH'
+        )
 
     if raise_error_if_missing and not os.path.isfile(metafile_name):
         error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
@@ -2161,11 +2341,25 @@ def read_metafile(pickle_file_name):
     if OPTIMIZER_FUNCTION_KEY not in metadata_dict:
         metadata_dict[OPTIMIZER_FUNCTION_KEY] = 'keras.optimizers.Adam()'
 
-    # if IS_MODEL_BNN_KEY not in metadata_dict:
-    #     metadata_dict[IS_MODEL_BNN_KEY] = False
-    #
-    # if ARCHITECTURE_KEY not in metadata_dict:
-    #     metadata_dict[ARCHITECTURE_KEY] = None
+    if IS_MODEL_BNN_KEY not in metadata_dict:
+        metadata_dict[IS_MODEL_BNN_KEY] = False
+
+    if ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[ARCHITECTURE_KEY] = None
+
+    training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
+    validation_option_dict = metadata_dict[VALIDATION_OPTIONS_KEY]
+
+    if SEMANTIC_SEG_FLAG_KEY not in training_option_dict:
+        training_option_dict[SEMANTIC_SEG_FLAG_KEY] = False
+        validation_option_dict[SEMANTIC_SEG_FLAG_KEY] = False
+
+    if TARGET_SMOOOTHER_STDEV_KEY not in training_option_dict:
+        training_option_dict[TARGET_SMOOOTHER_STDEV_KEY] = None
+        validation_option_dict[TARGET_SMOOOTHER_STDEV_KEY] = None
+
+    metadata_dict[TRAINING_OPTIONS_KEY] = training_option_dict
+    metadata_dict[VALIDATION_OPTIONS_KEY] = validation_option_dict
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
@@ -2225,7 +2419,7 @@ def read_model(hdf5_file_name):
         return model_object
 
     # TODO(thunderhoser): This code should never be reached.
-    custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT)
+    custom_object_dict = copy.deepcopy(METRIC_FUNCTION_DICT_SCALAR)
     custom_object_dict['loss'] = eval(metadata_dict[LOSS_FUNCTION_KEY])
 
     return tf_keras.models.load_model(
