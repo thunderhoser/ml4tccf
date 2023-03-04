@@ -59,12 +59,14 @@ def fractions_skill_score(
         """
 
         smoothed_target_tensor = K.conv2d(
-            x=target_tensor, kernel=weight_matrix,
+            x=K.expand_dims(target_tensor, axis=-1),
+            kernel=weight_matrix,
             padding='same', strides=(1, 1), data_format='channels_last'
         )
 
         smoothed_prediction_tensor = K.conv2d(
-            x=K.mean(prediction_tensor, axis=-1), kernel=weight_matrix,
+            x=K.mean(prediction_tensor, axis=-1, keepdims=True),
+            kernel=weight_matrix,
             padding='same', strides=(1, 1), data_format='channels_last'
         )
 
