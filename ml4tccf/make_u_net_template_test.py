@@ -16,7 +16,7 @@ import custom_losses_gridded
 
 LOSS_FUNCTION_STRING = (
     'custom_losses_gridded.fractions_skill_score('
-    'half_window_size_px=0., use_as_loss_function=True, function_name="loss"'
+    'half_window_size_px=0, use_as_loss_function=True, function_name="loss"'
     ')'
 )
 OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Adam()'
@@ -46,7 +46,7 @@ DEFAULT_OPTION_DICT = {
     u_net_architecture.ENSEMBLE_SIZE_KEY: 50,
     u_net_architecture.LOSS_FUNCTION_KEY:
         custom_losses_gridded.fractions_skill_score(
-            half_window_size_px=0., use_as_loss_function=True,
+            half_window_size_px=0, use_as_loss_function=True,
             function_name='loss'
         ),
     u_net_architecture.OPTIMIZER_FUNCTION_KEY: keras.optimizers.Adam()
