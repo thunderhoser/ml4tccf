@@ -402,7 +402,7 @@ def create_model(option_dict):
     )
     model_object.compile(
         loss=loss_function, optimizer=optimizer_function,
-        metrics=neural_net.METRIC_FUNCTION_LIST
+        metrics=neural_net.METRIC_FUNCTION_LIST_SCALAR
     )
     model_object.summary()
 

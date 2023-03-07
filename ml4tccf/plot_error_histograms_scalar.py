@@ -1,4 +1,4 @@
-"""Plots error histograms."""
+"""Plots error histograms for scalar predictions."""
 
 import os
 import sys
@@ -18,8 +18,8 @@ import histograms
 import file_system_utils
 import error_checking
 import prediction_io
-import prediction_utils
-import evaluation_sans_uq
+import scalar_prediction_utils as prediction_utils
+import scalar_evaluation
 import neural_net
 
 METRES_TO_KM = 0.001
@@ -344,10 +344,10 @@ def _plot_direction_error_histogram(
     :param output_dir_name: Same.
     """
 
-    predicted_offset_angles_deg = evaluation_sans_uq._get_offset_angles(
+    predicted_offset_angles_deg = scalar_evaluation._get_offset_angles(
         x_offsets=predicted_x_offsets_km, y_offsets=predicted_y_offsets_km
     )
-    actual_offset_angles_deg = evaluation_sans_uq._get_offset_angles(
+    actual_offset_angles_deg = scalar_evaluation._get_offset_angles(
         x_offsets=actual_x_offsets_km, y_offsets=actual_y_offsets_km
     )
 
@@ -356,7 +356,7 @@ def _plot_direction_error_histogram(
         numpy.isnan(actual_offset_angles_deg)
     )))[0]
 
-    angular_diffs_deg = evaluation_sans_uq._get_angular_diffs(
+    angular_diffs_deg = scalar_evaluation._get_angular_diffs(
         target_angles_deg=actual_offset_angles_deg[real_indices],
         predicted_angles_deg=predicted_offset_angles_deg[real_indices]
     )

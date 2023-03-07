@@ -1,7 +1,4 @@
-"""Model evaluation without uncertainty quantification (UQ).
-
-In other words, evaluation of the mean prediction only.
-"""
+"""Evaluation methods for scalar predictions."""
 
 import os
 import sys
@@ -18,7 +15,7 @@ import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
 import prediction_io
-import prediction_utils
+import scalar_prediction_utils as prediction_utils
 import neural_net
 import angular_utils
 

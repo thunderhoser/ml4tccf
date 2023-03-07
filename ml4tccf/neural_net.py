@@ -22,8 +22,8 @@ import satellite_io
 import misc_utils
 import satellite_utils
 import image_filtering
-import custom_losses as custom_losses_scalar
-import custom_metrics as custom_metrics_scalar
+import custom_losses_scalar
+import custom_metrics_scalar
 import custom_losses_gridded
 import cnn_architecture
 import u_net_architecture
@@ -2411,8 +2411,8 @@ def read_model(hdf5_file_name):
         else:
             if semantic_segmentation_flag:
                 for this_key in [
-                    u_net_architecture.LOSS_FUNCTION_KEY,
-                    u_net_architecture.OPTIMIZER_FUNCTION_KEY
+                        u_net_architecture.LOSS_FUNCTION_KEY,
+                        u_net_architecture.OPTIMIZER_FUNCTION_KEY
                 ]:
                     architecture_dict[this_key] = eval(
                         architecture_dict[this_key]

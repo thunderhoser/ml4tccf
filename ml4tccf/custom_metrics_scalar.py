@@ -1,4 +1,4 @@
-"""Custom metrics."""
+"""Custom metrics for scalar predictions (x- and y-coord)."""
 
 import os
 import sys
@@ -9,14 +9,14 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import custom_losses
+import custom_losses_scalar
 
 
 def mean_prediction(target_tensor, prediction_tensor):
     """Computes mean prediction.
 
     :param target_tensor: See doc for
-        `custom_losses.mean_squared_distance_kilometres2`.
+        `custom_losses_scalar.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
     :return: mean_prediction: Mean prediction.
     """
@@ -28,7 +28,7 @@ def mean_predictive_stdev(target_tensor, prediction_tensor):
     """Computes mean standard deviation of predictive distribution.
 
     :param target_tensor: See doc for
-        `custom_losses.mean_squared_distance_kilometres2`.
+        `custom_losses_scalar.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
     :return: mean_predictive_stdev: Mean stdev of predictive distribution.
     """
@@ -40,7 +40,7 @@ def mean_predictive_range(target_tensor, prediction_tensor):
     """Computes mean range (max less min) of predictive distribution.
 
     :param target_tensor: See doc for
-        `custom_losses.mean_squared_distance_kilometres2`.
+        `custom_losses_scalar.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
     :return: mean_predictive_range: Mean range of predictive distribution.
     """
@@ -55,7 +55,7 @@ def mean_target(target_tensor, prediction_tensor):
     """Computes mean target value.
 
     :param target_tensor: See doc for
-        `custom_losses.mean_squared_distance_kilometres2`.
+        `custom_losses_scalar.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
     :return: mean_target: Mean target value.
     """
@@ -67,7 +67,7 @@ def mean_grid_spacing_kilometres(target_tensor, prediction_tensor):
     """Computes mean grid spacing.
 
     :param target_tensor: See doc for
-        `custom_losses.mean_squared_distance_kilometres2`.
+        `custom_losses_scalar.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
     :return: mean_grid_spacing_km: Mean grid spacing.
     """
@@ -79,7 +79,7 @@ def mean_distance_kilometres(target_tensor, prediction_tensor):
     """Computes mean distance between predicted and actual TC centers.
 
     :param target_tensor: See doc for
-        `custom_losses.mean_squared_distance_kilometres2`.
+        `custom_losses_scalar.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
     :return: mean_distance_km: Mean distance.
     """
@@ -103,7 +103,7 @@ def discretized_mean_dist_kilometres(target_tensor, prediction_tensor):
     """Computes discretized mean distance btw predicted and actual TC centers.
 
     :param target_tensor: See doc for
-        `custom_losses.mean_squared_distance_kilometres2`.
+        `custom_losses_scalar.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
     :return: discretized_mean_distance_km: Discretized mean distance.
     """
@@ -119,7 +119,7 @@ def discretized_mean_dist_kilometres(target_tensor, prediction_tensor):
     )
 
     row_distances_km, column_distances_km = (
-        custom_losses.discretize_distance_errors(
+        custom_losses_scalar.discretize_distance_errors(
             row_distances_km=row_distances_km,
             column_distances_km=column_distances_km,
             true_center_latitudes_deg_n=target_tensor[:, 3]
@@ -135,7 +135,7 @@ def crps_kilometres(target_tensor, prediction_tensor):
     """Computes CRPS between predicted and actual TC centers.
 
     :param target_tensor: See doc for
-        `custom_losses.mean_squared_distance_kilometres2`.
+        `custom_losses_scalar.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
     :return: crps_km: CRPS.
     """
@@ -180,7 +180,7 @@ def discretized_crps_kilometres(target_tensor, prediction_tensor):
     """Computes discretized CRPS between predicted and actual TC centers.
 
     :param target_tensor: See doc for
-        `custom_losses.mean_squared_distance_kilometres2`.
+        `custom_losses_scalar.mean_squared_distance_kilometres2`.
     :param prediction_tensor: Same.
     :return: discretized_crps_km: Discretized CRPS.
     """
@@ -196,7 +196,7 @@ def discretized_crps_kilometres(target_tensor, prediction_tensor):
     )
 
     mean_row_errors_km, mean_column_errors_km = (
-        custom_losses.discretize_distance_errors(
+        custom_losses_scalar.discretize_distance_errors(
             row_distances_km=mean_row_errors_km,
             column_distances_km=mean_column_errors_km,
             true_center_latitudes_deg_n=target_tensor[:, 3]

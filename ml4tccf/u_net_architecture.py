@@ -544,8 +544,7 @@ def create_model(option_dict):
     )
     model_object.compile(
         loss=loss_function, optimizer=optimizer_function,
-        # metrics=neural_net.METRIC_FUNCTION_LIST_GRIDDED
-        metrics=[]
+        metrics=neural_net.METRIC_FUNCTION_LIST_GRIDDED
     )
     model_object.summary()
 
