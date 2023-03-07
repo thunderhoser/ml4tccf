@@ -25,6 +25,7 @@ import image_filtering
 import custom_losses_scalar
 import custom_metrics_scalar
 import custom_losses_gridded
+import custom_metrics_gridded
 import cnn_architecture
 import u_net_architecture
 import accum_grad_optimizer
@@ -105,7 +106,22 @@ GERRITY_FUNCTION = custom_losses_gridded.gerrity_score(
 METRIC_FUNCTION_LIST_GRIDDED = [
     FSS_FUNCTION_1BY1, FSS_FUNCTION_9BY9,
     FSS_FUNCTION_17BY17, FSS_FUNCTION_25BY25,
-    HEIDKE_FUNCTION, PEIRCE_FUNCTION, GERRITY_FUNCTION
+    HEIDKE_FUNCTION, PEIRCE_FUNCTION, GERRITY_FUNCTION,
+    custom_metrics_gridded.mean_target,
+    custom_metrics_gridded.mean_prediction,
+    custom_metrics_gridded.min_target,
+    custom_metrics_gridded.min_prediction,
+    custom_metrics_gridded.max_target,
+    custom_metrics_gridded.max_prediction,
+    custom_metrics_gridded.sum_of_targets,
+    custom_metrics_gridded.sum_of_predictions,
+    custom_metrics_gridded.mean_predictive_stdev,
+    custom_metrics_gridded.mean_predictive_range,
+    custom_metrics_gridded.mean_center_of_mass_row_for_targets,
+    custom_metrics_gridded.mean_center_of_mass_column_for_targets,
+    custom_metrics_gridded.mean_center_of_mass_row_for_predictions,
+    custom_metrics_gridded.mean_center_of_mass_column_for_predictions,
+    custom_metrics_gridded.mean_center_of_mass_distance_px
 ]
 
 METRIC_FUNCTION_DICT_GRIDDED = {
@@ -115,7 +131,27 @@ METRIC_FUNCTION_DICT_GRIDDED = {
     'fss25by25': FSS_FUNCTION_25BY25,
     'heidke_score': HEIDKE_FUNCTION,
     'peirce_score': PEIRCE_FUNCTION,
-    'gerrity_score': GERRITY_FUNCTION
+    'gerrity_score': GERRITY_FUNCTION,
+    'mean_target': custom_metrics_gridded.mean_target,
+    'mean_prediction': custom_metrics_gridded.mean_prediction,
+    'min_target': custom_metrics_gridded.min_target,
+    'min_prediction': custom_metrics_gridded.min_prediction,
+    'max_target': custom_metrics_gridded.max_target,
+    'max_prediction': custom_metrics_gridded.max_prediction,
+    'sum_of_targets': custom_metrics_gridded.sum_of_targets,
+    'sum_of_predictions': custom_metrics_gridded.sum_of_predictions,
+    'mean_predictive_stdev': custom_metrics_gridded.mean_predictive_stdev,
+    'mean_predictive_range': custom_metrics_gridded.mean_predictive_range,
+    'mean_center_of_mass_row_for_targets':
+        custom_metrics_gridded.mean_center_of_mass_row_for_targets,
+    'mean_center_of_mass_column_for_targets':
+        custom_metrics_gridded.mean_center_of_mass_column_for_targets,
+    'mean_center_of_mass_row_for_predictions':
+        custom_metrics_gridded.mean_center_of_mass_row_for_predictions,
+    'mean_center_of_mass_column_for_predictions':
+        custom_metrics_gridded.mean_center_of_mass_column_for_predictions,
+    'mean_center_of_mass_distance_px':
+        custom_metrics_gridded.mean_center_of_mass_distance_px
 }
 
 METRES_TO_KM = 0.001
