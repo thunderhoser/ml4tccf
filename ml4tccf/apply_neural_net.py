@@ -12,6 +12,8 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import error_checking
 import prediction_io
+import scalar_prediction_io
+import gridded_prediction_io
 import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
@@ -55,8 +57,8 @@ NUM_TRANSLATIONS_HELP_STRING = (
 
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Results will be written by '
-    '`prediction_io.write_file`, to a location in this directory determined by '
-    '`prediction_io.find_file`.'
+    '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`, '
+    'to a location in this directory determined by `prediction_io.find_file`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -118,7 +120,7 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
 
-    if model_metadata_dict[neural_net.BNN_ARCHITECTURE_KEY] is None:
+    if not model_metadata_dict[neural_net.IS_MODEL_BNN_KEY]:
         num_bnn_iterations = 1
 
     error_checking.assert_is_geq(num_bnn_iterations, 1)
@@ -144,6 +146,8 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
 
     predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
     target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]
+    grid_spacings_km = data_dict[neural_net.GRID_SPACINGS_KEY]
+    cyclone_center_latitudes_deg_n = data_dict[neural_net.CENTER_LATITUDES_KEY]
     target_times_unix_sec = data_dict[neural_net.TARGET_TIMES_KEY]
 
     prediction_matrix = None
@@ -182,20 +186,38 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
         )
         prediction_matrix = prediction_matrix[..., ensemble_indices]
 
-    output_file_name = prediction_io.find_file(
-        directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
-        raise_error_if_missing=False
-    )
+    if validation_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY]:
+        output_file_name = prediction_io.find_file(
+            directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
+            raise_error_if_missing=False
+        )
 
-    print('Writing results to: "{0:s}"...'.format(output_file_name))
-    prediction_io.write_file(
-        netcdf_file_name=output_file_name,
-        target_matrix=target_matrix,
-        prediction_matrix=prediction_matrix,
-        cyclone_id_string=cyclone_id_string,
-        target_times_unix_sec=target_times_unix_sec,
-        model_file_name=model_file_name
-    )
+        print('Writing results to: "{0:s}"...'.format(output_file_name))
+        gridded_prediction_io.write_file(
+            netcdf_file_name=output_file_name,
+            target_matrix=target_matrix,
+            prediction_matrix=prediction_matrix,
+            grid_spacings_km=grid_spacings_km,
+            cyclone_center_latitudes_deg_n=cyclone_center_latitudes_deg_n,
+            cyclone_id_string=cyclone_id_string,
+            target_times_unix_sec=target_times_unix_sec,
+            model_file_name=model_file_name
+        )
+    else:
+        output_file_name = prediction_io.find_file(
+            directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
+            raise_error_if_missing=False
+        )
+
+        print('Writing results to: "{0:s}"...'.format(output_file_name))
+        scalar_prediction_io.write_file(
+            netcdf_file_name=output_file_name,
+            target_matrix=target_matrix,
+            prediction_matrix=prediction_matrix,
+            cyclone_id_string=cyclone_id_string,
+            target_times_unix_sec=target_times_unix_sec,
+            model_file_name=model_file_name
+        )
 
 
 if __name__ == '__main__':
