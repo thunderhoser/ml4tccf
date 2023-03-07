@@ -78,7 +78,7 @@ def write_file(
     error_checking.assert_is_greater_numpy_array(grid_spacings_km, 0.)
     error_checking.assert_is_numpy_array(
         target_times_unix_sec,
-        exact_dimensions=numpy.array([grid_spacings_km], dtype=int)
+        exact_dimensions=numpy.array([num_examples], dtype=int)
     )
 
     error_checking.assert_is_valid_lat_numpy_array(
@@ -86,7 +86,7 @@ def write_file(
     )
     error_checking.assert_is_numpy_array(
         cyclone_center_latitudes_deg_n,
-        exact_dimensions=numpy.array([grid_spacings_km], dtype=int)
+        exact_dimensions=numpy.array([num_examples], dtype=int)
     )
 
     error_checking.assert_is_integer_numpy_array(target_times_unix_sec)
