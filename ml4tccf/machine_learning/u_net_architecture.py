@@ -328,7 +328,7 @@ def create_model(option_dict):
     else:
         layer_object = input_layer_object_low_res
 
-    num_levels = len(num_conv_layers_by_level)
+    num_levels = len(num_conv_layers_by_level) - 1
     conv_layer_by_level = [None] * (num_levels + 1)
     pooling_layer_by_level = [None] * num_levels
 
@@ -513,6 +513,11 @@ def create_model(option_dict):
         num_filters=ensemble_size,
         padding_type_string=architecture_utils.YES_PADDING_STRING,
         weight_regularizer=l2_function
+    )(skip_layer_by_level[0])
+
+    skip_layer_by_level[0] = architecture_utils.get_activation_layer(
+        activation_function_string=architecture_utils.RELU_FUNCTION_STRING,
+        alpha_for_relu=0., alpha_for_elu=0.
     )(skip_layer_by_level[0])
 
     output_layer_object = keras.layers.Lambda(

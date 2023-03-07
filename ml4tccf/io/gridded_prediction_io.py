@@ -58,8 +58,9 @@ def write_file(
         prediction_matrix, exact_dimensions=expected_dim
     )
 
-    # TODO(thunderhoser): I must enforce this constraint somehow -- probably in
-    # the architecture.
+    # TODO(thunderhoser): Maybe I should enforce this constraint somewhere other
+    # than the architecture (leads to very small values in loss function,
+    # since values are often squared).
     assert numpy.allclose(
         numpy.sum(prediction_matrix, axis=(1, 2)), 1., atol=TOLERANCE
     )
@@ -69,7 +70,7 @@ def write_file(
     error_checking.assert_is_greater_numpy_array(grid_spacings_km, 0.)
     error_checking.assert_is_numpy_array(
         target_times_unix_sec,
-        exact_dimensions=numpy.array([grid_spacings_km], dtype=int)
+        exact_dimensions=numpy.array([num_examples], dtype=int)
     )
 
     error_checking.assert_is_valid_lat_numpy_array(
@@ -77,7 +78,7 @@ def write_file(
     )
     error_checking.assert_is_numpy_array(
         cyclone_center_latitudes_deg_n,
-        exact_dimensions=numpy.array([grid_spacings_km], dtype=int)
+        exact_dimensions=numpy.array([num_examples], dtype=int)
     )
 
     error_checking.assert_is_integer_numpy_array(target_times_unix_sec)

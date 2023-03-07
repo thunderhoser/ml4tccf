@@ -53,7 +53,7 @@ def _run(input_file_name, output_dir_name):
     )
 
     num_examples = gridded_prediction_matrix.shape[0]
-    ensemble_size = gridded_prediction_matrix.shape[1]
+    ensemble_size = gridded_prediction_matrix.shape[-1]
 
     actual_row_offsets = numpy.full(num_examples, numpy.nan)
     actual_column_offsets = numpy.full(num_examples, numpy.nan)

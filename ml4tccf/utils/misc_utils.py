@@ -460,7 +460,7 @@ def confidence_interval_to_polygon(
     )))
 
 
-def target_matrix_to_centroid(target_matrix):
+def target_matrix_to_centroid(target_matrix, test_mode=False):
     """Converts target matrix to centroid (x- and y-coord).
 
     M = number of rows in grid
@@ -468,6 +468,7 @@ def target_matrix_to_centroid(target_matrix):
 
     :param target_matrix: M-by-N numpy array of "true probabilities" for
         TC-center location.
+    :param test_mode: Leave this alone.
     :return: row_offset_px: Row offset (pixels north of grid center).
     :return: column_offset_px: Column offset (pixels east of grid center).
     """
@@ -476,6 +477,8 @@ def target_matrix_to_centroid(target_matrix):
     error_checking.assert_is_geq_numpy_array(target_matrix, 0.)
     error_checking.assert_is_leq_numpy_array(target_matrix, 1.)
     assert numpy.isclose(numpy.sum(target_matrix), 1.)
+
+    error_checking.assert_is_boolean(test_mode)
 
     num_grid_rows = target_matrix.shape[0]
     num_grid_columns = target_matrix.shape[1]
@@ -489,13 +492,22 @@ def target_matrix_to_centroid(target_matrix):
     )
     assert top_four_range <= TOLERANCE
 
-    top_five_range = (
-        numpy.max(sorted_target_values[:5]) -
-        numpy.min(sorted_target_values[:5])
-    )
-    assert top_five_range > TOLERANCE
+    if test_mode:
+        top_five_range = (
+            numpy.max(sorted_target_values[:5]) -
+            numpy.min(sorted_target_values[:5])
+        )
+        assert top_five_range > TOLERANCE
 
-    centroid_indices_linear = numpy.argsort(-1 * numpy.ravel(target_matrix))[:4]
+        centroid_indices_linear = numpy.argsort(
+            -1 * numpy.ravel(target_matrix)
+        )[:4]
+    else:
+        centroid_indices_linear = numpy.where(
+            numpy.max(target_matrix) - numpy.ravel(target_matrix) < TOLERANCE
+        )[0]
+        print(len(centroid_indices_linear))
+
     centroid_row_indices, centroid_column_indices = numpy.unravel_index(
         centroid_indices_linear, target_matrix.shape
     )

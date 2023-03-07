@@ -18,6 +18,8 @@ from ml4tccf.utils import image_filtering
 from ml4tccf.machine_learning import custom_losses_scalar
 from ml4tccf.machine_learning import custom_metrics_scalar
 from ml4tccf.machine_learning import custom_losses_gridded
+from ml4tccf.machine_learning import cnn_architecture
+from ml4tccf.machine_learning import u_net_architecture
 from ml4tccf.outside_code import accum_grad_optimizer
 
 DEG_LATITUDE_TO_KM = 60 * 1.852
@@ -2383,6 +2385,8 @@ def read_model(hdf5_file_name):
     metadata_dict = read_metafile(metafile_name)
     architecture_dict = metadata_dict[ARCHITECTURE_KEY]
     is_model_bnn = metadata_dict[IS_MODEL_BNN_KEY]
+    training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
+    semantic_segmentation_flag = training_option_dict[SEMANTIC_SEG_FLAG_KEY]
 
     if architecture_dict is not None:
         if is_model_bnn:
@@ -2398,15 +2402,28 @@ def read_model(hdf5_file_name):
                 architecture_dict
             )
         else:
-            from ml4tccf.machine_learning import cnn_architecture
+            if semantic_segmentation_flag:
+                for this_key in [
+                        u_net_architecture.LOSS_FUNCTION_KEY,
+                        u_net_architecture.OPTIMIZER_FUNCTION_KEY
+                ]:
+                    architecture_dict[this_key] = eval(
+                        architecture_dict[this_key]
+                    )
 
-            for this_key in [
-                    cnn_architecture.LOSS_FUNCTION_KEY,
-                    cnn_architecture.OPTIMIZER_FUNCTION_KEY
-            ]:
-                architecture_dict[this_key] = eval(architecture_dict[this_key])
+                model_object = u_net_architecture.create_model(
+                    architecture_dict
+                )
+            else:
+                for this_key in [
+                        cnn_architecture.LOSS_FUNCTION_KEY,
+                        cnn_architecture.OPTIMIZER_FUNCTION_KEY
+                ]:
+                    architecture_dict[this_key] = eval(
+                        architecture_dict[this_key]
+                    )
 
-            model_object = cnn_architecture.create_model(architecture_dict)
+                model_object = cnn_architecture.create_model(architecture_dict)
 
         model_object.load_weights(hdf5_file_name)
         return model_object

@@ -129,7 +129,7 @@ class MiscUtilsTests(unittest.TestCase):
         """Ensures correctness of target_matrix_to_centroid w/ first input."""
 
         this_row_offset, this_column_offset = (
-            misc_utils.target_matrix_to_centroid(FIRST_MATRIX)
+            misc_utils.target_matrix_to_centroid(FIRST_MATRIX, test_mode=True)
         )
         self.assertTrue(this_row_offset == FIRST_ROW_OFFSET_FOR_TARGETS)
         self.assertTrue(this_column_offset == FIRST_COLUMN_OFFSET_FOR_TARGETS)
@@ -138,7 +138,7 @@ class MiscUtilsTests(unittest.TestCase):
         """Ensures correctness of target_matrix_to_centroid w/ second input."""
 
         this_row_offset, this_column_offset = (
-            misc_utils.target_matrix_to_centroid(SECOND_MATRIX)
+            misc_utils.target_matrix_to_centroid(SECOND_MATRIX, test_mode=True)
         )
         self.assertTrue(this_row_offset == SECOND_ROW_OFFSET_FOR_TARGETS)
         self.assertTrue(this_column_offset == SECOND_COLUMN_OFFSET_FOR_TARGETS)
@@ -147,7 +147,7 @@ class MiscUtilsTests(unittest.TestCase):
         """Ensures correctness of target_matrix_to_centroid w/ third input."""
 
         this_row_offset, this_column_offset = (
-            misc_utils.target_matrix_to_centroid(THIRD_MATRIX)
+            misc_utils.target_matrix_to_centroid(THIRD_MATRIX, test_mode=True)
         )
         self.assertTrue(this_row_offset == THIRD_ROW_OFFSET_FOR_TARGETS)
         self.assertTrue(this_column_offset == THIRD_COLUMN_OFFSET_FOR_TARGETS)
@@ -156,19 +156,19 @@ class MiscUtilsTests(unittest.TestCase):
         """Ensures correctness of target_matrix_to_centroid w/ fourth input."""
 
         with self.assertRaises(AssertionError):
-            misc_utils.target_matrix_to_centroid(FOURTH_MATRIX)
+            misc_utils.target_matrix_to_centroid(FOURTH_MATRIX, test_mode=True)
 
     def test_target_matrix_to_centroid_fifth(self):
         """Ensures correctness of target_matrix_to_centroid w/ fifth input."""
 
         with self.assertRaises(AssertionError):
-            misc_utils.target_matrix_to_centroid(FIFTH_MATRIX)
+            misc_utils.target_matrix_to_centroid(FIFTH_MATRIX, test_mode=True)
 
     def test_target_matrix_to_centroid_sixth(self):
         """Ensures correctness of target_matrix_to_centroid w/ sixth input."""
 
         with self.assertRaises(AssertionError):
-            misc_utils.target_matrix_to_centroid(SIXTH_MATRIX)
+            misc_utils.target_matrix_to_centroid(SIXTH_MATRIX, test_mode=True)
 
     def test_prediction_matrix_to_centroid_first(self):
         """Ensures crrctnss of prediction_matrix_to_centroid w/ first input."""
