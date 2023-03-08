@@ -130,9 +130,8 @@ def mean_center_of_mass_row_for_targets(target_tensor, prediction_tensor):
     :return: mean_row_index: Scalar.
     """
 
-    _, row_index_matrix, column_index_matrix = numpy.indices(
-        target_tensor.shape
-    )
+    row_index_matrix, _ = numpy.indices(target_tensor.shape[1:])
+    row_index_matrix = numpy.expand_dims(row_index_matrix, axis=0)
 
     return K.mean(
         K.sum(row_index_matrix * target_tensor, axis=(1, 2)) /
@@ -148,9 +147,8 @@ def mean_center_of_mass_column_for_targets(target_tensor, prediction_tensor):
     :return: mean_column_index: Scalar.
     """
 
-    _, row_index_matrix, column_index_matrix = numpy.indices(
-        target_tensor.shape
-    )
+    _, column_index_matrix = numpy.indices(target_tensor.shape[1:])
+    column_index_matrix = numpy.expand_dims(column_index_matrix, axis=0)
 
     return K.mean(
         K.sum(column_index_matrix * target_tensor, axis=(1, 2)) /
@@ -167,9 +165,8 @@ def mean_center_of_mass_row_for_predictions(target_tensor, prediction_tensor):
     """
 
     mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
-    _, row_index_matrix, column_index_matrix = numpy.indices(
-        mean_prediction_tensor.shape
-    )
+    row_index_matrix, _ = numpy.indices(mean_prediction_tensor.shape[1:])
+    row_index_matrix = numpy.expand_dims(row_index_matrix, axis=0)
 
     return K.mean(
         K.sum(row_index_matrix * mean_prediction_tensor, axis=(1, 2)) /
@@ -187,9 +184,8 @@ def mean_center_of_mass_column_for_predictions(target_tensor,
     """
 
     mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
-    _, row_index_matrix, column_index_matrix = numpy.indices(
-        mean_prediction_tensor.shape
-    )
+    _, column_index_matrix = numpy.indices(mean_prediction_tensor.shape[1:])
+    column_index_matrix = numpy.expand_dims(column_index_matrix, axis=0)
 
     return K.mean(
         K.sum(column_index_matrix * mean_prediction_tensor, axis=(1, 2)) /
@@ -206,9 +202,12 @@ def mean_center_of_mass_distance_px(target_tensor, prediction_tensor):
     :return: mean_distance_px: Scalar.
     """
 
-    _, row_index_matrix, column_index_matrix = numpy.indices(
-        target_tensor.shape
+    row_index_matrix, column_index_matrix = numpy.indices(
+        target_tensor.shape[1:]
     )
+    row_index_matrix = numpy.expand_dims(row_index_matrix, axis=0)
+    column_index_matrix = numpy.expand_dims(column_index_matrix, axis=0)
+
     target_row_indices = (
         K.sum(row_index_matrix * target_tensor, axis=(1, 2)) /
         K.sum(target_tensor, axis=(1, 2))
