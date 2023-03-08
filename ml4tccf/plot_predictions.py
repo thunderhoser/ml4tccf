@@ -373,6 +373,9 @@ def _plot_data_one_example(
             parallel_spacing_deg=2., meridian_spacing_deg=2.
         )
 
+        print('SCALAR TARGET VALUES')
+        print(scalar_target_values)
+
         axes_object.plot(
             0.5 + scalar_target_values[1] / num_grid_columns_low_res,
             0.5 + scalar_target_values[0] / num_grid_rows_low_res,
@@ -397,8 +400,19 @@ def _plot_data_one_example(
             row_index_matrix, column_index_matrix = numpy.indices(
                 prediction_matrix.shape
             )
+            print(row_index_matrix[:5, :5])
+            print('\n\n')
+            print(column_index_matrix[:5, :5])
+            print('\n\n')
+
             row_indices = row_index_matrix[:, 0]
             column_indices = column_index_matrix[0, :]
+
+            row_indices = (row_indices + 0.5) / numpy.max(row_indices)
+            column_indices = (column_indices + 0.5) / numpy.max(column_indices)
+            print(row_indices)
+            print('\n\n')
+            print(column_indices)
 
             axes_object.contour(
                 column_indices, row_indices, prediction_matrix,
