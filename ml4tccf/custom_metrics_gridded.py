@@ -130,9 +130,7 @@ def mean_center_of_mass_row_for_targets(target_tensor, prediction_tensor):
     :return: mean_row_index: Scalar.
     """
 
-    print(target_tensor)
-    print(prediction_tensor)
-    row_index_matrix, _ = numpy.indices(target_tensor.shape[1:])
+    row_index_matrix, _ = numpy.indices(prediction_tensor.shape[1:-1])
     row_index_matrix = numpy.expand_dims(row_index_matrix, axis=0)
 
     return K.mean(
@@ -149,7 +147,7 @@ def mean_center_of_mass_column_for_targets(target_tensor, prediction_tensor):
     :return: mean_column_index: Scalar.
     """
 
-    _, column_index_matrix = numpy.indices(target_tensor.shape[1:])
+    _, column_index_matrix = numpy.indices(prediction_tensor.shape[1:-1])
     column_index_matrix = numpy.expand_dims(column_index_matrix, axis=0)
 
     return K.mean(
@@ -205,7 +203,7 @@ def mean_center_of_mass_distance_px(target_tensor, prediction_tensor):
     """
 
     row_index_matrix, column_index_matrix = numpy.indices(
-        target_tensor.shape[1:]
+        prediction_tensor.shape[1:-1]
     )
     row_index_matrix = numpy.expand_dims(row_index_matrix, axis=0)
     column_index_matrix = numpy.expand_dims(column_index_matrix, axis=0)
