@@ -130,7 +130,8 @@ def mean_center_of_mass_row_for_targets(target_tensor, prediction_tensor):
     :return: mean_row_index: Scalar.
     """
 
-    print(target_tensor.shape)
+    print(target_tensor)
+    print(prediction_tensor)
     row_index_matrix, _ = numpy.indices(target_tensor.shape[1:])
     row_index_matrix = numpy.expand_dims(row_index_matrix, axis=0)
 
