@@ -610,7 +610,9 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
 
     # TODO(thunderhoser): This will not work if I ever have multiple cyclones in
     # one prediction file.
-    cyclone_id_string = pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[0]
+    cyclone_id_string = (
+        pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[0].decode('utf-8')
+    )
     target_times_unix_sec = pt[scalar_prediction_utils.TARGET_TIME_KEY].values
 
     if are_predictions_gridded:
