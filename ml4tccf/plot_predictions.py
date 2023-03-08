@@ -281,7 +281,7 @@ def _plot_data_one_example(
 
         if are_predictions_gridded:
             row_index_matrix, column_index_matrix = numpy.indices(
-                prediction_matrix
+                prediction_matrix.shape
             )
             row_indices = row_index_matrix[:, 0]
             column_indices = column_index_matrix[0, :]
@@ -395,7 +395,7 @@ def _plot_data_one_example(
 
         if are_predictions_gridded:
             row_index_matrix, column_index_matrix = numpy.indices(
-                prediction_matrix
+                prediction_matrix.shape
             )
             row_indices = row_index_matrix[:, 0]
             column_indices = column_index_matrix[0, :]
