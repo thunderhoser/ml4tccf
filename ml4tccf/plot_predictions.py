@@ -285,6 +285,8 @@ def _plot_data_one_example(
             )
             row_indices = row_index_matrix[:, 0]
             column_indices = column_index_matrix[0, :]
+            row_indices = (row_indices + 0.5) / len(row_indices)
+            column_indices = (column_indices + 0.5) / len(column_indices)
 
             axes_object.contour(
                 column_indices, row_indices, prediction_matrix,
@@ -373,9 +375,6 @@ def _plot_data_one_example(
             parallel_spacing_deg=2., meridian_spacing_deg=2.
         )
 
-        print('SCALAR TARGET VALUES')
-        print(scalar_target_values)
-
         axes_object.plot(
             0.5 + scalar_target_values[1] / num_grid_columns_low_res,
             0.5 + scalar_target_values[0] / num_grid_rows_low_res,
@@ -400,19 +399,10 @@ def _plot_data_one_example(
             row_index_matrix, column_index_matrix = numpy.indices(
                 prediction_matrix.shape
             )
-            print(row_index_matrix[:5, :5])
-            print('\n\n')
-            print(column_index_matrix[:5, :5])
-            print('\n\n')
-
             row_indices = row_index_matrix[:, 0]
             column_indices = column_index_matrix[0, :]
-
-            row_indices = (row_indices + 0.5) / numpy.max(row_indices)
-            column_indices = (column_indices + 0.5) / numpy.max(column_indices)
-            print(row_indices)
-            print('\n\n')
-            print(column_indices)
+            row_indices = (row_indices + 0.5) / len(row_indices)
+            column_indices = (column_indices + 0.5) / len(column_indices)
 
             axes_object.contour(
                 column_indices, row_indices, prediction_matrix,
@@ -649,6 +639,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             pt[scalar_prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
         ).astype(int)
 
+    validation_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY] = False
     data_dict = neural_net.create_data_specific_trans(
         option_dict=validation_option_dict,
         cyclone_id_string=cyclone_id_string,
