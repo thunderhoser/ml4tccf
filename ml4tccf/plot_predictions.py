@@ -667,7 +667,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
 
     if are_predictions_gridded:
         prediction_matrix = (
-            pt[gridded_prediction_utils.TARGET_MATRIX_KEY].values[..., 0]
+            pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values[..., 0]
         )
     else:
         prediction_matrix = numpy.stack((
