@@ -570,11 +570,11 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             pt = prediction_table_xarray
 
             min_contour_prob = numpy.percentile(
-                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY],
+                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values,
                 min_contour_prob_percentile
             )
             max_contour_prob = numpy.percentile(
-                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY],
+                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values,
                 max_contour_prob_percentile
             )
         else:
@@ -622,7 +622,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             (
                 actual_row_offsets[i], actual_column_offsets[i]
             ) = misc_utils.target_matrix_to_centroid(
-                pt[gridded_prediction_utils.TARGET_MATRIX_KEY][i, ...]
+                pt[gridded_prediction_utils.TARGET_MATRIX_KEY].values[i, ...]
             )
     else:
         actual_row_offsets = numpy.round(
