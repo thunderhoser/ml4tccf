@@ -1601,17 +1601,19 @@ def create_data_specific_trans(
     error_checking.assert_is_numpy_array(
         row_translations_low_res_px, exact_dimensions=expected_dim
     )
-    error_checking.assert_is_greater_numpy_array(
-        numpy.absolute(row_translations_low_res_px), 0
-    )
+    # error_checking.assert_is_greater_numpy_array(
+    #     numpy.absolute(row_translations_low_res_px), 0
+    # )
 
     error_checking.assert_is_integer_numpy_array(column_translations_low_res_px)
     error_checking.assert_is_numpy_array(
         column_translations_low_res_px, exact_dimensions=expected_dim
     )
-    error_checking.assert_is_greater_numpy_array(
-        numpy.absolute(column_translations_low_res_px), 0
-    )
+    # error_checking.assert_is_greater_numpy_array(
+    #     numpy.absolute(row_translations_low_res_px) +
+    #     numpy.absolute(column_translations_low_res_px),
+    #     0
+    # )
 
     # Do actual stuff.
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]

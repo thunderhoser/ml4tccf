@@ -274,10 +274,12 @@ def _plot_data_one_example(
 
         if are_predictions_gridded:
             row_index_matrix, column_index_matrix = numpy.indices(
-                prediction_matrix
+                prediction_matrix.shape
             )
             row_indices = row_index_matrix[:, 0]
             column_indices = column_index_matrix[0, :]
+            row_indices = (row_indices + 0.5) / len(row_indices)
+            column_indices = (column_indices + 0.5) / len(column_indices)
 
             axes_object.contour(
                 column_indices, row_indices, prediction_matrix,
@@ -388,10 +390,12 @@ def _plot_data_one_example(
 
         if are_predictions_gridded:
             row_index_matrix, column_index_matrix = numpy.indices(
-                prediction_matrix
+                prediction_matrix.shape
             )
             row_indices = row_index_matrix[:, 0]
             column_indices = column_index_matrix[0, :]
+            row_indices = (row_indices + 0.5) / len(row_indices)
+            column_indices = (column_indices + 0.5) / len(column_indices)
 
             axes_object.contour(
                 column_indices, row_indices, prediction_matrix,
@@ -563,11 +567,11 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             pt = prediction_table_xarray
 
             min_contour_prob = numpy.percentile(
-                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY],
+                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values,
                 min_contour_prob_percentile
             )
             max_contour_prob = numpy.percentile(
-                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY],
+                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values,
                 max_contour_prob_percentile
             )
         else:
@@ -603,7 +607,9 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
 
     # TODO(thunderhoser): This will not work if I ever have multiple cyclones in
     # one prediction file.
-    cyclone_id_string = pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[0]
+    cyclone_id_string = (
+        pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[0].decode('utf-8')
+    )
     target_times_unix_sec = pt[scalar_prediction_utils.TARGET_TIME_KEY].values
 
     if are_predictions_gridded:
@@ -615,7 +621,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             (
                 actual_row_offsets[i], actual_column_offsets[i]
             ) = misc_utils.target_matrix_to_centroid(
-                pt[gridded_prediction_utils.TARGET_MATRIX_KEY][i, ...]
+                pt[gridded_prediction_utils.TARGET_MATRIX_KEY].values[i, ...]
             )
     else:
         actual_row_offsets = numpy.round(
@@ -626,6 +632,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             pt[scalar_prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
         ).astype(int)
 
+    validation_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY] = False
     data_dict = neural_net.create_data_specific_trans(
         option_dict=validation_option_dict,
         cyclone_id_string=cyclone_id_string,
@@ -658,7 +665,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
 
     if are_predictions_gridded:
         prediction_matrix = (
-            pt[gridded_prediction_utils.TARGET_MATRIX_KEY].values[..., 0]
+            pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values[..., 0]
         )
     else:
         prediction_matrix = numpy.stack((
