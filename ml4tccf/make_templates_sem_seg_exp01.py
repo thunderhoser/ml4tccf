@@ -20,6 +20,7 @@ import neural_net
 # TODO(thunderhoser): Still need to fuck with batch size, num channels, and
 # regularization.
 OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Adam()'
+NUM_LEVELS = 7
 
 DEFAULT_OPTION_DICT = {
     # u_net_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
@@ -27,17 +28,20 @@ DEFAULT_OPTION_DICT = {
     u_net_architecture.INPUT_DIMENSIONS_HIGH_RES_KEY:
         numpy.array([5000, 5000, 3], dtype=int),
     u_net_architecture.INCLUDE_HIGH_RES_KEY: False,
-    u_net_architecture.CONV_LAYER_COUNTS_KEY: numpy.full(9, 2, dtype=int),
-    u_net_architecture.OUTPUT_CHANNEL_COUNTS_KEY: numpy.array(
-        [16, 24, 32, 40, 48, 56, 64, 72, 80], dtype=int
+    u_net_architecture.CONV_LAYER_COUNTS_KEY: numpy.full(
+        NUM_LEVELS + 1, 2, dtype=int
     ),
-    u_net_architecture.CONV_DROPOUT_RATES_KEY: [numpy.full(2, 0.)] * 9,
+    u_net_architecture.OUTPUT_CHANNEL_COUNTS_KEY: numpy.array(
+        [16, 24, 32, 40, 48, 56, 64, 72], dtype=int
+    ),
+    u_net_architecture.CONV_DROPOUT_RATES_KEY:
+        [numpy.full(2, 0.)] * (NUM_LEVELS + 1),
     u_net_architecture.UPCONV_DROPOUT_RATES_KEY: numpy.array([
-        0, 0, 0, 0, 0, 0.25, 0.25, 0.25
+        0, 0, 0, 0, 0.25, 0.25, 0.25
     ]),
-    u_net_architecture.SKIP_DROPOUT_RATES_KEY: [numpy.full(2, 0.)] * 8,
-    u_net_architecture.INCLUDE_PENULTIMATE_KEY: True,
-    u_net_architecture.PENULTIMATE_DROPOUT_RATE_KEY: 0.25,
+    u_net_architecture.SKIP_DROPOUT_RATES_KEY: [numpy.full(2, 0.)] * NUM_LEVELS,
+    u_net_architecture.INCLUDE_PENULTIMATE_KEY: False,
+    u_net_architecture.PENULTIMATE_DROPOUT_RATE_KEY: 0.,
     u_net_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
     u_net_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,

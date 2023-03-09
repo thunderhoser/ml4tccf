@@ -80,30 +80,12 @@ METRIC_FUNCTION_DICT_SCALAR = {
 METRIC_FUNCTION_LIST_GRIDDED = []
 METRIC_FUNCTION_DICT_GRIDDED = {}
 
-THESE_HALF_WINDOW_SIZES_PX = numpy.array([0, 3, 6], dtype=int)
-THESE_WINDOW_SIZE_STRINGS = ['1by1', '7by7', '13by13']
+THESE_HALF_WINDOW_SIZES_PX = numpy.array([3, 6], dtype=int)
+THESE_WINDOW_SIZE_STRINGS = ['7by7', '13by13']
 
 for m in range(len(THESE_HALF_WINDOW_SIZES_PX)):
     this_function_name = 'fss_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
     this_function = custom_losses_gridded.fractions_skill_score(
-        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
-        use_as_loss_function=False, function_name=this_function_name
-    )
-
-    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
-    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
-
-    this_function_name = 'gerrity_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
-    this_function = custom_losses_gridded.gerrity_score(
-        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
-        use_as_loss_function=False, function_name=this_function_name
-    )
-
-    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
-    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
-
-    this_function_name = 'heidke_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
-    this_function = custom_losses_gridded.heidke_score(
         half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
         use_as_loss_function=False, function_name=this_function_name
     )
@@ -122,24 +104,6 @@ for m in range(len(THESE_HALF_WINDOW_SIZES_PX)):
 
     this_function_name = 'csi_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
     this_function = custom_losses_gridded.csi(
-        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
-        use_as_loss_function=False, function_name=this_function_name
-    )
-
-    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
-    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
-
-    this_function_name = 'iou_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
-    this_function = custom_losses_gridded.iou(
-        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
-        use_as_loss_function=False, function_name=this_function_name
-    )
-
-    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
-    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
-
-    this_function_name = 'dice_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
-    this_function = custom_losses_gridded.dice_coeff(
         half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
         use_as_loss_function=False, function_name=this_function_name
     )
@@ -2447,8 +2411,8 @@ def read_metafile(pickle_file_name):
         validation_option_dict = dict()
 
     if SEMANTIC_SEG_FLAG_KEY not in training_option_dict:
-        training_option_dict[SEMANTIC_SEG_FLAG_KEY] = True
-        validation_option_dict[SEMANTIC_SEG_FLAG_KEY] = True
+        training_option_dict[SEMANTIC_SEG_FLAG_KEY] = False
+        validation_option_dict[SEMANTIC_SEG_FLAG_KEY] = False
 
     if TARGET_SMOOOTHER_STDEV_KEY not in training_option_dict:
         training_option_dict[TARGET_SMOOOTHER_STDEV_KEY] = None
