@@ -45,7 +45,7 @@ def num_actual_oriented_true_positives(half_window_size_px, function_name=None):
             input_tensor=K.mean(prediction_tensor, axis=-1, keepdims=True),
             half_window_size_px=half_window_size_px
         )
-        return K.sum(target_tensor * filtered_prediction_tensor[..., 0])
+        return K.sum(target_tensor * filtered_prediction_tensor)
 
     if function_name is not None:
         num_ao_true_pos_function.__name__ = function_name
@@ -72,7 +72,7 @@ def num_prediction_oriented_true_positives(half_window_size_px,
         """
 
         filtered_target_tensor = apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
         return K.sum(
@@ -104,7 +104,7 @@ def num_false_positives(half_window_size_px, function_name=None):
         """
 
         filtered_target_tensor = apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
         return K.sum(
@@ -140,7 +140,7 @@ def num_false_negatives(half_window_size_px, function_name=None):
             half_window_size_px=half_window_size_px
         )
         return K.sum(
-            target_tensor * (1. - filtered_prediction_tensor[..., 0])
+            target_tensor * (1. - filtered_prediction_tensor)
         )
 
     if function_name is not None:
