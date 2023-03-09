@@ -384,8 +384,8 @@ def mean_center_of_mass_row_for_targets(target_tensor, prediction_tensor):
     row_index_matrix = numpy.expand_dims(row_index_matrix, axis=0)
 
     return K.mean(
-        K.sum(row_index_matrix * target_tensor, axis=(1, 2)) /
-        K.sum(target_tensor, axis=(1, 2))
+        K.sum(row_index_matrix * target_tensor[..., 0], axis=(1, 2)) /
+        K.sum(target_tensor[..., 0], axis=(1, 2))
     )
 
 
@@ -401,8 +401,8 @@ def mean_center_of_mass_column_for_targets(target_tensor, prediction_tensor):
     column_index_matrix = numpy.expand_dims(column_index_matrix, axis=0)
 
     return K.mean(
-        K.sum(column_index_matrix * target_tensor, axis=(1, 2)) /
-        K.sum(target_tensor, axis=(1, 2))
+        K.sum(column_index_matrix * target_tensor[..., 0], axis=(1, 2)) /
+        K.sum(target_tensor[..., 0], axis=(1, 2))
     )
 
 
@@ -459,12 +459,12 @@ def mean_center_of_mass_distance_px(target_tensor, prediction_tensor):
     column_index_matrix = numpy.expand_dims(column_index_matrix, axis=0)
 
     target_row_indices = (
-        K.sum(row_index_matrix * target_tensor, axis=(1, 2)) /
-        K.sum(target_tensor, axis=(1, 2))
+        K.sum(row_index_matrix * target_tensor[..., 0], axis=(1, 2)) /
+        K.sum(target_tensor[..., 0], axis=(1, 2))
     )
     target_column_indices = (
-        K.sum(column_index_matrix * target_tensor, axis=(1, 2)) /
-        K.sum(target_tensor, axis=(1, 2))
+        K.sum(column_index_matrix * target_tensor[..., 0], axis=(1, 2)) /
+        K.sum(target_tensor[..., 0], axis=(1, 2))
     )
 
     mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
