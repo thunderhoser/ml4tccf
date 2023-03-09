@@ -13,6 +13,7 @@ DATA_AUG_NUM_TRANS_ARG_NAME = 'data_aug_num_translations'
 DATA_AUG_MEAN_TRANS_ARG_NAME = 'data_aug_mean_translation_low_res_px'
 DATA_AUG_STDEV_TRANS_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
 SENTINEL_VALUE_ARG_NAME = 'sentinel_value'
+TARGET_SMOOTHER_STDEV_ARG_NAME = 'target_smoother_stdev_km'
 
 TIME_TOLERANCE_FOR_TRAINING_ARG_NAME = 'lag_time_tolerance_for_training_sec'
 MAX_MISSING_TIMES_FOR_TRAINING_ARG_NAME = (
@@ -78,6 +79,10 @@ DATA_AUG_STDEV_TRANS_HELP_STRING = (
     'pixels) for data augmentation.'
 )
 SENTINEL_VALUE_HELP_STRING = 'Sentinel value (will be used to replace NaN).'
+TARGET_SMOOTHER_STDEV_HELP_STRING = (
+    '[used only if model does gridded prediction, not scalar prediction] '
+    'Standard-deviation distance for Gaussian smoothing of target field.'
+)
 
 TIME_TOLERANCE_FOR_TRAINING_HELP_STRING = (
     'Tolerance for lag times in training data.'
@@ -191,6 +196,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + SENTINEL_VALUE_ARG_NAME, type=float, required=False,
         default=-10, help=SENTINEL_VALUE_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + TARGET_SMOOTHER_STDEV_ARG_NAME, type=float, required=False,
+        default=1e-6, help=TARGET_SMOOTHER_STDEV_HELP_STRING
     )
 
     parser_object.add_argument(
