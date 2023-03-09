@@ -155,9 +155,11 @@ def _run():
                     pickle_file_name=metafile_name,
                     num_epochs=1000,
                     num_training_batches_per_epoch=32,
-                    training_option_dict=None,
+                    training_option_dict=
+                    {neural_net.SEMANTIC_SEG_FLAG_KEY: True},
                     num_validation_batches_per_epoch=16,
-                    validation_option_dict=None,
+                    validation_option_dict=
+                    {neural_net.SEMANTIC_SEG_FLAG_KEY: True},
                     loss_function_string=loss_function_string,
                     optimizer_function_string=OPTIMIZER_FUNCTION_STRING,
                     plateau_patience_epochs=10,
