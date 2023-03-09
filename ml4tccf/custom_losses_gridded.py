@@ -69,14 +69,13 @@ def fractions_skill_score(
         N = number of grid columns
         S = ensemble size
 
-        :param target_tensor: E-by-M-by-N tensor of target values.
+        :param target_tensor: E-by-M-by-N-by-1 tensor of target values.
         :param prediction_tensor: E-by-M-by-N-by-S tensor of predicted values.
         :return: loss: Fractions skill score.
         """
 
         smoothed_target_tensor = K.conv2d(
-            x=K.expand_dims(target_tensor, axis=-1),
-            kernel=weight_matrix,
+            x=target_tensor, kernel=weight_matrix,
             padding='same', strides=(1, 1), data_format='channels_last'
         )
 
@@ -125,7 +124,7 @@ def heidke_score(half_window_size_px, use_as_loss_function, function_name=None):
         """
 
         filtered_target_tensor = custom_metrics_gridded.apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
         filtered_prediction_tensor = custom_metrics_gridded.apply_max_filter(
@@ -192,7 +191,7 @@ def peirce_score(half_window_size_px, use_as_loss_function, function_name=None):
         """
 
         filtered_target_tensor = custom_metrics_gridded.apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
         filtered_prediction_tensor = custom_metrics_gridded.apply_max_filter(
@@ -254,7 +253,7 @@ def gerrity_score(half_window_size_px, use_as_loss_function,
         """
 
         filtered_target_tensor = custom_metrics_gridded.apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
         filtered_prediction_tensor = custom_metrics_gridded.apply_max_filter(
@@ -361,7 +360,7 @@ def iou(half_window_size_px, use_as_loss_function, function_name=None):
         """
 
         filtered_target_tensor = custom_metrics_gridded.apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
 
@@ -413,7 +412,7 @@ def all_class_iou(half_window_size_px, use_as_loss_function,
         """
 
         filtered_target_tensor = custom_metrics_gridded.apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
 
@@ -478,7 +477,7 @@ def dice_coeff(half_window_size_px, use_as_loss_function, function_name=None):
         """
 
         filtered_target_tensor = custom_metrics_gridded.apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
 
@@ -529,7 +528,7 @@ def brier_score(half_window_size_px, function_name=None):
         """
 
         filtered_target_tensor = custom_metrics_gridded.apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
 
@@ -569,7 +568,7 @@ def cross_entropy(half_window_size_px, function_name=None):
         """
 
         filtered_target_tensor = custom_metrics_gridded.apply_max_filter(
-            input_tensor=K.expand_dims(target_tensor, axis=-1),
+            input_tensor=target_tensor,
             half_window_size_px=half_window_size_px
         )
 
