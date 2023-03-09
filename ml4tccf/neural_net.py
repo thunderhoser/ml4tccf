@@ -1285,7 +1285,7 @@ def _make_targets_for_semantic_seg(
             stdev_distance_km=gaussian_smoother_stdev_km
         )
 
-    return target_matrix
+    return numpy.expand_dims(target_matrix, axis=-1)
 
 
 def get_translation_distances(
