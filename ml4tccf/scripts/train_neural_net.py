@@ -15,7 +15,8 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
          num_examples_per_batch, max_examples_per_cyclone,
          num_rows_low_res, num_columns_low_res, data_aug_num_translations,
          data_aug_mean_translation_low_res_px,
-         data_aug_stdev_translation_low_res_px, sentinel_value,
+         data_aug_stdev_translation_low_res_px,
+         sentinel_value, target_smoother_stdev_km,
          lag_time_tolerance_for_training_sec,
          max_num_missing_lag_times_for_training,
          max_interp_gap_for_training_sec,
@@ -45,6 +46,7 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
     :param sentinel_value: Same.
+    :param target_smoother_stdev_km: Same.
     :param lag_time_tolerance_for_training_sec: Same.
     :param max_num_missing_lag_times_for_training: Same.
     :param max_interp_gap_for_training_sec: Same.
@@ -87,7 +89,8 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
         neural_net.MAX_MISSING_LAG_TIMES_KEY:
             max_num_missing_lag_times_for_training,
         neural_net.MAX_INTERP_GAP_KEY: max_interp_gap_for_training_sec,
-        neural_net.SENTINEL_VALUE_KEY: sentinel_value
+        neural_net.SENTINEL_VALUE_KEY: sentinel_value,
+        neural_net.TARGET_SMOOOTHER_STDEV_KEY: target_smoother_stdev_km
     }
 
     validation_option_dict = {
@@ -108,6 +111,11 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
     )
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    training_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY] = (
+        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
+            neural_net.SEMANTIC_SEG_FLAG_KEY
+        ]
+    )
 
     neural_net.train_model(
         model_object=model_object, output_dir_name=output_dir_name,
@@ -176,6 +184,9 @@ if __name__ == '__main__':
         ),
         sentinel_value=getattr(
             INPUT_ARG_OBJECT, training_args.SENTINEL_VALUE_ARG_NAME
+        ),
+        target_smoother_stdev_km=getattr(
+            INPUT_ARG_OBJECT, training_args.TARGET_SMOOTHER_STDEV_ARG_NAME
         ),
         lag_time_tolerance_for_training_sec=getattr(
             INPUT_ARG_OBJECT, training_args.TIME_TOLERANCE_FOR_TRAINING_ARG_NAME

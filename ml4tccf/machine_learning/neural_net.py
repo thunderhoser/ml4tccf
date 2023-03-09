@@ -2435,6 +2435,10 @@ def read_metafile(pickle_file_name):
     training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
     validation_option_dict = metadata_dict[VALIDATION_OPTIONS_KEY]
 
+    if training_option_dict is None:
+        training_option_dict = dict()
+        validation_option_dict = dict()
+
     if SEMANTIC_SEG_FLAG_KEY not in training_option_dict:
         training_option_dict[SEMANTIC_SEG_FLAG_KEY] = False
         validation_option_dict[SEMANTIC_SEG_FLAG_KEY] = False
