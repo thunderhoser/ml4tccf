@@ -77,36 +77,95 @@ METRIC_FUNCTION_DICT_SCALAR = {
         custom_metrics_scalar.discretized_crps_kilometres
 }
 
-FSS_FUNCTION_1BY1 = custom_losses_gridded.fractions_skill_score(
-    half_window_size_px=0, use_as_loss_function=False,
-    function_name='fss_1by1'
-)
-FSS_FUNCTION_9BY9 = custom_losses_gridded.fractions_skill_score(
-    half_window_size_px=4, use_as_loss_function=False,
-    function_name='fss_9by9'
-)
-FSS_FUNCTION_17BY17 = custom_losses_gridded.fractions_skill_score(
-    half_window_size_px=8, use_as_loss_function=False,
-    function_name='fss_17by17'
-)
-FSS_FUNCTION_25BY25 = custom_losses_gridded.fractions_skill_score(
-    half_window_size_px=12, use_as_loss_function=False,
-    function_name='fss_25by25'
-)
-HEIDKE_FUNCTION = custom_losses_gridded.heidke_score(
-    use_as_loss_function=False, function_name='heidke_score'
-)
-PEIRCE_FUNCTION = custom_losses_gridded.peirce_score(
-    use_as_loss_function=False, function_name='peirce_score'
-)
-GERRITY_FUNCTION = custom_losses_gridded.gerrity_score(
-    use_as_loss_function=False, function_name='gerrity_score'
-)
+METRIC_FUNCTION_LIST_GRIDDED = []
+METRIC_FUNCTION_DICT_GRIDDED = {}
 
-METRIC_FUNCTION_LIST_GRIDDED = [
-    FSS_FUNCTION_1BY1, FSS_FUNCTION_9BY9,
-    FSS_FUNCTION_17BY17, FSS_FUNCTION_25BY25,
-    HEIDKE_FUNCTION, PEIRCE_FUNCTION, GERRITY_FUNCTION,
+THESE_HALF_WINDOW_SIZES_PX = numpy.array([0, 3, 6], dtype=int)
+THESE_WINDOW_SIZE_STRINGS = ['1by1', '7by7', '13by13']
+
+for m in range(len(THESE_HALF_WINDOW_SIZES_PX)):
+    this_function_name = 'fss_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
+    this_function = custom_losses_gridded.fractions_skill_score(
+        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
+        use_as_loss_function=False, function_name=this_function_name
+    )
+
+    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
+    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
+
+    this_function_name = 'gerrity_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
+    this_function = custom_losses_gridded.gerrity_score(
+        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
+        use_as_loss_function=False, function_name=this_function_name
+    )
+
+    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
+    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
+
+    this_function_name = 'heidke_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
+    this_function = custom_losses_gridded.heidke_score(
+        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
+        use_as_loss_function=False, function_name=this_function_name
+    )
+
+    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
+    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
+
+    this_function_name = 'peirce_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
+    this_function = custom_losses_gridded.peirce_score(
+        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
+        use_as_loss_function=False, function_name=this_function_name
+    )
+
+    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
+    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
+
+    this_function_name = 'csi_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
+    this_function = custom_losses_gridded.csi(
+        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
+        use_as_loss_function=False, function_name=this_function_name
+    )
+
+    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
+    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
+
+    this_function_name = 'iou_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
+    this_function = custom_losses_gridded.iou(
+        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
+        use_as_loss_function=False, function_name=this_function_name
+    )
+
+    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
+    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
+
+    this_function_name = 'dice_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
+    this_function = custom_losses_gridded.dice_coeff(
+        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
+        use_as_loss_function=False, function_name=this_function_name
+    )
+
+    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
+    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
+
+    this_function_name = 'brier_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
+    this_function = custom_losses_gridded.brier_score(
+        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
+        function_name=this_function_name
+    )
+
+    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
+    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
+
+    this_function_name = 'xentropy_{0:s}'.format(THESE_WINDOW_SIZE_STRINGS[m])
+    this_function = custom_losses_gridded.cross_entropy(
+        half_window_size_px=THESE_HALF_WINDOW_SIZES_PX[m],
+        function_name=this_function_name
+    )
+
+    METRIC_FUNCTION_LIST_GRIDDED.append(this_function)
+    METRIC_FUNCTION_DICT_GRIDDED[this_function_name] = this_function
+
+METRIC_FUNCTION_LIST_GRIDDED += [
     custom_metrics_gridded.mean_target,
     custom_metrics_gridded.mean_prediction,
     custom_metrics_gridded.min_target,
@@ -124,14 +183,7 @@ METRIC_FUNCTION_LIST_GRIDDED = [
     custom_metrics_gridded.mean_center_of_mass_distance_px
 ]
 
-METRIC_FUNCTION_DICT_GRIDDED = {
-    'fss1by1': FSS_FUNCTION_1BY1,
-    'fss9by9': FSS_FUNCTION_9BY9,
-    'fss17b17': FSS_FUNCTION_17BY17,
-    'fss25by25': FSS_FUNCTION_25BY25,
-    'heidke_score': HEIDKE_FUNCTION,
-    'peirce_score': PEIRCE_FUNCTION,
-    'gerrity_score': GERRITY_FUNCTION,
+METRIC_FUNCTION_DICT_GRIDDED.update({
     'mean_target': custom_metrics_gridded.mean_target,
     'mean_prediction': custom_metrics_gridded.mean_prediction,
     'min_target': custom_metrics_gridded.min_target,
@@ -152,7 +204,7 @@ METRIC_FUNCTION_DICT_GRIDDED = {
         custom_metrics_gridded.mean_center_of_mass_column_for_predictions,
     'mean_center_of_mass_distance_px':
         custom_metrics_gridded.mean_center_of_mass_distance_px
-}
+})
 
 METRES_TO_KM = 0.001
 MINUTES_TO_SECONDS = 60
