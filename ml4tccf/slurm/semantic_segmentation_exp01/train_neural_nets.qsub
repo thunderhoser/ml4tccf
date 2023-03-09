@@ -38,6 +38,7 @@ set lag_time_count=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set lag_time_string_minutes=${LAG_TIME_STRINGS_MINUTES[$SLURM_ARRAY_TASK_ID]}
 set loss_function_score_name=${LOSS_FUNCTION_SCORE_NAMES[$SLURM_ARRAY_TASK_ID]}
 set loss_function_neigh_size_px=${LOSS_FUNCTION_NEIGH_SIZES_PX[$SLURM_ARRAY_TASK_ID]}
+set lag_time_string_minutes="$lag_time_string_minutes:gas/-/ /"
 
 set template_file_name="${TEMPLATE_DIR_NAME}/num-lag-times=${lag_time_count}_loss=${loss_function_score_name}${loss_function_neigh_size_px}/model.h5"
 set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-lag-times=${lag_time_count}_loss=${loss_function_score_name}${loss_function_neigh_size_px}"

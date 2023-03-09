@@ -54,7 +54,7 @@ DEFAULT_OPTION_DICT = {
 
 OUTPUT_DIR_NAME = (
     '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/'
-    'semantic_segmentation_experiment01'
+    'semantic_segmentation_experiment01/templates'
 )
 
 LAG_TIME_COUNTS = numpy.array([1, 2, 4, 6, 8, 10, 12], dtype=int)
