@@ -23,10 +23,13 @@ def _log2(input_tensor):
         `input_tensor`.
     """
 
-    return (
-        K.log(K.maximum(input_tensor, 1e-6)) /
-        K.log(tensorflow.Variable(2., dtype=tensorflow.float64))
-    )
+    try:
+        return K.log(K.maximum(input_tensor, 1e-6)) / K.log(2.)
+    except:
+        return (
+            K.log(K.maximum(input_tensor, 1e-6)) /
+            K.log(tensorflow.Variable(2., dtype=tensorflow.float64))
+        )
 
 
 def fractions_skill_score(
