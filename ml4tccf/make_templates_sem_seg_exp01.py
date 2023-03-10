@@ -32,7 +32,7 @@ DEFAULT_OPTION_DICT = {
         NUM_LEVELS + 1, 2, dtype=int
     ),
     u_net_architecture.OUTPUT_CHANNEL_COUNTS_KEY: numpy.array(
-        [16, 24, 32, 40, 48, 56, 64, 72], dtype=int
+        [8, 16, 24, 32, 40, 48, 56, 64], dtype=int
     ),
     u_net_architecture.CONV_DROPOUT_RATES_KEY:
         [numpy.full(2, 0.)] * (NUM_LEVELS + 1),
