@@ -26,19 +26,19 @@ OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Adam()'
 
 DEFAULT_OPTION_DICT = {
     u_net_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
-        numpy.array([600, 600, 1], dtype=int),
+        numpy.array([600, 600, 6], dtype=int),
     u_net_architecture.INPUT_DIMENSIONS_HIGH_RES_KEY:
         numpy.array([5000, 5000, 3], dtype=int),
     u_net_architecture.INCLUDE_HIGH_RES_KEY: False,
-    u_net_architecture.CONV_LAYER_COUNTS_KEY: numpy.full(9, 2, dtype=int),
+    u_net_architecture.CONV_LAYER_COUNTS_KEY: numpy.full(8, 2, dtype=int),
     u_net_architecture.OUTPUT_CHANNEL_COUNTS_KEY: numpy.array(
-        [8, 16, 24, 32, 40, 48, 56, 64, 72], dtype=int
+        [8, 16, 24, 32, 40, 48, 56, 64], dtype=int
     ),
-    u_net_architecture.CONV_DROPOUT_RATES_KEY: [numpy.full(2, 0.)] * 9,
+    u_net_architecture.CONV_DROPOUT_RATES_KEY: [numpy.full(2, 0.)] * 8,
     u_net_architecture.UPCONV_DROPOUT_RATES_KEY: numpy.array([
-        0, 0, 0, 0, 0, 0.3, 0.3, 0.3
+        0, 0, 0, 0, 0.3, 0.3, 0.3
     ]),
-    u_net_architecture.SKIP_DROPOUT_RATES_KEY: [numpy.full(2, 0.)] * 8,
+    u_net_architecture.SKIP_DROPOUT_RATES_KEY: [numpy.full(2, 0.)] * 7,
     u_net_architecture.INCLUDE_PENULTIMATE_KEY: False,
     u_net_architecture.PENULTIMATE_DROPOUT_RATE_KEY: 0.,
     u_net_architecture.INNER_ACTIV_FUNCTION_KEY:
@@ -46,7 +46,7 @@ DEFAULT_OPTION_DICT = {
     u_net_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
     u_net_architecture.L2_WEIGHT_KEY: 1e-6,
     u_net_architecture.USE_BATCH_NORM_KEY: True,
-    u_net_architecture.ENSEMBLE_SIZE_KEY: 5,
+    u_net_architecture.ENSEMBLE_SIZE_KEY: 1,
     u_net_architecture.LOSS_FUNCTION_KEY:
         custom_losses_gridded.fractions_skill_score(
             half_window_size_px=10, use_as_loss_function=True,
@@ -81,15 +81,15 @@ TARGET_SMOOOTHER_STDEV_KEY = 'target_smoother_stdev_km'
 
 TRAINING_OPTION_DICT = {
     SATELLITE_DIRECTORY_KEY: '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed',
-    YEARS_KEY: numpy.array([2017], dtype=int),
-    LAG_TIMES_KEY: numpy.array([0], dtype=int),
+    YEARS_KEY: numpy.array([2017, 2018, 2019], dtype=int),
+    LAG_TIMES_KEY: numpy.array([0, 30, 60, 90, 120, 150], dtype=int),
     HIGH_RES_WAVELENGTHS_KEY: numpy.array([]),
     LOW_RES_WAVELENGTHS_KEY: numpy.array([11.2]),
-    BATCH_SIZE_KEY: 8,
-    MAX_EXAMPLES_PER_CYCLONE_KEY: 2,
+    BATCH_SIZE_KEY: 16,
+    MAX_EXAMPLES_PER_CYCLONE_KEY: 1,
     NUM_GRID_ROWS_KEY: 600,
     NUM_GRID_COLUMNS_KEY: 600,
-    DATA_AUG_NUM_TRANS_KEY: 4,
+    DATA_AUG_NUM_TRANS_KEY: 2,
     DATA_AUG_MEAN_TRANS_KEY: 15.,
     DATA_AUG_STDEV_TRANS_KEY: 7.5,
     LAG_TIME_TOLERANCE_KEY: 900,
@@ -135,7 +135,7 @@ def _run():
 
     neural_net.train_model(
         model_object=model_object,
-        output_dir_name=OUTPUT_DIR_NAME, num_epochs=10,
+        output_dir_name=OUTPUT_DIR_NAME, num_epochs=1000,
         num_training_batches_per_epoch=32,
         training_option_dict=TRAINING_OPTION_DICT,
         num_validation_batches_per_epoch=16,
