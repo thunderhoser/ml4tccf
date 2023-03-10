@@ -506,7 +506,6 @@ def target_matrix_to_centroid(target_matrix, test_mode=False):
         centroid_indices_linear = numpy.where(
             numpy.max(target_matrix) - numpy.ravel(target_matrix) < TOLERANCE
         )[0]
-        print(len(centroid_indices_linear))
 
     centroid_row_indices, centroid_column_indices = numpy.unravel_index(
         centroid_indices_linear, target_matrix.shape

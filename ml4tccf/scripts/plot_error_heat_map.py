@@ -11,12 +11,15 @@ from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import prediction_io
+from ml4tccf.utils import misc_utils
 from ml4tccf.utils import scalar_prediction_utils
+from ml4tccf.utils import gridded_prediction_utils
 from ml4tccf.machine_learning import neural_net
 from ml4tccf.plotting import plotting_utils
 
 METRES_TO_KM = 0.001
 SAMPLE_SIZE_FOR_DATA_AUG = int(1e7)
+USE_TOP_N_GRIDDED_PROBS = 1000
 
 GRID_LINE_WIDTH = 2
 GRID_LINE_COLOUR = numpy.full(3, 0.)
@@ -101,6 +104,67 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _prediction_grid_to_xy_errors(prediction_table_xarray, example_index):
+    """Converts one prediction grid to a set of x- and y-distance errors.
+
+    G = number of grid points at which distance errors are computed
+
+    :param prediction_table_xarray: xarray table with gridded predictions.
+    :param example_index: Will compute x- and y-distance errors only for the
+        [i]th grid, where i = `example_index`.
+    :return: x_errors_km: length-G numpy array of x-distance errors.
+    :return: y_errors_km: length-G numpy array of y-distance errors.
+    :return: error_weights: length-G numpy array of error weights (predicted
+        probabilities).
+    """
+
+    pt = prediction_table_xarray
+    i = example_index
+
+    target_row_offset_px, target_column_offset_px = (
+        misc_utils.target_matrix_to_centroid(
+            target_matrix=
+            pt[gridded_prediction_utils.TARGET_MATRIX_KEY].values[i, ...]
+        )
+    )
+
+    prediction_matrix = (
+        pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values[i, ..., 0]
+    )
+    grid_spacing_km = pt[gridded_prediction_utils.GRID_SPACING_KEY].values[i]
+
+    num_grid_rows = prediction_matrix.shape[0]
+    num_grid_columns = prediction_matrix.shape[1]
+    image_center_row_index = 0.5 * num_grid_rows - 0.5
+    image_center_column_index = 0.5 * num_grid_columns - 0.5
+
+    linear_indices = numpy.argsort(-1 * numpy.ravel(prediction_matrix))[
+        :USE_TOP_N_GRIDDED_PROBS
+    ]
+
+    predicted_row_indices, predicted_column_indices = numpy.unravel_index(
+        linear_indices, prediction_matrix.shape
+    )
+    predicted_row_offsets_px = predicted_row_indices - image_center_row_index
+    predicted_column_offsets_px = (
+        predicted_column_indices - image_center_column_index
+    )
+
+    x_errors_km = (
+        grid_spacing_km *
+        (predicted_column_offsets_px - target_column_offset_px)
+    )
+    y_errors_km = (
+        grid_spacing_km *
+        (predicted_row_offsets_px - target_row_offset_px)
+    )
+    error_weights = prediction_matrix[
+        predicted_row_indices, predicted_column_indices
+    ]
+
+    return x_errors_km, y_errors_km, error_weights
+
+
 def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
          colour_map_name, colour_map_limits, plot_orig_errors, output_dir_name):
     """Plots heat map of model errors.
@@ -172,42 +236,82 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
         )
 
         if are_predictions_gridded:
-            raise ValueError(
-                'This script does not yet work for gridded predictions.'
+            prediction_tables_xarray[i] = (
+                gridded_prediction_utils.get_ensemble_mean(
+                    prediction_tables_xarray[i]
+                )
+            )
+        else:
+            prediction_tables_xarray[i] = (
+                scalar_prediction_utils.get_ensemble_mean(
+                    prediction_tables_xarray[i]
+                )
             )
 
-        prediction_tables_xarray[i] = scalar_prediction_utils.get_ensemble_mean(
-            prediction_tables_xarray[i]
+    if are_predictions_gridded:
+        prediction_table_xarray = gridded_prediction_utils.concat_over_examples(
+            prediction_tables_xarray
+        )
+    else:
+        prediction_table_xarray = scalar_prediction_utils.concat_over_examples(
+            prediction_tables_xarray
         )
 
-    prediction_table_xarray = scalar_prediction_utils.concat_over_examples(
-        prediction_tables_xarray
-    )
     pt = prediction_table_xarray
 
     # Do actual stuff.
-    grid_spacings_km = pt[scalar_prediction_utils.GRID_SPACING_KEY].values
-    x_errors_km = grid_spacings_km * (
-        pt[scalar_prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[:, 0] -
-        pt[scalar_prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
-    )
-    y_errors_km = grid_spacings_km * (
-        pt[scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[:, 0] -
-        pt[scalar_prediction_utils.ACTUAL_ROW_OFFSET_KEY].values
-    )
-
     bin_edges_km = METRES_TO_KM * numpy.linspace(
         xy_error_limits_metres[0], xy_error_limits_metres[1],
         num=num_xy_error_bins + 1, dtype=float
     )
     bin_centers_km = bin_edges_km[:-1] + numpy.diff(bin_edges_km) / 2
 
-    bin_count_matrix = grids.count_events_on_equidistant_grid(
-        event_x_coords_metres=x_errors_km,
-        event_y_coords_metres=y_errors_km,
-        grid_point_x_coords_metres=bin_centers_km,
-        grid_point_y_coords_metres=bin_centers_km
-    )[0]
+    if are_predictions_gridded:
+        grid_spacings_km = pt[gridded_prediction_utils.GRID_SPACING_KEY].values
+        num_examples = len(grid_spacings_km)
+        num_errors = num_examples * USE_TOP_N_GRIDDED_PROBS
+
+        x_errors_km = numpy.full(num_errors, numpy.nan)
+        y_errors_km = numpy.full(num_errors, numpy.nan)
+        error_weights = numpy.full(num_errors, numpy.nan)
+
+        for i in range(num_examples):
+            first_index = i * USE_TOP_N_GRIDDED_PROBS
+            last_index = first_index + USE_TOP_N_GRIDDED_PROBS
+
+            (
+                x_errors_km[first_index:last_index],
+                y_errors_km[first_index:last_index],
+                error_weights[first_index:last_index]
+            ) = _prediction_grid_to_xy_errors(
+                prediction_table_xarray=pt, example_index=i
+            )
+
+        bin_count_matrix = grids.count_events_on_equidistant_grid(
+            event_x_coords_metres=x_errors_km,
+            event_y_coords_metres=y_errors_km,
+            grid_point_x_coords_metres=bin_centers_km,
+            grid_point_y_coords_metres=bin_centers_km,
+            event_weights=error_weights
+        )[0]
+    else:
+        grid_spacings_km = pt[scalar_prediction_utils.GRID_SPACING_KEY].values
+        x_errors_km = grid_spacings_km * (
+            pt[scalar_prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[:, 0]
+            - pt[scalar_prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
+        )
+        y_errors_km = grid_spacings_km * (
+            pt[scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[:, 0]
+            - pt[scalar_prediction_utils.ACTUAL_ROW_OFFSET_KEY].values
+        )
+
+        bin_count_matrix = grids.count_events_on_equidistant_grid(
+            event_x_coords_metres=x_errors_km,
+            event_y_coords_metres=y_errors_km,
+            grid_point_x_coords_metres=bin_centers_km,
+            grid_point_y_coords_metres=bin_centers_km
+        )[0]
+
     bin_frequency_matrix = (
         bin_count_matrix.astype(float) / numpy.sum(bin_count_matrix)
     )
