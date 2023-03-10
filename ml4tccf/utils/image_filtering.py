@@ -94,7 +94,8 @@ def undo_target_discretization(integer_target_matrix, grid_spacing_km,
         border_value=0
     ).astype(float)
 
-    return target_matrix / numpy.sum(target_matrix)
+    # return target_matrix / numpy.sum(target_matrix)
+    return target_matrix
 
 
 def smooth_targets_with_gaussian(
@@ -122,7 +123,8 @@ def smooth_targets_with_gaussian(
         order=0, mode='constant', cval=0., truncate=4.
     )
 
-    return smoothed_target_matrix / numpy.sum(smoothed_target_matrix)
+    # return smoothed_target_matrix / numpy.sum(smoothed_target_matrix)
+    return smoothed_target_matrix
 
 
 def create_mean_conv_filter(half_num_rows, half_num_columns, num_channels):

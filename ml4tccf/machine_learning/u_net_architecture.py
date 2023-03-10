@@ -515,14 +515,14 @@ def create_model(option_dict):
         weight_regularizer=l2_function
     )(skip_layer_by_level[0])
 
-    skip_layer_by_level[0] = architecture_utils.get_activation_layer(
+    output_layer_object = architecture_utils.get_activation_layer(
         activation_function_string=architecture_utils.RELU_FUNCTION_STRING,
         alpha_for_relu=0., alpha_for_elu=0.
     )(skip_layer_by_level[0])
 
-    output_layer_object = keras.layers.Lambda(
-        make_norm_sum_function(), name='normalize_sums'
-    )(skip_layer_by_level[0])
+    # output_layer_object = keras.layers.Lambda(
+    #     make_norm_sum_function(), name='normalize_sums'
+    # )(output_layer_object)
 
     if include_high_res_data:
         input_layer_objects = [
