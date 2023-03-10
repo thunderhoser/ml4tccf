@@ -48,12 +48,12 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --input_template_file_name="${template_file_name}" \
 --output_model_dir_name="${output_dir_name}" \
 --lag_times_minutes ${lag_time_string_minutes} \
---num_examples_per_batch=8 \
---max_examples_per_cyclone=1 \
+--num_examples_per_batch=32 \
+--max_examples_per_cyclone=2 \
 --num_rows_low_res=600 \
 --num_columns_low_res=600 \
 --low_res_wavelengths_microns 11.2 \
---data_aug_num_translations=4 \
+--data_aug_num_translations=1 \
 --data_aug_mean_translation_low_res_px=22.5 \
 --data_aug_stdev_translation_low_res_px=11.25 \
 --sentinel_value=-10 \
