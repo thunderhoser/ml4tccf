@@ -145,7 +145,7 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     )
 
     predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
-    target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]
+    target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY][..., 0]
     grid_spacings_km = data_dict[neural_net.GRID_SPACINGS_KEY]
     cyclone_center_latitudes_deg_n = data_dict[neural_net.CENTER_LATITUDES_KEY]
     target_times_unix_sec = data_dict[neural_net.TARGET_TIMES_KEY]
