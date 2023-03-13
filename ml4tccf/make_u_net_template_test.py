@@ -47,7 +47,7 @@ DEFAULT_OPTION_DICT = {
     u_net_architecture.INCLUDE_HIGH_RES_KEY: True,
     u_net_architecture.CONV_LAYER_COUNTS_KEY: numpy.full(10, 2, dtype=int),
     u_net_architecture.OUTPUT_CHANNEL_COUNTS_KEY: numpy.array(
-        [8, 10, 13, 16, 24, 32, 40, 48, 56, 64], dtype=int
+        [4, 4, 8, 16, 24, 32, 40, 48, 56, 64], dtype=int
     ),
     u_net_architecture.CONV_DROPOUT_RATES_KEY: [numpy.full(2, 0.)] * 10,
     u_net_architecture.UPCONV_DROPOUT_RATES_KEY: numpy.array([
