@@ -16,13 +16,28 @@ import architecture_utils
 import u_net_architecture
 import custom_losses_gridded
 import neural_net
+import accum_grad_optimizer
 
 LOSS_FUNCTION_STRING = (
     'custom_losses_gridded.fractions_skill_score('
     'half_window_size_px=10, use_as_loss_function=True, function_name="loss"'
     ')'
 )
-OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Adam()'
+
+OPTIMIZER_FUNCTION = (
+    accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
+        orig_optimizer=keras.optimizers.Adam(),
+        update_params_frequency=4,
+        accumulate_sum_or_mean=True
+    )
+)
+
+OPTIMIZER_FUNCTION_STRING = (
+    'accum_grad_optimizer.convert_to_accumulate_gradient_optimizer('
+    'orig_optimizer=keras.optimizers.Adam(), '
+    'update_params_frequency=4, '
+    'accumulate_sum_or_mean=True)'
+)
 
 DEFAULT_OPTION_DICT = {
     u_net_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
@@ -52,7 +67,7 @@ DEFAULT_OPTION_DICT = {
             half_window_size_px=10, use_as_loss_function=True,
             function_name='loss'
         ),
-    u_net_architecture.OPTIMIZER_FUNCTION_KEY: keras.optimizers.Adam()
+    u_net_architecture.OPTIMIZER_FUNCTION_KEY: OPTIMIZER_FUNCTION
 }
 
 OUTPUT_DIR_NAME = (
@@ -85,11 +100,11 @@ TRAINING_OPTION_DICT = {
     LAG_TIMES_KEY: numpy.array([0, 30, 60, 90, 120, 150], dtype=int),
     HIGH_RES_WAVELENGTHS_KEY: numpy.array([0.64]),
     LOW_RES_WAVELENGTHS_KEY: numpy.array([11.2]),
-    BATCH_SIZE_KEY: 16,
+    BATCH_SIZE_KEY: 8,
     MAX_EXAMPLES_PER_CYCLONE_KEY: 1,
     NUM_GRID_ROWS_KEY: 600,
     NUM_GRID_COLUMNS_KEY: 600,
-    DATA_AUG_NUM_TRANS_KEY: 2,
+    DATA_AUG_NUM_TRANS_KEY: 1,
     DATA_AUG_MEAN_TRANS_KEY: 15.,
     DATA_AUG_STDEV_TRANS_KEY: 7.5,
     LAG_TIME_TOLERANCE_KEY: 900,
@@ -130,7 +145,7 @@ def _run():
         LOSS_FUNCTION_STRING
     )
     option_dict[u_net_architecture.OPTIMIZER_FUNCTION_KEY] = (
-        'keras.optimizers.Adam()'
+        OPTIMIZER_FUNCTION_STRING
     )
 
     neural_net.train_model(
