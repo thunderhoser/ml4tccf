@@ -53,11 +53,10 @@ CONCAT_FIGURE_SIZE_PX = int(1e7)
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
 ARE_DATA_NORMALIZED_ARG_NAME = 'are_data_normalized'
-MIN_CONTOUR_PROB_ARG_NAME = 'min_contour_prob'
-MAX_CONTOUR_PROB_ARG_NAME = 'max_contour_prob'
-MIN_CONTOUR_PERCENTILE_ARG_NAME = 'min_contour_prob_percentile'
-MAX_CONTOUR_PERCENTILE_ARG_NAME = 'max_contour_prob_percentile'
-NUM_CONTOURS_ARG_NAME = 'num_prob_contours'
+MIN_GRIDDED_PROB_ARG_NAME = 'min_gridded_prob'
+MAX_GRIDDED_PROB_ARG_NAME = 'max_gridded_prob'
+MIN_GRIDDED_PROB_PERCENTILE_ARG_NAME = 'min_gridded_prob_percentile'
+MAX_GRIDDED_PROB_PERCENTILE_ARG_NAME = 'max_gridded_prob_percentile'
 PROB_COLOUR_MAP_ARG_NAME = 'prob_colour_map_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -74,29 +73,26 @@ ARE_DATA_NORMALIZED_HELP_STRING = (
     'Boolean flag.  If 1 (0), plotting code will assume that satellite data '
     'are (un)normalized.'
 )
-MIN_CONTOUR_PROB_HELP_STRING = (
-    '[used only if predictions are gridded] Minimum probability with a contour '
-    'line.  If you want to specify contour limits with percentiles instead, '
-    'leave this argument alone.'
-)
-MAX_CONTOUR_PROB_HELP_STRING = 'Same as `{0:s}` but for max.'.format(
-    MIN_CONTOUR_PROB_HELP_STRING
-)
-MIN_CONTOUR_PERCENTILE_HELP_STRING = (
-    '[used only if predictions are gridded] Minimum probability with a contour '
-    'line, stated as a percentile (from 0...100) over all values in the input '
-    'file.  If you want to specify contour limits with raw probabilities '
+MIN_GRIDDED_PROB_HELP_STRING = (
+    '[used only if predictions are gridded] Minimum probability to show in '
+    'colour scheme.  If you want to specify colour limits with percentiles '
     'instead, leave this argument alone.'
 )
-MAX_CONTOUR_PERCENTILE_HELP_STRING = 'Same as `{0:s}` but for max.'.format(
-    MIN_CONTOUR_PERCENTILE_HELP_STRING
+MAX_GRIDDED_PROB_HELP_STRING = 'Same as `{0:s}` but for max.'.format(
+    MIN_GRIDDED_PROB_HELP_STRING
 )
-NUM_CONTOURS_HELP_STRING = (
-    '[used only if predictions are gridded] Number of contour lines per map.'
+MIN_GRIDDED_PROB_PERCENTILE_HELP_STRING = (
+    '[used only if predictions are gridded] Minimum probability to show in '
+    'colour scheme, stated as a percentile (from 0...100) over all values in '
+    'the grid.  If you want to specify colour limits with raw probabilities '
+    'instead, leave this argument alone.'
+)
+MAX_GRIDDED_PROB_PERCENTILE_HELP_STRING = 'Same as `{0:s}` but for max.'.format(
+    MIN_GRIDDED_PROB_PERCENTILE_HELP_STRING
 )
 PROB_COLOUR_MAP_HELP_STRING = (
     '[used only if predictions are gridded] Name of colour scheme used for '
-    'probability contours.  Must be accepted by `pyplot.get_cmap`.'
+    'probabilities.  Must be accepted by `pyplot.get_cmap`.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
@@ -116,24 +112,20 @@ INPUT_ARG_PARSER.add_argument(
     help=ARE_DATA_NORMALIZED_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_CONTOUR_PROB_ARG_NAME, type=float, required=False, default=1,
-    help=MIN_CONTOUR_PROB_HELP_STRING
+    '--' + MIN_GRIDDED_PROB_ARG_NAME, type=float, required=False, default=1,
+    help=MIN_GRIDDED_PROB_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_CONTOUR_PROB_ARG_NAME, type=float, required=False, default=0,
-    help=MAX_CONTOUR_PROB_HELP_STRING
+    '--' + MAX_GRIDDED_PROB_ARG_NAME, type=float, required=False, default=0,
+    help=MAX_GRIDDED_PROB_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_CONTOUR_PERCENTILE_ARG_NAME, type=float, required=False,
-    default=100, help=MIN_CONTOUR_PERCENTILE_HELP_STRING
+    '--' + MIN_GRIDDED_PROB_PERCENTILE_ARG_NAME, type=float, required=False,
+    default=100, help=MIN_GRIDDED_PROB_PERCENTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_CONTOUR_PERCENTILE_ARG_NAME, type=float, required=False,
-    default=0, help=MAX_CONTOUR_PERCENTILE_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_CONTOURS_ARG_NAME, type=int, required=False,
-    default=10, help=NUM_CONTOURS_HELP_STRING
+    '--' + MAX_GRIDDED_PROB_PERCENTILE_ARG_NAME, type=float, required=False,
+    default=0, help=MAX_GRIDDED_PROB_PERCENTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + PROB_COLOUR_MAP_ARG_NAME, type=str, required=False,
@@ -145,14 +137,56 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _get_colour_map_for_gridded_probs(
+        base_colour_map_name, min_value, max_value, percent_flag):
+    """Returns colour scheme for gridded probabilities.
+
+    :param base_colour_map_name: Name of base colour map (must be accepted by
+        `matplotlib.pyplot.get_cmap`).
+    :param min_value: Minimum probability in colour scheme.
+    :param max_value: Max probability in colour scheme.
+    :param percent_flag: Boolean flag.  If True, will use percentage units.  If
+        False, will use 0...1 units.
+    :return: colour_map_object: Colour scheme (instance of
+        `matplotlib.colors.ListedColormap`).
+    :return: colour_norm_object: Instance of `matplotlib.colors.BoundaryNorm`,
+        defining the scale of the colour map.
+    """
+
+    prob_levels = numpy.linspace(min_value, max_value, num=1001, dtype=float)
+    if percent_flag:
+        prob_levels *= 100
+
+    this_colour_map_object = pyplot.get_cmap(base_colour_map_name)
+    this_colour_norm_object = matplotlib.colors.BoundaryNorm(
+        prob_levels, this_colour_map_object.N
+    )
+
+    rgba_matrix = this_colour_map_object(this_colour_norm_object(prob_levels))
+    colour_list = [
+        matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=0.5)
+        for i in range(rgba_matrix.shape[0])
+    ]
+
+    colour_map_object = matplotlib.colors.ListedColormap(colour_list)
+    colour_map_object.set_under(
+        matplotlib.colors.to_rgba(c=numpy.full(3, 1.), alpha=0.)
+    )
+    colour_norm_object = matplotlib.colors.BoundaryNorm(
+        prob_levels, colour_map_object.N
+    )
+
+    return colour_map_object, colour_norm_object
+
+
 def _plot_data_one_example(
         predictor_matrices, scalar_target_values, prediction_matrix,
         model_metadata_dict, cyclone_id_string, target_time_unix_sec,
         low_res_latitudes_deg_n, low_res_longitudes_deg_e,
         high_res_latitudes_deg_n, high_res_longitudes_deg_e,
         are_data_normalized, border_latitudes_deg_n, border_longitudes_deg_e,
-        output_file_name, contour_probabilities=None,
-        prob_colour_map_object=None):
+        output_file_name, min_gridded_prob=None, max_gridded_prob=None,
+        prob_colour_map_name=None):
     """Plots satellite data for one example.
 
     P = number of points in border set
@@ -192,11 +226,19 @@ def _plot_data_one_example(
     :param border_longitudes_deg_e: length-P numpy array of longitudes
         (deg east).  If None, will plot without coords.
     :param output_file_name: Path to output file.  Figure will be saved here.
-    :param contour_probabilities: [used only for gridded predictions]
-        1-D numpy array of probabilities corresponding to contour lines.
-    :param prob_colour_map_object: [used only for gridded predictions]
-        Colour scheme (instance of `matplotlib.pyplot.cm`).
+    :param min_gridded_prob: Minimum probability in colour scheme.
+    :param max_gridded_prob: Max probability in colour scheme.
+    :param prob_colour_map_name: Name of base colour map for probabilities (must
+        be accepted by `matplotlib.pyplot.get_cmap`).
     """
+
+    prob_colour_map_object, prob_colour_norm_object = (
+        _get_colour_map_for_gridded_probs(
+            base_colour_map_name=prob_colour_map_name,
+            min_value=min_gridded_prob, max_value=max_gridded_prob,
+            percent_flag=False
+        )
+    )
 
     num_grid_rows_low_res = predictor_matrices[-1].shape[0]
     num_grid_columns_low_res = predictor_matrices[-1].shape[1]
@@ -245,6 +287,19 @@ def _plot_data_one_example(
             colour_map_object=colour_map_object,
             colour_norm_object=colour_norm_object
         )
+
+        if are_predictions_gridded:
+            satellite_plotting.plot_2d_grid_latlng(
+                data_matrix=prediction_matrix,
+                axes_object=axes_object,
+                latitude_array_deg_n=low_res_latitudes_deg_n,
+                longitude_array_deg_e=low_res_longitudes_deg_e,
+                plotting_brightness_temp=False,
+                cbar_orientation_string=None,
+                colour_map_object=prob_colour_map_object,
+                colour_norm_object=prob_colour_norm_object
+            )
+
         plotting_utils.plot_grid_lines(
             plot_latitudes_deg_n=numpy.ravel(high_res_latitudes_deg_n),
             plot_longitudes_deg_e=numpy.ravel(high_res_longitudes_deg_e),
@@ -272,24 +327,7 @@ def _plot_data_one_example(
             transform=axes_object.transAxes, zorder=1e10
         )
 
-        if are_predictions_gridded:
-            row_index_matrix, column_index_matrix = numpy.indices(
-                prediction_matrix.shape
-            )
-            row_indices = row_index_matrix[:, 0]
-            column_indices = column_index_matrix[0, :]
-            row_indices = (row_indices + 0.5) / len(row_indices)
-            column_indices = (column_indices + 0.5) / len(column_indices)
-
-            axes_object.contour(
-                column_indices, row_indices, prediction_matrix,
-                contour_probabilities, cmap=prob_colour_map_object,
-                vmin=numpy.min(contour_probabilities),
-                vmax=numpy.max(contour_probabilities),
-                linewidths=2.5, linestyles='solid',
-                transform=axes_object.transAxes, zorder=1e10
-            )
-        else:
+        if not are_predictions_gridded:
             for k in range(ensemble_size):
                 axes_object.plot(
                     0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
@@ -361,6 +399,19 @@ def _plot_data_one_example(
             colour_map_object=colour_map_object,
             colour_norm_object=colour_norm_object
         )
+
+        if are_predictions_gridded:
+            satellite_plotting.plot_2d_grid_latlng(
+                data_matrix=prediction_matrix,
+                axes_object=axes_object,
+                latitude_array_deg_n=low_res_latitudes_deg_n,
+                longitude_array_deg_e=low_res_longitudes_deg_e,
+                plotting_brightness_temp=False,
+                cbar_orientation_string=None,
+                colour_map_object=prob_colour_map_object,
+                colour_norm_object=prob_colour_norm_object
+            )
+
         plotting_utils.plot_grid_lines(
             plot_latitudes_deg_n=numpy.ravel(low_res_latitudes_deg_n),
             plot_longitudes_deg_e=numpy.ravel(low_res_longitudes_deg_e),
@@ -388,24 +439,7 @@ def _plot_data_one_example(
             transform=axes_object.transAxes, zorder=1e10
         )
 
-        if are_predictions_gridded:
-            row_index_matrix, column_index_matrix = numpy.indices(
-                prediction_matrix.shape
-            )
-            row_indices = row_index_matrix[:, 0]
-            column_indices = column_index_matrix[0, :]
-            row_indices = (row_indices + 0.5) / len(row_indices)
-            column_indices = (column_indices + 0.5) / len(column_indices)
-
-            axes_object.contour(
-                column_indices, row_indices, prediction_matrix,
-                contour_probabilities, cmap=prob_colour_map_object,
-                vmin=numpy.min(contour_probabilities),
-                vmax=numpy.max(contour_probabilities),
-                linewidths=2.5, linestyles='solid',
-                transform=axes_object.transAxes, zorder=1e10
-            )
-        else:
+        if not are_predictions_gridded:
             for k in range(ensemble_size):
                 axes_object.plot(
                     0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
@@ -503,15 +537,18 @@ def _plot_data_one_example(
     )
 
     if are_predictions_gridded:
-        colour_norm_object = matplotlib.colors.Normalize(
-            vmin=numpy.min(100 * contour_probabilities),
-            vmax=numpy.max(100 * contour_probabilities)
+        prob_colour_map_object, prob_colour_norm_object = (
+            _get_colour_map_for_gridded_probs(
+                base_colour_map_name=prob_colour_map_name,
+                min_value=min_gridded_prob, max_value=max_gridded_prob,
+                percent_flag=True
+            )
         )
 
         plotting_utils.add_colour_bar(
             figure_file_name=output_file_name,
             colour_map_object=prob_colour_map_object,
-            colour_norm_object=colour_norm_object,
+            colour_norm_object=prob_colour_norm_object,
             orientation_string='vertical', font_size=20,
             cbar_label_string='Probability (%)',
             tick_label_format_string='{0:.2f}', log_space=False,
@@ -522,9 +559,8 @@ def _plot_data_one_example(
 
 
 def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
-         min_contour_prob, max_contour_prob,
-         min_contour_prob_percentile, max_contour_prob_percentile,
-         num_prob_contours, prob_colour_map_name, output_dir_name):
+         min_gridded_prob, max_gridded_prob, min_gridded_prob_percentile,
+         max_gridded_prob_percentile, prob_colour_map_name, output_dir_name):
     """Plots predictions.
 
     This is effectively the main method.
@@ -532,11 +568,10 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     :param prediction_file_name: See documentation at top of file.
     :param satellite_dir_name: Same.
     :param are_data_normalized: Same.
-    :param min_contour_prob: Same.
-    :param max_contour_prob: Same.
-    :param min_contour_prob_percentile: Same.
-    :param max_contour_prob_percentile: Same.
-    :param num_prob_contours: Same.
+    :param min_gridded_prob: Same.
+    :param max_gridded_prob: Same.
+    :param min_gridded_prob_percentile: Same.
+    :param max_gridded_prob_percentile: Same.
     :param prob_colour_map_name: Same.
     :param output_dir_name: Same.
     """
@@ -550,40 +585,20 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     )
 
     if are_predictions_gridded:
-        if min_contour_prob >= max_contour_prob:
-            error_checking.assert_is_geq(min_contour_prob_percentile, 50.)
+        if min_gridded_prob >= max_gridded_prob:
+            min_gridded_prob = None
+            max_gridded_prob = None
+
+            error_checking.assert_is_geq(min_gridded_prob_percentile, 50.)
             error_checking.assert_is_less_than(
-                max_contour_prob_percentile, 100.
+                max_gridded_prob_percentile, 100.
             )
             error_checking.assert_is_greater(
-                max_contour_prob_percentile, min_contour_prob_percentile
-            )
-
-            prediction_table_xarray = (
-                gridded_prediction_utils.get_ensemble_mean(
-                    prediction_table_xarray
-                )
-            )
-            pt = prediction_table_xarray
-
-            min_contour_prob = numpy.percentile(
-                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values,
-                min_contour_prob_percentile
-            )
-            max_contour_prob = numpy.percentile(
-                pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values,
-                max_contour_prob_percentile
+                max_gridded_prob_percentile, min_gridded_prob_percentile
             )
         else:
-            error_checking.assert_is_greater(min_contour_prob, 0.)
-            error_checking.assert_is_greater(max_contour_prob, 0.)
-
-        contour_probabilities = numpy.linspace(
-            min_contour_prob, max_contour_prob, num=num_prob_contours,
-            dtype=float
-        )
-    else:
-        contour_probabilities = numpy.array([])
+            error_checking.assert_is_greater(min_gridded_prob, 0.)
+            error_checking.assert_is_greater(max_gridded_prob, 0.)
 
     model_file_name = (
         prediction_table_xarray.attrs[scalar_prediction_utils.MODEL_FILE_KEY]
@@ -664,6 +679,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
         ] = numpy.nan
 
     if are_predictions_gridded:
+        pt = gridded_prediction_utils.get_ensemble_mean(pt)
         prediction_matrix = (
             pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values[..., 0]
         )
@@ -691,6 +707,28 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             this_index
         )
 
+        if are_predictions_gridded:
+            if min_gridded_prob is None:
+                this_min_gridded_prob = numpy.percentile(
+                    prediction_matrix[i, ...], min_gridded_prob_percentile
+                )
+                this_max_gridded_prob = numpy.percentile(
+                    prediction_matrix[i, ...], max_gridded_prob_percentile
+                )
+
+                if this_max_gridded_prob - this_min_gridded_prob < 0.01:
+                    new_max = this_min_gridded_prob + 0.01
+                    if new_max > 1:
+                        this_min_gridded_prob = this_max_gridded_prob - 0.01
+                    else:
+                        this_max_gridded_prob = this_min_gridded_prob + 0.01
+            else:
+                this_min_gridded_prob = min_gridded_prob + 0.
+                this_max_gridded_prob = max_gridded_prob + 0.
+        else:
+            this_min_gridded_prob = None
+            this_max_gridded_prob = None
+
         _plot_data_one_example(
             predictor_matrices=[p[i, ...] for p in predictor_matrices],
             scalar_target_values=scalar_target_matrix[i, ...],
@@ -712,8 +750,9 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
             output_file_name=output_file_name,
-            contour_probabilities=contour_probabilities,
-            prob_colour_map_object=pyplot.get_cmap(prob_colour_map_name)
+            min_gridded_prob=this_min_gridded_prob,
+            max_gridded_prob=this_max_gridded_prob,
+            prob_colour_map_name=prob_colour_map_name
         )
 
 
@@ -728,15 +767,14 @@ if __name__ == '__main__':
         are_data_normalized=bool(getattr(
             INPUT_ARG_OBJECT, ARE_DATA_NORMALIZED_ARG_NAME
         )),
-        min_contour_prob=getattr(INPUT_ARG_OBJECT, MIN_CONTOUR_PROB_ARG_NAME),
-        max_contour_prob=getattr(INPUT_ARG_OBJECT, MAX_CONTOUR_PROB_ARG_NAME),
-        min_contour_prob_percentile=getattr(
-            INPUT_ARG_OBJECT, MIN_CONTOUR_PERCENTILE_ARG_NAME
+        min_gridded_prob=getattr(INPUT_ARG_OBJECT, MIN_GRIDDED_PROB_ARG_NAME),
+        max_gridded_prob=getattr(INPUT_ARG_OBJECT, MAX_GRIDDED_PROB_ARG_NAME),
+        min_gridded_prob_percentile=getattr(
+            INPUT_ARG_OBJECT, MIN_GRIDDED_PROB_PERCENTILE_ARG_NAME
         ),
-        max_contour_prob_percentile=getattr(
-            INPUT_ARG_OBJECT, MAX_CONTOUR_PERCENTILE_ARG_NAME
+        max_gridded_prob_percentile=getattr(
+            INPUT_ARG_OBJECT, MAX_GRIDDED_PROB_PERCENTILE_ARG_NAME
         ),
-        num_prob_contours=getattr(INPUT_ARG_OBJECT, NUM_CONTOURS_ARG_NAME),
         prob_colour_map_name=getattr(
             INPUT_ARG_OBJECT, PROB_COLOUR_MAP_ARG_NAME
         ),
