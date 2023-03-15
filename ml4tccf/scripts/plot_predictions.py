@@ -163,8 +163,12 @@ def _get_colour_map_for_gridded_probs(
     )
 
     rgba_matrix = this_colour_map_object(this_colour_norm_object(prob_levels))
+    # colour_list = [
+    #     matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=0.5)
+    #     for i in range(rgba_matrix.shape[0])
+    # ]
     colour_list = [
-        matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=0.5)
+        matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=1.)
         for i in range(rgba_matrix.shape[0])
     ]
 
@@ -285,7 +289,8 @@ def _plot_data_one_example(
             plotting_brightness_temp=False,
             cbar_orientation_string=None,
             colour_map_object=colour_map_object,
-            colour_norm_object=colour_norm_object
+            colour_norm_object=colour_norm_object,
+            opacity=0.5 if are_predictions_gridded else 1.
         )
 
         if are_predictions_gridded:
@@ -297,7 +302,8 @@ def _plot_data_one_example(
                 plotting_brightness_temp=False,
                 cbar_orientation_string=None,
                 colour_map_object=prob_colour_map_object,
-                colour_norm_object=prob_colour_norm_object
+                colour_norm_object=prob_colour_norm_object,
+                opacity=1.
             )
 
         plotting_utils.plot_grid_lines(
@@ -397,7 +403,8 @@ def _plot_data_one_example(
             plotting_brightness_temp=True,
             cbar_orientation_string=None,
             colour_map_object=colour_map_object,
-            colour_norm_object=colour_norm_object
+            colour_norm_object=colour_norm_object,
+            opacity=0.5 if are_predictions_gridded else 1.
         )
 
         if are_predictions_gridded:
@@ -409,7 +416,8 @@ def _plot_data_one_example(
                 plotting_brightness_temp=False,
                 cbar_orientation_string=None,
                 colour_map_object=prob_colour_map_object,
-                colour_norm_object=prob_colour_norm_object
+                colour_norm_object=prob_colour_norm_object,
+                opacity=1.
             )
 
         plotting_utils.plot_grid_lines(

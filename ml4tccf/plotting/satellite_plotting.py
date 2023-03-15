@@ -262,7 +262,7 @@ def plot_2d_grid_latlng(
         data_matrix, axes_object, latitude_array_deg_n, longitude_array_deg_e,
         plotting_brightness_temp, cbar_orientation_string='vertical',
         font_size=DEFAULT_FONT_SIZE, colour_map_object=None,
-        colour_norm_object=None):
+        colour_norm_object=None, opacity=1.):
     """Plots data (brightness temperature or BDRF) on lat-long grid.
 
     M = number of rows in grid
@@ -290,6 +290,7 @@ def plot_2d_grid_latlng(
         colour-bar space, which goes from 0...1).  This should be an instance of
         `matplotlib.colors.Normalize`.  If None, default will be chosen based on
         `plotting_brightness_temp`.
+    :param opacity: Opacity in range 0...1.
     :return: colour_bar_object: Colour-bar handle (instance of
         `matplotlib.pyplot.colorbar`).  If `cbar_orientation_string is None`,
         this will also be None.
@@ -339,6 +340,9 @@ def plot_2d_grid_latlng(
     error_checking.assert_is_boolean(plotting_brightness_temp)
     if cbar_orientation_string is not None:
         error_checking.assert_is_string(cbar_orientation_string)
+
+    error_checking.assert_is_greater(opacity, 0.)
+    error_checking.assert_is_leq(opacity, 1.)
 
     # Set up grid coordinates.
     if regular_grid:
@@ -403,7 +407,7 @@ def plot_2d_grid_latlng(
             data_matrix_to_plot,
             cmap=colour_map_object, norm=colour_norm_object,
             vmin=min_colour_value, vmax=max_colour_value, shading='flat',
-            edgecolors='None', zorder=-1e11
+            edgecolors='None', zorder=-1e11, alpha=opacity
         )
     else:
         axes_object.pcolor(
@@ -411,7 +415,7 @@ def plot_2d_grid_latlng(
             data_matrix_to_plot,
             cmap=colour_map_object, norm=colour_norm_object,
             vmin=min_colour_value, vmax=max_colour_value,
-            edgecolors='None', zorder=-1e11
+            edgecolors='None', zorder=-1e11, alpha=opacity
         )
 
     if cbar_orientation_string is None:
@@ -429,7 +433,7 @@ def plot_2d_grid_latlng(
 def plot_2d_grid_no_coords(
         data_matrix, axes_object, plotting_brightness_temp,
         cbar_orientation_string='vertical', font_size=DEFAULT_FONT_SIZE,
-        colour_map_object=None, colour_norm_object=None):
+        colour_map_object=None, colour_norm_object=None, opacity=1.):
     """Plots data (brightness temperature or BDRF) on grid without coords.
 
     :param data_matrix: See doc for `plot_2d_grid_no_coords`.
@@ -439,6 +443,7 @@ def plot_2d_grid_no_coords(
     :param font_size: Same.
     :param colour_map_object: Same.
     :param colour_norm_object: Same.
+    :param opacity: Same.
     :return: colour_bar_object: Same.
     """
 
@@ -446,6 +451,9 @@ def plot_2d_grid_no_coords(
     error_checking.assert_is_boolean(plotting_brightness_temp)
     if cbar_orientation_string is not None:
         error_checking.assert_is_string(cbar_orientation_string)
+
+    error_checking.assert_is_greater(opacity, 0.)
+    error_checking.assert_is_leq(opacity, 1.)
 
     # Do actual plotting.
     data_matrix_to_plot = numpy.ma.masked_where(
@@ -473,7 +481,7 @@ def plot_2d_grid_no_coords(
         data_matrix_to_plot, origin='lower',
         cmap=colour_map_object, norm=colour_norm_object,
         vmin=min_colour_value, vmax=max_colour_value,
-        zorder=-1e11
+        zorder=-1e11, alpha=opacity
     )
 
     axes_object.set_xticks([], [])
