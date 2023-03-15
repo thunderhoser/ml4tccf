@@ -1,0 +1,51 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="convert_gridded_predictions_to_scalar"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=30:00:00
+#SBATCH --array=1-84
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=convert_gridded_predictions_to_scalar_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/semantic_segmentation_experiment01"
+set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2019"
+
+set LAG_TIME_COUNTS=("01" "01" "01" "01" "02" "02" "02" "02" "04" "04" "04" "04" "06" "06" "06" "06" "08" "08" "08" "08" "10" "10" "10" "10" "12" "12" "12" "12" "01" "01" "01" "01" "02" "02" "02" "02" "04" "04" "04" "04" "06" "06" "06" "06" "08" "08" "08" "08" "10" "10" "10" "10" "12" "12" "12" "12" "01" "01" "01" "01" "02" "02" "02" "02" "04" "04" "04" "04" "06" "06" "06" "06" "08" "08" "08" "08" "10" "10" "10" "10" "12" "12" "12" "12")
+set LOSS_FUNCTION_SCORE_NAMES=("fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "fss" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "gerrity" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier" "brier")
+set LOSS_FUNCTION_NEIGH_SIZES_PX=("3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9" "3" "5" "7" "9")
+
+set lag_time_count=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set loss_function_score_name=${LOSS_FUNCTION_SCORE_NAMES[$SLURM_ARRAY_TASK_ID]}
+set loss_function_neigh_size_px=${LOSS_FUNCTION_NEIGH_SIZES_PX[$SLURM_ARRAY_TASK_ID]}
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-lag-times=${lag_time_count}_loss=${loss_function_score_name}${loss_function_neigh_size_px}"
+echo $model_dir_name
+
+set CYCLONE_ID_STRINGS=("2017AL01" "2017AL02" "2017AL03" "2017AL04" "2017AL05" "2017AL06" "2017AL07" "2017AL08" "2017AL09" "2017AL10" "2017AL11" "2017AL12" "2017AL13" "2017AL14" "2017AL15" "2017AL16" "2017AL17" "2017AL18" "2017AL19" "2018AL01" "2018AL02" "2018AL03" "2018AL04" "2018AL05" "2018AL06" "2018AL07" "2018AL08" "2018AL09" "2018AL10" "2018AL11" "2018AL12" "2018AL13" "2019AL01" "2019AL02" "2019AL03" "2019AL04" "2019AL05" "2019AL06" "2019AL07" "2019AL08" "2019AL09" "2019AL10" "2019AL11" "2019AL12" "2019AL13" "2019AL14" "2019AL15" "2019AL16" "2019AL17" "2019AL18" "2019AL19" "2019AL20")
+set i=1
+
+while ($i <= ${#CYCLONE_ID_STRINGS})
+    python3 -u "${CODE_DIR_NAME}/convert_gridded_predictions_to_scalar.py" \
+    --input_prediction_file_name="${model_dir_name}/training/predictions_${CYCLONE_ID_STRINGS[$i]}.nc" \
+    --output_prediction_file_name="${model_dir_name}/training/scalar/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
+
+    @ i = $i + 1
+end
