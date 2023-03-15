@@ -609,9 +609,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             max_gridded_prob = None
 
             error_checking.assert_is_geq(min_gridded_prob_percentile, 50.)
-            error_checking.assert_is_less_than(
-                max_gridded_prob_percentile, 100.
-            )
+            error_checking.assert_is_leq(max_gridded_prob_percentile, 100.)
             error_checking.assert_is_greater(
                 max_gridded_prob_percentile, min_gridded_prob_percentile
             )
