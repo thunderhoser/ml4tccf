@@ -160,31 +160,35 @@ def _get_colour_map_for_gridded_probs(
         defining the scale of the colour map.
     """
 
-    prob_levels = numpy.linspace(min_value, max_value, num=1001, dtype=float)
+    num_colours = 1001
+    prob_values = numpy.linspace(
+        min_value, max_value, num=num_colours, dtype=float
+    )
     if percent_flag:
-        prob_levels *= 100
+        prob_values *= 100
+
+    opacity_values = numpy.full(num_colours, 0.5)
+    opacity_values[-100:] = 1.
 
     this_colour_map_object = pyplot.get_cmap(base_colour_map_name)
     this_colour_norm_object = matplotlib.colors.BoundaryNorm(
-        prob_levels, this_colour_map_object.N
+        prob_values, this_colour_map_object.N
     )
 
-    rgba_matrix = this_colour_map_object(this_colour_norm_object(prob_levels))
+    rgba_matrix = this_colour_map_object(this_colour_norm_object(prob_values))
     colour_list = [
-        matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=0.5)
-        for i in range(rgba_matrix.shape[0])
+        matplotlib.colors.to_rgba(
+            c=rgba_matrix[i, ..., :-1], alpha=opacity_values[i]
+        )
+        for i in range(num_colours)
     ]
-    # colour_list = [
-    #     matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=1.)
-    #     for i in range(rgba_matrix.shape[0])
-    # ]
 
     colour_map_object = matplotlib.colors.ListedColormap(colour_list)
     colour_map_object.set_under(
         matplotlib.colors.to_rgba(c=numpy.full(3, 1.), alpha=0.)
     )
     colour_norm_object = matplotlib.colors.BoundaryNorm(
-        prob_levels, colour_map_object.N
+        prob_values, colour_map_object.N
     )
 
     return colour_map_object, colour_norm_object
