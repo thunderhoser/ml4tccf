@@ -170,14 +170,14 @@ def _get_colour_map_for_gridded_probs(
     )
 
     rgba_matrix = this_colour_map_object(this_colour_norm_object(prob_levels))
-    # colour_list = [
-    #     matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=0.5)
-    #     for i in range(rgba_matrix.shape[0])
-    # ]
     colour_list = [
-        matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=1.)
+        matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=0.5)
         for i in range(rgba_matrix.shape[0])
     ]
+    # colour_list = [
+    #     matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=1.)
+    #     for i in range(rgba_matrix.shape[0])
+    # ]
 
     colour_map_object = matplotlib.colors.ListedColormap(colour_list)
     colour_map_object.set_under(
