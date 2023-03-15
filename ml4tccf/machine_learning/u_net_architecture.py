@@ -516,8 +516,7 @@ def create_model(option_dict):
     )(skip_layer_by_level[0])
 
     output_layer_object = architecture_utils.get_activation_layer(
-        activation_function_string=architecture_utils.RELU_FUNCTION_STRING,
-        alpha_for_relu=0., alpha_for_elu=0.
+        activation_function_string=architecture_utils.SIGMOID_FUNCTION_STRING
     )(skip_layer_by_level[0])
 
     # output_layer_object = keras.layers.Lambda(

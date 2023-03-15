@@ -153,23 +153,27 @@ def _get_colour_map_for_gridded_probs(
         defining the scale of the colour map.
     """
 
-    prob_levels = numpy.linspace(min_value, max_value, num=1001, dtype=float)
+    num_colours = 1001
+    prob_values = numpy.linspace(
+        min_value, max_value, num=num_colours, dtype=float
+    )
     if percent_flag:
-        prob_levels *= 100
+        prob_values *= 100
+
+    opacity_values = numpy.full(num_colours, 0.5)
+    opacity_values[-100:] = 1.
 
     this_colour_map_object = pyplot.get_cmap(base_colour_map_name)
     this_colour_norm_object = matplotlib.colors.BoundaryNorm(
-        prob_levels, this_colour_map_object.N
+        prob_values, this_colour_map_object.N
     )
 
-    rgba_matrix = this_colour_map_object(this_colour_norm_object(prob_levels))
-    # colour_list = [
-    #     matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=0.5)
-    #     for i in range(rgba_matrix.shape[0])
-    # ]
+    rgba_matrix = this_colour_map_object(this_colour_norm_object(prob_values))
     colour_list = [
-        matplotlib.colors.to_rgba(c=rgba_matrix[i, ..., :-1], alpha=1.)
-        for i in range(rgba_matrix.shape[0])
+        matplotlib.colors.to_rgba(
+            c=rgba_matrix[i, ..., :-1], alpha=opacity_values[i]
+        )
+        for i in range(num_colours)
     ]
 
     colour_map_object = matplotlib.colors.ListedColormap(colour_list)
@@ -177,7 +181,7 @@ def _get_colour_map_for_gridded_probs(
         matplotlib.colors.to_rgba(c=numpy.full(3, 1.), alpha=0.)
     )
     colour_norm_object = matplotlib.colors.BoundaryNorm(
-        prob_levels, colour_map_object.N
+        prob_values, colour_map_object.N
     )
 
     return colour_map_object, colour_norm_object
@@ -723,6 +727,8 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
                 this_max_gridded_prob = numpy.percentile(
                     prediction_matrix[i, ...], max_gridded_prob_percentile
                 )
+
+                print('SUM OF PREDICTIONS OVER GRID = {0:f}'.format(numpy.sum(prediction_matrix[i, ...])))
 
                 if this_max_gridded_prob - this_min_gridded_prob < 0.01:
                     new_max = this_min_gridded_prob + 0.01
