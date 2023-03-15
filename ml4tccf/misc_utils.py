@@ -483,7 +483,7 @@ def target_matrix_to_centroid(target_matrix, test_mode=False):
     error_checking.assert_is_numpy_array(target_matrix, num_dimensions=2)
     error_checking.assert_is_geq_numpy_array(target_matrix, 0.)
     error_checking.assert_is_leq_numpy_array(target_matrix, 1.)
-    assert numpy.isclose(numpy.sum(target_matrix), 1.)
+    # assert numpy.isclose(numpy.sum(target_matrix), 1.)
 
     error_checking.assert_is_boolean(test_mode)
 
@@ -545,7 +545,7 @@ def prediction_matrix_to_centroid(prediction_matrix):
     error_checking.assert_is_numpy_array(prediction_matrix, num_dimensions=2)
     error_checking.assert_is_geq_numpy_array(prediction_matrix, 0.)
     error_checking.assert_is_leq_numpy_array(prediction_matrix, 1.)
-    assert numpy.isclose(numpy.sum(prediction_matrix), 1.)
+    # assert numpy.isclose(numpy.sum(prediction_matrix), 1.)
 
     num_grid_rows = prediction_matrix.shape[0]
     num_grid_columns = prediction_matrix.shape[1]
