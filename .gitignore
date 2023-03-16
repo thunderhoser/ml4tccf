@@ -15,5 +15,7 @@ dist/
 # Slurm scripts.
 slurm/
 
-# Code that I don't intend to commit.
+# Code and images that I don't intend to commit.
 ml4tccf/*.py
+ml4tccf/*.jpg
+ml4tccf/*.png
