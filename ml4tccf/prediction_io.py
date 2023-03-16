@@ -2,6 +2,7 @@
 
 import os
 import sys
+import numpy
 import xarray
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -11,6 +12,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import error_checking
 import misc_utils
+import gridded_prediction_utils
 
 
 def find_file(directory_name, cyclone_id_string, raise_error_if_missing=True):
@@ -72,4 +74,12 @@ def read_file(netcdf_file_name):
         in the table should make it self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    prediction_table_xarray = xarray.open_dataset(netcdf_file_name)
+
+    pt = prediction_table_xarray
+    pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY] = numpy.minimum(
+        pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY], 1.
+    )
+    prediction_table_xarray = pt
+
+    return prediction_table_xarray

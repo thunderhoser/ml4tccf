@@ -56,9 +56,8 @@ def _run(input_file_name, output_dir_name):
     gridded_target_matrix = (
         gpt[gridded_prediction_utils.TARGET_MATRIX_KEY].values
     )
-    gridded_prediction_matrix = numpy.minimum(
-        gpt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values,
-        1.
+    gridded_prediction_matrix = (
+        gpt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values
     )
 
     num_examples = gridded_prediction_matrix.shape[0]
