@@ -367,7 +367,7 @@ def _plot_data_one_example(
         )
         axes_object.set_title(title_string)
 
-        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.jpg'.format(
+        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.png'.format(
             os.path.splitext(output_file_name)[0],
             high_res_wavelengths_microns[j]
         )
@@ -481,7 +481,7 @@ def _plot_data_one_example(
         )
         axes_object.set_title(title_string)
 
-        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.jpg'.format(
+        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.png'.format(
             os.path.splitext(output_file_name)[0],
             low_res_wavelengths_microns[j]
         )
@@ -529,7 +529,7 @@ def _plot_data_one_example(
                 else 'BDRF (unitless)'
             ),
             tick_label_format_string='{0:.2f}', log_space=False,
-            temporary_cbar_file_name='{0:s}_cbar.jpg'.format(
+            temporary_cbar_file_name='{0:s}_cbar.png'.format(
                 output_file_name[:-4]
             )
         )
@@ -552,7 +552,7 @@ def _plot_data_one_example(
             else r'$T_b$ (Kelvins)'
         ),
         tick_label_format_string='{0:.0f}', log_space=False,
-        temporary_cbar_file_name='{0:s}_cbar.jpg'.format(output_file_name[:-4])
+        temporary_cbar_file_name='{0:s}_cbar.png'.format(output_file_name[:-4])
     )
 
     if are_predictions_gridded:
@@ -571,7 +571,7 @@ def _plot_data_one_example(
             orientation_string='vertical', font_size=20,
             cbar_label_string='Probability (%)',
             tick_label_format_string='{0:.2f}', log_space=False,
-            temporary_cbar_file_name='{0:s}_cbar.jpg'.format(
+            temporary_cbar_file_name='{0:s}_cbar.png'.format(
                 output_file_name[:-4]
             )
         )
@@ -715,7 +715,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
         )[0]
         this_index = numpy.where(same_time_indices == i)[0][0]
 
-        output_file_name = '{0:s}/{1:s}_{2:s}_{3:03d}th.jpg'.format(
+        output_file_name = '{0:s}/{1:s}_{2:s}_{3:03d}th.png'.format(
             output_dir_name,
             cyclone_id_string,
             time_conversion.unix_sec_to_string(
