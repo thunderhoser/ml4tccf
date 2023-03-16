@@ -1,9 +1,11 @@
 """I/O methods for predictions in any format (scalar or gridded)."""
 
 import os
+import numpy
 import xarray
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import misc_utils
+from ml4tccf.utils import gridded_prediction_utils
 
 
 def find_file(directory_name, cyclone_id_string, raise_error_if_missing=True):
@@ -65,4 +67,12 @@ def read_file(netcdf_file_name):
         in the table should make it self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    prediction_table_xarray = xarray.open_dataset(netcdf_file_name)
+
+    pt = prediction_table_xarray
+    pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY] = numpy.minimum(
+        pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY], 1.
+    )
+    prediction_table_xarray = pt
+
+    return prediction_table_xarray
