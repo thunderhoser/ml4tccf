@@ -167,7 +167,8 @@ def _get_colour_map_for_gridded_probs(
     if percent_flag:
         prob_values *= 100
 
-    opacity_values = numpy.full(num_colours, 0.5)
+    opacity_values = numpy.full(num_colours, 0.8)
+    opacity_values[:100] = 0.
     opacity_values[-100:] = 1.
 
     this_colour_map_object = pyplot.get_cmap(base_colour_map_name)
@@ -314,7 +315,7 @@ def _plot_data_one_example(
                 cbar_orientation_string=None,
                 colour_map_object=prob_colour_map_object,
                 colour_norm_object=prob_colour_norm_object,
-                opacity=1.
+                use_contourf=True
             )
 
         plotting_utils.plot_grid_lines(
@@ -367,9 +368,10 @@ def _plot_data_one_example(
         )
         axes_object.set_title(title_string)
 
-        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.png'.format(
+        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.{2:s}'.format(
             os.path.splitext(output_file_name)[0],
-            high_res_wavelengths_microns[j]
+            high_res_wavelengths_microns[j],
+            'png' if are_predictions_gridded else 'jpg'
         )
 
         file_system_utils.mkdir_recursive_if_necessary(
@@ -428,7 +430,7 @@ def _plot_data_one_example(
                 cbar_orientation_string=None,
                 colour_map_object=prob_colour_map_object,
                 colour_norm_object=prob_colour_norm_object,
-                opacity=1.
+                use_contourf=True
             )
 
         plotting_utils.plot_grid_lines(
@@ -481,9 +483,10 @@ def _plot_data_one_example(
         )
         axes_object.set_title(title_string)
 
-        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.png'.format(
+        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.{2:s}'.format(
             os.path.splitext(output_file_name)[0],
-            low_res_wavelengths_microns[j]
+            low_res_wavelengths_microns[j],
+            'png' if are_predictions_gridded else 'jpg'
         )
 
         file_system_utils.mkdir_recursive_if_necessary(
@@ -529,8 +532,9 @@ def _plot_data_one_example(
                 else 'BDRF (unitless)'
             ),
             tick_label_format_string='{0:.2f}', log_space=False,
-            temporary_cbar_file_name='{0:s}_cbar.png'.format(
-                output_file_name[:-4]
+            temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
+                output_file_name[:-4],
+                'png' if are_predictions_gridded else 'jpg'
             )
         )
 
@@ -552,7 +556,10 @@ def _plot_data_one_example(
             else r'$T_b$ (Kelvins)'
         ),
         tick_label_format_string='{0:.0f}', log_space=False,
-        temporary_cbar_file_name='{0:s}_cbar.png'.format(output_file_name[:-4])
+        temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
+            output_file_name[:-4],
+            'png' if are_predictions_gridded else 'jpg'
+        )
     )
 
     if are_predictions_gridded:
@@ -571,8 +578,9 @@ def _plot_data_one_example(
             orientation_string='vertical', font_size=20,
             cbar_label_string='Probability (%)',
             tick_label_format_string='{0:.2f}', log_space=False,
-            temporary_cbar_file_name='{0:s}_cbar.png'.format(
-                output_file_name[:-4]
+            temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
+                output_file_name[:-4],
+                'png' if are_predictions_gridded else 'jpg'
             )
         )
 
@@ -715,13 +723,14 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
         )[0]
         this_index = numpy.where(same_time_indices == i)[0][0]
 
-        output_file_name = '{0:s}/{1:s}_{2:s}_{3:03d}th.png'.format(
+        output_file_name = '{0:s}/{1:s}_{2:s}_{3:03d}th.{4:s}'.format(
             output_dir_name,
             cyclone_id_string,
             time_conversion.unix_sec_to_string(
                 target_times_unix_sec[i], TIME_FORMAT
             ),
-            this_index
+            this_index,
+            'png' if are_predictions_gridded else 'jpg'
         )
 
         if are_predictions_gridded:

@@ -270,7 +270,7 @@ def plot_2d_grid_latlng(
         data_matrix, axes_object, latitude_array_deg_n, longitude_array_deg_e,
         plotting_brightness_temp, cbar_orientation_string='vertical',
         font_size=DEFAULT_FONT_SIZE, colour_map_object=None,
-        colour_norm_object=None, opacity=1.):
+        colour_norm_object=None, opacity=1., use_contourf=False):
     """Plots data (brightness temperature or BDRF) on lat-long grid.
 
     M = number of rows in grid
@@ -299,6 +299,9 @@ def plot_2d_grid_latlng(
         `matplotlib.colors.Normalize`.  If None, default will be chosen based on
         `plotting_brightness_temp`.
     :param opacity: Opacity in range 0...1.
+    :param use_contourf: Boolean flag.  If True, will use
+        `matplotlib.pyplot.contourf`.  If False, will use
+        `matplotlib.pyplot.pcolor` or `matplotlib.pyplot.pcolormesh`.
     :return: colour_bar_object: Colour-bar handle (instance of
         `matplotlib.pyplot.colorbar`).  If `cbar_orientation_string is None`,
         this will also be None.
@@ -351,6 +354,7 @@ def plot_2d_grid_latlng(
 
     error_checking.assert_is_greater(opacity, 0.)
     error_checking.assert_is_leq(opacity, 1.)
+    error_checking.assert_is_boolean(use_contourf)
 
     # Set up grid coordinates.
     if regular_grid:
@@ -409,22 +413,30 @@ def plot_2d_grid_latlng(
         min_colour_value = colour_norm_object.vmin
         max_colour_value = colour_norm_object.vmax
 
-    if regular_grid:
-        axes_object.pcolormesh(
+    if use_contourf:
+        axes_object.contourf(
             longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
             data_matrix_to_plot,
             cmap=colour_map_object, norm=colour_norm_object,
-            vmin=min_colour_value, vmax=max_colour_value, shading='flat',
-            edgecolors='None', zorder=-1e11, alpha=opacity
+            vmin=min_colour_value, vmax=max_colour_value
         )
     else:
-        axes_object.pcolor(
-            longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
-            data_matrix_to_plot,
-            cmap=colour_map_object, norm=colour_norm_object,
-            vmin=min_colour_value, vmax=max_colour_value,
-            edgecolors='None', zorder=-1e11, alpha=opacity
-        )
+        if regular_grid:
+            axes_object.pcolormesh(
+                longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
+                data_matrix_to_plot,
+                cmap=colour_map_object, norm=colour_norm_object,
+                vmin=min_colour_value, vmax=max_colour_value, shading='flat',
+                edgecolors='None', zorder=-1e11, alpha=opacity
+            )
+        else:
+            axes_object.pcolor(
+                longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
+                data_matrix_to_plot,
+                cmap=colour_map_object, norm=colour_norm_object,
+                vmin=min_colour_value, vmax=max_colour_value,
+                edgecolors='None', zorder=-1e11, alpha=opacity
+            )
 
     if cbar_orientation_string is None:
         return None
