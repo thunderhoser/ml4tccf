@@ -2135,13 +2135,6 @@ def data_generator(option_dict):
             )))
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
-        print('SHAPES OF PREDICTOR MATRICES')
-        for pm in predictor_matrices:
-            print(pm.shape)
-
-        print('SHAPE OF TARGET MATRIX')
-        print(target_matrix.shape)
-
         yield predictor_matrices, target_matrix
 
 
