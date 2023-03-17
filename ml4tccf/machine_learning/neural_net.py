@@ -2454,7 +2454,16 @@ def read_model(hdf5_file_name):
                     cnn_architecture_bayesian.LOSS_FUNCTION_KEY,
                     cnn_architecture_bayesian.OPTIMIZER_FUNCTION_KEY
             ]:
-                architecture_dict[this_key] = eval(architecture_dict[this_key])
+                try:
+                    architecture_dict[this_key] = eval(
+                        architecture_dict[this_key]
+                    )
+                except NameError:
+                    architecture_dict[this_key] = eval(
+                        architecture_dict[this_key].replace(
+                            'custom_losses', 'custom_losses_scalar'
+                        )
+                    )
 
             model_object = cnn_architecture_bayesian.create_model(
                 architecture_dict
@@ -2465,9 +2474,16 @@ def read_model(hdf5_file_name):
                         u_net_architecture.LOSS_FUNCTION_KEY,
                         u_net_architecture.OPTIMIZER_FUNCTION_KEY
                 ]:
-                    architecture_dict[this_key] = eval(
-                        architecture_dict[this_key]
-                    )
+                    try:
+                        architecture_dict[this_key] = eval(
+                            architecture_dict[this_key]
+                        )
+                    except NameError:
+                        architecture_dict[this_key] = eval(
+                            architecture_dict[this_key].replace(
+                                'custom_losses', 'custom_losses_scalar'
+                            )
+                        )
 
                 model_object = u_net_architecture.create_model(
                     architecture_dict
@@ -2477,9 +2493,16 @@ def read_model(hdf5_file_name):
                         cnn_architecture.LOSS_FUNCTION_KEY,
                         cnn_architecture.OPTIMIZER_FUNCTION_KEY
                 ]:
-                    architecture_dict[this_key] = eval(
-                        architecture_dict[this_key]
-                    )
+                    try:
+                        architecture_dict[this_key] = eval(
+                            architecture_dict[this_key]
+                        )
+                    except NameError:
+                        architecture_dict[this_key] = eval(
+                            architecture_dict[this_key].replace(
+                                'custom_losses', 'custom_losses_scalar'
+                            )
+                        )
 
                 model_object = cnn_architecture.create_model(architecture_dict)
 

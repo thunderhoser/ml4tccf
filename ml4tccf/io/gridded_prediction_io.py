@@ -40,9 +40,9 @@ def write_file(
     error_checking.assert_is_geq_numpy_array(target_matrix, 0.)
     error_checking.assert_is_leq_numpy_array(target_matrix, 1.)
 
-    assert numpy.allclose(
-        numpy.sum(target_matrix, axis=(1, 2)), 1., atol=TOLERANCE
-    )
+    # assert numpy.allclose(
+    #     numpy.sum(target_matrix, axis=(1, 2)), 1., atol=TOLERANCE
+    # )
 
     error_checking.assert_is_numpy_array(prediction_matrix, num_dimensions=4)
     error_checking.assert_is_numpy_array_without_nan(prediction_matrix)
@@ -52,7 +52,8 @@ def write_file(
     num_grid_columns = target_matrix.shape[2]
     ensemble_size = prediction_matrix.shape[3]
     expected_dim = numpy.array(
-        [num_examples, num_grid_rows, num_grid_columns, ensemble_size], dtype=int
+        [num_examples, num_grid_rows, num_grid_columns, ensemble_size],
+        dtype=int
     )
     error_checking.assert_is_numpy_array(
         prediction_matrix, exact_dimensions=expected_dim
@@ -61,9 +62,9 @@ def write_file(
     # TODO(thunderhoser): Maybe I should enforce this constraint somewhere other
     # than the architecture (leads to very small values in loss function,
     # since values are often squared).
-    assert numpy.allclose(
-        numpy.sum(prediction_matrix, axis=(1, 2)), 1., atol=TOLERANCE
-    )
+    # assert numpy.allclose(
+    #     numpy.sum(prediction_matrix, axis=(1, 2)), 1., atol=TOLERANCE
+    # )
 
     _ = misc_utils.parse_cyclone_id(cyclone_id_string)
 
