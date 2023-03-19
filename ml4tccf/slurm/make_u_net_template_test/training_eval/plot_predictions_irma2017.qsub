@@ -1,0 +1,48 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_predictions_irma2017"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=30:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_predictions_irma2017_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/u_net_template_test"
+set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed"
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}"
+echo $model_dir_name
+
+set CYCLONE_ID_STRINGS=("2017AL11")
+set i=1
+
+while ($i <= ${#CYCLONE_ID_STRINGS})
+    set prediction_file_name="${model_dir_name}/training_eval/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
+
+    python3 -u "${CODE_DIR_NAME}/plot_predictions.py" \
+    --input_prediction_file_name="${prediction_file_name}" \
+    --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
+    --are_data_normalized=0 \
+    --min_gridded_prob_percentile=90 \
+    --max_gridded_prob_percentile=100 \
+    --output_dir_name="${model_dir_name}/training_eval/predictions_${CYCLONE_ID_STRINGS[$i]}"
+
+    @ i = $i + 1
+end
