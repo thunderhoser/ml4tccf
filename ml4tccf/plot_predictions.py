@@ -248,18 +248,22 @@ def _plot_data_one_example(
         be accepted by `matplotlib.pyplot.get_cmap`).
     """
 
-    prob_colour_map_object, prob_colour_norm_object = (
-        _get_colour_map_for_gridded_probs(
-            base_colour_map_name=prob_colour_map_name,
-            min_value=min_gridded_prob, max_value=max_gridded_prob,
-            percent_flag=False
-        )
-    )
-
     num_grid_rows_low_res = predictor_matrices[-1].shape[0]
     num_grid_columns_low_res = predictor_matrices[-1].shape[1]
     are_predictions_gridded = prediction_matrix.shape[0] > 2
     ensemble_size = 1 if are_predictions_gridded else prediction_matrix.shape[1]
+
+    if are_predictions_gridded:
+        prob_colour_map_object, prob_colour_norm_object = (
+            _get_colour_map_for_gridded_probs(
+                base_colour_map_name=prob_colour_map_name,
+                min_value=min_gridded_prob, max_value=max_gridded_prob,
+                percent_flag=False
+            )
+        )
+    else:
+        prob_colour_map_object = None
+        prob_colour_norm_object = None
 
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     d = training_option_dict
