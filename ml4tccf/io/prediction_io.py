@@ -70,9 +70,10 @@ def read_file(netcdf_file_name):
     prediction_table_xarray = xarray.open_dataset(netcdf_file_name)
 
     pt = prediction_table_xarray
-    pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY] = numpy.minimum(
-        pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY], 1.
-    )
+    if gridded_prediction_utils.PREDICTION_MATRIX_KEY in pt:
+        pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY] = numpy.minimum(
+            pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY], 1.
+        )
     prediction_table_xarray = pt
 
     return prediction_table_xarray
