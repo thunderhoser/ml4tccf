@@ -753,6 +753,8 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             print(numpy.max(numpy.diff(source_table_xarray.coords[TIME_DIM].values)))
             print(numpy.min(numpy.diff(source_table_xarray.coords[TIME_DIM].values)))
             print(numpy.diff(source_table_xarray.coords[TIME_DIM].values))
+            print(source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[..., 0].shape)
+            print(source_table_xarray)
 
             interp_object = interp1d(
                 x=source_table_xarray.coords[TIME_DIM].values,
