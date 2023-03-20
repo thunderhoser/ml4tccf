@@ -762,6 +762,11 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 interp_object(new_table_xarray.coords[TIME_DIM].values[i])
             )
 
+            if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
+                print('INTERP MIN VALUE = {0:f}'.format(
+                    numpy.min(new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j])
+                ))
+
         if failed_to_interp:
             break
 
@@ -776,7 +781,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             good_time_indices = numpy.where(numpy.invert(bad_time_flags))[0]
 
             if len(good_time_indices) == 0:
-                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
+                new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
                     i, ..., j
                 ] = numpy.nan
 
