@@ -770,6 +770,16 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             )
 
             if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
+                print('\n\n*********************\n\n')
+                print(desired_times_unix_sec[i])
+                print(new_table_xarray.coords[TIME_DIM].values[i])
+                print(source_table_xarray.coords[TIME_DIM].values[0])
+                print(numpy.max(numpy.absolute(
+                    interp_object(new_table_xarray.coords[TIME_DIM].values[i]) -
+                    source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0]
+                )))
+                print('\n\n*********************\n\n')
+
                 print('INTERP MIN VALUE = {0:f}'.format(
                     numpy.min(new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j])
                 ))
