@@ -23,6 +23,8 @@ from ml4tccf.machine_learning import cnn_architecture
 from ml4tccf.machine_learning import u_net_architecture
 from ml4tccf.outside_code import accum_grad_optimizer
 
+TOLERANCE = 1e-6
+
 DEG_LATITUDE_TO_KM = 60 * 1.852
 DEGREES_TO_RADIANS = numpy.pi / 180
 TARGET_DISCRETIZATION_DEG = 0.1
@@ -1324,6 +1326,72 @@ def get_translation_distances(
     return row_translations_low_res_px, column_translations_low_res_px
 
 
+def combine_lag_times_and_wavelengths(satellite_data_matrix):
+    """Combines lag times and wavelengths into one axis.
+
+    E = number of examples
+    M = number of rows in grid
+    N = number of columns in grid
+    L = number of lag times
+    W = number of wavelengths
+
+    :param satellite_data_matrix: E-by-M-by-N-by-L-by-W numpy array of satellite
+        data (either brightness temperatures or bidirectional reflectances).
+    :return: satellite_data_matrix: Same as input but with shape
+        E-by-M-by-N-by-(L * W).
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(satellite_data_matrix)
+    error_checking.assert_is_numpy_array(
+        satellite_data_matrix, num_dimensions=5
+    )
+
+    these_dim = satellite_data_matrix.shape[:-2] + (
+        numpy.prod(satellite_data_matrix.shape[-2:]),
+    )
+    return numpy.reshape(satellite_data_matrix, these_dim)
+
+
+def separate_lag_times_and_wavelengths(satellite_data_matrix, num_lag_times):
+    """Separates lag times and wavelengths into different axes.
+
+    E = number of examples
+    M = number of rows in grid
+    N = number of columns in grid
+    L = number of lag times
+    W = number of wavelengths
+
+    :param satellite_data_matrix: E-by-M-by-N-by-(L * W) numpy array of
+        satellite data (either brightness temperatures or bidirectional
+        reflectances).
+    :param num_lag_times: Number of lag times.
+    :return: satellite_data_matrix: Same as input but with shape
+        E-by-M-by-N-by-L-by-W.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(satellite_data_matrix)
+    error_checking.assert_is_numpy_array(
+        satellite_data_matrix, num_dimensions=4
+    )
+
+    error_checking.assert_is_integer(num_lag_times)
+    error_checking.assert_is_geq(num_lag_times, 1)
+
+    last_axis_length = satellite_data_matrix.shape[-1]
+    num_wavelengths_float = float(last_axis_length) / num_lag_times
+    assert numpy.isclose(
+        num_wavelengths_float, numpy.round(num_wavelengths_float),
+        atol=TOLERANCE
+    )
+
+    num_wavelengths = int(numpy.round(num_wavelengths_float))
+    these_dim = satellite_data_matrix.shape[:-1] + (
+        num_lag_times, num_wavelengths
+    )
+
+    return numpy.reshape(satellite_data_matrix, these_dim)
+
+
 def create_data(option_dict, cyclone_id_string, num_target_times):
     """Creates input data for neural net (without being a generator).
 
@@ -1428,19 +1496,12 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     if brightness_temp_matrix_kelvins.size == 0:
         return None
 
-    these_dim = brightness_temp_matrix_kelvins.shape[:-2] + (
-        numpy.prod(brightness_temp_matrix_kelvins.shape[-2:]),
+    brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
+        brightness_temp_matrix_kelvins
     )
-    brightness_temp_matrix_kelvins = numpy.reshape(
-        brightness_temp_matrix_kelvins, these_dim
-    )
-
     if bidirectional_reflectance_matrix is not None:
-        these_dim = bidirectional_reflectance_matrix.shape[:-2] + (
-            numpy.prod(bidirectional_reflectance_matrix.shape[-2:]),
-        )
-        bidirectional_reflectance_matrix = numpy.reshape(
-            bidirectional_reflectance_matrix, these_dim
+        bidirectional_reflectance_matrix = combine_lag_times_and_wavelengths(
+            bidirectional_reflectance_matrix
         )
 
     (
@@ -1712,11 +1773,8 @@ def create_data_specific_trans(
         low_res_longitude_matrix_deg_e[reconstruction_indices, ...]
     )
 
-    these_dim = brightness_temp_matrix_kelvins.shape[:-2] + (
-        numpy.prod(brightness_temp_matrix_kelvins.shape[-2:]),
-    )
-    brightness_temp_matrix_kelvins = numpy.reshape(
-        brightness_temp_matrix_kelvins, these_dim
+    brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
+        brightness_temp_matrix_kelvins
     )
 
     if bidirectional_reflectance_matrix is not None:
@@ -1730,11 +1788,8 @@ def create_data_specific_trans(
             high_res_longitude_matrix_deg_e[reconstruction_indices, ...]
         )
 
-        these_dim = bidirectional_reflectance_matrix.shape[:-2] + (
-            numpy.prod(bidirectional_reflectance_matrix.shape[-2:]),
-        )
-        bidirectional_reflectance_matrix = numpy.reshape(
-            bidirectional_reflectance_matrix, these_dim
+        bidirectional_reflectance_matrix = combine_lag_times_and_wavelengths(
+            bidirectional_reflectance_matrix
         )
 
     (
@@ -2018,19 +2073,12 @@ def data_generator(option_dict):
             if this_bt_matrix_kelvins.size == 0:
                 continue
 
-            these_dim = this_bt_matrix_kelvins.shape[:-2] + (
-                numpy.prod(this_bt_matrix_kelvins.shape[-2:]),
+            this_bt_matrix_kelvins = combine_lag_times_and_wavelengths(
+                this_bt_matrix_kelvins
             )
-            this_bt_matrix_kelvins = numpy.reshape(
-                this_bt_matrix_kelvins, these_dim
-            )
-
             if this_reflectance_matrix is not None:
-                these_dim = this_reflectance_matrix.shape[:-2] + (
-                    numpy.prod(this_reflectance_matrix.shape[-2:]),
-                )
-                this_reflectance_matrix = numpy.reshape(
-                    this_reflectance_matrix, these_dim
+                this_reflectance_matrix = combine_lag_times_and_wavelengths(
+                    this_reflectance_matrix
                 )
 
             if brightness_temp_matrix_kelvins is None:
