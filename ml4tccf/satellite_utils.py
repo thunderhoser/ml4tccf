@@ -723,11 +723,27 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
                 print('INTERP SUCCEEDED')
 
+                print('INTERP TARGET TIME = {0:s}'.format(
+                    time_conversion.unix_sec_to_string(new_table_xarray.coords[TIME_DIM].values[i], '%Y-%m-%d-%H%M%S')
+                ))
+
             st = source_table_xarray
             fill_value_tuple = (
                 st[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0],
                 st[BRIGHTNESS_TEMPERATURE_KEY].values[-1, ..., 0]
             )
+
+            try:
+                interp_object = interp1d(
+                    x=source_table_xarray.coords[TIME_DIM].values,
+                    y=source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
+                        ..., 0
+                    ],
+                    kind='linear', axis=0, bounds_error=True,
+                    assume_sorted=True
+                )
+            except:
+                print('INTERP FOOOOOOOOOOOoo')
 
             interp_object = interp1d(
                 x=source_table_xarray.coords[TIME_DIM].values,
