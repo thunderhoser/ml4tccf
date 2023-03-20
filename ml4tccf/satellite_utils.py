@@ -777,14 +777,14 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
                 print('MEAN ABS DIFF BETWEEN INTERP AND 2017-08-30-000000 IN SOURCE = {0:f}'.format(
                     numpy.mean(numpy.absolute(
-                        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j],
+                        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] -
                         source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[this_index, ..., 0]
                     ))
                 ))
 
                 print('MEAN ABS DIFF BETWEEN INTERP AND FIRST TIME IN SOURCE = {0:f}'.format(
                     numpy.mean(numpy.absolute(
-                        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j],
+                        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] -
                         source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0]
                     ))
                 ))
