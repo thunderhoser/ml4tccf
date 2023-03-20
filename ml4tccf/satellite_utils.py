@@ -782,6 +782,17 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                     interp_object(new_table_xarray.coords[TIME_DIM].values[i]) -
                     source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0]
                 )))
+                print(numpy.max(numpy.absolute(
+                    interp_object(new_table_xarray.coords[TIME_DIM].values[i]) -
+                    new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j]
+                )))
+                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] = (
+                    interp_object(new_table_xarray.coords[TIME_DIM].values[i])
+                )
+                print(numpy.max(numpy.absolute(
+                    interp_object(new_table_xarray.coords[TIME_DIM].values[i]) -
+                    new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j]
+                )))
                 print('\n\n*********************\n\n')
 
                 print('INTERP MIN VALUE = {0:f}'.format(
