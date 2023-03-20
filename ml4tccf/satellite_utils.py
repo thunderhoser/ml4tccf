@@ -742,6 +742,10 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                     kind='linear', axis=0, bounds_error=True,
                     assume_sorted=True
                 )
+
+                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] = (
+                    interp_object(new_table_xarray.coords[TIME_DIM].values[i])
+                )
             except:
                 print('INTERP FOOOOOOOOOOOoo')
 
