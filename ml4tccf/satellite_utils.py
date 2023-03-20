@@ -767,6 +767,28 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                     numpy.min(new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j])
                 ))
 
+                these_indices = numpy.where(
+                    source_table_xarray.coords[TIME_DIM].values ==
+                    time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d')
+                )[0]
+
+                print(these_indices)
+                this_index = these_indices[0]
+
+                print('MEAN ABS DIFF BETWEEN INTERP AND 2017-08-30-000000 IN SOURCE = {0:f}'.format(
+                    numpy.mean(numpy.absolute(
+                        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j],
+                        source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[this_index, ..., 0]
+                    ))
+                ))
+
+                print('MEAN ABS DIFF BETWEEN INTERP AND FIRST TIME IN SOURCE = {0:f}'.format(
+                    numpy.mean(numpy.absolute(
+                        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j],
+                        source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0]
+                    ))
+                ))
+
         if failed_to_interp:
             break
 
