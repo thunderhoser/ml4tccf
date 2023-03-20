@@ -699,13 +699,29 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 target_time_unix_sec=desired_times_unix_sec[i]
             )
 
+            if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
+                source_time_strings = [time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M%S') for t in source_table_xarray.coords[TIME_DIM].values]
+
+                print('SOURCE INTERP TIMES FOR DESIRED TIME OF {0:s}:\n{1:s}'.format(
+                    time_conversion.unix_sec_to_string(desired_times_unix_sec[i], '%Y-%m-%d-%H%M%S'),
+                    str(source_time_strings)
+                ))
+
+                print('INTERPOLATION GAP = {0:d} sec'.format(interp_gap_sec))
+
             if interp_gap_sec > max_interp_gaps_sec[i]:
                 new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
                     i, ..., j
                 ] = numpy.nan
 
+                if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
+                    print('INTERP FAILED')
+
                 failed_to_interp = True
                 break
+
+            if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
+                print('INTERP SUCCEEDED')
 
             interp_object = interp1d(
                 x=source_table_xarray.coords[TIME_DIM].values,
