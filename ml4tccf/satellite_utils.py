@@ -723,13 +723,19 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
                 print('INTERP SUCCEEDED')
 
+            st = source_table_xarray
+            fill_value_tuple = (
+                st[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0],
+                st[BRIGHTNESS_TEMPERATURE_KEY].values[-1, ..., 0]
+            )
+
             interp_object = interp1d(
                 x=source_table_xarray.coords[TIME_DIM].values,
                 y=source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
                     ..., 0
                 ],
                 kind='linear', axis=0, bounds_error=False,
-                fill_value='extrapolate', assume_sorted=True
+                fill_value=fill_value_tuple, assume_sorted=True
             )
 
             new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] = (
@@ -775,13 +781,19 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 failed_to_interp = True
                 break
 
+            st = source_table_xarray
+            fill_value_tuple = (
+                st[BIDIRECTIONAL_REFLECTANCE_KEY].values[0, ..., 0],
+                st[BIDIRECTIONAL_REFLECTANCE_KEY].values[-1, ..., 0]
+            )
+
             interp_object = interp1d(
                 x=source_table_xarray.coords[TIME_DIM].values,
                 y=source_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
                     ..., 0
                 ],
                 kind='linear', axis=0, bounds_error=False,
-                fill_value='extrapolate', assume_sorted=True
+                fill_value=fill_value_tuple, assume_sorted=True
             )
 
             new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
