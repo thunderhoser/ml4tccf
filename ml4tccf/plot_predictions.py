@@ -269,134 +269,342 @@ def _plot_data_one_example(
     d = training_option_dict
     high_res_wavelengths_microns = d[neural_net.HIGH_RES_WAVELENGTHS_KEY]
     low_res_wavelengths_microns = d[neural_net.LOW_RES_WAVELENGTHS_KEY]
+    lag_times_minutes = d[neural_net.LAG_TIMES_KEY]
 
-    num_panels = (
-        len(high_res_wavelengths_microns) + len(low_res_wavelengths_microns)
+    predictor_matrices = [
+        neural_net.separate_lag_times_and_wavelengths(
+            satellite_data_matrix=p, num_lag_times=len(lag_times_minutes)
+        ) for p in predictor_matrices
+    ]
+
+    num_lag_times = len(lag_times_minutes)
+    num_high_res_wavelengths = len(high_res_wavelengths_microns)
+    num_low_res_wavelengths = len(low_res_wavelengths_microns)
+
+    high_res_panel_file_name_matrix = numpy.full(
+        (num_lag_times, num_high_res_wavelengths), '', dtype=object
     )
-    panel_file_names = [''] * num_panels
-    panel_index = -1
+    low_res_panel_file_name_matrix = numpy.full(
+        (num_lag_times, num_low_res_wavelengths), '', dtype=object
+    )
 
-    for j in range(len(high_res_wavelengths_microns)):
-        panel_index += 1
-
-        figure_object, axes_object = pyplot.subplots(
-            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
-        )
-
-        if are_data_normalized:
-            colour_map_object = pyplot.get_cmap('seismic', lut=1001)
-            colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
-        else:
-            colour_map_object, colour_norm_object = (
-                satellite_plotting.get_colour_scheme_for_bdrf()
+    for i in range(num_lag_times):
+        for j in range(num_high_res_wavelengths):
+            figure_object, axes_object = pyplot.subplots(
+                1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
             )
 
-        plotting_utils.plot_borders(
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            axes_object=axes_object
-        )
+            if are_data_normalized:
+                colour_map_object = pyplot.get_cmap('seismic', lut=1001)
+                colour_norm_object = matplotlib.colors.Normalize(
+                    vmin=-3., vmax=3.
+                )
+            else:
+                colour_map_object, colour_norm_object = (
+                    satellite_plotting.get_colour_scheme_for_bdrf()
+                )
 
-        satellite_plotting.plot_2d_grid_latlng(
-            data_matrix=predictor_matrices[0][..., j],
-            axes_object=axes_object,
-            latitude_array_deg_n=high_res_latitudes_deg_n,
-            longitude_array_deg_e=high_res_longitudes_deg_e,
-            plotting_brightness_temp=False,
-            cbar_orientation_string=None,
-            colour_map_object=colour_map_object,
-            colour_norm_object=colour_norm_object,
-            opacity=0.5 if are_predictions_gridded else 1.
-        )
+            plotting_utils.plot_borders(
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                axes_object=axes_object
+            )
 
-        if are_predictions_gridded:
             satellite_plotting.plot_2d_grid_latlng(
-                data_matrix=prediction_matrix,
+                data_matrix=predictor_matrices[0][..., i, j],
+                axes_object=axes_object,
+                latitude_array_deg_n=high_res_latitudes_deg_n,
+                longitude_array_deg_e=high_res_longitudes_deg_e,
+                plotting_brightness_temp=False,
+                cbar_orientation_string=None,
+                colour_map_object=colour_map_object,
+                colour_norm_object=colour_norm_object,
+                opacity=0.5 if are_predictions_gridded else 1.
+            )
+
+            if are_predictions_gridded:
+                satellite_plotting.plot_2d_grid_latlng(
+                    data_matrix=prediction_matrix,
+                    axes_object=axes_object,
+                    latitude_array_deg_n=low_res_latitudes_deg_n,
+                    longitude_array_deg_e=low_res_longitudes_deg_e,
+                    plotting_brightness_temp=False,
+                    cbar_orientation_string=None,
+                    colour_map_object=prob_colour_map_object,
+                    colour_norm_object=prob_colour_norm_object,
+                    use_contourf=True
+                )
+
+            plotting_utils.plot_grid_lines(
+                plot_latitudes_deg_n=numpy.ravel(high_res_latitudes_deg_n),
+                plot_longitudes_deg_e=numpy.ravel(high_res_longitudes_deg_e),
+                axes_object=axes_object,
+                parallel_spacing_deg=2., meridian_spacing_deg=2.
+            )
+
+            axes_object.plot(
+                0.5 + scalar_target_values[1] / num_grid_columns_low_res,
+                0.5 + scalar_target_values[0] / num_grid_rows_low_res,
+                linestyle='None', marker=ACTUAL_CENTER_MARKER,
+                markersize=ACTUAL_CENTER_MARKER_SIZE,
+                markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
+                markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
+                markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
+                transform=axes_object.transAxes, zorder=1e10
+            )
+
+            axes_object.plot(
+                0.5, 0.5, linestyle='None',
+                marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
+                markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
+                markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
+                markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
+                transform=axes_object.transAxes, zorder=1e10
+            )
+
+            if not are_predictions_gridded:
+                for k in range(ensemble_size):
+                    axes_object.plot(
+                        0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
+                        0.5 + prediction_matrix[0, k] / num_grid_rows_low_res,
+                        linestyle='None',
+                        marker=PREDICTED_CENTER_MARKER,
+                        markersize=PREDICTED_CENTER_MARKER_SIZE,
+                        markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
+                        markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
+                        markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
+                        transform=axes_object.transAxes, zorder=1e10
+                    )
+
+            title_string = (
+                '{0:.3f}-micron BDRF for {1:s} at {2:d}-minute lag'
+            ).format(
+                high_res_wavelengths_microns[j],
+                cyclone_id_string,
+                int(numpy.round(lag_times_minutes[i]))
+            )
+            axes_object.set_title(title_string)
+
+            high_res_panel_file_name_matrix[i, j] = (
+                '{0:s}_{1:04d}minutes_{2:06.3f}microns.{3:s}'
+            ).format(
+                os.path.splitext(output_file_name)[0],
+                int(numpy.round(lag_times_minutes[i])),
+                high_res_wavelengths_microns[j],
+                'png' if are_predictions_gridded else 'jpg'
+            )
+
+            file_system_utils.mkdir_recursive_if_necessary(
+                file_name=high_res_panel_file_name_matrix[i, j]
+            )
+
+            print('Saving figure to file: "{0:s}"...'.format(
+                high_res_panel_file_name_matrix[i, j]
+            ))
+            figure_object.savefig(
+                high_res_panel_file_name_matrix[i, j],
+                dpi=FIGURE_RESOLUTION_DPI, pad_inches=0, bbox_inches='tight'
+            )
+            pyplot.close(figure_object)
+
+            imagemagick_utils.resize_image(
+                input_file_name=high_res_panel_file_name_matrix[i, j],
+                output_file_name=high_res_panel_file_name_matrix[i, j],
+                output_size_pixels=PANEL_SIZE_PX
+            )
+
+    for i in range(num_lag_times):
+        for j in range(num_low_res_wavelengths):
+            figure_object, axes_object = pyplot.subplots(
+                1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+            )
+
+            if are_data_normalized:
+                colour_map_object = pyplot.get_cmap('seismic', lut=1001)
+                colour_norm_object = matplotlib.colors.Normalize(
+                    vmin=-3., vmax=3.
+                )
+            else:
+                colour_map_object, colour_norm_object = (
+                    satellite_plotting.get_colour_scheme_for_brightness_temp()
+                )
+
+            plotting_utils.plot_borders(
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                axes_object=axes_object
+            )
+
+            satellite_plotting.plot_2d_grid_latlng(
+                data_matrix=predictor_matrices[-1][..., i, j],
                 axes_object=axes_object,
                 latitude_array_deg_n=low_res_latitudes_deg_n,
                 longitude_array_deg_e=low_res_longitudes_deg_e,
-                plotting_brightness_temp=False,
+                plotting_brightness_temp=True,
                 cbar_orientation_string=None,
-                colour_map_object=prob_colour_map_object,
-                colour_norm_object=prob_colour_norm_object,
-                use_contourf=True
+                colour_map_object=colour_map_object,
+                colour_norm_object=colour_norm_object,
+                opacity=0.5 if are_predictions_gridded else 1.
             )
 
-        plotting_utils.plot_grid_lines(
-            plot_latitudes_deg_n=numpy.ravel(high_res_latitudes_deg_n),
-            plot_longitudes_deg_e=numpy.ravel(high_res_longitudes_deg_e),
-            axes_object=axes_object,
-            parallel_spacing_deg=2., meridian_spacing_deg=2.
-        )
-
-        axes_object.plot(
-            0.5 + scalar_target_values[1] / num_grid_columns_low_res,
-            0.5 + scalar_target_values[0] / num_grid_rows_low_res,
-            linestyle='None',
-            marker=ACTUAL_CENTER_MARKER, markersize=ACTUAL_CENTER_MARKER_SIZE,
-            markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
-            markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
-            markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-            transform=axes_object.transAxes, zorder=1e10
-        )
-
-        axes_object.plot(
-            0.5, 0.5, linestyle='None',
-            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
-            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
-            markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
-            transform=axes_object.transAxes, zorder=1e10
-        )
-
-        if not are_predictions_gridded:
-            for k in range(ensemble_size):
-                axes_object.plot(
-                    0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
-                    0.5 + prediction_matrix[0, k] / num_grid_rows_low_res,
-                    linestyle='None',
-                    marker=PREDICTED_CENTER_MARKER,
-                    markersize=PREDICTED_CENTER_MARKER_SIZE,
-                    markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
-                    markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
-                    markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
-                    transform=axes_object.transAxes, zorder=1e10
+            if are_predictions_gridded:
+                satellite_plotting.plot_2d_grid_latlng(
+                    data_matrix=prediction_matrix,
+                    axes_object=axes_object,
+                    latitude_array_deg_n=low_res_latitudes_deg_n,
+                    longitude_array_deg_e=low_res_longitudes_deg_e,
+                    plotting_brightness_temp=False,
+                    cbar_orientation_string=None,
+                    colour_map_object=prob_colour_map_object,
+                    colour_norm_object=prob_colour_norm_object,
+                    use_contourf=True
                 )
 
-        title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
-            high_res_wavelengths_microns[j],
-            cyclone_id_string,
-            time_conversion.unix_sec_to_string(
-                target_time_unix_sec, TIME_FORMAT
+            plotting_utils.plot_grid_lines(
+                plot_latitudes_deg_n=numpy.ravel(low_res_latitudes_deg_n),
+                plot_longitudes_deg_e=numpy.ravel(low_res_longitudes_deg_e),
+                axes_object=axes_object,
+                parallel_spacing_deg=2., meridian_spacing_deg=2.
             )
-        )
-        axes_object.set_title(title_string)
 
-        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.{2:s}'.format(
-            os.path.splitext(output_file_name)[0],
-            high_res_wavelengths_microns[j],
-            'png' if are_predictions_gridded else 'jpg'
+            axes_object.plot(
+                0.5 + scalar_target_values[1] / num_grid_columns_low_res,
+                0.5 + scalar_target_values[0] / num_grid_rows_low_res,
+                linestyle='None', marker=ACTUAL_CENTER_MARKER,
+                markersize=ACTUAL_CENTER_MARKER_SIZE,
+                markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
+                markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
+                markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
+                transform=axes_object.transAxes, zorder=1e10
+            )
+
+            axes_object.plot(
+                0.5, 0.5, linestyle='None',
+                marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
+                markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
+                markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
+                markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
+                transform=axes_object.transAxes, zorder=1e10
+            )
+
+            if not are_predictions_gridded:
+                for k in range(ensemble_size):
+                    axes_object.plot(
+                        0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
+                        0.5 + prediction_matrix[0, k] / num_grid_rows_low_res,
+                        linestyle='None',
+                        marker=PREDICTED_CENTER_MARKER,
+                        markersize=PREDICTED_CENTER_MARKER_SIZE,
+                        markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
+                        markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
+                        markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
+                        transform=axes_object.transAxes, zorder=1e10
+                    )
+
+            title_string = (
+                r'{0:.3f}-micron $T_b$ for {1:s} at {2:d}-minute lag'
+            ).format(
+                low_res_wavelengths_microns[j],
+                cyclone_id_string,
+                int(numpy.round(lag_times_minutes[i]))
+            )
+            axes_object.set_title(title_string)
+
+            low_res_panel_file_name_matrix[i, j] = (
+                '{0:s}_{1:04d}minutes_{2:06.3f}microns.{3:s}'
+            ).format(
+                os.path.splitext(output_file_name)[0],
+                int(numpy.round(lag_times_minutes[i])),
+                low_res_wavelengths_microns[j],
+                'png' if are_predictions_gridded else 'jpg'
+            )
+
+            file_system_utils.mkdir_recursive_if_necessary(
+                file_name=low_res_panel_file_name_matrix[i, j]
+            )
+
+            print('Saving figure to file: "{0:s}"...'.format(
+                low_res_panel_file_name_matrix[i, j]
+            ))
+            figure_object.savefig(
+                low_res_panel_file_name_matrix[i, j],
+                dpi=FIGURE_RESOLUTION_DPI, pad_inches=0, bbox_inches='tight'
+            )
+            pyplot.close(figure_object)
+
+            imagemagick_utils.resize_image(
+                input_file_name=low_res_panel_file_name_matrix[i, j],
+                output_file_name=low_res_panel_file_name_matrix[i, j],
+                output_size_pixels=PANEL_SIZE_PX
+            )
+
+    num_panels_total = num_lag_times * (
+        num_high_res_wavelengths + num_low_res_wavelengths
+    )
+    concat_figure_file_names = []
+
+    if num_panels_total > 15:
+        for i in range(num_lag_times):
+            these_file_names = numpy.concatenate((
+                high_res_panel_file_name_matrix[i, :],
+                low_res_panel_file_name_matrix[i, :]
+            )).tolist()
+
+            concat_figure_file_names.append(
+                '{0:s}_{1:04d}minute-lag.{2:s}'.format(
+                    os.path.splitext(output_file_name)[0],
+                    int(numpy.round(lag_times_minutes[i])),
+                    'png' if are_predictions_gridded else 'jpg'
+                )
+            )
+
+            plotting_utils.concat_panels(
+                panel_file_names=these_file_names,
+                concat_figure_file_name=concat_figure_file_names[-1]
+            )
+    else:
+        these_file_names = []
+
+        for i in range(num_lag_times):
+            these_file_names += numpy.concatenate((
+                high_res_panel_file_name_matrix[i, :],
+                low_res_panel_file_name_matrix[i, :]
+            )).tolist()
+
+        concat_figure_file_names.append(output_file_name)
+        plotting_utils.concat_panels(
+            panel_file_names=these_file_names,
+            num_panel_rows=num_lag_times,
+            concat_figure_file_name=concat_figure_file_names[-1]
         )
 
-        file_system_utils.mkdir_recursive_if_necessary(
-            file_name=panel_file_names[panel_index]
-        )
+    for this_figure_file_name in concat_figure_file_names:
+        if num_high_res_wavelengths > 0:
+            if are_data_normalized:
+                colour_map_object = pyplot.get_cmap('seismic', lut=1001)
+                colour_norm_object = matplotlib.colors.Normalize(
+                    vmin=-3., vmax=3.
+                )
+            else:
+                colour_map_object, colour_norm_object = (
+                    satellite_plotting.get_colour_scheme_for_bdrf()
+                )
 
-        print('Saving figure to file: "{0:s}"...'.format(
-            panel_file_names[panel_index]
-        ))
-        figure_object.savefig(
-            panel_file_names[panel_index],
-            dpi=FIGURE_RESOLUTION_DPI, pad_inches=0, bbox_inches='tight'
-        )
-        pyplot.close(figure_object)
-
-    for j in range(len(low_res_wavelengths_microns)):
-        panel_index += 1
-
-        figure_object, axes_object = pyplot.subplots(
-            1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
-        )
+            plotting_utils.add_colour_bar(
+                figure_file_name=this_figure_file_name,
+                colour_map_object=colour_map_object,
+                colour_norm_object=colour_norm_object,
+                orientation_string='vertical', font_size=20,
+                cbar_label_string=(
+                    r'BDRF ($z$-score)' if are_data_normalized
+                    else 'BDRF (unitless)'
+                ),
+                tick_label_format_string='{0:.2f}', log_space=False,
+                temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
+                    this_figure_file_name[:-4],
+                    'png' if are_predictions_gridded else 'jpg'
+                )
+            )
 
         if are_data_normalized:
             colour_map_object = pyplot.get_cmap('seismic', lut=1001)
@@ -406,187 +614,43 @@ def _plot_data_one_example(
                 satellite_plotting.get_colour_scheme_for_brightness_temp()
             )
 
-        plotting_utils.plot_borders(
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            axes_object=axes_object
-        )
-
-        satellite_plotting.plot_2d_grid_latlng(
-            data_matrix=predictor_matrices[-1][..., j],
-            axes_object=axes_object,
-            latitude_array_deg_n=low_res_latitudes_deg_n,
-            longitude_array_deg_e=low_res_longitudes_deg_e,
-            plotting_brightness_temp=True,
-            cbar_orientation_string=None,
-            colour_map_object=colour_map_object,
-            colour_norm_object=colour_norm_object,
-            opacity=0.5 if are_predictions_gridded else 1.
-        )
-
-        if are_predictions_gridded:
-            satellite_plotting.plot_2d_grid_latlng(
-                data_matrix=prediction_matrix,
-                axes_object=axes_object,
-                latitude_array_deg_n=low_res_latitudes_deg_n,
-                longitude_array_deg_e=low_res_longitudes_deg_e,
-                plotting_brightness_temp=False,
-                cbar_orientation_string=None,
-                colour_map_object=prob_colour_map_object,
-                colour_norm_object=prob_colour_norm_object,
-                use_contourf=True
-            )
-
-        plotting_utils.plot_grid_lines(
-            plot_latitudes_deg_n=numpy.ravel(low_res_latitudes_deg_n),
-            plot_longitudes_deg_e=numpy.ravel(low_res_longitudes_deg_e),
-            axes_object=axes_object,
-            parallel_spacing_deg=2., meridian_spacing_deg=2.
-        )
-
-        axes_object.plot(
-            0.5 + scalar_target_values[1] / num_grid_columns_low_res,
-            0.5 + scalar_target_values[0] / num_grid_rows_low_res,
-            linestyle='None',
-            marker=ACTUAL_CENTER_MARKER, markersize=ACTUAL_CENTER_MARKER_SIZE,
-            markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
-            markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
-            markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-            transform=axes_object.transAxes, zorder=1e10
-        )
-
-        axes_object.plot(
-            0.5, 0.5, linestyle='None',
-            marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
-            markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
-            markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
-            markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
-            transform=axes_object.transAxes, zorder=1e10
-        )
-
-        if not are_predictions_gridded:
-            for k in range(ensemble_size):
-                axes_object.plot(
-                    0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
-                    0.5 + prediction_matrix[0, k] / num_grid_rows_low_res,
-                    linestyle='None',
-                    marker=PREDICTED_CENTER_MARKER,
-                    markersize=PREDICTED_CENTER_MARKER_SIZE,
-                    markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
-                    markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
-                    markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
-                    transform=axes_object.transAxes, zorder=1e10
-                )
-
-        title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
-            low_res_wavelengths_microns[j],
-            cyclone_id_string,
-            time_conversion.unix_sec_to_string(
-                target_time_unix_sec, TIME_FORMAT
-            )
-        )
-        axes_object.set_title(title_string)
-
-        panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.{2:s}'.format(
-            os.path.splitext(output_file_name)[0],
-            low_res_wavelengths_microns[j],
-            'png' if are_predictions_gridded else 'jpg'
-        )
-
-        file_system_utils.mkdir_recursive_if_necessary(
-            file_name=panel_file_names[panel_index]
-        )
-
-        print('Saving figure to file: "{0:s}"...'.format(
-            panel_file_names[panel_index]
-        ))
-        figure_object.savefig(
-            panel_file_names[panel_index],
-            dpi=FIGURE_RESOLUTION_DPI, pad_inches=0, bbox_inches='tight'
-        )
-        pyplot.close(figure_object)
-
-    for this_file_name in panel_file_names:
-        imagemagick_utils.resize_image(
-            input_file_name=this_file_name, output_file_name=this_file_name,
-            output_size_pixels=PANEL_SIZE_PX
-        )
-
-    plotting_utils.concat_panels(
-        panel_file_names=panel_file_names,
-        concat_figure_file_name=output_file_name
-    )
-
-    if len(high_res_wavelengths_microns) > 0:
-        if are_data_normalized:
-            colour_map_object = pyplot.get_cmap('seismic', lut=1001)
-            colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
-        else:
-            colour_map_object, colour_norm_object = (
-                satellite_plotting.get_colour_scheme_for_bdrf()
-            )
-
         plotting_utils.add_colour_bar(
-            figure_file_name=output_file_name,
+            figure_file_name=this_figure_file_name,
             colour_map_object=colour_map_object,
             colour_norm_object=colour_norm_object,
             orientation_string='vertical', font_size=20,
             cbar_label_string=(
-                r'BDRF ($z$-score)' if are_data_normalized
-                else 'BDRF (unitless)'
+                r'$T_b$ ($z-score$)' if are_data_normalized
+                else r'$T_b$ (Kelvins)'
             ),
-            tick_label_format_string='{0:.2f}', log_space=False,
+            tick_label_format_string='{0:.0f}', log_space=False,
             temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
-                output_file_name[:-4],
+                this_figure_file_name[:-4],
                 'png' if are_predictions_gridded else 'jpg'
             )
         )
 
-    if are_data_normalized:
-        colour_map_object = pyplot.get_cmap('seismic', lut=1001)
-        colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
-    else:
-        colour_map_object, colour_norm_object = (
-            satellite_plotting.get_colour_scheme_for_brightness_temp()
-        )
-
-    plotting_utils.add_colour_bar(
-        figure_file_name=output_file_name,
-        colour_map_object=colour_map_object,
-        colour_norm_object=colour_norm_object,
-        orientation_string='vertical', font_size=20,
-        cbar_label_string=(
-            r'$T_b$ ($z-score$)' if are_data_normalized
-            else r'$T_b$ (Kelvins)'
-        ),
-        tick_label_format_string='{0:.0f}', log_space=False,
-        temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
-            output_file_name[:-4],
-            'png' if are_predictions_gridded else 'jpg'
-        )
-    )
-
-    if are_predictions_gridded:
-        prob_colour_map_object, prob_colour_norm_object = (
-            _get_colour_map_for_gridded_probs(
-                base_colour_map_name=prob_colour_map_name,
-                min_value=min_gridded_prob, max_value=max_gridded_prob,
-                percent_flag=True
+        if are_predictions_gridded:
+            prob_colour_map_object, prob_colour_norm_object = (
+                _get_colour_map_for_gridded_probs(
+                    base_colour_map_name=prob_colour_map_name,
+                    min_value=min_gridded_prob, max_value=max_gridded_prob,
+                    percent_flag=True
+                )
             )
-        )
 
-        plotting_utils.add_colour_bar(
-            figure_file_name=output_file_name,
-            colour_map_object=prob_colour_map_object,
-            colour_norm_object=prob_colour_norm_object,
-            orientation_string='vertical', font_size=20,
-            cbar_label_string='Probability (%)',
-            tick_label_format_string='{0:.2f}', log_space=False,
-            temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
-                output_file_name[:-4],
-                'png' if are_predictions_gridded else 'jpg'
+            plotting_utils.add_colour_bar(
+                figure_file_name=this_figure_file_name,
+                colour_map_object=prob_colour_map_object,
+                colour_norm_object=prob_colour_norm_object,
+                orientation_string='vertical', font_size=20,
+                cbar_label_string='Probability (%)',
+                tick_label_format_string='{0:.2f}', log_space=False,
+                temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
+                    this_figure_file_name[:-4],
+                    'png' if are_predictions_gridded else 'jpg'
+                )
             )
-        )
 
 
 def _run(prediction_file_name, satellite_dir_name, are_data_normalized,

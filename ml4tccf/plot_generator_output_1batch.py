@@ -28,7 +28,7 @@ DUMMY_TIME_UNIX_SEC = time_conversion.string_to_unix_sec(
     '1900-01-01-00', '%Y-%m-%d-%H'
 )
 DUMMY_END_LATITUDES_DEG_N = numpy.array([32, 33], dtype=float)
-DUMMY_END_LONGITUDES_DEG_E = numpy.array([-43, 42], dtype=float)
+DUMMY_END_LONGITUDES_DEG_E = numpy.array([-43, -42], dtype=float)
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
@@ -189,15 +189,15 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
     )
     training_option_dict[neural_net.DATA_AUG_NUM_TRANS_KEY] = 1
 
-    # TODO(thunderhoser): Remove these two lines later.
-    training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY] = 100.
-    training_option_dict[neural_net.DATA_AUG_STDEV_TRANS_KEY] = 25.
+    # training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY] = 100.
+    # training_option_dict[neural_net.DATA_AUG_STDEV_TRANS_KEY] = 25.
 
     model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = training_option_dict
 
     print(SEPARATOR_STRING)
     generator_handle = neural_net.data_generator(training_option_dict)
     predictor_matrices, target_matrix = next(generator_handle)
+    target_matrix = target_matrix[..., 0]
     print(SEPARATOR_STRING)
 
     num_examples = predictor_matrices[0].shape[0]

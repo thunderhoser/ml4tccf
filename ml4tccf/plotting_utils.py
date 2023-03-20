@@ -273,11 +273,14 @@ def add_colour_bar(
     )
 
 
-def concat_panels(panel_file_names, concat_figure_file_name):
+def concat_panels(panel_file_names, concat_figure_file_name,
+                  num_panel_rows=None):
     """Concatenates panels into one figure.
 
     :param panel_file_names: 1-D list of paths to input image files.
     :param concat_figure_file_name: Path to output image file.
+    :param num_panel_rows: Number of rows in paneled figure.  If None, will be
+        determined automatically.
     """
 
     error_checking.assert_is_string_list(panel_file_names)
@@ -291,9 +294,16 @@ def concat_panels(panel_file_names, concat_figure_file_name):
     ))
 
     num_panels = len(panel_file_names)
-    num_panel_rows = int(numpy.floor(
-        numpy.sqrt(num_panels)
-    ))
+
+    if num_panel_rows is None:
+        num_panel_rows = int(numpy.floor(
+            numpy.sqrt(num_panels)
+        ))
+    else:
+        error_checking.assert_is_integer(num_panel_rows)
+        error_checking.assert_is_greater(num_panel_rows, 0)
+        error_checking.assert_is_leq(num_panel_rows, num_panels)
+
     num_panel_columns = int(numpy.ceil(
         float(num_panels) / num_panel_rows
     ))
