@@ -19,7 +19,11 @@ import scalar_prediction_utils as prediction_utils
 import neural_net
 import angular_utils
 
-# TODO(thunderhoser): Fuck, I still need to account for the 0.1-deg discretization.
+# TODO(thunderhoser): Maybe account for 0.1-deg discretization in error metrics?
+
+# TODO(thunderhoser): This whole module changes xarray variables by directly
+# accessing their `.values` attribute, which can fail!  I should make this
+# module more robust.
 
 TOLERANCE = 1e-6
 
