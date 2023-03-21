@@ -2252,9 +2252,6 @@ def train_model(
     error_checking.assert_is_geq(early_stopping_patience_epochs, 5)
     error_checking.assert_is_boolean(is_model_bnn)
 
-    training_option_dict = _check_generator_args(training_option_dict)
-    validation_option_dict = _check_generator_args(validation_option_dict)
-
     # TODO(thunderhoser): Maybe I should just max out the last 3 arguments and
     # not let the user set them?
     validation_keys_to_keep = [
@@ -2266,6 +2263,9 @@ def train_model(
             continue
 
         validation_option_dict[this_key] = training_option_dict[this_key]
+
+    training_option_dict = _check_generator_args(training_option_dict)
+    validation_option_dict = _check_generator_args(validation_option_dict)
 
     model_file_name = '{0:s}/model.h5'.format(output_dir_name)
 
