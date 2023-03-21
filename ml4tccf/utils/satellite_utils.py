@@ -1,5 +1,6 @@
 """Helper methods for satellite data."""
 
+import copy
 import warnings
 import numpy
 import xarray
@@ -638,15 +639,21 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
         raise ValueError(error_string)
 
-    new_table_xarray = satellite_table_xarray.isel(
+    if num_missing_times == 0:
+        new_table_xarray = satellite_table_xarray.isel(
+            indexers={TIME_DIM: desired_indices}
+        )
+        return new_table_xarray.assign_coords({
+            TIME_DIM: desired_times_unix_sec
+        })
+
+    new_table_xarray = copy.deepcopy(satellite_table_xarray)
+    new_table_xarray = new_table_xarray.isel(
         indexers={TIME_DIM: desired_indices}
     )
     new_table_xarray = new_table_xarray.assign_coords({
         TIME_DIM: desired_times_unix_sec
     })
-
-    if num_missing_times == 0:
-        return new_table_xarray
 
     low_res_wavelengths_microns = (
         METRES_TO_MICRONS *
@@ -659,13 +666,21 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
     failed_to_interp = False
 
+    new_brightness_temp_matrix_kelvins = (
+        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values
+    )
+    if len(high_res_wavelengths_microns) > 0:
+        new_bidirectional_reflectance_matrix = (
+            new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values
+        )
+
     for i in range(num_desired_times):
         if desired_indices[i] != -1:
             continue
 
         for j in range(len(low_res_wavelengths_microns)):
             source_table_xarray = subset_wavelengths(
-                satellite_table_xarray=satellite_table_xarray,
+                satellite_table_xarray=copy.deepcopy(satellite_table_xarray),
                 wavelengths_to_keep_microns=low_res_wavelengths_microns[[j]],
                 for_high_res=False
             )
@@ -674,10 +689,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             good_time_indices = numpy.where(numpy.invert(bad_time_flags))[0]
 
             if len(good_time_indices) == 0:
-                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
-                    i, ..., j
-                ] = numpy.nan
-
+                new_brightness_temp_matrix_kelvins[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
 
@@ -692,10 +704,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             )
 
             if interp_gap_sec > max_interp_gaps_sec[i]:
-                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
-                    i, ..., j
-                ] = numpy.nan
-
+                new_brightness_temp_matrix_kelvins[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
 
@@ -708,8 +717,8 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 fill_value='extrapolate', assume_sorted=True
             )
 
-            new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] = (
-                interp_object(new_table_xarray.coords[TIME_DIM].values[i])
+            new_brightness_temp_matrix_kelvins[i, ..., j] = interp_object(
+                new_table_xarray.coords[TIME_DIM].values[i]
             )
 
         if failed_to_interp:
@@ -717,7 +726,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
         for j in range(len(high_res_wavelengths_microns)):
             source_table_xarray = subset_wavelengths(
-                satellite_table_xarray=satellite_table_xarray,
+                satellite_table_xarray=copy.deepcopy(satellite_table_xarray),
                 wavelengths_to_keep_microns=high_res_wavelengths_microns[[j]],
                 for_high_res=True
             )
@@ -726,10 +735,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             good_time_indices = numpy.where(numpy.invert(bad_time_flags))[0]
 
             if len(good_time_indices) == 0:
-                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
-                    i, ..., j
-                ] = numpy.nan
-
+                new_bidirectional_reflectance_matrix[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
 
@@ -744,10 +750,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             )
 
             if interp_gap_sec > max_interp_gaps_sec[i]:
-                new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
-                    i, ..., j
-                ] = numpy.nan
-
+                new_bidirectional_reflectance_matrix[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
 
@@ -760,12 +763,27 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 fill_value='extrapolate', assume_sorted=True
             )
 
-            new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
-                i, ..., j
-            ] = interp_object(new_table_xarray.coords[TIME_DIM].values[i])
+            new_bidirectional_reflectance_matrix[i, ..., j] = interp_object(
+                new_table_xarray.coords[TIME_DIM].values[i]
+            )
 
         if failed_to_interp:
             break
+
+    new_table_xarray = new_table_xarray.assign({
+        BRIGHTNESS_TEMPERATURE_KEY: (
+            new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].dims,
+            new_brightness_temp_matrix_kelvins
+        )
+    })
+
+    if len(high_res_wavelengths_microns) > 0:
+        new_table_xarray = new_table_xarray.assign({
+            BIDIRECTIONAL_REFLECTANCE_KEY: (
+                new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].dims,
+                new_bidirectional_reflectance_matrix
+            )
+        })
 
     bad_time_flags = _find_times_with_all_nan_maps(new_table_xarray)
     if not numpy.any(bad_time_flags):
