@@ -662,6 +662,10 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
         TIME_DIM: desired_times_unix_sec
     })
 
+    new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, 0, 0, 0] = 0.
+    print(new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, 0, 0, 0])
+    print(satellite_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, 0, 0, 0])
+
     low_res_wavelengths_microns = (
         METRES_TO_MICRONS *
         satellite_table_xarray.coords[LOW_RES_WAVELENGTH_DIM].values
