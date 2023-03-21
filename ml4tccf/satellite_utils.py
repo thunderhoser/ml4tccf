@@ -619,7 +619,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     bad_time_flags = _find_times_with_all_nan_maps(satellite_table_xarray)
     orig_times_with_dummy_unix_sec[bad_time_flags] = DUMMY_TIME_UNIX_SEC
 
-    desired_indices = numpy.full(num_desired_times, -1, dtype=int)
+    desired_indices = numpy.full(num_desired_times, int(1e10), dtype=int)
 
     for i in range(num_desired_times):
         these_diffs_sec = numpy.absolute(
@@ -648,12 +648,13 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
         raise ValueError(error_string)
 
     if num_missing_times == 0:
-        return satellite_table_xarray.isel(
+        new_table_xarray = satellite_table_xarray.isel(
             indexers={TIME_DIM: desired_indices}
         )
+        return new_table_xarray.assign_coords({
+            TIME_DIM: desired_times_unix_sec
+        })
 
-    # TODO(thunderhoser): This is not memory-efficient, but I think it is
-    # needed.
     new_table_xarray = copy.deepcopy(satellite_table_xarray)
     new_table_xarray = new_table_xarray.isel(
         indexers={TIME_DIM: desired_indices}
@@ -661,10 +662,6 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     new_table_xarray = new_table_xarray.assign_coords({
         TIME_DIM: desired_times_unix_sec
     })
-
-    new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, 0, 0, 0] = 0.
-    print(new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, 0, 0, 0])
-    print(satellite_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, 0, 0, 0])
 
     low_res_wavelengths_microns = (
         METRES_TO_MICRONS *
@@ -676,6 +673,14 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     )
 
     failed_to_interp = False
+
+    new_brightness_temp_matrix_kelvins = (
+        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values
+    )
+    if len(high_res_wavelengths_microns) > 0:
+        new_bidirectional_reflectance_matrix = (
+            new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values
+        )
 
     for i in range(num_desired_times):
         if desired_indices[i] != -1:
@@ -692,10 +697,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             good_time_indices = numpy.where(numpy.invert(bad_time_flags))[0]
 
             if len(good_time_indices) == 0:
-                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
-                    i, ..., j
-                ] = numpy.nan
-
+                new_brightness_temp_matrix_kelvins[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
 
@@ -709,62 +711,10 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 target_time_unix_sec=desired_times_unix_sec[i]
             )
 
-            if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
-                source_time_strings = [time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M%S') for t in source_table_xarray.coords[TIME_DIM].values]
-
-                print('SOURCE INTERP TIMES FOR DESIRED TIME OF {0:s}:\n{1:s}'.format(
-                    time_conversion.unix_sec_to_string(desired_times_unix_sec[i], '%Y-%m-%d-%H%M%S'),
-                    str(source_time_strings)
-                ))
-
-                print('INTERPOLATION GAP = {0:d} sec'.format(interp_gap_sec))
-
             if interp_gap_sec > max_interp_gaps_sec[i]:
-                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
-                    i, ..., j
-                ] = numpy.nan
-
-                if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
-                    print('INTERP FAILED')
-
+                new_brightness_temp_matrix_kelvins[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
-
-            if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
-                print('INTERP SUCCEEDED')
-
-                print('INTERP TARGET TIME = {0:s}'.format(
-                    time_conversion.unix_sec_to_string(new_table_xarray.coords[TIME_DIM].values[i], '%Y-%m-%d-%H%M%S')
-                ))
-
-            st = source_table_xarray
-            fill_value_tuple = (
-                st[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0],
-                st[BRIGHTNESS_TEMPERATURE_KEY].values[-1, ..., 0]
-            )
-
-            try:
-                interp_object = interp1d(
-                    x=source_table_xarray.coords[TIME_DIM].values,
-                    y=source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[
-                        ..., 0
-                    ],
-                    kind='linear', axis=0, bounds_error=True,
-                    assume_sorted=True
-                )
-
-                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] = (
-                    interp_object(new_table_xarray.coords[TIME_DIM].values[i])
-                )
-            except:
-                print('INTERP FOOOOOOOOOOOoo')
-
-            print(fill_value_tuple)
-            print(numpy.max(numpy.diff(source_table_xarray.coords[TIME_DIM].values)))
-            print(numpy.min(numpy.diff(source_table_xarray.coords[TIME_DIM].values)))
-            print(numpy.diff(source_table_xarray.coords[TIME_DIM].values))
-            print(source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[..., 0].shape)
-            print(source_table_xarray)
 
             interp_object = interp1d(
                 x=source_table_xarray.coords[TIME_DIM].values,
@@ -772,64 +722,12 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                     ..., 0
                 ],
                 kind='linear', axis=0, bounds_error=False,
-                fill_value=fill_value_tuple, assume_sorted=True
+                fill_value='extrapolate', assume_sorted=True
             )
 
-            new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] = (
-                interp_object(new_table_xarray.coords[TIME_DIM].values[i])
+            new_brightness_temp_matrix_kelvins[i, ..., j] = interp_object(
+                new_table_xarray.coords[TIME_DIM].values[i]
             )
-
-            print(new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values.shape)
-            print(new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j].shape)
-            print(interp_object(new_table_xarray.coords[TIME_DIM].values[i]).shape)
-
-            if desired_times_unix_sec[i] <= time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d'):
-                print('\n\n*********************\n\n')
-                print(desired_times_unix_sec[i])
-                print(new_table_xarray.coords[TIME_DIM].values[i])
-                print(source_table_xarray.coords[TIME_DIM].values[0])
-                print(numpy.max(numpy.absolute(
-                    interp_object(new_table_xarray.coords[TIME_DIM].values[i]) -
-                    source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0]
-                )))
-                print(numpy.max(numpy.absolute(
-                    interp_object(new_table_xarray.coords[TIME_DIM].values[i]) -
-                    new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j]
-                )))
-                new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] = (
-                    interp_object(new_table_xarray.coords[TIME_DIM].values[i])
-                )
-                print(numpy.max(numpy.absolute(
-                    interp_object(new_table_xarray.coords[TIME_DIM].values[i]) -
-                    new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j]
-                )))
-                print('\n\n*********************\n\n')
-
-                print('INTERP MIN VALUE = {0:f}'.format(
-                    numpy.min(new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j])
-                ))
-
-                these_indices = numpy.where(
-                    source_table_xarray.coords[TIME_DIM].values ==
-                    time_conversion.string_to_unix_sec('2017-08-30', '%Y-%m-%d')
-                )[0]
-
-                print(these_indices)
-                this_index = these_indices[0]
-
-                print('MEAN ABS DIFF BETWEEN INTERP AND 2017-08-30-000000 IN SOURCE = {0:f}'.format(
-                    numpy.mean(numpy.absolute(
-                        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] -
-                        source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[this_index, ..., 0]
-                    ))
-                ))
-
-                print('MEAN ABS DIFF BETWEEN INTERP AND FIRST TIME IN SOURCE = {0:f}'.format(
-                    numpy.mean(numpy.absolute(
-                        new_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., j] -
-                        source_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0]
-                    ))
-                ))
 
         if failed_to_interp:
             break
@@ -845,10 +743,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             good_time_indices = numpy.where(numpy.invert(bad_time_flags))[0]
 
             if len(good_time_indices) == 0:
-                new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
-                    i, ..., j
-                ] = numpy.nan
-
+                new_bidirectional_reflectance_matrix[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
 
@@ -863,18 +758,9 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
             )
 
             if interp_gap_sec > max_interp_gaps_sec[i]:
-                new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
-                    i, ..., j
-                ] = numpy.nan
-
+                new_bidirectional_reflectance_matrix[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
-
-            st = source_table_xarray
-            fill_value_tuple = (
-                st[BIDIRECTIONAL_REFLECTANCE_KEY].values[0, ..., 0],
-                st[BIDIRECTIONAL_REFLECTANCE_KEY].values[-1, ..., 0]
-            )
 
             interp_object = interp1d(
                 x=source_table_xarray.coords[TIME_DIM].values,
@@ -882,15 +768,35 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                     ..., 0
                 ],
                 kind='linear', axis=0, bounds_error=False,
-                fill_value=fill_value_tuple, assume_sorted=True
+                fill_value='extrapolate', assume_sorted=True
             )
 
-            new_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].values[
-                i, ..., j
-            ] = interp_object(new_table_xarray.coords[TIME_DIM].values[i])
+            new_bidirectional_reflectance_matrix[i, ..., j] = interp_object(
+                new_table_xarray.coords[TIME_DIM].values[i]
+            )
 
         if failed_to_interp:
             break
+
+    these_dim = (
+        TIME_DIM, LOW_RES_ROW_DIM, LOW_RES_COLUMN_DIM, LOW_RES_WAVELENGTH_DIM
+    )
+    new_table_xarray = new_table_xarray.assign({
+        BRIGHTNESS_TEMPERATURE_KEY: (
+            these_dim, new_brightness_temp_matrix_kelvins
+        )
+    })
+
+    if len(high_res_wavelengths_microns) > 0:
+        these_dim = (
+            TIME_DIM, HIGH_RES_ROW_DIM, HIGH_RES_COLUMN_DIM,
+            HIGH_RES_WAVELENGTH_DIM
+        )
+        new_table_xarray = new_table_xarray.assign({
+            BIDIRECTIONAL_REFLECTANCE_KEY: (
+                these_dim, new_bidirectional_reflectance_matrix
+            )
+        })
 
     bad_time_flags = _find_times_with_all_nan_maps(new_table_xarray)
     if not numpy.any(bad_time_flags):
