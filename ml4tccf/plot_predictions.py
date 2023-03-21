@@ -712,7 +712,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     )
     validation_option_dict[neural_net.SENTINEL_VALUE_KEY] = SENTINEL_VALUE
 
-    prediction_table_xarray = prediction_table_xarray.isel(indexers={gridded_prediction_utils.EXAMPLE_DIM: numpy.array([0], dtype=int)})
+    prediction_table_xarray = prediction_table_xarray.isel(indexers={gridded_prediction_utils.EXAMPLE_DIM: numpy.linspace(0, 8, num=9, dtype=int)})
     pt = prediction_table_xarray
 
     # TODO(thunderhoser): This will not work if I ever have multiple cyclones in
