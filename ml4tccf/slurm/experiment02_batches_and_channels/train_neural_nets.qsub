@@ -51,17 +51,17 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net.py" \
 --num_columns_low_res=600 \
 --low_res_wavelengths_microns 11.2 \
 --data_aug_num_translations=3 \
---data_aug_mean_translation_low_res_px=15 \
---data_aug_stdev_translation_low_res_px=7.5 \
+--data_aug_mean_translation_low_res_px=22.5 \
+--data_aug_stdev_translation_low_res_px=11.25 \
 --sentinel_value=-10 \
---lag_time_tolerance_for_training_sec=900 \
+--lag_time_tolerance_for_training_sec=910 \
 --max_num_missing_lag_times_for_training=1 \
---max_interp_gap_for_training_sec=3600 \
+--max_interp_gap_for_training_sec=3610 \
 --satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
 --training_years 2017 2018 2019 \
---lag_time_tolerance_for_validation_sec=900 \
+--lag_time_tolerance_for_validation_sec=910 \
 --max_num_missing_lag_times_for_validation=1 \
---max_interp_gap_for_validation_sec=3600 \
+--max_interp_gap_for_validation_sec=3610 \
 --satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
 --validation_years 2020 \
 --num_epochs=1000 \
