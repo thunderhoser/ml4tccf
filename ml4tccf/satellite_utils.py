@@ -619,7 +619,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     bad_time_flags = _find_times_with_all_nan_maps(satellite_table_xarray)
     orig_times_with_dummy_unix_sec[bad_time_flags] = DUMMY_TIME_UNIX_SEC
 
-    desired_indices = numpy.full(num_desired_times, int(1e10), dtype=int)
+    desired_indices = numpy.full(num_desired_times, -1, dtype=int)
 
     for i in range(num_desired_times):
         these_diffs_sec = numpy.absolute(
