@@ -1,5 +1,5 @@
 """Helper methods for satellite data."""
-
+import copy
 import os
 import sys
 import warnings
@@ -654,7 +654,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
     # TODO(thunderhoser): This is not memory-efficient, but I think it is
     # needed.
-    new_table_xarray = satellite_table_xarray.copy(deep=True)
+    new_table_xarray = copy.deepcopy(satellite_table_xarray)
     new_table_xarray = new_table_xarray.isel(
         indexers={TIME_DIM: desired_indices}
     )
@@ -679,7 +679,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
         for j in range(len(low_res_wavelengths_microns)):
             source_table_xarray = subset_wavelengths(
-                satellite_table_xarray=satellite_table_xarray.copy(deep=True),
+                satellite_table_xarray=copy.deepcopy(satellite_table_xarray),
                 wavelengths_to_keep_microns=low_res_wavelengths_microns[[j]],
                 for_high_res=False
             )
@@ -832,7 +832,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
         for j in range(len(high_res_wavelengths_microns)):
             source_table_xarray = subset_wavelengths(
-                satellite_table_xarray=satellite_table_xarray.copy(deep=True),
+                satellite_table_xarray=copy.deepcopy(satellite_table_xarray),
                 wavelengths_to_keep_microns=high_res_wavelengths_microns[[j]],
                 for_high_res=True
             )
