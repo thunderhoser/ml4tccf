@@ -272,6 +272,7 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_integer_numpy_array(option_dict[LAG_TIMES_KEY])
     error_checking.assert_is_geq_numpy_array(option_dict[LAG_TIMES_KEY], 0)
     assert numpy.all(numpy.mod(option_dict[LAG_TIMES_KEY], 30) == 0)
+    option_dict[LAG_TIMES_KEY] = numpy.sort(option_dict[LAG_TIMES_KEY])[::-1]
 
     error_checking.assert_is_numpy_array(
         option_dict[HIGH_RES_WAVELENGTHS_KEY], num_dimensions=1
@@ -2245,9 +2246,10 @@ def train_model(
     error_checking.assert_is_boolean(is_model_bnn)
 
     training_option_dict = _check_generator_args(training_option_dict)
+    validation_option_dict = _check_generator_args(validation_option_dict)
 
     # TODO(thunderhoser): Maybe I should just max out the last 3 arguments and
-    # not let the user set them.
+    # not let the user set them?
     validation_keys_to_keep = [
         SATELLITE_DIRECTORY_KEY, YEARS_KEY,
         LAG_TIME_TOLERANCE_KEY, MAX_MISSING_LAG_TIMES_KEY, MAX_INTERP_GAP_KEY

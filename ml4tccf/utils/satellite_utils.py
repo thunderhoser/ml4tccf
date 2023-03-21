@@ -138,18 +138,16 @@ def quality_control_low_res(
     error_checking.assert_is_geq(max_bad_pixels_per_time_channel, 0)
 
     t = satellite_table_xarray
+    brightness_temp_matrix_kelvins = t[BRIGHTNESS_TEMPERATURE_KEY].values
 
-    t[BRIGHTNESS_TEMPERATURE_KEY].values[
-        t[BRIGHTNESS_TEMPERATURE_KEY].values < MIN_BRIGHTNESS_TEMP_KELVINS
+    brightness_temp_matrix_kelvins[
+        brightness_temp_matrix_kelvins < MIN_BRIGHTNESS_TEMP_KELVINS
+    ] = numpy.nan
+    brightness_temp_matrix_kelvins[
+        brightness_temp_matrix_kelvins > MAX_BRIGHTNESS_TEMP_KELVINS
     ] = numpy.nan
 
-    t[BRIGHTNESS_TEMPERATURE_KEY].values[
-        t[BRIGHTNESS_TEMPERATURE_KEY].values > MAX_BRIGHTNESS_TEMP_KELVINS
-    ] = numpy.nan
-
-    these_indices = numpy.where(
-        numpy.isnan(t[BRIGHTNESS_TEMPERATURE_KEY].values)
-    )
+    these_indices = numpy.where(numpy.isnan(brightness_temp_matrix_kelvins))
     bad_time_indices = these_indices[0]
     bad_channel_indices = these_indices[-1]
 
@@ -165,7 +163,7 @@ def quality_control_low_res(
 
     for i, k in zip(bad_time_indices, bad_channel_indices):
         num_bad_pixels = numpy.sum(
-            numpy.isnan(t[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., k])
+            numpy.isnan(brightness_temp_matrix_kelvins[i, ..., k])
         )
 
         if num_bad_pixels > max_bad_pixels_per_time_channel:
@@ -181,7 +179,7 @@ def quality_control_low_res(
             )
 
             warnings.warn(warning_string)
-            t[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., k] = numpy.nan
+            brightness_temp_matrix_kelvins[i, ..., k] = numpy.nan
             continue
 
         log_string = (
@@ -196,11 +194,18 @@ def quality_control_low_res(
         )
 
         print(log_string)
-        t[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., k] = misc_utils.fill_nans(
-            t[BRIGHTNESS_TEMPERATURE_KEY].values[i, ..., k]
+        brightness_temp_matrix_kelvins[i, ..., k] = misc_utils.fill_nans(
+            brightness_temp_matrix_kelvins[i, ..., k]
         )
 
     satellite_table_xarray = t
+    satellite_table_xarray = satellite_table_xarray.assign({
+        BRIGHTNESS_TEMPERATURE_KEY: (
+            satellite_table_xarray[BRIGHTNESS_TEMPERATURE_KEY].dims,
+            brightness_temp_matrix_kelvins
+        )
+    })
+
     return satellite_table_xarray
 
 
@@ -222,14 +227,10 @@ def quality_control_high_res(
     error_checking.assert_is_geq(max_bad_pixels_per_time_channel, 0)
 
     t = satellite_table_xarray
+    bidirectional_reflectance_matrix = t[BIDIRECTIONAL_REFLECTANCE_KEY].values
+    bidirectional_reflectance_matrix[bidirectional_reflectance_matrix < 0] = 0.
 
-    t[BIDIRECTIONAL_REFLECTANCE_KEY].values[
-        t[BIDIRECTIONAL_REFLECTANCE_KEY].values < 0
-    ] = 0.
-
-    these_indices = numpy.where(
-        numpy.isnan(t[BIDIRECTIONAL_REFLECTANCE_KEY].values)
-    )
+    these_indices = numpy.where(numpy.isnan(bidirectional_reflectance_matrix))
     bad_time_indices = these_indices[0]
     bad_channel_indices = these_indices[-1]
 
@@ -245,7 +246,7 @@ def quality_control_high_res(
 
     for i, k in zip(bad_time_indices, bad_channel_indices):
         num_bad_pixels = numpy.sum(
-            numpy.isnan(t[BIDIRECTIONAL_REFLECTANCE_KEY].values[i, ..., k])
+            numpy.isnan(bidirectional_reflectance_matrix[i, ..., k])
         )
 
         if num_bad_pixels > max_bad_pixels_per_time_channel:
@@ -261,7 +262,7 @@ def quality_control_high_res(
             )
 
             warnings.warn(warning_string)
-            t[BIDIRECTIONAL_REFLECTANCE_KEY].values[i, ..., k] = numpy.nan
+            bidirectional_reflectance_matrix[i, ..., k] = numpy.nan
             continue
 
         log_string = (
@@ -276,13 +277,18 @@ def quality_control_high_res(
         )
 
         print(log_string)
-        t[BIDIRECTIONAL_REFLECTANCE_KEY].values[i, ..., k] = (
-            misc_utils.fill_nans(
-                t[BIDIRECTIONAL_REFLECTANCE_KEY].values[i, ..., k]
-            )
+        bidirectional_reflectance_matrix[i, ..., k] = misc_utils.fill_nans(
+            bidirectional_reflectance_matrix[i, ..., k]
         )
 
     satellite_table_xarray = t
+    satellite_table_xarray = satellite_table_xarray.assign({
+        BIDIRECTIONAL_REFLECTANCE_KEY: (
+            satellite_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].dims,
+            bidirectional_reflectance_matrix
+        )
+    })
+
     return satellite_table_xarray
 
 
@@ -309,6 +315,7 @@ def mask_visible_data_at_night(
     error_checking.assert_is_leq(min_visible_pixel_fraction, 1.)
 
     t = satellite_table_xarray
+    bidirectional_reflectance_matrix = t[BIDIRECTIONAL_REFLECTANCE_KEY].values
     valid_times_unix_sec = t.coords[TIME_DIM].values
 
     for i in range(len(valid_times_unix_sec)):
@@ -345,9 +352,16 @@ def mask_visible_data_at_night(
 
         print(log_string)
 
-        t[BIDIRECTIONAL_REFLECTANCE_KEY].values[i, ...] = numpy.nan
+        bidirectional_reflectance_matrix[i, ...] = numpy.nan
 
     satellite_table_xarray = t
+    satellite_table_xarray = satellite_table_xarray.assign({
+        BIDIRECTIONAL_REFLECTANCE_KEY: (
+            satellite_table_xarray[BIDIRECTIONAL_REFLECTANCE_KEY].dims,
+            bidirectional_reflectance_matrix
+        )
+    })
+
     return satellite_table_xarray
 
 
@@ -697,6 +711,15 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 indexers={TIME_DIM: good_time_indices}
             )
 
+            # TODO(thunderhoser): I could make this code more efficient by
+            # calling isel once instead of twice.
+            sort_indices = numpy.argsort(
+                source_table_xarray.coords[TIME_DIM].values
+            )
+            source_table_xarray = source_table_xarray.isel(
+                indexers={TIME_DIM: sort_indices}
+            )
+
             interp_gap_sec = _compute_interpolation_gap(
                 source_times_unix_sec=
                 source_table_xarray.coords[TIME_DIM].values,
@@ -707,6 +730,12 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 new_brightness_temp_matrix_kelvins[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
+
+            # st = source_table_xarray
+            # fill_value_arg = (
+            #     st[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0],
+            #     st[BRIGHTNESS_TEMPERATURE_KEY].values[-1, ..., 0]
+            # )
 
             interp_object = interp1d(
                 x=source_table_xarray.coords[TIME_DIM].values,
@@ -743,6 +772,15 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 indexers={TIME_DIM: good_time_indices}
             )
 
+            # TODO(thunderhoser): I could make this code more efficient by
+            # calling isel once instead of twice.
+            sort_indices = numpy.argsort(
+                source_table_xarray.coords[TIME_DIM].values
+            )
+            source_table_xarray = source_table_xarray.isel(
+                indexers={TIME_DIM: sort_indices}
+            )
+
             interp_gap_sec = _compute_interpolation_gap(
                 source_times_unix_sec=
                 source_table_xarray.coords[TIME_DIM].values,
@@ -753,6 +791,12 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
                 new_bidirectional_reflectance_matrix[i, ..., j] = numpy.nan
                 failed_to_interp = True
                 break
+
+            # st = source_table_xarray
+            # fill_value_arg = (
+            #     st[BRIGHTNESS_TEMPERATURE_KEY].values[0, ..., 0],
+            #     st[BRIGHTNESS_TEMPERATURE_KEY].values[-1, ..., 0]
+            # )
 
             interp_object = interp1d(
                 x=source_table_xarray.coords[TIME_DIM].values,

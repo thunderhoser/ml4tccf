@@ -321,9 +321,16 @@ def get_normalization_params(
                     ))
 
                     last_index = first_index + len(predictor_values)
-                    npt[this_key].values[first_index:last_index, k] = (
+
+                    this_reference_value_matrix = npt[this_key].values
+                    this_reference_value_matrix[first_index:last_index, k] = (
                         predictor_values
                     )
+                    npt = npt.assign({
+                        this_key: (
+                            npt[this_key].dims, this_reference_value_matrix
+                        )
+                    })
 
     for this_key in main_data_dict:
         assert not numpy.any(numpy.isnan(npt[this_key].values))
@@ -351,6 +358,10 @@ def normalize_data(satellite_table_xarray, normalization_param_table_xarray):
     )
 
     for j in range(len(high_res_wavelengths_orig_metres)):
+        bidirectional_reflectance_matrix = (
+            st[BIDIRECTIONAL_REFLECTANCE_KEY].values
+        )
+
         k = numpy.where(
             numpy.absolute(
                 high_res_wavelengths_norm_metres -
@@ -359,20 +370,25 @@ def normalize_data(satellite_table_xarray, normalization_param_table_xarray):
             < TOLERANCE
         )[0][0]
 
-        training_values = npt[BIDIRECTIONAL_REFLECTANCE_KEY].values[:, k]
-
-        st[BIDIRECTIONAL_REFLECTANCE_KEY].values[..., j] = (
-            _normalize_one_variable(
-                actual_values_new=
-                st[BIDIRECTIONAL_REFLECTANCE_KEY].values[..., j],
-                actual_values_training=training_values
-            )
+        bidirectional_reflectance_matrix[..., j] = _normalize_one_variable(
+            actual_values_new=bidirectional_reflectance_matrix[..., j],
+            actual_values_training=
+            npt[BIDIRECTIONAL_REFLECTANCE_KEY].values[:, k]
         )
+
+        st = st.assign({
+            BIDIRECTIONAL_REFLECTANCE_KEY: (
+                st[BIDIRECTIONAL_REFLECTANCE_KEY].dims,
+                bidirectional_reflectance_matrix
+            )
+        })
 
     low_res_wavelengths_orig_metres = st.coords[LOW_RES_WAVELENGTH_DIM].values
     low_res_wavelengths_norm_metres = npt.coords[LOW_RES_WAVELENGTH_DIM].values
 
     for j in range(len(low_res_wavelengths_orig_metres)):
+        brightness_temp_matrix_kelvins = st[BRIGHTNESS_TEMPERATURE_KEY].values
+
         k = numpy.where(
             numpy.absolute(
                 low_res_wavelengths_norm_metres -
@@ -381,15 +397,17 @@ def normalize_data(satellite_table_xarray, normalization_param_table_xarray):
             < TOLERANCE
         )[0][0]
 
-        training_values = npt[BRIGHTNESS_TEMPERATURE_KEY].values[:, k]
-
-        st[BRIGHTNESS_TEMPERATURE_KEY].values[..., j] = (
-            _normalize_one_variable(
-                actual_values_new=
-                st[BRIGHTNESS_TEMPERATURE_KEY].values[..., j],
-                actual_values_training=training_values
-            )
+        brightness_temp_matrix_kelvins[..., j] = _normalize_one_variable(
+            actual_values_new=brightness_temp_matrix_kelvins[..., j],
+            actual_values_training=npt[BRIGHTNESS_TEMPERATURE_KEY].values[:, k]
         )
+
+        st = st.assign({
+            BRIGHTNESS_TEMPERATURE_KEY: (
+                st[BRIGHTNESS_TEMPERATURE_KEY].dims,
+                brightness_temp_matrix_kelvins
+            )
+        })
 
     satellite_table_xarray = st
     return satellite_table_xarray
@@ -414,6 +432,10 @@ def denormalize_data(satellite_table_xarray, normalization_param_table_xarray):
     )
 
     for j in range(len(high_res_wavelengths_orig_metres)):
+        bidirectional_reflectance_matrix = (
+            st[BIDIRECTIONAL_REFLECTANCE_KEY].values
+        )
+
         k = numpy.where(
             numpy.absolute(
                 high_res_wavelengths_norm_metres -
@@ -422,20 +444,25 @@ def denormalize_data(satellite_table_xarray, normalization_param_table_xarray):
             < TOLERANCE
         )[0][0]
 
-        training_values = npt[BIDIRECTIONAL_REFLECTANCE_KEY].values[:, k]
-
-        st[BIDIRECTIONAL_REFLECTANCE_KEY].values[..., j] = (
-            _denorm_one_variable(
-                normalized_values_new=
-                st[BIDIRECTIONAL_REFLECTANCE_KEY].values[..., j],
-                actual_values_training=training_values
-            )
+        bidirectional_reflectance_matrix[..., j] = _denorm_one_variable(
+            normalized_values_new=bidirectional_reflectance_matrix[..., j],
+            actual_values_training=
+            npt[BIDIRECTIONAL_REFLECTANCE_KEY].values[:, k]
         )
+
+        st = st.assign({
+            BIDIRECTIONAL_REFLECTANCE_KEY: (
+                st[BIDIRECTIONAL_REFLECTANCE_KEY].dims,
+                bidirectional_reflectance_matrix
+            )
+        })
 
     low_res_wavelengths_orig_metres = st.coords[LOW_RES_WAVELENGTH_DIM].values
     low_res_wavelengths_norm_metres = npt.coords[LOW_RES_WAVELENGTH_DIM].values
 
     for j in range(len(low_res_wavelengths_orig_metres)):
+        brightness_temp_matrix_kelvins = st[BRIGHTNESS_TEMPERATURE_KEY].values
+
         k = numpy.where(
             numpy.absolute(
                 low_res_wavelengths_norm_metres -
@@ -444,15 +471,17 @@ def denormalize_data(satellite_table_xarray, normalization_param_table_xarray):
             < TOLERANCE
         )[0][0]
 
-        training_values = npt[BRIGHTNESS_TEMPERATURE_KEY].values[:, k]
-
-        st[BRIGHTNESS_TEMPERATURE_KEY].values[..., j] = (
-            _denorm_one_variable(
-                normalized_values_new=
-                st[BRIGHTNESS_TEMPERATURE_KEY].values[..., j],
-                actual_values_training=training_values
-            )
+        brightness_temp_matrix_kelvins[..., j] = _denorm_one_variable(
+            normalized_values_new=brightness_temp_matrix_kelvins[..., j],
+            actual_values_training=npt[BRIGHTNESS_TEMPERATURE_KEY].values[:, k]
         )
+
+        st = st.assign({
+            BRIGHTNESS_TEMPERATURE_KEY: (
+                st[BRIGHTNESS_TEMPERATURE_KEY].dims,
+                brightness_temp_matrix_kelvins
+            )
+        })
 
     satellite_table_xarray = st
     return satellite_table_xarray

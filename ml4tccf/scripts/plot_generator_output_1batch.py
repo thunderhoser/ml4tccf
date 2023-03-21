@@ -182,9 +182,8 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
     )
     training_option_dict[neural_net.DATA_AUG_NUM_TRANS_KEY] = 1
 
-    # TODO(thunderhoser): Remove these two lines later.
-    training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY] = 100.
-    training_option_dict[neural_net.DATA_AUG_STDEV_TRANS_KEY] = 25.
+    # training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY] = 100.
+    # training_option_dict[neural_net.DATA_AUG_STDEV_TRANS_KEY] = 25.
 
     model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = training_option_dict
 

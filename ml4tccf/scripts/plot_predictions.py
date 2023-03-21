@@ -266,8 +266,9 @@ def _plot_data_one_example(
 
     predictor_matrices = [
         neural_net.separate_lag_times_and_wavelengths(
-            satellite_data_matrix=p, num_lag_times=len(lag_times_minutes)
-        ) for p in predictor_matrices
+            satellite_data_matrix=numpy.expand_dims(p, axis=0),
+            num_lag_times=len(lag_times_minutes)
+        )[0, ...] for p in predictor_matrices
     ]
 
     num_lag_times = len(lag_times_minutes)
