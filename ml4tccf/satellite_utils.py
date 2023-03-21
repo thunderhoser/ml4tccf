@@ -368,7 +368,7 @@ def subset_grid(satellite_table_xarray, num_rows_to_keep, num_columns_to_keep,
     :param num_columns_to_keep: Number of grid columns to keep.
     :param for_high_res: Boolean flag.  If True (False), will subset grid for
         high- (low-)resolution data.
-    :return: new_table_xarray: Same as input but with smaller grid.
+    :return: satellite_table_xarray: Same as input but with smaller grid.
     """
 
     # Error-checking.
@@ -430,7 +430,8 @@ def subset_wavelengths(satellite_table_xarray, wavelengths_to_keep_microns,
     :param wavelengths_to_keep_microns: 1-D numpy array of wavelengths to keep.
     :param for_high_res: Boolean flag.  If True (False), will subset wavelengths
         for high- (low-)resolution data.
-    :return: new_table_xarray: Same as input but maybe with fewer wavelengths.
+    :return: satellite_table_xarray: Same as input but maybe with fewer
+        wavelengths.
     """
 
     error_checking.assert_is_numpy_array(
@@ -491,7 +492,7 @@ def subset_to_multiple_time_windows(
         window.
     :param end_times_unix_sec: length-W numpy array with end of each time
         window.
-    :return: new_table_xarray: Same as input but maybe with fewer times.
+    :return: satellite_table_xarray: Same as input but maybe with fewer times.
     """
 
     # Check input args.
@@ -646,15 +647,20 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
         raise ValueError(error_string)
 
-    new_table_xarray = satellite_table_xarray.isel(
+    if num_missing_times == 0:
+        return satellite_table_xarray.isel(
+            indexers={TIME_DIM: desired_indices}
+        )
+
+    # TODO(thunderhoser): This is not memory-efficient, but I think it is
+    # needed.
+    new_table_xarray = satellite_table_xarray.copy(deep=True)
+    new_table_xarray = new_table_xarray.isel(
         indexers={TIME_DIM: desired_indices}
     )
     new_table_xarray = new_table_xarray.assign_coords({
         TIME_DIM: desired_times_unix_sec
     })
-
-    if num_missing_times == 0:
-        return new_table_xarray
 
     low_res_wavelengths_microns = (
         METRES_TO_MICRONS *
@@ -673,7 +679,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
         for j in range(len(low_res_wavelengths_microns)):
             source_table_xarray = subset_wavelengths(
-                satellite_table_xarray=satellite_table_xarray,
+                satellite_table_xarray=satellite_table_xarray.copy(deep=True),
                 wavelengths_to_keep_microns=low_res_wavelengths_microns[[j]],
                 for_high_res=False
             )
@@ -826,7 +832,7 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
 
         for j in range(len(high_res_wavelengths_microns)):
             source_table_xarray = subset_wavelengths(
-                satellite_table_xarray=satellite_table_xarray,
+                satellite_table_xarray=satellite_table_xarray.copy(deep=True),
                 wavelengths_to_keep_microns=high_res_wavelengths_microns[[j]],
                 for_high_res=True
             )
