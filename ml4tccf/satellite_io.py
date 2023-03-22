@@ -197,10 +197,14 @@ def write_file(satellite_table_xarray, zarr_file_name):
         directory_name=zarr_file_name
     )
 
-    satellite_table_xarray.to_zarr(
-        store=zarr_file_name, mode='w',
-        encoding={
-            satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY: {'dtype': 'float16'},
-            satellite_utils.BRIGHTNESS_TEMPERATURE_KEY: {'dtype': 'float16'}
+    encoding_dict = {
+        satellite_utils.BRIGHTNESS_TEMPERATURE_KEY: {'dtype': 'float16'}
+    }
+    if satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY in satellite_table_xarray:
+        encoding_dict[satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY] = {
+            'dtype': 'float16'
         }
+
+    satellite_table_xarray.to_zarr(
+        store=zarr_file_name, mode='w', encoding=encoding_dict
     )
