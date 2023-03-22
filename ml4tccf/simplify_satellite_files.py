@@ -104,6 +104,7 @@ def _run(input_dir_name, cyclone_id_string, output_dir_name):
         satellite_table_xarray = satellite_table_xarray.isel(
             indexers={satellite_utils.TIME_DIM: good_time_indices}
         )
+        satellite_table_xarray = satellite_table_xarray.chunk()
 
         this_output_file_name = satellite_io.find_file(
             directory_name=output_dir_name,
