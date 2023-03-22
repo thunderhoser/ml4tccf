@@ -1981,7 +1981,7 @@ def data_generator(option_dict):
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     years = option_dict[YEARS_KEY]
     lag_times_minutes = option_dict[LAG_TIMES_KEY]
-    high_res_wavelengths_microns = option_dict[HIGH_RES_WAVELENGTHS_KEY]
+    high_res_wavelengths_microns = option_dict[HIGH_RES_WAVELENGTHS_KEY]  # Not in simple.
     low_res_wavelengths_microns = option_dict[LOW_RES_WAVELENGTHS_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
     max_examples_per_cyclone = option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
@@ -1992,12 +1992,12 @@ def data_generator(option_dict):
     data_aug_stdev_translation_low_res_px = (
         option_dict[DATA_AUG_STDEV_TRANS_KEY]
     )
-    lag_time_tolerance_sec = option_dict[LAG_TIME_TOLERANCE_KEY]
-    max_num_missing_lag_times = option_dict[MAX_MISSING_LAG_TIMES_KEY]
-    max_interp_gap_sec = option_dict[MAX_INTERP_GAP_KEY]
-    sentinel_value = option_dict[SENTINEL_VALUE_KEY]
-    semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
-    target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
+    lag_time_tolerance_sec = option_dict[LAG_TIME_TOLERANCE_KEY]  # Not in simple.
+    max_num_missing_lag_times = option_dict[MAX_MISSING_LAG_TIMES_KEY]  # Not in simple.
+    max_interp_gap_sec = option_dict[MAX_INTERP_GAP_KEY]  # Not in simple.
+    sentinel_value = option_dict[SENTINEL_VALUE_KEY]  # Not in simple.
+    semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]  # Not in simple.
+    target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]  # Not in simple.
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -2245,9 +2245,6 @@ def train_model(
     error_checking.assert_is_geq(early_stopping_patience_epochs, 5)
     error_checking.assert_is_boolean(is_model_bnn)
 
-    training_option_dict = _check_generator_args(training_option_dict)
-    validation_option_dict = _check_generator_args(validation_option_dict)
-
     # TODO(thunderhoser): Maybe I should just max out the last 3 arguments and
     # not let the user set them?
     validation_keys_to_keep = [
@@ -2259,6 +2256,9 @@ def train_model(
             continue
 
         validation_option_dict[this_key] = training_option_dict[this_key]
+
+    training_option_dict = _check_generator_args(training_option_dict)
+    validation_option_dict = _check_generator_args(validation_option_dict)
 
     model_file_name = '{0:s}/model.h5'.format(output_dir_name)
 
