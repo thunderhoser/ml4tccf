@@ -15,7 +15,7 @@ import file_system_utils
 import architecture_utils
 import neural_net
 import cnn_architecture
-import custom_losses
+import custom_losses_scalar
 import accum_grad_optimizer
 
 OUTPUT_DIR_NAME = (
@@ -26,8 +26,8 @@ OUTPUT_DIR_NAME = (
 NUM_CONV_BLOCKS = 8
 # ENSEMBLE_SIZE = 25
 ENSEMBLE_SIZE = 5
-NUM_DENSE_LAYERS = 2
-LOSS_FUNCTION_STRING = 'custom_losses.mean_squared_distance_kilometres2'
+NUM_DENSE_LAYERS = 4
+LOSS_FUNCTION_STRING = 'custom_losses_scalar.mean_squared_distance_kilometres2'
 
 DEFAULT_OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
@@ -50,7 +50,7 @@ DEFAULT_OPTION_DICT = {
     cnn_architecture.USE_BATCH_NORM_KEY: True,
     cnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     cnn_architecture.LOSS_FUNCTION_KEY:
-        custom_losses.mean_squared_distance_kilometres2,
+        custom_losses_scalar.mean_squared_distance_kilometres2,
     # cnn_architecture.OPTIMIZER_FUNCTION_KEY:
     #     accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
     #         orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5,
@@ -58,10 +58,10 @@ DEFAULT_OPTION_DICT = {
     #     )
 }
 
-FIRST_LAYER_CHANNEL_COUNTS = numpy.array([16, 24, 32, 40], dtype=int)
-BATCHES_PER_UPDATE_COUNTS = numpy.array([4, 5, 6], dtype=int)
-DROPOUT_RATES = numpy.array([0.3, 0.4, 0.5, 0.6])
-L2_WEIGHTS = numpy.logspace(-6, -5, num=3)
+FIRST_LAYER_CHANNEL_COUNTS = numpy.array([16], dtype=int)
+BATCHES_PER_UPDATE_COUNTS = numpy.array([1, 4, 5, 6], dtype=int)
+DROPOUT_RATES = numpy.array([0.3, 0.4, 0.5, 0.6, 0.7])
+L2_WEIGHTS = numpy.logspace(-6, -4, num=5)
 
 
 def _run():
@@ -103,15 +103,31 @@ def _run():
                         dense_neuron_counts[-1], dense_neuron_counts[-2]
                     ])
 
-                    # TODO(thunderhoser): Might want to accumulate mean and not
-                    # sum?
-                    optimizer_function = (
-                        accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
-                            orig_optimizer=keras.optimizers.Adam(),
-                            update_params_frequency=BATCHES_PER_UPDATE_COUNTS[j],
-                            accumulate_sum_or_mean=True
-                        )
+                    dense_dropout_rates = numpy.full(
+                        NUM_DENSE_LAYERS, DROPOUT_RATES[k]
                     )
+                    dense_dropout_rates[-1] = 0.
+
+                    if BATCHES_PER_UPDATE_COUNTS[j] > 1:
+                        optimizer_function = (
+                            accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
+                                orig_optimizer=keras.optimizers.Adam(),
+                                update_params_frequency=BATCHES_PER_UPDATE_COUNTS[j],
+                                accumulate_sum_or_mean=True
+                            )
+                        )
+
+                        optimizer_string = (
+                            'accum_grad_optimizer.convert_to_accumulate_gradient_optimizer('
+                            'orig_optimizer=keras.optimizers.Adam(), '
+                            'update_params_frequency={0:d}, '
+                            'accumulate_sum_or_mean=True)'.format(
+                                BATCHES_PER_UPDATE_COUNTS[j]
+                            )
+                        )
+                    else:
+                        optimizer_function = keras.optimizers.Adam()
+                        optimizer_string = 'keras.optimizers.Adam()'
 
                     option_dict.update({
                         cnn_architecture.NUM_CHANNELS_KEY:
@@ -120,18 +136,9 @@ def _run():
                         cnn_architecture.OPTIMIZER_FUNCTION_KEY:
                             optimizer_function,
                         cnn_architecture.DENSE_DROPOUT_RATES_KEY:
-                            numpy.array([DROPOUT_RATES[k], 0.]),
+                            dense_dropout_rates,
                         cnn_architecture.L2_WEIGHT_KEY: L2_WEIGHTS[m]
                     })
-
-                    optimizer_string = (
-                        'accum_grad_optimizer.convert_to_accumulate_gradient_optimizer('
-                        'orig_optimizer=keras.optimizers.Adam(), '
-                        'update_params_frequency={0:d}, '
-                        'accumulate_sum_or_mean=True)'.format(
-                            BATCHES_PER_UPDATE_COUNTS[j]
-                        )
-                    )
 
                     model_object = cnn_architecture.create_model(option_dict)
                     output_file_name = (
