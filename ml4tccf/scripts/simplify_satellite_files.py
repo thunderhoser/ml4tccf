@@ -2,6 +2,7 @@
 
 import argparse
 import numpy
+import xarray
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import satellite_utils
 
@@ -95,6 +96,23 @@ def _run(input_dir_name, cyclone_id_string, output_dir_name):
 
         satellite_table_xarray = satellite_table_xarray.isel(
             indexers={satellite_utils.TIME_DIM: good_time_indices}
+        )
+
+        main_data_dict = {}
+        for var_name in satellite_table_xarray.data_vars:
+            main_data_dict[var_name] = (
+                satellite_table_xarray[var_name].dims,
+                satellite_table_xarray[var_name].values
+            )
+        
+        metadata_dict = {}
+        for coord_name in satellite_table_xarray.coords:
+            metadata_dict[coord_name] = (
+                satellite_table_xarray.coords[coord_name].values
+            )
+
+        satellite_table_xarray = xarray.Dataset(
+            data_vars=main_data_dict, coords=metadata_dict
         )
 
         this_output_file_name = satellite_io.find_file(
