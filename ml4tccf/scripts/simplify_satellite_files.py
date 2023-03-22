@@ -94,6 +94,10 @@ def _run(input_dir_name, cyclone_id_string, output_dir_name):
                 numpy.sum(bad_time_flags), len(bad_time_flags)
             ))
 
+        if len(good_time_indices) == 0:
+            del satellite_table_xarray
+            continue
+
         satellite_table_xarray = satellite_table_xarray.isel(
             indexers={satellite_utils.TIME_DIM: good_time_indices}
         )
@@ -104,7 +108,7 @@ def _run(input_dir_name, cyclone_id_string, output_dir_name):
                 satellite_table_xarray[var_name].dims,
                 satellite_table_xarray[var_name].values
             )
-        
+
         metadata_dict = {}
         for coord_name in satellite_table_xarray.coords:
             metadata_dict[coord_name] = (

@@ -448,6 +448,205 @@ def _decide_files_to_read_one_cyclone(
     return desired_file_to_times_dict
 
 
+def _read_satellite_data_1cyclone_simple(
+        input_file_names, lag_times_minutes, num_rows_low_res,
+        num_columns_low_res, return_coords, num_target_times=None,
+        target_times_unix_sec=None):
+    """Reads satellite data for one cyclone.
+
+    :param input_file_names: See doc for `_read_satellite_data_one_cyclone`.
+    :param lag_times_minutes: Same.
+    :param low_res_wavelengths_microns: Same.
+    :param num_rows_low_res: Same.
+    :param num_columns_low_res: Same.
+    :param return_coords: Same.
+    :param num_target_times: Same.
+    :param target_times_unix_sec: Same.
+    :return: data_dict: Same.
+    """
+
+    if num_target_times is not None:
+        target_times_unix_sec = numpy.concatenate([
+            xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
+            for f in input_file_names
+        ])
+        target_times_unix_sec = target_times_unix_sec[
+            numpy.mod(target_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC)
+            == 0
+        ]
+
+        if len(target_times_unix_sec) == 0:
+            return None
+
+        if num_target_times < len(target_times_unix_sec):
+            target_times_unix_sec = numpy.random.choice(
+                target_times_unix_sec, size=num_target_times, replace=False
+            )
+
+    desired_file_to_times_dict = _decide_files_to_read_one_cyclone(
+        satellite_file_names=input_file_names,
+        target_times_unix_sec=target_times_unix_sec,
+        lag_times_minutes=lag_times_minutes,
+        lag_time_tolerance_sec=0,
+        max_interp_gap_sec=0
+    )
+
+    desired_file_names = list(desired_file_to_times_dict.keys())
+    num_files = len(desired_file_names)
+    orig_satellite_tables_xarray = [None] * num_files
+
+    for i in range(num_files):
+        print('Reading data from: "{0:s}"...'.format(desired_file_names[i]))
+        orig_satellite_tables_xarray[i] = satellite_io.read_file(
+            desired_file_names[i]
+        )
+
+        orig_satellite_tables_xarray[i] = (
+            satellite_utils.subset_to_multiple_time_windows(
+                satellite_table_xarray=orig_satellite_tables_xarray[i],
+                start_times_unix_sec=
+                desired_file_to_times_dict[desired_file_names[i]][0],
+                end_times_unix_sec=
+                desired_file_to_times_dict[desired_file_names[i]][1]
+            )
+        )
+
+        orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
+            satellite_table_xarray=orig_satellite_tables_xarray[i],
+            num_rows_to_keep=num_rows_low_res,
+            num_columns_to_keep=num_columns_low_res,
+            for_high_res=False
+        )
+
+    satellite_table_xarray = satellite_utils.concat_over_time(
+        orig_satellite_tables_xarray
+    )
+    del orig_satellite_tables_xarray
+
+    num_target_times = len(target_times_unix_sec)
+    num_lag_times = len(lag_times_minutes)
+
+    t = satellite_table_xarray
+    this_num_rows = (
+        t[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values.shape[1]
+    )
+    this_num_columns = (
+        t[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values.shape[2]
+    )
+    these_dim = (
+        num_target_times, this_num_rows, this_num_columns, num_lag_times, 1
+    )
+    brightness_temp_matrix_kelvins = numpy.full(these_dim, numpy.nan)
+
+    if return_coords:
+        low_res_latitude_matrix_deg_n = numpy.full(
+            (num_target_times, this_num_rows, num_lag_times), numpy.nan
+        )
+        low_res_longitude_matrix_deg_e = numpy.full(
+            (num_target_times, this_num_columns, num_lag_times), numpy.nan
+        )
+    else:
+        low_res_latitude_matrix_deg_n = None
+        low_res_longitude_matrix_deg_e = None
+
+    grid_spacings_low_res_km = numpy.full(num_target_times, numpy.nan)
+    cyclone_center_latitudes_deg_n = numpy.full(num_target_times, numpy.nan)
+
+    lag_times_sec = MINUTES_TO_SECONDS * lag_times_minutes
+    target_time_success_flags = numpy.full(num_target_times, 0, dtype=bool)
+
+    for i in range(num_target_times):
+        print('Finding satellite data for target time {0:s}...'.format(
+            time_conversion.unix_sec_to_string(
+                target_times_unix_sec[i], TIME_FORMAT_FOR_LOG_MESSAGES
+            )
+        ))
+
+        these_desired_times_unix_sec = numpy.sort(
+            target_times_unix_sec[i] - lag_times_sec
+        )
+        these_tolerances_sec = numpy.full(
+            len(these_desired_times_unix_sec), 0, dtype=int
+        )
+        these_max_gaps_sec = numpy.full(
+            len(these_desired_times_unix_sec), 0, dtype=int
+        )
+
+        try:
+            new_table_xarray = satellite_utils.subset_times(
+                satellite_table_xarray=satellite_table_xarray,
+                desired_times_unix_sec=these_desired_times_unix_sec,
+                tolerances_sec=these_tolerances_sec,
+                max_num_missing_times=0,
+                max_interp_gaps_sec=these_max_gaps_sec
+            )
+            target_time_success_flags[i] = True
+        except ValueError:
+            continue
+
+        t = new_table_xarray
+        this_bt_matrix_kelvins = numpy.swapaxes(
+            t[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values, 0, 1
+        )
+        brightness_temp_matrix_kelvins[i, ...] = numpy.swapaxes(
+            this_bt_matrix_kelvins, 1, 2
+        )
+
+        these_x_diffs_metres = numpy.diff(
+            t[satellite_utils.X_COORD_LOW_RES_KEY].values[-1, :]
+        )
+        these_y_diffs_metres = numpy.diff(
+            t[satellite_utils.Y_COORD_LOW_RES_KEY].values[-1, :]
+        )
+        grid_spacings_low_res_km[i] = METRES_TO_KM * numpy.mean(
+            numpy.concatenate((these_x_diffs_metres, these_y_diffs_metres))
+        )
+
+        cyclone_center_latitudes_deg_n[i] = numpy.median(
+            t[satellite_utils.LATITUDE_LOW_RES_KEY].values[-1, :]
+        )
+
+        if return_coords:
+            low_res_latitude_matrix_deg_n[i, ...] = numpy.swapaxes(
+                t[satellite_utils.LATITUDE_LOW_RES_KEY].values, 0, 1
+            )
+            low_res_longitude_matrix_deg_e[i, ...] = numpy.swapaxes(
+                t[satellite_utils.LONGITUDE_LOW_RES_KEY].values, 0, 1
+            )
+
+    good_indices = numpy.where(target_time_success_flags)[0]
+    target_times_unix_sec = target_times_unix_sec[good_indices]
+    brightness_temp_matrix_kelvins = (
+        brightness_temp_matrix_kelvins[good_indices, ...]
+    )
+    grid_spacings_low_res_km = grid_spacings_low_res_km[good_indices]
+    cyclone_center_latitudes_deg_n = (
+        cyclone_center_latitudes_deg_n[good_indices]
+    )
+
+    assert not numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
+
+    if return_coords:
+        low_res_latitude_matrix_deg_n = low_res_latitude_matrix_deg_n[
+            good_indices, ...
+        ]
+        low_res_longitude_matrix_deg_e = low_res_longitude_matrix_deg_e[
+            good_indices, ...
+        ]
+
+    return {
+        BIDIRECTIONAL_REFLECTANCES_KEY: None,
+        BRIGHTNESS_TEMPS_KEY: brightness_temp_matrix_kelvins,
+        GRID_SPACINGS_KEY: grid_spacings_low_res_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
+        TARGET_TIMES_KEY: target_times_unix_sec,
+        HIGH_RES_LATITUDES_KEY: None,
+        HIGH_RES_LONGITUDES_KEY: None,
+        LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
+        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
+    }
+
+
 def _read_satellite_data_one_cyclone(
         input_file_names, lag_times_minutes, lag_time_tolerance_sec,
         max_num_missing_lag_times, max_interp_gap_sec,
@@ -1895,6 +2094,162 @@ def create_data_specific_trans(
     }
 
 
+def data_generator_simple(option_dict):
+    """Generates input data for neural net.
+
+    :param option_dict: See doc for `data_generator`.
+    :return: predictor_matrices: Same.
+    :return: target_matrix: Same.
+    """
+
+    option_dict = _check_generator_args(option_dict)
+
+    satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
+    years = option_dict[YEARS_KEY]
+    lag_times_minutes = option_dict[LAG_TIMES_KEY]
+    num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
+    max_examples_per_cyclone = option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
+    num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
+    num_columns_low_res = option_dict[NUM_GRID_COLUMNS_KEY]
+    data_aug_num_translations = option_dict[DATA_AUG_NUM_TRANS_KEY]
+    data_aug_mean_translation_low_res_px = option_dict[DATA_AUG_MEAN_TRANS_KEY]
+    data_aug_stdev_translation_low_res_px = (
+        option_dict[DATA_AUG_STDEV_TRANS_KEY]
+    )
+
+    orig_num_rows_low_res = num_rows_low_res + 0
+    orig_num_columns_low_res = num_columns_low_res + 0
+
+    num_extra_rowcols = 2 * int(numpy.ceil(
+        data_aug_mean_translation_low_res_px +
+        5 * data_aug_stdev_translation_low_res_px
+    ))
+    num_rows_low_res += num_extra_rowcols
+    num_columns_low_res += num_extra_rowcols
+
+    cyclone_id_strings = satellite_io.find_cyclones(
+        directory_name=satellite_dir_name, raise_error_if_all_missing=True
+    )
+    cyclone_years = numpy.array(
+        [misc_utils.parse_cyclone_id(c)[0] for c in cyclone_id_strings],
+        dtype=int
+    )
+
+    good_flags = numpy.array([y in years for y in cyclone_years], dtype=bool)
+    good_indices = numpy.where(good_flags)[0]
+    cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
+    random.shuffle(cyclone_id_strings)
+
+    satellite_file_names_by_cyclone = [
+        satellite_io.find_files_one_cyclone(
+            directory_name=satellite_dir_name, cyclone_id_string=c,
+            raise_error_if_all_missing=True
+        ) for c in cyclone_id_strings
+    ]
+
+    cyclone_index = 0
+
+    while True:
+        brightness_temp_matrix_kelvins = None
+        grid_spacings_km = None
+        cyclone_center_latitudes_deg_n = None
+        num_examples_in_memory = 0
+
+        while num_examples_in_memory < num_examples_per_batch:
+            if cyclone_index == len(cyclone_id_strings):
+                cyclone_index = 0
+
+            num_examples_to_read = min([
+                max_examples_per_cyclone,
+                num_examples_per_batch - num_examples_in_memory
+            ])
+
+            data_dict = _read_satellite_data_1cyclone_simple(
+                input_file_names=satellite_file_names_by_cyclone[cyclone_index],
+                lag_times_minutes=lag_times_minutes,
+                num_rows_low_res=num_rows_low_res,
+                num_columns_low_res=num_columns_low_res,
+                return_coords=False, num_target_times=num_examples_to_read
+            )
+
+            if data_dict is None:
+                continue
+
+            this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+            these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
+            these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
+
+            if this_bt_matrix_kelvins is None:
+                continue
+            if this_bt_matrix_kelvins.size == 0:
+                continue
+
+            this_bt_matrix_kelvins = combine_lag_times_and_wavelengths(
+                this_bt_matrix_kelvins
+            )
+
+            if brightness_temp_matrix_kelvins is None:
+                these_dim = (
+                    (num_examples_per_batch,) + this_bt_matrix_kelvins.shape[1:]
+                )
+                brightness_temp_matrix_kelvins = numpy.full(
+                    these_dim, numpy.nan
+                )
+
+                grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
+                cyclone_center_latitudes_deg_n = numpy.full(
+                    num_examples_per_batch, numpy.nan
+                )
+
+            first_index = num_examples_in_memory
+            last_index = first_index + this_bt_matrix_kelvins.shape[0]
+            brightness_temp_matrix_kelvins[first_index:last_index, ...] = (
+                this_bt_matrix_kelvins
+            )
+            grid_spacings_km[first_index:last_index] = these_grid_spacings_km
+            cyclone_center_latitudes_deg_n[first_index:last_index] = (
+                these_center_latitudes_deg_n
+            )
+
+            cyclone_index += 1
+            num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
+
+        (
+            _, brightness_temp_matrix_kelvins,
+            row_translations_low_res_px, column_translations_low_res_px
+        ) = _augment_data(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
+            num_translations_per_example=data_aug_num_translations,
+            mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
+            stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
+            sentinel_value=-10.
+        )
+
+        brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
+            data_matrix=brightness_temp_matrix_kelvins,
+            num_rows_to_keep=orig_num_rows_low_res,
+            num_columns_to_keep=orig_num_columns_low_res,
+            for_high_res=False
+        )
+
+        grid_spacings_km = numpy.repeat(
+            grid_spacings_km, repeats=data_aug_num_translations
+        )
+        cyclone_center_latitudes_deg_n = numpy.repeat(
+            cyclone_center_latitudes_deg_n, repeats=data_aug_num_translations
+        )
+        predictor_matrices = [brightness_temp_matrix_kelvins]
+
+        target_matrix = numpy.transpose(numpy.vstack((
+            row_translations_low_res_px, column_translations_low_res_px,
+            grid_spacings_km, cyclone_center_latitudes_deg_n
+        )))
+
+        predictor_matrices = [p.astype('float16') for p in predictor_matrices]
+        yield predictor_matrices, target_matrix
+
+
 def data_generator(option_dict):
     """Generates input data for neural net.
 
@@ -2178,6 +2533,119 @@ def data_generator(option_dict):
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
         yield predictor_matrices, target_matrix
+
+
+def train_model_simple(
+        model_object, output_dir_name, num_epochs,
+        num_training_batches_per_epoch, training_option_dict,
+        num_validation_batches_per_epoch, validation_option_dict,
+        loss_function_string, optimizer_function_string,
+        plateau_patience_epochs, plateau_learning_rate_multiplier,
+        early_stopping_patience_epochs, architecture_dict, is_model_bnn):
+    """Trains neural net with generator.
+
+    :param model_object: See doc for `train_model`.
+    :param output_dir_name: Same.
+    :param num_epochs: Same.
+    :param num_training_batches_per_epoch: Same.
+    :param num_validation_batches_per_epoch: Same.
+    :param validation_option_dict: Same.
+    :param loss_function_string: Same.
+    :param optimizer_function_string: Same.
+    :param plateau_patience_epochs: Same.
+    :param plateau_learning_rate_multiplier: Same.
+    :param early_stopping_patience_epochs: Same.
+    :param architecture_dict: Same.
+    :param is_model_bnn: Same.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
+    error_checking.assert_is_integer(num_epochs)
+    error_checking.assert_is_geq(num_epochs, 2)
+    error_checking.assert_is_integer(num_training_batches_per_epoch)
+    error_checking.assert_is_geq(num_training_batches_per_epoch, 2)
+    error_checking.assert_is_integer(num_validation_batches_per_epoch)
+    error_checking.assert_is_geq(num_validation_batches_per_epoch, 2)
+    error_checking.assert_is_integer(plateau_patience_epochs)
+    error_checking.assert_is_geq(plateau_patience_epochs, 2)
+    error_checking.assert_is_greater(plateau_learning_rate_multiplier, 0.)
+    error_checking.assert_is_less_than(plateau_learning_rate_multiplier, 1.)
+    error_checking.assert_is_integer(early_stopping_patience_epochs)
+    error_checking.assert_is_geq(early_stopping_patience_epochs, 5)
+    error_checking.assert_is_boolean(is_model_bnn)
+
+    # TODO(thunderhoser): Maybe I should just max out the last 3 arguments and
+    # not let the user set them?
+    validation_keys_to_keep = [
+        SATELLITE_DIRECTORY_KEY, YEARS_KEY,
+        LAG_TIME_TOLERANCE_KEY, MAX_MISSING_LAG_TIMES_KEY, MAX_INTERP_GAP_KEY
+    ]
+    for this_key in list(training_option_dict.keys()):
+        if this_key in validation_keys_to_keep:
+            continue
+
+        validation_option_dict[this_key] = training_option_dict[this_key]
+
+    training_option_dict = _check_generator_args(training_option_dict)
+    validation_option_dict = _check_generator_args(validation_option_dict)
+
+    model_file_name = '{0:s}/model.h5'.format(output_dir_name)
+
+    history_object = keras.callbacks.CSVLogger(
+        filename='{0:s}/history.csv'.format(output_dir_name),
+        separator=',', append=False
+    )
+    checkpoint_object = keras.callbacks.ModelCheckpoint(
+        filepath=model_file_name, monitor='val_loss', verbose=1,
+        save_best_only=True, save_weights_only=False, mode='min', period=1
+    )
+    early_stopping_object = keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=0.,
+        patience=early_stopping_patience_epochs, verbose=1, mode='min'
+    )
+    plateau_object = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss', factor=plateau_learning_rate_multiplier,
+        patience=plateau_patience_epochs, verbose=1, mode='min',
+        min_delta=0., cooldown=0
+    )
+
+    list_of_callback_objects = [
+        history_object, checkpoint_object, early_stopping_object, plateau_object
+    ]
+
+    training_generator = data_generator_simple(training_option_dict)
+    validation_generator = data_generator_simple(validation_option_dict)
+
+    metafile_name = find_metafile(
+        model_dir_name=output_dir_name, raise_error_if_missing=False
+    )
+    print('Writing metadata to: "{0:s}"...'.format(metafile_name))
+
+    _write_metafile(
+        pickle_file_name=metafile_name, num_epochs=num_epochs,
+        num_training_batches_per_epoch=num_training_batches_per_epoch,
+        training_option_dict=training_option_dict,
+        num_validation_batches_per_epoch=num_validation_batches_per_epoch,
+        validation_option_dict=validation_option_dict,
+        loss_function_string=loss_function_string,
+        optimizer_function_string=optimizer_function_string,
+        plateau_patience_epochs=plateau_patience_epochs,
+        plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
+        early_stopping_patience_epochs=early_stopping_patience_epochs,
+        architecture_dict=architecture_dict,
+        is_model_bnn=is_model_bnn
+    )
+
+    model_object.fit_generator(
+        generator=training_generator,
+        steps_per_epoch=num_training_batches_per_epoch,
+        epochs=num_epochs, verbose=1, callbacks=list_of_callback_objects,
+        validation_data=validation_generator,
+        validation_steps=num_validation_batches_per_epoch
+    )
 
 
 def train_model(
