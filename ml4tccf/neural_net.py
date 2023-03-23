@@ -540,8 +540,12 @@ def _read_satellite_data_1cyclone_simple(
     this_num_columns = (
         t[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values.shape[2]
     )
+    this_num_wavelengths = (
+        t[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values.shape[3]
+    )
     these_dim = (
-        num_target_times, this_num_rows, this_num_columns, num_lag_times, 1
+        num_target_times, this_num_rows, this_num_columns, num_lag_times,
+        this_num_wavelengths
     )
     brightness_temp_matrix_kelvins = numpy.full(these_dim, numpy.nan)
 
