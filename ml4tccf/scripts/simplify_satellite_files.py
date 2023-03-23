@@ -8,12 +8,13 @@ from ml4tccf.utils import satellite_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-WAVELENGTHS_TO_KEEP_MICRONS = numpy.array([11.2])
+WAVELENGTHS_TO_KEEP_MICRONS = numpy.array([3.9, 11.2])
 NUM_GRID_ROWS_TO_KEEP = 800
 NUM_GRID_COLUMNS_TO_KEEP = 800
 
 INPUT_DIR_ARG_NAME = 'input_dir_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
+USE_3POINT9_ARG_NAME = 'use_3point9_microns'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (

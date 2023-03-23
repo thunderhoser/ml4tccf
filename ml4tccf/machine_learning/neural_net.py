@@ -483,6 +483,7 @@ def _read_satellite_data_1cyclone_simple(
                 target_times_unix_sec, size=num_target_times, replace=False
             )
 
+    # TODO(thunderhoser): This could be simplified more.
     desired_file_to_times_dict = _decide_files_to_read_one_cyclone(
         satellite_file_names=input_file_names,
         target_times_unix_sec=target_times_unix_sec,
@@ -501,6 +502,7 @@ def _read_satellite_data_1cyclone_simple(
             desired_file_names[i]
         )
 
+        # TODO(thunderhoser): This could be simplified more.
         orig_satellite_tables_xarray[i] = (
             satellite_utils.subset_to_multiple_time_windows(
                 satellite_table_xarray=orig_satellite_tables_xarray[i],
@@ -573,6 +575,7 @@ def _read_satellite_data_1cyclone_simple(
         )
 
         try:
+            # TODO(thunderhoser): This could be simplified more.
             new_table_xarray = satellite_utils.subset_times(
                 satellite_table_xarray=satellite_table_xarray,
                 desired_times_unix_sec=these_desired_times_unix_sec,
@@ -2241,6 +2244,7 @@ def data_generator_simple(option_dict):
         )
         predictor_matrices = [brightness_temp_matrix_kelvins]
 
+        # TODO(thunderhoser): This could be simplified more.
         target_matrix = numpy.transpose(numpy.vstack((
             row_translations_low_res_px, column_translations_low_res_px,
             grid_spacings_km, cyclone_center_latitudes_deg_n
