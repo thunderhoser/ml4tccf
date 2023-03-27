@@ -535,8 +535,12 @@ def _read_satellite_data_1cyclone_simple(
     this_num_columns = (
         t[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values.shape[2]
     )
+    this_num_wavelengths = (
+        t[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values.shape[3]
+    )
     these_dim = (
-        num_target_times, this_num_rows, this_num_columns, num_lag_times, 1
+        num_target_times, this_num_rows, this_num_columns, num_lag_times,
+        this_num_wavelengths
     )
     brightness_temp_matrix_kelvins = numpy.full(these_dim, numpy.nan)
 
@@ -770,11 +774,16 @@ def _read_satellite_data_one_cyclone(
             for_high_res=False
         )
 
-        orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
-            satellite_table_xarray=orig_satellite_tables_xarray[i],
-            wavelengths_to_keep_microns=high_res_wavelengths_microns,
-            for_high_res=True
-        )
+        if satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY in list(
+                orig_satellite_tables_xarray[i].data_vars
+        ):
+            orig_satellite_tables_xarray[i] = (
+                satellite_utils.subset_wavelengths(
+                    satellite_table_xarray=orig_satellite_tables_xarray[i],
+                    wavelengths_to_keep_microns=high_res_wavelengths_microns,
+                    for_high_res=True
+                )
+            )
 
         orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
             satellite_table_xarray=orig_satellite_tables_xarray[i],

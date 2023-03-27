@@ -52,12 +52,18 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
     if num_columns_low_res <= 0:
         num_columns_low_res = None
 
+    # TODO(thunderhoser): This is a HACK.
+    if '2bands' in satellite_dir_name_for_training:
+        low_res_wavelengths_microns = numpy.array([3.9, 11.2])
+    else:
+        low_res_wavelengths_microns = numpy.array([11.2])
+
     training_option_dict = {
         neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name_for_training,
         neural_net.YEARS_KEY: training_years,
         neural_net.LAG_TIMES_KEY: lag_times_minutes,
         neural_net.HIGH_RES_WAVELENGTHS_KEY: numpy.array([]),
-        neural_net.LOW_RES_WAVELENGTHS_KEY: numpy.array([11.2]),
+        neural_net.LOW_RES_WAVELENGTHS_KEY: low_res_wavelengths_microns,
         neural_net.BATCH_SIZE_KEY: num_examples_per_batch,
         neural_net.MAX_EXAMPLES_PER_CYCLONE_KEY: max_examples_per_cyclone,
         neural_net.NUM_GRID_ROWS_KEY: num_rows_low_res,
