@@ -778,11 +778,16 @@ def _read_satellite_data_one_cyclone(
             for_high_res=False
         )
 
-        orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
-            satellite_table_xarray=orig_satellite_tables_xarray[i],
-            wavelengths_to_keep_microns=high_res_wavelengths_microns,
-            for_high_res=True
-        )
+        if satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY in list(
+                orig_satellite_tables_xarray[i].data_vars
+        ):
+            orig_satellite_tables_xarray[i] = (
+                satellite_utils.subset_wavelengths(
+                    satellite_table_xarray=orig_satellite_tables_xarray[i],
+                    wavelengths_to_keep_microns=high_res_wavelengths_microns,
+                    for_high_res=True
+                )
+            )
 
         orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
             satellite_table_xarray=orig_satellite_tables_xarray[i],
