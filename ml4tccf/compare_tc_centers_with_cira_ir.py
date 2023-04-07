@@ -94,6 +94,10 @@ def _find_centers_one_tc(cira_ir_satellite_dir_name, robert_satellite_dir_name,
         numpy.mod(cira_ir_times_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC) == 0
     )[0]
 
+    print('\n\n\n')
+    print(len(good_indices))
+    print('\n\n\n')
+
     if len(good_indices) == 0:
         return (
             numpy.array([]), numpy.array([]), numpy.array([]), numpy.array([])
