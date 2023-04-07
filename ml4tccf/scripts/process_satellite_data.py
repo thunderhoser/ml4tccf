@@ -152,7 +152,6 @@ def _run(input_dir_name, cyclone_id_string, max_bad_pixels_low_res,
             satellite_table_xarray = satellite_utils.concat_over_time(
                 satellite_tables_xarray
             )
-
             satellite_tables_xarray = []
 
             satellite_table_xarray = satellite_utils.quality_control_low_res(
