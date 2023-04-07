@@ -10,6 +10,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import time_conversion
 import longitude_conversion as lng_conversion
 import cira_ir_satellite_io
 import cira_ir_satellite_utils
@@ -94,9 +95,9 @@ def _find_centers_one_tc(cira_ir_satellite_dir_name, robert_satellite_dir_name,
         numpy.mod(cira_ir_times_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC) == 0
     )[0]
 
-    print('\n\n\n')
-    print(len(good_indices))
-    print('\n\n\n')
+    cira_ir_time_strings = [time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M%S') for t in cira_ir_times_unix_sec]
+    for this_time_string in cira_ir_time_strings:
+        print(this_time_string)
 
     if len(good_indices) == 0:
         return (
