@@ -91,13 +91,12 @@ def _find_centers_one_tc(cira_ir_satellite_dir_name, robert_satellite_dir_name,
     cira_ir_times_unix_sec = (
         ct.coords[cira_ir_satellite_utils.TIME_DIM].values
     )
+
+    # TODO(thunderhoser): I might want some tolerance here.  CIRA IR contains
+    # very few synoptic times.
     good_indices = numpy.where(
         numpy.mod(cira_ir_times_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC) == 0
     )[0]
-
-    cira_ir_time_strings = [time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M%S') for t in cira_ir_times_unix_sec]
-    for this_time_string in cira_ir_time_strings:
-        print(this_time_string)
 
     if len(good_indices) == 0:
         return (
@@ -297,6 +296,19 @@ def _run(robert_satellite_dir_name, cira_ir_satellite_dir_name, years):
             this_percentile,
             len(euclidean_distances_deg),
             numpy.percentile(euclidean_distances_deg, this_percentile)
+        ))
+
+    print(SEPARATOR_STRING)
+
+    for i in range(len(euclidean_distances_deg)):
+        print((
+            'Robert/Galina coords = {0:.2f} deg N, {1:.2f} deg E ... '
+            'CIRA IR = {2:.2f} deg N, {3:.2f} deg E'
+        ).format(
+            robert_latitudes_deg_n[i],
+            robert_longitudes_deg_e[i],
+            cira_ir_latitudes_deg_n[i],
+            cira_ir_longitudes_deg_e[i]
         ))
 
 
