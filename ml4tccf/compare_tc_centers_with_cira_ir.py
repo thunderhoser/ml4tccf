@@ -10,7 +10,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import time_conversion
+import number_rounding
 import longitude_conversion as lng_conversion
 import cira_ir_satellite_io
 import cira_ir_satellite_utils
@@ -256,6 +256,19 @@ def _run(robert_satellite_dir_name, cira_ir_satellite_dir_name, years):
         ))
 
     print(SEPARATOR_STRING)
+
+    cira_ir_latitudes_deg_n = number_rounding.round_to_nearest(
+        cira_ir_latitudes_deg_n, 0.01
+    )
+    cira_ir_longitudes_deg_e = number_rounding.round_to_nearest(
+        cira_ir_longitudes_deg_e, 0.01
+    )
+    robert_latitudes_deg_n = number_rounding.round_to_nearest(
+        robert_latitudes_deg_n, 0.01
+    )
+    robert_longitudes_deg_e = number_rounding.round_to_nearest(
+        robert_longitudes_deg_e, 0.01
+    )
 
     absolute_latitude_diffs_deg = numpy.absolute(
         cira_ir_latitudes_deg_n - robert_latitudes_deg_n
