@@ -2550,6 +2550,7 @@ def data_generator_cira_ir(option_dict):
                 return_coords=False, num_target_times=num_examples_to_read
             )
 
+            cyclone_index += 1
             if data_dict is None:
                 continue
 
@@ -2589,7 +2590,6 @@ def data_generator_cira_ir(option_dict):
                 these_center_latitudes_deg_n
             )
 
-            cyclone_index += 1
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
         (
@@ -2705,6 +2705,7 @@ def data_generator_simple(option_dict):
                 num_columns_low_res=num_columns_low_res,
                 return_coords=False, num_target_times=num_examples_to_read
             )
+            cyclone_index += 1
 
             if data_dict is None:
                 continue
@@ -2745,7 +2746,6 @@ def data_generator_simple(option_dict):
                 these_center_latitudes_deg_n
             )
 
-            cyclone_index += 1
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
         (
@@ -2950,6 +2950,7 @@ def data_generator(option_dict):
                 num_columns_low_res=num_columns_low_res,
                 sentinel_value=sentinel_value, return_coords=False
             )
+            cyclone_index += 1
 
             if data_dict is None:
                 continue
@@ -3009,7 +3010,6 @@ def data_generator(option_dict):
                     first_index:last_index, ...
                 ] = this_reflectance_matrix
 
-            cyclone_index += 1
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
         (
