@@ -2,6 +2,7 @@
 
 import argparse
 import numpy
+from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from ml4tc.io import satellite_io as cira_ir_satellite_io
 from ml4tc.utils import satellite_utils as cira_ir_satellite_utils
@@ -82,6 +83,9 @@ def _find_centers_one_tc(cira_ir_satellite_dir_name, robert_satellite_dir_name,
     cira_ir_times_unix_sec = (
         ct.coords[cira_ir_satellite_utils.TIME_DIM].values
     )
+
+    # TODO(thunderhoser): I might want some tolerance here.  CIRA IR contains
+    # very few synoptic times.
     good_indices = numpy.where(
         numpy.mod(cira_ir_times_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC) == 0
     )[0]
@@ -245,6 +249,19 @@ def _run(robert_satellite_dir_name, cira_ir_satellite_dir_name, years):
 
     print(SEPARATOR_STRING)
 
+    cira_ir_latitudes_deg_n = number_rounding.round_to_nearest(
+        cira_ir_latitudes_deg_n, 0.01
+    )
+    cira_ir_longitudes_deg_e = number_rounding.round_to_nearest(
+        cira_ir_longitudes_deg_e, 0.01
+    )
+    robert_latitudes_deg_n = number_rounding.round_to_nearest(
+        robert_latitudes_deg_n, 0.01
+    )
+    robert_longitudes_deg_e = number_rounding.round_to_nearest(
+        robert_longitudes_deg_e, 0.01
+    )
+
     absolute_latitude_diffs_deg = numpy.absolute(
         cira_ir_latitudes_deg_n - robert_latitudes_deg_n
     )
@@ -284,6 +301,19 @@ def _run(robert_satellite_dir_name, cira_ir_satellite_dir_name, years):
             this_percentile,
             len(euclidean_distances_deg),
             numpy.percentile(euclidean_distances_deg, this_percentile)
+        ))
+
+    print(SEPARATOR_STRING)
+
+    for i in range(len(euclidean_distances_deg)):
+        print((
+            'Robert/Galina coords = {0:.2f} deg N, {1:.2f} deg E ... '
+            'CIRA IR = {2:.2f} deg N, {3:.2f} deg E'
+        ).format(
+            robert_latitudes_deg_n[i],
+            robert_longitudes_deg_e[i],
+            cira_ir_latitudes_deg_n[i],
+            cira_ir_longitudes_deg_e[i]
         ))
 
 

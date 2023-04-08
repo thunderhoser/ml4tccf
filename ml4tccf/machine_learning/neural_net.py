@@ -8,9 +8,13 @@ import numpy
 import xarray
 import keras
 import tensorflow.keras as tf_keras
+from pyproj import Geod
+from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
+from ml4tc.io import example_io as cira_ir_example_io
+from ml4tc.utils import example_utils as cira_ir_example_utils
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
@@ -28,6 +32,10 @@ TOLERANCE = 1e-6
 DEG_LATITUDE_TO_KM = 60 * 1.852
 DEGREES_TO_RADIANS = numpy.pi / 180
 TARGET_DISCRETIZATION_DEG = 0.1
+
+CIRA_IR_BRIGHTNESS_TEMP_KEY = 'satellite_predictors_gridded'
+CIRA_IR_GRID_LATITUDE_KEY = 'satellite_grid_latitude_deg_n'
+CIRA_IR_GRID_LONGITUDE_KEY = 'satellite_grid_longitude_deg_e'
 
 METRIC_FUNCTION_LIST_SCALAR = [
     custom_losses_scalar.mean_squared_distance_kilometres2,
@@ -446,6 +454,355 @@ def _decide_files_to_read_one_cyclone(
             desired_file_to_times_dict = d
 
     return desired_file_to_times_dict
+
+
+def _read_brightness_temp_1file_cira_ir(
+        example_table_xarray, table_rows_by_example, lag_times_sec,
+        num_grid_rows=None, num_grid_columns=None):
+    """Reads brightness temperatures from one CIRA IR file.
+
+    T = number of target times
+    L = number of lag times
+    m = number of rows in grid
+    n = number of columns in grid
+
+    :param example_table_xarray: xarray table.  Variable names and metadata
+        therein should make the table self-explanatory.
+    :param table_rows_by_example: length-E list, where each element is a 1-D
+        numpy array of indices to satellite times needed for the given example.
+        These are row indices into `example_table_xarray`.
+    :param lag_times_sec: 1-D numpy array of lag times.
+    :param num_grid_rows: Number of rows to keep in grid.  If None, will keep
+        all rows.
+    :param num_grid_columns: Same but for columns.
+    :return: brightness_temp_matrix_kelvins: T-by-m-by-n-by-L-by-1 numpy array
+        of brightness temperatures.
+    :return: grid_latitude_matrix_deg_n: numpy array of latitudes (deg north).
+        If regular grids, array shape will be T x m x L.  If irregular grids,
+        array shape will be T x m x n x L.
+    :return: grid_longitude_matrix_deg_e: numpy array of longitudes (deg east).
+        If regular grids, array shape will be T x n x L.  If irregular grids,
+        array shape will be T x m x n x L.
+    """
+
+    xt = example_table_xarray
+
+    num_examples = len(table_rows_by_example)
+    num_lag_times = len(lag_times_sec)
+    num_grid_rows_orig = xt[CIRA_IR_BRIGHTNESS_TEMP_KEY].values.shape[1]
+    num_grid_columns_orig = xt[CIRA_IR_BRIGHTNESS_TEMP_KEY].values.shape[2]
+
+    these_dim = (
+        num_examples, num_grid_rows_orig, num_grid_columns_orig,
+        num_lag_times, 1
+    )
+    brightness_temp_matrix = numpy.full(these_dim, numpy.nan)
+
+    regular_grids = len(xt[CIRA_IR_GRID_LATITUDE_KEY].values.shape) == 2
+
+    if regular_grids:
+        grid_latitude_matrix_deg_n = numpy.full(
+            (num_examples, num_grid_rows_orig, num_lag_times), numpy.nan
+        )
+        grid_longitude_matrix_deg_e = numpy.full(
+            (num_examples, num_grid_columns_orig, num_lag_times), numpy.nan
+        )
+    else:
+        dimensions = (
+            num_examples, num_grid_rows_orig, num_grid_columns_orig,
+            num_lag_times
+        )
+        grid_latitude_matrix_deg_n = numpy.full(dimensions, numpy.nan)
+        grid_longitude_matrix_deg_e = numpy.full(dimensions, numpy.nan)
+
+    bad_example_indices = []
+
+    for i in range(num_examples):
+        for j in range(len(lag_times_sec)):
+            k = table_rows_by_example[i][j]
+
+            try:
+                these_latitudes_deg_n = (
+                    xt[CIRA_IR_GRID_LATITUDE_KEY].values[k, ...]
+                )
+                these_longitudes_deg_e = (
+                    xt[CIRA_IR_GRID_LONGITUDE_KEY].values[k, ...]
+                )
+
+                if regular_grids:
+                    assert misc_utils.is_regular_grid_valid(
+                        latitudes_deg_n=these_latitudes_deg_n,
+                        longitudes_deg_e=these_longitudes_deg_e
+                    )[0]
+            except:
+                bad_example_indices.append(i)
+
+            if i in bad_example_indices:
+                break
+
+            grid_latitude_matrix_deg_n[i, ..., j] = these_latitudes_deg_n
+            grid_longitude_matrix_deg_e[i, ..., j] = these_longitudes_deg_e
+            brightness_temp_matrix[i, ..., j, 0] = (
+                xt[CIRA_IR_BRIGHTNESS_TEMP_KEY].values[k, ..., 0]
+            )
+
+    good_example_flags = numpy.full(num_examples, True, dtype=bool)
+    good_example_flags[bad_example_indices] = False
+    good_example_indices = numpy.where(good_example_flags)[0]
+
+    brightness_temp_matrix = brightness_temp_matrix[good_example_indices, ...]
+    grid_latitude_matrix_deg_n = grid_latitude_matrix_deg_n[
+        good_example_indices, ...
+    ]
+    grid_longitude_matrix_deg_e = grid_longitude_matrix_deg_e[
+        good_example_indices, ...
+    ]
+
+    if num_grid_rows is not None:
+        error_checking.assert_is_less_than(num_grid_rows, num_grid_rows_orig)
+
+        first_index = int(numpy.round(
+            num_grid_rows_orig / 2 - num_grid_rows / 2
+        ))
+        last_index = int(numpy.round(
+            num_grid_rows_orig / 2 + num_grid_rows / 2
+        ))
+
+        brightness_temp_matrix = (
+            brightness_temp_matrix[:, first_index:last_index, ...]
+        )
+        grid_latitude_matrix_deg_n = (
+            grid_latitude_matrix_deg_n[:, first_index:last_index, ...]
+        )
+        grid_longitude_matrix_deg_e = (
+            grid_longitude_matrix_deg_e[:, first_index:last_index, ...]
+        )
+
+    if num_grid_columns is not None:
+        error_checking.assert_is_less_than(
+            num_grid_columns, num_grid_columns_orig
+        )
+
+        first_index = int(numpy.round(
+            num_grid_columns_orig / 2 - num_grid_columns / 2
+        ))
+        last_index = int(numpy.round(
+            num_grid_columns_orig / 2 + num_grid_columns / 2
+        ))
+
+        brightness_temp_matrix = (
+            brightness_temp_matrix[:, :, first_index:last_index, ...]
+        )
+        grid_latitude_matrix_deg_n = (
+            grid_latitude_matrix_deg_n[:, :, first_index:last_index, ...]
+        )
+        grid_longitude_matrix_deg_e = (
+            grid_longitude_matrix_deg_e[:, :, first_index:last_index, ...]
+        )
+
+    return (
+        brightness_temp_matrix, grid_latitude_matrix_deg_n,
+        grid_longitude_matrix_deg_e
+    )
+
+
+def _read_satellite_data_1cyclone_cira_ir(
+        input_file_name, lag_times_minutes, num_grid_rows, num_grid_columns,
+        return_coords, num_target_times=None, target_times_unix_sec=None):
+    """Reads satellite data for one cyclone from CIRA IR dataset.
+
+    :param input_file_name: See doc for `_read_satellite_data_one_cyclone`.
+    :param lag_times_minutes: Same.
+    :param num_grid_rows: Same.
+    :param num_grid_columns: Same.
+    :param return_coords: Same.
+    :param num_target_times: Same.
+    :param target_times_unix_sec: Same.
+    :return: data_dict: Same.
+    :raises: ValueError: if `target_times_unix_sec is not None` and any desired
+        time cannot be found.
+    """
+
+    # lag_times_minutes = numpy.sort(lag_times_minutes)[::-1]  # Already done in _check_generator_args.
+    lag_times_sec = lag_times_minutes * MINUTES_TO_SECONDS
+
+    need_exact_target_times = target_times_unix_sec is not None
+
+    all_times_unix_sec = cira_ir_example_io.read_file(
+        input_file_name
+    ).coords[cira_ir_example_utils.SATELLITE_TIME_DIM].values
+
+    if not need_exact_target_times:
+        first_synoptic_times_unix_sec = number_rounding.floor_to_nearest(
+            all_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
+        )
+        second_synoptic_times_unix_sec = number_rounding.ceiling_to_nearest(
+            all_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
+        )
+        synoptic_times_unix_sec = numpy.concatenate((
+            first_synoptic_times_unix_sec, second_synoptic_times_unix_sec
+        ))
+
+        good_indices = numpy.array([
+            numpy.argmin(numpy.absolute(st - all_times_unix_sec))
+            for st in synoptic_times_unix_sec
+        ], dtype=int)
+
+        time_diffs_sec = numpy.absolute(
+            all_times_unix_sec[good_indices] - synoptic_times_unix_sec
+        )
+        good_subindices = numpy.where(time_diffs_sec <= 900)[0]
+        good_indices = good_indices[good_subindices]
+        target_times_unix_sec = all_times_unix_sec[good_indices]
+
+        if len(target_times_unix_sec) == 0:
+            return None
+
+    orig_target_times_unix_sec = target_times_unix_sec + 0
+    target_times_unix_sec = []
+    table_rows_by_target_time = []
+
+    for i in range(len(orig_target_times_unix_sec)):
+        these_predictor_times_unix_sec = (
+            orig_target_times_unix_sec[i] - lag_times_sec
+        )
+
+        if not numpy.all(numpy.isin(
+                element=these_predictor_times_unix_sec,
+                test_elements=all_times_unix_sec
+        )):
+            if not need_exact_target_times:
+                continue
+
+            missing_flags = numpy.invert(numpy.isin(
+                element=these_predictor_times_unix_sec,
+                test_elements=all_times_unix_sec
+            ))
+            missing_time_strings = [
+                time_conversion.unix_sec_to_string(
+                    t, TIME_FORMAT_FOR_LOG_MESSAGES
+                )
+                for t in these_predictor_times_unix_sec[missing_flags]
+            ]
+
+            error_string = (
+                'File "{0:s}" is missing the following times:\n{1:s}'
+            ).format(
+                input_file_name, str(missing_time_strings)
+            )
+
+            raise ValueError(error_string)
+
+        these_rows = numpy.array([
+            numpy.where(all_times_unix_sec == t)[0][0]
+            for t in these_predictor_times_unix_sec
+        ], dtype=int)
+
+        target_times_unix_sec.append(orig_target_times_unix_sec[i])
+        table_rows_by_target_time.append(these_rows)
+
+    target_times_unix_sec = numpy.array(target_times_unix_sec, dtype=int)
+
+    if (
+            not need_exact_target_times
+            and num_target_times < len(target_times_unix_sec)
+    ):
+        example_indices = numpy.linspace(
+            0, len(target_times_unix_sec) - 1, num=len(target_times_unix_sec),
+            dtype=int
+        )
+        example_indices = numpy.random.choice(
+            example_indices, size=num_target_times, replace=False
+        )
+
+        target_times_unix_sec = target_times_unix_sec[example_indices]
+        table_rows_by_target_time = [
+            table_rows_by_target_time[k] for k in example_indices
+        ]
+
+    print('Reading data from: "{0:s}"...'.format(input_file_name))
+    example_table_xarray = cira_ir_example_io.read_file(input_file_name)
+
+    (
+        brightness_temp_matrix_kelvins,
+        grid_latitude_matrix_deg_n,
+        grid_longitude_matrix_deg_e
+    ) = _read_brightness_temp_1file_cira_ir(
+        example_table_xarray=example_table_xarray,
+        table_rows_by_example=table_rows_by_target_time,
+        lag_times_sec=lag_times_sec,
+        num_grid_rows=num_grid_rows,
+        num_grid_columns=num_grid_columns
+    )
+
+    assert not numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
+    regular_grids = len(grid_latitude_matrix_deg_n.shape) == 3
+
+    i_start = int(numpy.round(
+        float(num_grid_rows) / 2 - 1
+    ))
+    i_end = i_start + 1
+    j_start = int(numpy.round(
+        float(num_grid_columns) / 2 - 1
+    ))
+    j_end = j_start + 1
+
+    num_examples = brightness_temp_matrix_kelvins.shape[0]
+    grid_spacings_km = numpy.full(num_examples, numpy.nan)
+    cyclone_center_latitudes_deg_n = numpy.full(num_examples, numpy.nan)
+
+    geodesic_object = Geod(ellps='WGS84')
+
+    for i in range(num_examples):
+        if regular_grids:
+            start_latitude_deg_n = grid_latitude_matrix_deg_n[i, i_start, -1]
+            end_latitude_deg_n = grid_latitude_matrix_deg_n[i, i_end, -1]
+            start_longitude_deg_e = grid_longitude_matrix_deg_e[i, j_start, -1]
+            end_longitude_deg_e = grid_longitude_matrix_deg_e[i, j_end, -1]
+        else:
+            start_latitude_deg_n = grid_latitude_matrix_deg_n[
+                i, i_start, j_start, -1
+            ]
+            end_latitude_deg_n = grid_latitude_matrix_deg_n[
+                i, i_end, j_start, -1
+            ]
+            start_longitude_deg_e = grid_longitude_matrix_deg_e[
+                i, i_start, j_start, -1
+            ]
+            end_longitude_deg_e = grid_longitude_matrix_deg_e[
+                i, i_start, j_end, -1
+            ]
+
+        first_distance_metres = geodesic_object.inv(
+            lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
+            lons2=start_longitude_deg_e, lats2=end_latitude_deg_n
+        )[2]
+        second_distance_metres = geodesic_object.inv(
+            lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
+            lons2=end_longitude_deg_e, lats2=start_latitude_deg_n
+        )[2]
+        grid_spacings_km[i] = (
+            0.5 * METRES_TO_KM *
+            (first_distance_metres + second_distance_metres)
+        )
+
+        cyclone_center_latitudes_deg_n[i] = (
+            0.5 * (start_latitude_deg_n + end_latitude_deg_n)
+        )
+
+    return {
+        BIDIRECTIONAL_REFLECTANCES_KEY: None,
+        BRIGHTNESS_TEMPS_KEY: brightness_temp_matrix_kelvins,
+        GRID_SPACINGS_KEY: grid_spacings_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
+        TARGET_TIMES_KEY: target_times_unix_sec,
+        HIGH_RES_LATITUDES_KEY: None,
+        HIGH_RES_LONGITUDES_KEY: None,
+        LOW_RES_LATITUDES_KEY:
+            grid_latitude_matrix_deg_n if return_coords else None,
+        LOW_RES_LONGITUDES_KEY:
+            grid_longitude_matrix_deg_e if return_coords else None
+    }
 
 
 def _read_satellite_data_1cyclone_simple(
@@ -2104,6 +2461,164 @@ def create_data_specific_trans(
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
         LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
     }
+
+
+def data_generator_cira_ir(option_dict):
+    """Generates input data for neural net, using CIRA IR dataset.
+
+    :param option_dict: See doc for `data_generator`.
+    :return: predictor_matrices: Same.
+    :return: target_matrix: Same.
+    """
+
+    option_dict = _check_generator_args(option_dict)
+
+    example_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
+    years = option_dict[YEARS_KEY]
+    lag_times_minutes = option_dict[LAG_TIMES_KEY]
+    num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
+    max_examples_per_cyclone = option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
+    num_grid_rows = option_dict[NUM_GRID_ROWS_KEY]
+    num_grid_columns = option_dict[NUM_GRID_COLUMNS_KEY]
+    data_aug_num_translations = option_dict[DATA_AUG_NUM_TRANS_KEY]
+    data_aug_mean_translation_low_res_px = option_dict[DATA_AUG_MEAN_TRANS_KEY]
+    data_aug_stdev_translation_low_res_px = (
+        option_dict[DATA_AUG_STDEV_TRANS_KEY]
+    )
+
+    orig_num_grid_rows = num_grid_rows + 0
+    orig_num_grid_columns = num_grid_columns + 0
+
+    num_extra_rowcols = 2 * int(numpy.ceil(
+        data_aug_mean_translation_low_res_px +
+        5 * data_aug_stdev_translation_low_res_px
+    ))
+    num_grid_rows += num_extra_rowcols
+    num_grid_columns += num_extra_rowcols
+
+    cyclone_id_strings = cira_ir_example_io.find_cyclones(
+        directory_name=example_dir_name, raise_error_if_all_missing=True
+    )
+    cyclone_years = numpy.array(
+        [misc_utils.parse_cyclone_id(c)[0] for c in cyclone_id_strings],
+        dtype=int
+    )
+
+    good_flags = numpy.array([y in years for y in cyclone_years], dtype=bool)
+    good_indices = numpy.where(good_flags)[0]
+    cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
+    random.shuffle(cyclone_id_strings)
+
+    example_file_names = [
+        cira_ir_example_io.find_file(
+            directory_name=example_dir_name, cyclone_id_string=c,
+            prefer_zipped=False, allow_other_format=False,
+            raise_error_if_missing=True
+        )
+        for c in cyclone_id_strings
+    ]
+
+    cyclone_index = 0
+
+    while True:
+        brightness_temp_matrix_kelvins = None
+        grid_spacings_km = None
+        cyclone_center_latitudes_deg_n = None
+        num_examples_in_memory = 0
+
+        while num_examples_in_memory < num_examples_per_batch:
+            if cyclone_index == len(cyclone_id_strings):
+                cyclone_index = 0
+
+            num_examples_to_read = min([
+                max_examples_per_cyclone,
+                num_examples_per_batch - num_examples_in_memory
+            ])
+
+            data_dict = _read_satellite_data_1cyclone_cira_ir(
+                input_file_name=example_file_names[cyclone_index],
+                lag_times_minutes=lag_times_minutes,
+                num_grid_rows=num_grid_rows,
+                num_grid_columns=num_grid_columns,
+                return_coords=False, num_target_times=num_examples_to_read
+            )
+
+            if data_dict is None:
+                continue
+
+            this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+            these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
+            these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
+
+            if this_bt_matrix_kelvins is None:
+                continue
+            if this_bt_matrix_kelvins.size == 0:
+                continue
+
+            this_bt_matrix_kelvins = combine_lag_times_and_wavelengths(
+                this_bt_matrix_kelvins
+            )
+
+            if brightness_temp_matrix_kelvins is None:
+                these_dim = (
+                    (num_examples_per_batch,) + this_bt_matrix_kelvins.shape[1:]
+                )
+                brightness_temp_matrix_kelvins = numpy.full(
+                    these_dim, numpy.nan
+                )
+
+                grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
+                cyclone_center_latitudes_deg_n = numpy.full(
+                    num_examples_per_batch, numpy.nan
+                )
+
+            first_index = num_examples_in_memory
+            last_index = first_index + this_bt_matrix_kelvins.shape[0]
+            brightness_temp_matrix_kelvins[first_index:last_index, ...] = (
+                this_bt_matrix_kelvins
+            )
+            grid_spacings_km[first_index:last_index] = these_grid_spacings_km
+            cyclone_center_latitudes_deg_n[first_index:last_index] = (
+                these_center_latitudes_deg_n
+            )
+
+            cyclone_index += 1
+            num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
+
+        (
+            _, brightness_temp_matrix_kelvins,
+            row_translations_low_res_px, column_translations_low_res_px
+        ) = _augment_data(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
+            num_translations_per_example=data_aug_num_translations,
+            mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
+            stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
+            sentinel_value=-10.
+        )
+
+        brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
+            data_matrix=brightness_temp_matrix_kelvins,
+            num_rows_to_keep=orig_num_grid_rows,
+            num_columns_to_keep=orig_num_grid_columns,
+            for_high_res=False
+        )
+
+        grid_spacings_km = numpy.repeat(
+            grid_spacings_km, repeats=data_aug_num_translations
+        )
+        cyclone_center_latitudes_deg_n = numpy.repeat(
+            cyclone_center_latitudes_deg_n, repeats=data_aug_num_translations
+        )
+        predictor_matrices = [brightness_temp_matrix_kelvins]
+
+        target_matrix = numpy.transpose(numpy.vstack((
+            row_translations_low_res_px, column_translations_low_res_px,
+            grid_spacings_km, cyclone_center_latitudes_deg_n
+        )))
+
+        predictor_matrices = [p.astype('float16') for p in predictor_matrices]
+        yield predictor_matrices, target_matrix
 
 
 def data_generator_simple(option_dict):
