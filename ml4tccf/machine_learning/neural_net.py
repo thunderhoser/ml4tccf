@@ -14,7 +14,6 @@ from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tc.io import example_io as cira_ir_example_io
-from ml4tc.utils import example_utils as cira_ir_example_utils
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
@@ -33,6 +32,7 @@ DEG_LATITUDE_TO_KM = 60 * 1.852
 DEGREES_TO_RADIANS = numpy.pi / 180
 TARGET_DISCRETIZATION_DEG = 0.1
 
+CIRA_IR_TIME_DIM = 'satellite_valid_time_unix_sec'
 CIRA_IR_BRIGHTNESS_TEMP_KEY = 'satellite_predictors_gridded'
 CIRA_IR_GRID_LATITUDE_KEY = 'satellite_grid_latitude_deg_n'
 CIRA_IR_GRID_LONGITUDE_KEY = 'satellite_grid_longitude_deg_e'
@@ -628,9 +628,9 @@ def _read_satellite_data_1cyclone_cira_ir(
 
     need_exact_target_times = target_times_unix_sec is not None
 
-    all_times_unix_sec = cira_ir_example_io.read_file(
-        input_file_name
-    ).coords[cira_ir_example_utils.SATELLITE_TIME_DIM].values
+    all_times_unix_sec = cira_ir_example_io.read_file(input_file_name).coords[
+        CIRA_IR_TIME_DIM
+    ].values
 
     if not need_exact_target_times:
         first_synoptic_times_unix_sec = number_rounding.floor_to_nearest(
@@ -2543,6 +2543,7 @@ def data_generator_cira_ir(option_dict):
                 return_coords=False, num_target_times=num_examples_to_read
             )
 
+            cyclone_index += 1
             if data_dict is None:
                 continue
 
@@ -2582,7 +2583,6 @@ def data_generator_cira_ir(option_dict):
                 these_center_latitudes_deg_n
             )
 
-            cyclone_index += 1
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
         (
@@ -2698,6 +2698,7 @@ def data_generator_simple(option_dict):
                 num_columns_low_res=num_columns_low_res,
                 return_coords=False, num_target_times=num_examples_to_read
             )
+            cyclone_index += 1
 
             if data_dict is None:
                 continue
@@ -2738,7 +2739,6 @@ def data_generator_simple(option_dict):
                 these_center_latitudes_deg_n
             )
 
-            cyclone_index += 1
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
         (
@@ -2943,6 +2943,7 @@ def data_generator(option_dict):
                 num_columns_low_res=num_columns_low_res,
                 sentinel_value=sentinel_value, return_coords=False
             )
+            cyclone_index += 1
 
             if data_dict is None:
                 continue
@@ -3002,7 +3003,6 @@ def data_generator(option_dict):
                     first_index:last_index, ...
                 ] = this_reflectance_matrix
 
-            cyclone_index += 1
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
         (
