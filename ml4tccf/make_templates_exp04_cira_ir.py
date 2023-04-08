@@ -31,7 +31,7 @@ LOSS_FUNCTION_STRING = 'custom_losses_scalar.mean_squared_distance_kilometres2'
 
 DEFAULT_OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
-        numpy.array([290, 540, 5], dtype=int),
+        numpy.array([290, 450, 5], dtype=int),
     cnn_architecture.INCLUDE_HIGH_RES_KEY: False,
     cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(
         NUM_CONV_BLOCKS, 1, dtype=int
