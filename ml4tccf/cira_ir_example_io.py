@@ -89,8 +89,6 @@ def find_cyclones(directory_name, raise_error_if_all_missing=True):
     file_pattern = '{0:s}{1:s}'.format(file_pattern, GZIP_FILE_EXTENSION)
     example_file_names += glob.glob(file_pattern)
 
-    print(example_file_names)
-
     cyclone_id_strings = []
 
     for this_file_name in example_file_names:
@@ -125,7 +123,7 @@ def file_name_to_cyclone_id(example_file_name):
     pathless_file_name = os.path.split(example_file_name)[1]
 
     cyclone_id_string = pathless_file_name.split('.')[0].split('_')[-1]
-    satellite_utils.parse_cyclone_id(cyclone_id_string)
+    misc_utils.parse_cyclone_id(cyclone_id_string)
 
     return cyclone_id_string
 
