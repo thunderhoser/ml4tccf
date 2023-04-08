@@ -2871,7 +2871,7 @@ def data_generator(option_dict):
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     years = option_dict[YEARS_KEY]
     lag_times_minutes = option_dict[LAG_TIMES_KEY]
-    high_res_wavelengths_microns = option_dict[HIGH_RES_WAVELENGTHS_KEY]  # Not in simple.
+    high_res_wavelengths_microns = option_dict[HIGH_RES_WAVELENGTHS_KEY]
     low_res_wavelengths_microns = option_dict[LOW_RES_WAVELENGTHS_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
     max_examples_per_cyclone = option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
@@ -2882,12 +2882,12 @@ def data_generator(option_dict):
     data_aug_stdev_translation_low_res_px = (
         option_dict[DATA_AUG_STDEV_TRANS_KEY]
     )
-    lag_time_tolerance_sec = option_dict[LAG_TIME_TOLERANCE_KEY]  # Not in simple.
-    max_num_missing_lag_times = option_dict[MAX_MISSING_LAG_TIMES_KEY]  # Not in simple.
-    max_interp_gap_sec = option_dict[MAX_INTERP_GAP_KEY]  # Not in simple.
-    sentinel_value = option_dict[SENTINEL_VALUE_KEY]  # Not in simple.
-    semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]  # Not in simple.
-    target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]  # Not in simple.
+    lag_time_tolerance_sec = option_dict[LAG_TIME_TOLERANCE_KEY]
+    max_num_missing_lag_times = option_dict[MAX_MISSING_LAG_TIMES_KEY]
+    max_interp_gap_sec = option_dict[MAX_INTERP_GAP_KEY]
+    sentinel_value = option_dict[SENTINEL_VALUE_KEY]
+    semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
+    target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -3068,6 +3068,119 @@ def data_generator(option_dict):
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
         yield predictor_matrices, target_matrix
+
+
+def train_model_cira_ir(
+        model_object, output_dir_name, num_epochs,
+        num_training_batches_per_epoch, training_option_dict,
+        num_validation_batches_per_epoch, validation_option_dict,
+        loss_function_string, optimizer_function_string,
+        plateau_patience_epochs, plateau_learning_rate_multiplier,
+        early_stopping_patience_epochs, architecture_dict, is_model_bnn):
+    """Trains neural net with CIRA IR data.
+
+    :param model_object: See doc for `train_model`.
+    :param output_dir_name: Same.
+    :param num_epochs: Same.
+    :param num_training_batches_per_epoch: Same.
+    :param num_validation_batches_per_epoch: Same.
+    :param validation_option_dict: Same.
+    :param loss_function_string: Same.
+    :param optimizer_function_string: Same.
+    :param plateau_patience_epochs: Same.
+    :param plateau_learning_rate_multiplier: Same.
+    :param early_stopping_patience_epochs: Same.
+    :param architecture_dict: Same.
+    :param is_model_bnn: Same.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
+    error_checking.assert_is_integer(num_epochs)
+    error_checking.assert_is_geq(num_epochs, 2)
+    error_checking.assert_is_integer(num_training_batches_per_epoch)
+    error_checking.assert_is_geq(num_training_batches_per_epoch, 2)
+    error_checking.assert_is_integer(num_validation_batches_per_epoch)
+    error_checking.assert_is_geq(num_validation_batches_per_epoch, 2)
+    error_checking.assert_is_integer(plateau_patience_epochs)
+    error_checking.assert_is_geq(plateau_patience_epochs, 2)
+    error_checking.assert_is_greater(plateau_learning_rate_multiplier, 0.)
+    error_checking.assert_is_less_than(plateau_learning_rate_multiplier, 1.)
+    error_checking.assert_is_integer(early_stopping_patience_epochs)
+    error_checking.assert_is_geq(early_stopping_patience_epochs, 5)
+    error_checking.assert_is_boolean(is_model_bnn)
+
+    # TODO(thunderhoser): Maybe I should just max out the last 3 arguments and
+    # not let the user set them?
+    validation_keys_to_keep = [
+        SATELLITE_DIRECTORY_KEY, YEARS_KEY,
+        LAG_TIME_TOLERANCE_KEY, MAX_MISSING_LAG_TIMES_KEY, MAX_INTERP_GAP_KEY
+    ]
+    for this_key in list(training_option_dict.keys()):
+        if this_key in validation_keys_to_keep:
+            continue
+
+        validation_option_dict[this_key] = training_option_dict[this_key]
+
+    training_option_dict = _check_generator_args(training_option_dict)
+    validation_option_dict = _check_generator_args(validation_option_dict)
+
+    model_file_name = '{0:s}/model.h5'.format(output_dir_name)
+
+    history_object = keras.callbacks.CSVLogger(
+        filename='{0:s}/history.csv'.format(output_dir_name),
+        separator=',', append=False
+    )
+    checkpoint_object = keras.callbacks.ModelCheckpoint(
+        filepath=model_file_name, monitor='val_loss', verbose=1,
+        save_best_only=True, save_weights_only=False, mode='min', period=1
+    )
+    early_stopping_object = keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=0.,
+        patience=early_stopping_patience_epochs, verbose=1, mode='min'
+    )
+    plateau_object = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss', factor=plateau_learning_rate_multiplier,
+        patience=plateau_patience_epochs, verbose=1, mode='min',
+        min_delta=0., cooldown=0
+    )
+
+    list_of_callback_objects = [
+        history_object, checkpoint_object, early_stopping_object, plateau_object
+    ]
+
+    training_generator = data_generator_cira_ir(training_option_dict)
+    validation_generator = data_generator_cira_ir(validation_option_dict)
+
+    metafile_name = find_metafile(
+        model_dir_name=output_dir_name, raise_error_if_missing=False
+    )
+    print('Writing metadata to: "{0:s}"...'.format(metafile_name))
+
+    _write_metafile(
+        pickle_file_name=metafile_name, num_epochs=num_epochs,
+        num_training_batches_per_epoch=num_training_batches_per_epoch,
+        training_option_dict=training_option_dict,
+        num_validation_batches_per_epoch=num_validation_batches_per_epoch,
+        validation_option_dict=validation_option_dict,
+        loss_function_string=loss_function_string,
+        optimizer_function_string=optimizer_function_string,
+        plateau_patience_epochs=plateau_patience_epochs,
+        plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
+        early_stopping_patience_epochs=early_stopping_patience_epochs,
+        architecture_dict=architecture_dict,
+        is_model_bnn=is_model_bnn
+    )
+
+    model_object.fit_generator(
+        generator=training_generator,
+        steps_per_epoch=num_training_batches_per_epoch,
+        epochs=num_epochs, verbose=1, callbacks=list_of_callback_objects,
+        validation_data=validation_generator,
+        validation_steps=num_validation_batches_per_epoch
+    )
 
 
 def train_model_simple(
