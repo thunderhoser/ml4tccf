@@ -1,20 +1,13 @@
 """Applies trained neural net -- inference time!"""
 
 import os
-import sys
 import argparse
 import numpy
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import error_checking
-import prediction_io
-import scalar_prediction_io
-import gridded_prediction_io
-import neural_net
+from gewittergefahr.gg_utils import error_checking
+from ml4tccf.io import prediction_io
+from ml4tccf.io import scalar_prediction_io
+from ml4tccf.io import gridded_prediction_io
+from ml4tccf.machine_learning import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -139,10 +132,19 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     # get out-of-memory errors.  In this case, I will write a new version of
     # this script, which calls `create_data` once without data augmentation and
     # then augments each example many times.
-    data_dict = neural_net.create_data(
-        option_dict=validation_option_dict, cyclone_id_string=cyclone_id_string,
-        num_target_times=LARGE_INTEGER
-    )
+
+    if model_metadata_dict[neural_net.USE_CIRA_IR_KEY]:
+        data_dict = neural_net.create_data_cira_ir(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            num_target_times=LARGE_INTEGER
+        )
+    else:
+        data_dict = neural_net.create_data(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            num_target_times=LARGE_INTEGER
+        )
 
     predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
     target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]

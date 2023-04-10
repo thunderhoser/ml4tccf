@@ -1,7 +1,6 @@
 """Methods for training and applying neural nets."""
 
 import os
-import sys
 import copy
 import random
 import pickle
@@ -10,28 +9,22 @@ import xarray
 import keras
 import tensorflow.keras as tf_keras
 from pyproj import Geod
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import number_rounding
-import time_conversion
-import file_system_utils
-import error_checking
-import cira_ir_example_io
-import satellite_io
-import misc_utils
-import satellite_utils
-import image_filtering
-import custom_losses_scalar
-import custom_metrics_scalar
-import custom_losses_gridded
-import custom_metrics_gridded
-import cnn_architecture
-import u_net_architecture
-import accum_grad_optimizer
+from gewittergefahr.gg_utils import number_rounding
+from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import file_system_utils
+from gewittergefahr.gg_utils import error_checking
+from ml4tc.io import example_io as cira_ir_example_io
+from ml4tccf.io import satellite_io
+from ml4tccf.utils import misc_utils
+from ml4tccf.utils import satellite_utils
+from ml4tccf.utils import image_filtering
+from ml4tccf.machine_learning import custom_losses_scalar
+from ml4tccf.machine_learning import custom_metrics_scalar
+from ml4tccf.machine_learning import custom_losses_gridded
+from ml4tccf.machine_learning import custom_metrics_gridded
+from ml4tccf.machine_learning import cnn_architecture
+from ml4tccf.machine_learning import u_net_architecture
+from ml4tccf.outside_code import accum_grad_optimizer
 
 TOLERANCE = 1e-6
 
@@ -231,13 +224,14 @@ PLATEAU_LR_MUTIPLIER_KEY = 'plateau_learning_rate_multiplier'
 EARLY_STOPPING_PATIENCE_KEY = 'early_stopping_patience_epochs'
 ARCHITECTURE_KEY = 'architecture_dict'
 IS_MODEL_BNN_KEY = 'is_model_bnn'
+USE_CIRA_IR_KEY = 'use_cira_ir_data'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY,
     LOSS_FUNCTION_KEY, OPTIMIZER_FUNCTION_KEY,
     PLATEAU_PATIENCE_KEY, PLATEAU_LR_MUTIPLIER_KEY, EARLY_STOPPING_PATIENCE_KEY,
-    ARCHITECTURE_KEY, IS_MODEL_BNN_KEY
+    ARCHITECTURE_KEY, IS_MODEL_BNN_KEY, USE_CIRA_IR_KEY
 ]
 
 BIDIRECTIONAL_REFLECTANCES_KEY = 'bidirectional_reflectance_matrix'
@@ -1667,7 +1661,8 @@ def _write_metafile(
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, loss_function_string, optimizer_function_string,
         plateau_patience_epochs, plateau_learning_rate_multiplier,
-        early_stopping_patience_epochs, architecture_dict, is_model_bnn):
+        early_stopping_patience_epochs, architecture_dict, is_model_bnn,
+        use_cira_ir_data):
     """Writes metadata to Pickle file.
 
     :param pickle_file_name: Path to output file.
@@ -1683,6 +1678,9 @@ def _write_metafile(
     :param early_stopping_patience_epochs: Same.
     :param architecture_dict: Same.
     :param is_model_bnn: Same.
+    :param use_cira_ir_data: Boolean flag.  If True, the model uses CIRA IR
+        data as predictors.  If False, the model uses Robert/Galina data as
+        predictors.
     """
 
     metadata_dict = {
@@ -1697,7 +1695,8 @@ def _write_metafile(
         PLATEAU_LR_MUTIPLIER_KEY: plateau_learning_rate_multiplier,
         EARLY_STOPPING_PATIENCE_KEY: early_stopping_patience_epochs,
         ARCHITECTURE_KEY: architecture_dict,
-        IS_MODEL_BNN_KEY: is_model_bnn
+        IS_MODEL_BNN_KEY: is_model_bnn,
+        USE_CIRA_IR_KEY: use_cira_ir_data
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
@@ -1966,6 +1965,392 @@ def separate_lag_times_and_wavelengths(satellite_data_matrix, num_lag_times):
     )
 
     return numpy.reshape(satellite_data_matrix, these_dim)
+
+
+def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
+    """Creates neural-net inputs (without being a generator) from CIRA IR data.
+
+    E = batch size = number of examples after data augmentation
+    L = number of lag times for predictors
+    W = number of high-res wavelengths
+    w = number of low-res wavelengths
+    M = number of rows in high-res grid
+    m = number of rows in low-res grid = M/4
+    N = number of columns in high-res grid
+    n = number of columns in low-res grid = M/4
+
+    :param option_dict: See doc for `data_generator_cira_ir`.
+    :param cyclone_id_string: Will create data for this cyclone.
+    :param num_target_times: Will create data for this number of target times
+        for the given cyclone.
+
+    :return: data_dict: Dictionary with the following keys.
+    data_dict["predictor_matrices"]: See doc for `data_generator_cira_ir`.
+    data_dict["target_matrix"]: Same.
+    data_dict["target_times_unix_sec"]: length-E numpy array of target times.
+    data_dict["grid_spacings_low_res_km"]: length-E numpy array of grid
+        spacings.
+    data_dict["cyclone_center_latitudes_deg_n"]: length-E numpy array of true
+        TC-center latitudes (deg north).
+    data_dict["high_res_latitude_matrix_deg_n"]: None.
+    data_dict["high_res_longitude_matrix_deg_e"]: None.
+    data_dict["low_res_latitude_matrix_deg_n"]: numpy array of latitudes (deg
+        north).  If regular grids, this array has shape E x m x L.  If irregular
+        grids, this array has shape E x m x n x L.
+    data_dict["low_res_longitude_matrix_deg_e"]: numpy array of longitudes (deg
+        east).  If regular grids, this array has shape E x n x L.  If irregular
+        grids, this array has shape E x m x n x L.
+    """
+
+    option_dict = _check_generator_args(option_dict)
+    error_checking.assert_is_integer(num_target_times)
+    error_checking.assert_is_greater(num_target_times, 0)
+
+    example_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
+    lag_times_minutes = option_dict[LAG_TIMES_KEY]
+    num_grid_rows = option_dict[NUM_GRID_ROWS_KEY]
+    num_grid_columns = option_dict[NUM_GRID_COLUMNS_KEY]
+    data_aug_num_translations = option_dict[DATA_AUG_NUM_TRANS_KEY]
+    data_aug_mean_translation_low_res_px = option_dict[DATA_AUG_MEAN_TRANS_KEY]
+    data_aug_stdev_translation_low_res_px = (
+        option_dict[DATA_AUG_STDEV_TRANS_KEY]
+    )
+
+    # TODO(thunderhoser): Add other options, that are currently available for
+    # main generator (from Robert/Galina data), to CIRA IR generator.
+    semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
+    target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
+
+    orig_num_grid_rows = num_grid_rows + 0
+    orig_num_grid_columns = num_grid_columns + 0
+
+    num_extra_rowcols = 2 * int(numpy.ceil(
+        data_aug_mean_translation_low_res_px +
+        5 * data_aug_stdev_translation_low_res_px
+    ))
+    num_grid_rows += num_extra_rowcols
+    num_grid_columns += num_extra_rowcols
+
+    example_file_name = cira_ir_example_io.find_file(
+        directory_name=example_dir_name, cyclone_id_string=cyclone_id_string,
+        prefer_zipped=False, allow_other_format=False,
+        raise_error_if_missing=True
+    )
+
+    data_dict = _read_satellite_data_1cyclone_cira_ir(
+        input_file_name=example_file_name,
+        lag_times_minutes=lag_times_minutes,
+        num_grid_rows=num_grid_rows,
+        num_grid_columns=num_grid_columns,
+        return_coords=True, num_target_times=num_target_times
+    )
+
+    if data_dict is None:
+        return None
+
+    brightness_temp_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+    grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
+    cyclone_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
+    target_times_unix_sec = data_dict[TARGET_TIMES_KEY]
+    grid_latitude_matrix_deg_n = data_dict[LOW_RES_LATITUDES_KEY]
+    grid_longitude_matrix_deg_e = data_dict[LOW_RES_LONGITUDES_KEY]
+
+    if brightness_temp_matrix_kelvins is None:
+        return None
+    if brightness_temp_matrix_kelvins.size == 0:
+        return None
+
+    brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
+        brightness_temp_matrix_kelvins
+    )
+
+    (
+        _, brightness_temp_matrix_kelvins,
+        row_translations_low_res_px, column_translations_low_res_px
+    ) = _augment_data(
+        bidirectional_reflectance_matrix=None,
+        brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
+        num_translations_per_example=data_aug_num_translations,
+        mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
+        stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
+        sentinel_value=-10.
+    )
+
+    brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
+        data_matrix=brightness_temp_matrix_kelvins,
+        num_rows_to_keep=orig_num_grid_rows,
+        num_columns_to_keep=orig_num_grid_columns,
+        for_high_res=False
+    )
+
+    regular_grids = len(grid_latitude_matrix_deg_n.shape) == 3
+
+    if regular_grids:
+        grid_latitude_matrix_deg_n, grid_longitude_matrix_deg_e = (
+            _grid_coords_3d_to_4d(
+                latitude_matrix_deg_n=grid_latitude_matrix_deg_n,
+                longitude_matrix_deg_e=grid_longitude_matrix_deg_e
+            )
+        )
+
+    grid_latitude_matrix_deg_n = _subset_grid_after_data_aug(
+        data_matrix=grid_latitude_matrix_deg_n,
+        num_rows_to_keep=orig_num_grid_rows,
+        num_columns_to_keep=orig_num_grid_columns,
+        for_high_res=False
+    )
+    grid_longitude_matrix_deg_e = _subset_grid_after_data_aug(
+        data_matrix=grid_longitude_matrix_deg_e,
+        num_rows_to_keep=orig_num_grid_rows,
+        num_columns_to_keep=orig_num_grid_columns,
+        for_high_res=False
+    )
+
+    if regular_grids:
+        grid_latitude_matrix_deg_n = grid_latitude_matrix_deg_n[:, :, 0, :]
+        grid_longitude_matrix_deg_e = grid_longitude_matrix_deg_e[:, 0, :, :]
+
+    grid_spacings_km = numpy.repeat(
+        grid_spacings_km, repeats=data_aug_num_translations
+    )
+    cyclone_center_latitudes_deg_n = numpy.repeat(
+        cyclone_center_latitudes_deg_n, repeats=data_aug_num_translations
+    )
+    target_times_unix_sec = numpy.repeat(
+        target_times_unix_sec, repeats=data_aug_num_translations
+    )
+    grid_latitude_matrix_deg_n = numpy.repeat(
+        grid_latitude_matrix_deg_n, repeats=data_aug_num_translations, axis=0
+    )
+    grid_longitude_matrix_deg_e = numpy.repeat(
+        grid_longitude_matrix_deg_e, repeats=data_aug_num_translations, axis=0
+    )
+
+    predictor_matrices = [brightness_temp_matrix_kelvins]
+
+    if semantic_segmentation_flag:
+        target_matrix = _make_targets_for_semantic_seg(
+            row_translations_px=row_translations_low_res_px,
+            column_translations_px=column_translations_low_res_px,
+            grid_spacings_km=grid_spacings_km,
+            cyclone_center_latitudes_deg_n=cyclone_center_latitudes_deg_n,
+            gaussian_smoother_stdev_km=target_smoother_stdev_km,
+            num_grid_rows=orig_num_grid_rows,
+            num_grid_columns=orig_num_grid_columns
+        )
+    else:
+        target_matrix = numpy.transpose(numpy.vstack((
+            row_translations_low_res_px, column_translations_low_res_px,
+            grid_spacings_km, cyclone_center_latitudes_deg_n
+        )))
+
+    predictor_matrices = [p.astype('float16') for p in predictor_matrices]
+
+    return {
+        PREDICTOR_MATRICES_KEY: predictor_matrices,
+        TARGET_MATRIX_KEY: target_matrix,
+        TARGET_TIMES_KEY: target_times_unix_sec,
+        GRID_SPACINGS_KEY: grid_spacings_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
+        HIGH_RES_LATITUDES_KEY: None,
+        HIGH_RES_LONGITUDES_KEY: None,
+        LOW_RES_LATITUDES_KEY: grid_latitude_matrix_deg_n,
+        LOW_RES_LONGITUDES_KEY: grid_longitude_matrix_deg_e
+    }
+
+
+def create_data_cira_ir_specific_trans(
+        option_dict, cyclone_id_string, target_times_unix_sec,
+        row_translations_low_res_px, column_translations_low_res_px):
+    """Creates data from CIRA IR with specific (instead of random) translations.
+
+    E = batch size = number of examples after data augmentation
+
+    :param option_dict: See doc for `data_generator_cira_ir`.
+    :param cyclone_id_string: Will create data for this cyclone.
+    :param target_times_unix_sec: length-E numpy array of target times.
+    :param row_translations_low_res_px: length-E numpy array of row
+        translations.  The [i]th example will be shifted
+        row_translations_low_res_px[i] rows up (towards the north).
+    :param column_translations_low_res_px: length-E numpy array of column
+        translations.  The [i]th example will be shifted
+        column_translations_low_res_px[i] columns towards the right (east).
+
+    :return: data_dict: See documentation for `create_data_cira_ir`.
+    """
+
+    # Check input args.
+    option_dict = _check_generator_args(option_dict)
+
+    error_checking.assert_is_integer_numpy_array(target_times_unix_sec)
+    error_checking.assert_is_numpy_array(
+        target_times_unix_sec, num_dimensions=1
+    )
+
+    num_examples = len(target_times_unix_sec)
+    expected_dim = numpy.array([num_examples], dtype=int)
+
+    error_checking.assert_is_integer_numpy_array(row_translations_low_res_px)
+    error_checking.assert_is_numpy_array(
+        row_translations_low_res_px, exact_dimensions=expected_dim
+    )
+    # error_checking.assert_is_greater_numpy_array(
+    #     numpy.absolute(row_translations_low_res_px), 0
+    # )
+
+    error_checking.assert_is_integer_numpy_array(column_translations_low_res_px)
+    error_checking.assert_is_numpy_array(
+        column_translations_low_res_px, exact_dimensions=expected_dim
+    )
+    # error_checking.assert_is_greater_numpy_array(
+    #     numpy.absolute(row_translations_low_res_px) +
+    #     numpy.absolute(column_translations_low_res_px),
+    #     0
+    # )
+
+    # Do actual stuff.
+    example_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
+    lag_times_minutes = option_dict[LAG_TIMES_KEY]
+    num_grid_rows = option_dict[NUM_GRID_ROWS_KEY]
+    num_grid_columns = option_dict[NUM_GRID_COLUMNS_KEY]
+    semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
+    target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
+
+    orig_num_grid_rows = num_grid_rows + 0
+    orig_num_grid_columns = num_grid_columns + 0
+
+    num_extra_rowcols = 2 * max([
+        numpy.max(numpy.absolute(row_translations_low_res_px)),
+        numpy.max(numpy.absolute(column_translations_low_res_px))
+    ])
+    num_grid_rows += num_extra_rowcols
+    num_grid_columns += num_extra_rowcols
+
+    example_file_name = cira_ir_example_io.find_file(
+        directory_name=example_dir_name, cyclone_id_string=cyclone_id_string,
+        prefer_zipped=False, allow_other_format=False,
+        raise_error_if_missing=True
+    )
+    unique_target_times_unix_sec = numpy.unique(target_times_unix_sec)
+
+    data_dict = _read_satellite_data_1cyclone_cira_ir(
+        input_file_name=example_file_name,
+        lag_times_minutes=lag_times_minutes,
+        num_grid_rows=num_grid_rows,
+        num_grid_columns=num_grid_columns,
+        return_coords=True, target_times_unix_sec=unique_target_times_unix_sec
+    )
+
+    if data_dict is None:
+        return None
+
+    brightness_temp_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+    grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
+    cyclone_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
+    grid_latitude_matrix_deg_n = data_dict[LOW_RES_LATITUDES_KEY]
+    grid_longitude_matrix_deg_e = data_dict[LOW_RES_LONGITUDES_KEY]
+
+    if brightness_temp_matrix_kelvins is None:
+        return None
+    if brightness_temp_matrix_kelvins.size == 0:
+        return None
+
+    reconstruction_indices = numpy.array([
+        numpy.where(unique_target_times_unix_sec == t)[0][0]
+        for t in target_times_unix_sec
+    ], dtype=int)
+
+    brightness_temp_matrix_kelvins = (
+        brightness_temp_matrix_kelvins[reconstruction_indices, ...]
+    )
+    grid_spacings_km = grid_spacings_km[reconstruction_indices]
+    cyclone_center_latitudes_deg_n = (
+        cyclone_center_latitudes_deg_n[reconstruction_indices]
+    )
+    grid_latitude_matrix_deg_n = (
+        grid_latitude_matrix_deg_n[reconstruction_indices, ...]
+    )
+    grid_longitude_matrix_deg_e = (
+        grid_longitude_matrix_deg_e[reconstruction_indices, ...]
+    )
+
+    brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
+        brightness_temp_matrix_kelvins
+    )
+
+    _, brightness_temp_matrix_kelvins = _augment_data_specific_trans(
+        bidirectional_reflectance_matrix=None,
+        brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
+        row_translations_low_res_px=row_translations_low_res_px,
+        column_translations_low_res_px=column_translations_low_res_px,
+        sentinel_value=-10.
+    )
+
+    brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
+        data_matrix=brightness_temp_matrix_kelvins,
+        num_rows_to_keep=orig_num_grid_rows,
+        num_columns_to_keep=orig_num_grid_columns,
+        for_high_res=False
+    )
+
+    regular_grids = len(grid_latitude_matrix_deg_n.shape) == 3
+
+    if regular_grids:
+        grid_latitude_matrix_deg_n, grid_longitude_matrix_deg_e = (
+            _grid_coords_3d_to_4d(
+                latitude_matrix_deg_n=grid_latitude_matrix_deg_n,
+                longitude_matrix_deg_e=grid_longitude_matrix_deg_e
+            )
+        )
+
+    grid_latitude_matrix_deg_n = _subset_grid_after_data_aug(
+        data_matrix=grid_latitude_matrix_deg_n,
+        num_rows_to_keep=orig_num_grid_rows,
+        num_columns_to_keep=orig_num_grid_columns,
+        for_high_res=False
+    )
+    grid_longitude_matrix_deg_e = _subset_grid_after_data_aug(
+        data_matrix=grid_longitude_matrix_deg_e,
+        num_rows_to_keep=orig_num_grid_rows,
+        num_columns_to_keep=orig_num_grid_columns,
+        for_high_res=False
+    )
+
+    if regular_grids:
+        grid_latitude_matrix_deg_n = grid_latitude_matrix_deg_n[:, :, 0, :]
+        grid_longitude_matrix_deg_e = grid_longitude_matrix_deg_e[:, 0, :, :]
+
+    predictor_matrices = [brightness_temp_matrix_kelvins]
+
+    if semantic_segmentation_flag:
+        target_matrix = _make_targets_for_semantic_seg(
+            row_translations_px=row_translations_low_res_px,
+            column_translations_px=column_translations_low_res_px,
+            grid_spacings_km=grid_spacings_km,
+            cyclone_center_latitudes_deg_n=cyclone_center_latitudes_deg_n,
+            gaussian_smoother_stdev_km=target_smoother_stdev_km,
+            num_grid_rows=orig_num_grid_rows,
+            num_grid_columns=orig_num_grid_columns
+        )
+    else:
+        target_matrix = numpy.transpose(numpy.vstack((
+            row_translations_low_res_px, column_translations_low_res_px,
+            grid_spacings_km, cyclone_center_latitudes_deg_n
+        )))
+
+    predictor_matrices = [p.astype('float16') for p in predictor_matrices]
+
+    return {
+        PREDICTOR_MATRICES_KEY: predictor_matrices,
+        TARGET_MATRIX_KEY: target_matrix,
+        TARGET_TIMES_KEY: target_times_unix_sec,
+        GRID_SPACINGS_KEY: grid_spacings_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
+        HIGH_RES_LATITUDES_KEY: None,
+        HIGH_RES_LONGITUDES_KEY: None,
+        LOW_RES_LATITUDES_KEY: grid_latitude_matrix_deg_n,
+        LOW_RES_LONGITUDES_KEY: grid_longitude_matrix_deg_e
+    }
 
 
 def create_data(option_dict, cyclone_id_string, num_target_times):
@@ -3171,7 +3556,8 @@ def train_model_cira_ir(
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         architecture_dict=architecture_dict,
-        is_model_bnn=is_model_bnn
+        is_model_bnn=is_model_bnn,
+        use_cira_ir_data=True
     )
 
     model_object.fit_generator(
@@ -3284,7 +3670,8 @@ def train_model_simple(
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         architecture_dict=architecture_dict,
-        is_model_bnn=is_model_bnn
+        is_model_bnn=is_model_bnn,
+        use_cira_ir_data=False
     )
 
     model_object.fit_generator(
@@ -3420,7 +3807,8 @@ def train_model(
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         architecture_dict=architecture_dict,
-        is_model_bnn=is_model_bnn
+        is_model_bnn=is_model_bnn,
+        use_cira_ir_data=False
     )
 
     model_object.fit_generator(
@@ -3543,6 +3931,9 @@ def read_metafile(pickle_file_name):
     metadata_dict["early_stopping_patience_epochs"]: Same.
     metadata_dict["architecture_dict"]: Same.
     metadata_dict["is_model_bnn"]: Same.
+    metadata_dict["use_cira_ir_data"]: Boolean flag.  If True, the model uses
+        CIRA IR data as predictors.  If False, the model uses Robert/Galina data
+        as predictors.
 
     :raises: ValueError: if any expected key is not found in dictionary.
     """
@@ -3555,12 +3946,12 @@ def read_metafile(pickle_file_name):
 
     if OPTIMIZER_FUNCTION_KEY not in metadata_dict:
         metadata_dict[OPTIMIZER_FUNCTION_KEY] = 'keras.optimizers.Adam()'
-
     if IS_MODEL_BNN_KEY not in metadata_dict:
         metadata_dict[IS_MODEL_BNN_KEY] = False
-
     if ARCHITECTURE_KEY not in metadata_dict:
         metadata_dict[ARCHITECTURE_KEY] = None
+    if USE_CIRA_IR_KEY not in metadata_dict:
+        metadata_dict[USE_CIRA_IR_KEY] = True
 
     training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
     validation_option_dict = metadata_dict[VALIDATION_OPTIONS_KEY]
@@ -3614,7 +4005,7 @@ def read_model(hdf5_file_name):
 
     if architecture_dict is not None:
         if is_model_bnn:
-            import cnn_architecture_bayesian
+            from ml4tccf.machine_learning import cnn_architecture_bayesian
 
             for this_key in [
                     cnn_architecture_bayesian.LOSS_FUNCTION_KEY,
