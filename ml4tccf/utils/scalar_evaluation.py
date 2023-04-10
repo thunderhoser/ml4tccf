@@ -24,8 +24,6 @@ DEGREES_TO_RADIANS = numpy.pi / 180
 RADIANS_TO_DEGREES = 180. / numpy.pi
 KM_TO_METRES = 1000.
 
-MEAN_GRID_SPACING_METRES = 2000.
-
 X_OFFSET_NAME = 'x_offset_metres'
 Y_OFFSET_NAME = 'y_offset_metres'
 OFFSET_DISTANCE_NAME = 'offset_distance_metres'
@@ -1189,7 +1187,7 @@ def get_scores_all_variables(
 
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    climo_xy_offset_metres = MEAN_GRID_SPACING_METRES * (
+    climo_xy_offset_metres = numpy.mean(grid_spacings_km) * (
         training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY]
     )
     climo_offset_distance_metres = numpy.sqrt(2 * (climo_xy_offset_metres ** 2))
