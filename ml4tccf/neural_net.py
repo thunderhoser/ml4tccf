@@ -767,48 +767,103 @@ def _read_satellite_data_1cyclone_cira_ir(
             end_latitude_deg_n = grid_latitude_matrix_deg_n[i, i_end, -1]
             start_longitude_deg_e = grid_longitude_matrix_deg_e[i, j_start, -1]
             end_longitude_deg_e = grid_longitude_matrix_deg_e[i, j_end, -1]
+
+            first_distance_metres = geodesic_object.inv(
+                lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
+                lons2=start_longitude_deg_e, lats2=end_latitude_deg_n
+            )[2]
+            second_distance_metres = geodesic_object.inv(
+                lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
+                lons2=end_longitude_deg_e, lats2=start_latitude_deg_n
+            )[2]
+            grid_spacings_km[i] = (
+                0.5 * METRES_TO_KM *
+                (first_distance_metres + second_distance_metres)
+            )
         else:
             start_latitude_deg_n = grid_latitude_matrix_deg_n[
                 i, i_start, j_start, -1
             ]
-            end_latitude_deg_n = grid_latitude_matrix_deg_n[
-                i, i_end, j_start, -1
-            ]
             start_longitude_deg_e = grid_longitude_matrix_deg_e[
                 i, i_start, j_start, -1
+            ]
+            end_latitude_deg_n = grid_latitude_matrix_deg_n[
+                i, i_start, j_end, -1
             ]
             end_longitude_deg_e = grid_longitude_matrix_deg_e[
                 i, i_start, j_end, -1
             ]
+            first_distance_metres = geodesic_object.inv(
+                lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
+                lons2=end_longitude_deg_e, lats2=end_latitude_deg_n
+            )[2]
 
-        first_distance_metres = geodesic_object.inv(
-            lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
-            lons2=start_longitude_deg_e, lats2=end_latitude_deg_n
-        )[2]
-        second_distance_metres = geodesic_object.inv(
-            lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
-            lons2=end_longitude_deg_e, lats2=start_latitude_deg_n
-        )[2]
+            print('Distance between ({0:.4f} deg N, {1:.4f} deg E) and ({2:.4f} deg N, {3:.4f} deg E) = {4:.4f} km'.format(
+                start_latitude_deg_n, start_longitude_deg_e,
+                end_latitude_deg_n, end_longitude_deg_e,
+                METRES_TO_KM * first_distance_metres
+            ))
 
-        print('Distance between ({0:.4f} deg N, {1:.4f} deg E) and ({2:.4f} deg N, {3:.4f} deg E) = {4:.4f} km'.format(
-            start_latitude_deg_n, start_longitude_deg_e,
-            end_latitude_deg_n, start_longitude_deg_e,
-            METRES_TO_KM * first_distance_metres
-        ))
+            end_latitude_deg_n = grid_latitude_matrix_deg_n[
+                i, i_end, j_start, -1
+            ]
+            end_longitude_deg_e = grid_longitude_matrix_deg_e[
+                i, i_end, j_start, -1
+            ]
+            second_distance_metres = geodesic_object.inv(
+                lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
+                lons2=end_longitude_deg_e, lats2=end_latitude_deg_n
+            )[2]
 
-        print('Distance between ({0:.4f} deg N, {1:.4f} deg E) and ({2:.4f} deg N, {3:.4f} deg E) = {4:.4f} km'.format(
-            start_latitude_deg_n, start_longitude_deg_e,
-            start_latitude_deg_n, end_longitude_deg_e,
-            METRES_TO_KM * second_distance_metres
-        ))
+            print('Distance between ({0:.4f} deg N, {1:.4f} deg E) and ({2:.4f} deg N, {3:.4f} deg E) = {4:.4f} km'.format(
+                start_latitude_deg_n, start_longitude_deg_e,
+                end_latitude_deg_n, end_longitude_deg_e,
+                METRES_TO_KM * second_distance_metres
+            ))
 
-        grid_spacings_km[i] = (
-            0.5 * METRES_TO_KM *
-            (first_distance_metres + second_distance_metres)
-        )
+            start_latitude_deg_n = grid_latitude_matrix_deg_n[
+                i, i_end, j_end, -1
+            ]
+            start_longitude_deg_e = grid_longitude_matrix_deg_e[
+                i, i_end, j_end, -1
+            ]
+            third_distance_metres = geodesic_object.inv(
+                lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
+                lons2=end_longitude_deg_e, lats2=end_latitude_deg_n
+            )[2]
 
-        print('Mean distance = {0:.4f} km'.format(grid_spacings_km[i]))
-        print('\n\n')
+            print('Distance between ({0:.4f} deg N, {1:.4f} deg E) and ({2:.4f} deg N, {3:.4f} deg E) = {4:.4f} km'.format(
+                start_latitude_deg_n, start_longitude_deg_e,
+                end_latitude_deg_n, end_longitude_deg_e,
+                METRES_TO_KM * third_distance_metres
+            ))
+
+            end_latitude_deg_n = grid_latitude_matrix_deg_n[
+                i, i_start, j_end, -1
+            ]
+            end_longitude_deg_e = grid_longitude_matrix_deg_e[
+                i, i_start, j_end, -1
+            ]
+            fourth_distance_metres = geodesic_object.inv(
+                lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
+                lons2=end_longitude_deg_e, lats2=end_latitude_deg_n
+            )[2]
+
+            print('Distance between ({0:.4f} deg N, {1:.4f} deg E) and ({2:.4f} deg N, {3:.4f} deg E) = {4:.4f} km'.format(
+                start_latitude_deg_n, start_longitude_deg_e,
+                end_latitude_deg_n, end_longitude_deg_e,
+                METRES_TO_KM * fourth_distance_metres
+            ))
+
+            these_distances_km = METRES_TO_KM * numpy.array([
+                first_distance_metres, second_distance_metres,
+                third_distance_metres, fourth_distance_metres
+            ])
+            grid_spacings_km[i] = numpy.mean(these_distances_km)
+
+            print('Mean distance = {0:.4f} km'.format(
+                grid_spacings_km[i]
+            ))
 
         cyclone_center_latitudes_deg_n[i] = (
             0.5 * (start_latitude_deg_n + end_latitude_deg_n)
