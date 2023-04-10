@@ -181,14 +181,19 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
         max_examples_per_cyclone
     )
     training_option_dict[neural_net.DATA_AUG_NUM_TRANS_KEY] = 1
-
     # training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY] = 100.
     # training_option_dict[neural_net.DATA_AUG_STDEV_TRANS_KEY] = 25.
 
     model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = training_option_dict
-
     print(SEPARATOR_STRING)
-    generator_handle = neural_net.data_generator(training_option_dict)
+
+    if model_metadata_dict[neural_net.USE_CIRA_IR_KEY]:
+        generator_handle = neural_net.data_generator_cira_ir(
+            training_option_dict
+        )
+    else:
+        generator_handle = neural_net.data_generator(training_option_dict)
+
     predictor_matrices, target_matrix = next(generator_handle)
     target_matrix = target_matrix[..., 0]
     print(SEPARATOR_STRING)

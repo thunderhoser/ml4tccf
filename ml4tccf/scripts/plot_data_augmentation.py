@@ -46,6 +46,7 @@ PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
 INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
+USE_CIRA_IR_ARG_NAME = 'use_cira_ir_data'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 NUM_TARGET_TIMES_ARG_NAME = 'num_target_times'
 NUM_GRID_ROWS_ARG_NAME = 'num_grid_rows_low_res'
@@ -60,6 +61,13 @@ INPUT_DIR_HELP_STRING = (
     'Name of input directory, containing satellite data.  Files therein will '
     'be found by `satellite_io.find_file` and read by `satellite_io.read_file`.'
 )
+USE_CIRA_IR_HELP_STRING = (
+    'Boolean flag.  If 0, will use Robert/Galina data.  If 1, will use CIRA IR '
+    'data, in which case files in the directory `{0:s}` will actually be found '
+    'by `ml4tc.io.example_io.find_file` and read by '
+    '`ml4tc.io.example_io.read_file`.'
+).format(INPUT_DIR_ARG_NAME)
+
 CYCLONE_ID_HELP_STRING = (
     'Cyclone ID in format "yyyyBBnn".  Will plot data augmentation only for '
     'this cyclone.'
@@ -98,6 +106,10 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + INPUT_DIR_ARG_NAME, type=str, required=True,
     help=INPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + USE_CIRA_IR_ARG_NAME, type=int, required=False, default=0,
+    help=USE_CIRA_IR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
@@ -405,15 +417,16 @@ def _plot_data_one_example(
     )
 
 
-def _run(satellite_dir_name, cyclone_id_string, num_target_times,
-         num_grid_rows_low_res, num_grid_columns_low_res, num_translations,
-         mean_translation_low_res_px, stdev_translation_low_res_px,
-         are_data_normalized, output_dir_name):
+def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
+         num_target_times, num_grid_rows_low_res, num_grid_columns_low_res,
+         num_translations, mean_translation_low_res_px,
+         stdev_translation_low_res_px, are_data_normalized, output_dir_name):
     """Plots data augmentation.
 
     This is effectively the main method.
 
     :param satellite_dir_name: See documentation at top of file.
+    :param use_cira_ir_data: Same.
     :param cyclone_id_string: Same.
     :param num_target_times: Same.
     :param num_grid_rows_low_res: Same.
@@ -444,10 +457,16 @@ def _run(satellite_dir_name, cyclone_id_string, num_target_times,
         neural_net.SENTINEL_VALUE_KEY: SENTINEL_VALUE
     }
 
-    data_dict = neural_net.create_data(
-        option_dict=option_dict, cyclone_id_string=cyclone_id_string,
-        num_target_times=num_target_times
-    )
+    if use_cira_ir_data:
+        data_dict = neural_net.create_data_cira_ir(
+            option_dict=option_dict, cyclone_id_string=cyclone_id_string,
+            num_target_times=num_target_times
+        )
+    else:
+        data_dict = neural_net.create_data(
+            option_dict=option_dict, cyclone_id_string=cyclone_id_string,
+            num_target_times=num_target_times
+        )
 
     if data_dict is None:
         return
@@ -489,15 +508,15 @@ def _run(satellite_dir_name, cyclone_id_string, num_target_times,
             target_values=target_matrix[i, ...],
             cyclone_id_string=cyclone_id_string,
             target_time_unix_sec=target_times_unix_sec[i],
-            low_res_latitudes_deg_n=low_res_latitude_matrix_deg_n[i, :, 0],
-            low_res_longitudes_deg_e=low_res_longitude_matrix_deg_e[i, :, 0],
+            low_res_latitudes_deg_n=low_res_latitude_matrix_deg_n[i, ..., 0],
+            low_res_longitudes_deg_e=low_res_longitude_matrix_deg_e[i, ..., 0],
             high_res_latitudes_deg_n=(
                 None if high_res_latitude_matrix_deg_n is None
-                else high_res_latitude_matrix_deg_n[i, :, 0]
+                else high_res_latitude_matrix_deg_n[i, ..., 0]
             ),
             high_res_longitudes_deg_e=(
                 None if high_res_longitude_matrix_deg_e is None
-                else high_res_longitude_matrix_deg_e[i, :, 0]
+                else high_res_longitude_matrix_deg_e[i, ..., 0]
             ),
             are_data_normalized=are_data_normalized,
             border_latitudes_deg_n=border_latitudes_deg_n,
@@ -511,6 +530,7 @@ if __name__ == '__main__':
 
     _run(
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
+        use_cira_ir_data=bool(getattr(INPUT_ARG_OBJECT, USE_CIRA_IR_ARG_NAME)),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
         num_target_times=getattr(INPUT_ARG_OBJECT, NUM_TARGET_TIMES_ARG_NAME),
         num_grid_rows_low_res=getattr(INPUT_ARG_OBJECT, NUM_GRID_ROWS_ARG_NAME),

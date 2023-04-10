@@ -735,13 +735,23 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
         ).astype(int)
 
     validation_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY] = False
-    data_dict = neural_net.create_data_specific_trans(
-        option_dict=validation_option_dict,
-        cyclone_id_string=cyclone_id_string,
-        target_times_unix_sec=target_times_unix_sec,
-        row_translations_low_res_px=actual_row_offsets,
-        column_translations_low_res_px=actual_column_offsets
-    )
+
+    if model_metadata_dict[neural_net.USE_CIRA_IR_KEY]:
+        data_dict = neural_net.create_data_cira_ir_specific_trans(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            target_times_unix_sec=target_times_unix_sec,
+            row_translations_low_res_px=actual_row_offsets,
+            column_translations_low_res_px=actual_column_offsets
+        )
+    else:
+        data_dict = neural_net.create_data_specific_trans(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            target_times_unix_sec=target_times_unix_sec,
+            row_translations_low_res_px=actual_row_offsets,
+            column_translations_low_res_px=actual_column_offsets
+        )
 
     if data_dict is None:
         return
@@ -826,15 +836,15 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             model_metadata_dict=model_metadata_dict,
             cyclone_id_string=cyclone_id_string,
             target_time_unix_sec=target_times_unix_sec[i],
-            low_res_latitudes_deg_n=low_res_latitude_matrix_deg_n[i, :, 0],
-            low_res_longitudes_deg_e=low_res_longitude_matrix_deg_e[i, :, 0],
+            low_res_latitudes_deg_n=low_res_latitude_matrix_deg_n[i, ..., 0],
+            low_res_longitudes_deg_e=low_res_longitude_matrix_deg_e[i, ..., 0],
             high_res_latitudes_deg_n=(
                 None if high_res_latitude_matrix_deg_n is None
-                else high_res_latitude_matrix_deg_n[i, :, 0]
+                else high_res_latitude_matrix_deg_n[i, ..., 0]
             ),
             high_res_longitudes_deg_e=(
                 None if high_res_longitude_matrix_deg_e is None
-                else high_res_longitude_matrix_deg_e[i, :, 0]
+                else high_res_longitude_matrix_deg_e[i, ..., 0]
             ),
             are_data_normalized=are_data_normalized,
             border_latitudes_deg_n=border_latitudes_deg_n,

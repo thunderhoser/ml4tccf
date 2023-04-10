@@ -132,10 +132,19 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     # get out-of-memory errors.  In this case, I will write a new version of
     # this script, which calls `create_data` once without data augmentation and
     # then augments each example many times.
-    data_dict = neural_net.create_data(
-        option_dict=validation_option_dict, cyclone_id_string=cyclone_id_string,
-        num_target_times=LARGE_INTEGER
-    )
+
+    if model_metadata_dict[neural_net.USE_CIRA_IR_KEY]:
+        data_dict = neural_net.create_data_cira_ir(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            num_target_times=LARGE_INTEGER
+        )
+    else:
+        data_dict = neural_net.create_data(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            num_target_times=LARGE_INTEGER
+        )
 
     predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
     target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]
