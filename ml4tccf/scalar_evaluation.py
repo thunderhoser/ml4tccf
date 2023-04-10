@@ -227,8 +227,6 @@ def _get_mse_one_variable(target_values, predicted_values, is_var_direction):
             _get_angular_diffs(target_values, predicted_values) ** 2
         )
 
-    print(predicted_values)
-
     return numpy.mean((target_values - predicted_values) ** 2)
 
 
@@ -577,7 +575,7 @@ def _get_scores_one_replicate(
                 target_values=bootstrapped_target_matrix[:, j],
                 predicted_values=bootstrapped_prediction_matrix[:, j],
                 mean_training_target_value=(
-                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY] if
+                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY].values[0] if
                     TARGET_FIELD_NAMES[j] == OFFSET_DISTANCE_NAME else 0.
                 ),
                 is_var_direction=False
@@ -586,7 +584,7 @@ def _get_scores_one_replicate(
                 target_values=bootstrapped_target_matrix[:, j],
                 predicted_values=bootstrapped_prediction_matrix[:, j],
                 mean_training_target_value=(
-                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY] if
+                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY].values[0] if
                     TARGET_FIELD_NAMES[j] == OFFSET_DISTANCE_NAME else 0.
                 ),
                 is_var_direction=False
