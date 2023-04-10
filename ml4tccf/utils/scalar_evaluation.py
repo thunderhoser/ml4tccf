@@ -972,15 +972,16 @@ def get_scores_all_variables(
     )
     pt = prediction_table_xarray
 
-    grid_spacings_km = pt[prediction_utils.GRID_SPACING_KEY]
+    grid_spacings_km = pt[prediction_utils.GRID_SPACING_KEY].values
     prediction_matrix = numpy.transpose(numpy.vstack((
-        grid_spacings_km * pt[prediction_utils.PREDICTED_ROW_OFFSET_KEY][:, 0],
         grid_spacings_km *
-        pt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY][:, 0]
+        pt[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[:, 0],
+        grid_spacings_km *
+        pt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[:, 0]
     )))
     target_matrix = numpy.transpose(numpy.vstack((
-        grid_spacings_km * pt[prediction_utils.ACTUAL_ROW_OFFSET_KEY],
-        grid_spacings_km * pt[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY]
+        grid_spacings_km * pt[prediction_utils.ACTUAL_ROW_OFFSET_KEY].values,
+        grid_spacings_km * pt[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
     )))
 
     prediction_matrix *= KM_TO_METRES
@@ -1187,7 +1188,9 @@ def get_scores_all_variables(
 
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    climo_xy_offset_metres = numpy.mean(grid_spacings_km) * (
+
+    # TODO(thunderhoser): Need constant!
+    climo_xy_offset_metres = numpy.mean(1000 * grid_spacings_km) * (
         training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY]
     )
     climo_offset_distance_metres = numpy.sqrt(2 * (climo_xy_offset_metres ** 2))
