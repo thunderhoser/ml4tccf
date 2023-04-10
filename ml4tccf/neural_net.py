@@ -31,7 +31,7 @@ import custom_losses_gridded
 import custom_metrics_gridded
 import cnn_architecture
 import u_net_architecture
-from ml4tccf.outside_code import accum_grad_optimizer
+import accum_grad_optimizer
 
 TOLERANCE = 1e-6
 
