@@ -1,13 +1,20 @@
 """Applies trained neural net -- inference time!"""
 
 import os
+import sys
 import argparse
 import numpy
-from gewittergefahr.gg_utils import error_checking
-from ml4tccf.io import prediction_io
-from ml4tccf.io import scalar_prediction_io
-from ml4tccf.io import gridded_prediction_io
-from ml4tccf.machine_learning import neural_net
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import error_checking
+import prediction_io
+import scalar_prediction_io
+import gridded_prediction_io
+import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 

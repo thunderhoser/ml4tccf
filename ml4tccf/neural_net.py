@@ -1,6 +1,7 @@
 """Methods for training and applying neural nets."""
 
 import os
+import sys
 import copy
 import random
 import pickle
@@ -9,21 +10,27 @@ import xarray
 import keras
 import tensorflow.keras as tf_keras
 from pyproj import Geod
-from gewittergefahr.gg_utils import number_rounding
-from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.gg_utils import error_checking
-from ml4tc.io import example_io as cira_ir_example_io
-from ml4tccf.io import satellite_io
-from ml4tccf.utils import misc_utils
-from ml4tccf.utils import satellite_utils
-from ml4tccf.utils import image_filtering
-from ml4tccf.machine_learning import custom_losses_scalar
-from ml4tccf.machine_learning import custom_metrics_scalar
-from ml4tccf.machine_learning import custom_losses_gridded
-from ml4tccf.machine_learning import custom_metrics_gridded
-from ml4tccf.machine_learning import cnn_architecture
-from ml4tccf.machine_learning import u_net_architecture
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import number_rounding
+import time_conversion
+import file_system_utils
+import error_checking
+import cira_ir_example_io
+import satellite_io
+import misc_utils
+import satellite_utils
+import image_filtering
+import custom_losses_scalar
+import custom_metrics_scalar
+import custom_losses_gridded
+import custom_metrics_gridded
+import cnn_architecture
+import u_net_architecture
 from ml4tccf.outside_code import accum_grad_optimizer
 
 TOLERANCE = 1e-6
@@ -4005,7 +4012,7 @@ def read_model(hdf5_file_name):
 
     if architecture_dict is not None:
         if is_model_bnn:
-            from ml4tccf.machine_learning import cnn_architecture_bayesian
+            import cnn_architecture_bayesian
 
             for this_key in [
                     cnn_architecture_bayesian.LOSS_FUNCTION_KEY,

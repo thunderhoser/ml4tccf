@@ -1,24 +1,31 @@
 """Plots predictions."""
 
 import os
+import sys
 import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 import matplotlib.colors
-from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.gg_utils import error_checking
-from gewittergefahr.plotting import imagemagick_utils
-from ml4tccf.io import prediction_io
-from ml4tccf.utils import misc_utils
-from ml4tccf.utils import scalar_prediction_utils
-from ml4tccf.utils import gridded_prediction_utils
-from ml4tccf.io import border_io
-from ml4tccf.machine_learning import neural_net
-from ml4tccf.plotting import plotting_utils
-from ml4tccf.plotting import satellite_plotting
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import time_conversion
+import file_system_utils
+import error_checking
+import imagemagick_utils
+import prediction_io
+import misc_utils
+import scalar_prediction_utils
+import gridded_prediction_utils
+import border_io
+import neural_net
+import plotting_utils
+import satellite_plotting
 
 SENTINEL_VALUE = -9999.
 TIME_FORMAT = '%Y-%m-%d-%H%M'

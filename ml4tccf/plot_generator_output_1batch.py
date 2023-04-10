@@ -5,14 +5,21 @@ prediction) -- not for scalar prediction (of just the x- and y-coords).
 """
 
 import os
+import sys
 import argparse
 import numpy
-from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import error_checking
-from ml4tccf.io import border_io
-from ml4tccf.utils import misc_utils
-from ml4tccf.machine_learning import neural_net
-from ml4tccf.scripts import plot_predictions
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import time_conversion
+import error_checking
+import border_io
+import misc_utils
+import neural_net
+import plot_predictions
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 

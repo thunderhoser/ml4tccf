@@ -1,19 +1,26 @@
 """Plots data augmentation."""
 
 import os
+import sys
 import argparse
 import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 import matplotlib.colors
-from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import file_system_utils
-from gewittergefahr.plotting import imagemagick_utils
-from ml4tccf.io import border_io
-from ml4tccf.machine_learning import neural_net
-from ml4tccf.plotting import plotting_utils
-from ml4tccf.plotting import satellite_plotting
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import time_conversion
+import file_system_utils
+import imagemagick_utils
+import border_io
+import neural_net
+import plotting_utils
+import satellite_plotting
 
 # TODO(thunderhoser): Keep in mind that data augmentation is not applied to
 # lat/long coordinates, so all images plotted by this script will NOT line up
