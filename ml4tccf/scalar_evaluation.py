@@ -247,6 +247,7 @@ def _get_mse_ss_one_variable(
     """
 
     assert not is_var_direction
+    print(mean_training_target_value)
 
     mse_actual = _get_mse_one_variable(
         target_values=target_values, predicted_values=predicted_values,
@@ -1197,7 +1198,9 @@ def get_scores_all_variables(
 
     model_metadata_dict = neural_net.read_metafile(model_metafile_name)
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    climo_xy_offset_metres = numpy.mean(grid_spacings_km) * (
+
+    # TODO(thunderhoser): Need constant!
+    climo_xy_offset_metres = numpy.mean(1000 * grid_spacings_km) * (
         training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY]
     )
     climo_offset_distance_metres = numpy.sqrt(2 * (climo_xy_offset_metres ** 2))
