@@ -789,10 +789,26 @@ def _read_satellite_data_1cyclone_cira_ir(
             lons1=start_longitude_deg_e, lats1=start_latitude_deg_n,
             lons2=end_longitude_deg_e, lats2=start_latitude_deg_n
         )[2]
+
+        print('Distance between ({0:.4f} deg N, {1:.4f} deg E) and ({2:.4f} deg N, {3:.4f} deg E) = {4:.4f} km'.format(
+            start_latitude_deg_n, start_longitude_deg_e,
+            end_latitude_deg_n, start_longitude_deg_e,
+            METRES_TO_KM * first_distance_metres
+        ))
+
+        print('Distance between ({0:.4f} deg N, {1:.4f} deg E) and ({2:.4f} deg N, {3:.4f} deg E) = {4:.4f} km'.format(
+            start_latitude_deg_n, start_longitude_deg_e,
+            start_latitude_deg_n, end_longitude_deg_e,
+            METRES_TO_KM * second_distance_metres
+        ))
+
         grid_spacings_km[i] = (
             0.5 * METRES_TO_KM *
             (first_distance_metres + second_distance_metres)
         )
+
+        print('Mean distance = {0:.4f} km'.format(grid_spacings_km[i]))
+        print('\n\n')
 
         cyclone_center_latitudes_deg_n[i] = (
             0.5 * (start_latitude_deg_n + end_latitude_deg_n)

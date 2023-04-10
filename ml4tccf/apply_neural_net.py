@@ -153,6 +153,9 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
             num_target_times=LARGE_INTEGER
         )
 
+    if data_dict is None:
+        return
+
     predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
     target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]
     grid_spacings_km = data_dict[neural_net.GRID_SPACINGS_KEY]
