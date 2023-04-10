@@ -227,8 +227,7 @@ def _get_mse_one_variable(target_values, predicted_values, is_var_direction):
             _get_angular_diffs(target_values, predicted_values) ** 2
         )
 
-    print(target_values.shape)
-    print(predicted_values.shape)
+    print(predicted_values)
 
     return numpy.mean((target_values - predicted_values) ** 2)
 
@@ -247,7 +246,6 @@ def _get_mse_ss_one_variable(
     """
 
     assert not is_var_direction
-    print(mean_training_target_value)
 
     mse_actual = _get_mse_one_variable(
         target_values=target_values, predicted_values=predicted_values,
