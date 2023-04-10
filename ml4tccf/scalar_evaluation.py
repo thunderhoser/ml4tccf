@@ -575,7 +575,7 @@ def _get_scores_one_replicate(
                 target_values=bootstrapped_target_matrix[:, j],
                 predicted_values=bootstrapped_prediction_matrix[:, j],
                 mean_training_target_value=(
-                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY].values[0] if
+                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY] if
                     TARGET_FIELD_NAMES[j] == OFFSET_DISTANCE_NAME else 0.
                 ),
                 is_var_direction=False
@@ -584,7 +584,7 @@ def _get_scores_one_replicate(
                 target_values=bootstrapped_target_matrix[:, j],
                 predicted_values=bootstrapped_prediction_matrix[:, j],
                 mean_training_target_value=(
-                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY].values[0] if
+                    t.attrs[CLIMO_OFFSET_DISTANCE_KEY] if
                     TARGET_FIELD_NAMES[j] == OFFSET_DISTANCE_NAME else 0.
                 ),
                 is_var_direction=False
@@ -979,15 +979,16 @@ def get_scores_all_variables(
     )
     pt = prediction_table_xarray
 
-    grid_spacings_km = pt[prediction_utils.GRID_SPACING_KEY]
+    grid_spacings_km = pt[prediction_utils.GRID_SPACING_KEY].values
     prediction_matrix = numpy.transpose(numpy.vstack((
-        grid_spacings_km * pt[prediction_utils.PREDICTED_ROW_OFFSET_KEY][:, 0],
         grid_spacings_km *
-        pt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY][:, 0]
+        pt[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[:, 0],
+        grid_spacings_km *
+        pt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[:, 0]
     )))
     target_matrix = numpy.transpose(numpy.vstack((
-        grid_spacings_km * pt[prediction_utils.ACTUAL_ROW_OFFSET_KEY],
-        grid_spacings_km * pt[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY]
+        grid_spacings_km * pt[prediction_utils.ACTUAL_ROW_OFFSET_KEY].values,
+        grid_spacings_km * pt[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
     )))
 
     prediction_matrix *= KM_TO_METRES
