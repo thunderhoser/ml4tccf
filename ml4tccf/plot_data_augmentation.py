@@ -546,7 +546,9 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
         neural_net.LAG_TIME_TOLERANCE_KEY: LAG_TIME_TOLERANCE_SEC,
         neural_net.MAX_MISSING_LAG_TIMES_KEY: MAX_NUM_MISSING_LAG_TIMES,
         neural_net.MAX_INTERP_GAP_KEY: MAX_INTERP_GAP_SEC,
-        neural_net.SENTINEL_VALUE_KEY: SENTINEL_VALUE
+        neural_net.SENTINEL_VALUE_KEY: SENTINEL_VALUE,
+        neural_net.SEMANTIC_SEG_FLAG_KEY: False,
+        neural_net.TARGET_SMOOOTHER_STDEV_KEY: 1e-6
     }
 
     if use_cira_ir_data:
