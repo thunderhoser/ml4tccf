@@ -503,6 +503,8 @@ def _plot_data_one_example(
                 axes_object=axes_object
             )
 
+            print(predictor_matrices[-1].shape)
+
             satellite_plotting.plot_2d_grid_latlng(
                 data_matrix=predictor_matrices[-1][..., i, j],
                 axes_object=axes_object,
