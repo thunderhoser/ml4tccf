@@ -140,17 +140,27 @@ def crps_kilometres(target_tensor, prediction_tensor):
     :return: crps_km: CRPS.
     """
 
-    mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
-    mean_row_errors_km = (
-        target_tensor[:, 2] *
-        K.abs(mean_prediction_tensor[:, 0] - target_tensor[:, 0])
+    mean_row_error_by_example_km = K.mean(
+        K.expand_dims(target_tensor[:, 2], axis=-1) *
+        K.abs(
+            prediction_tensor[:, 0, :] -
+            K.expand_dims(target_tensor[:, 0], axis=-1)
+        ),
+        axis=-1
     )
-    mean_column_errors_km = (
-        target_tensor[:, 2] *
-        K.abs(mean_prediction_tensor[:, 1] - target_tensor[:, 1])
+
+    mean_column_error_by_example_km = K.mean(
+        K.expand_dims(target_tensor[:, 2], axis=-1) *
+        K.abs(
+            prediction_tensor[:, 1, :] -
+            K.expand_dims(target_tensor[:, 1], axis=-1)
+        ),
+        axis=-1
     )
-    mean_distance_errors_km = K.sqrt(
-        mean_row_errors_km ** 2 + mean_column_errors_km ** 2
+
+    mean_dist_error_by_example_km = K.sqrt(
+        mean_row_error_by_example_km ** 2 +
+        mean_column_error_by_example_km ** 2
     )
 
     prediction_diff_tensor_rowcol = K.abs(
@@ -167,12 +177,13 @@ def crps_kilometres(target_tensor, prediction_tensor):
     prediction_diff_tensor_km = (
         grid_spacing_tensor_km * prediction_diff_tensor_rowcol
     )
-    mean_prediction_diff_tensor_km = K.mean(
+    mean_prediction_diff_by_example_km = K.mean(
         prediction_diff_tensor_km, axis=(-2, -1)
     )
 
     return K.mean(
-        mean_distance_errors_km - 0.5 * mean_prediction_diff_tensor_km
+        mean_dist_error_by_example_km -
+        0.5 * mean_prediction_diff_by_example_km
     )
 
 
@@ -185,25 +196,34 @@ def discretized_crps_kilometres(target_tensor, prediction_tensor):
     :return: discretized_crps_km: Discretized CRPS.
     """
 
-    mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
-    mean_row_errors_km = (
-        target_tensor[:, 2] *
-        K.abs(mean_prediction_tensor[:, 0] - target_tensor[:, 0])
-    )
-    mean_column_errors_km = (
-        target_tensor[:, 2] *
-        K.abs(mean_prediction_tensor[:, 1] - target_tensor[:, 1])
+    mean_row_error_by_example_km = K.mean(
+        K.expand_dims(target_tensor[:, 2], axis=-1) *
+        K.abs(
+            prediction_tensor[:, 0, :] -
+            K.expand_dims(target_tensor[:, 0], axis=-1)
+        ),
+        axis=-1
     )
 
-    mean_row_errors_km, mean_column_errors_km = (
+    mean_column_error_by_example_km = K.mean(
+        K.expand_dims(target_tensor[:, 2], axis=-1) *
+        K.abs(
+            prediction_tensor[:, 1, :] -
+            K.expand_dims(target_tensor[:, 1], axis=-1)
+        ),
+        axis=-1
+    )
+
+    mean_row_error_by_example_km, mean_column_error_by_example_km = (
         custom_losses_scalar.discretize_distance_errors(
-            row_distances_km=mean_row_errors_km,
-            column_distances_km=mean_column_errors_km,
+            row_distances_km=mean_row_error_by_example_km,
+            column_distances_km=mean_column_error_by_example_km,
             true_center_latitudes_deg_n=target_tensor[:, 3]
         )
     )
-    mean_distance_errors_km = K.sqrt(
-        mean_row_errors_km ** 2 + mean_column_errors_km ** 2
+    mean_dist_error_by_example_km = K.sqrt(
+        mean_row_error_by_example_km ** 2 +
+        mean_column_error_by_example_km ** 2
     )
 
     prediction_diff_tensor_rowcol = K.abs(
@@ -220,10 +240,11 @@ def discretized_crps_kilometres(target_tensor, prediction_tensor):
     prediction_diff_tensor_km = (
         grid_spacing_tensor_km * prediction_diff_tensor_rowcol
     )
-    mean_prediction_diff_tensor_km = K.mean(
+    mean_prediction_diff_by_example_km = K.mean(
         prediction_diff_tensor_km, axis=(-2, -1)
     )
 
     return K.mean(
-        mean_distance_errors_km - 0.5 * mean_prediction_diff_tensor_km
+        mean_dist_error_by_example_km -
+        0.5 * mean_prediction_diff_by_example_km
     )
