@@ -24,10 +24,9 @@ OUTPUT_DIR_NAME = (
 )
 
 NUM_CONV_BLOCKS = 7
-# ENSEMBLE_SIZE = 25
-ENSEMBLE_SIZE = 5
+ENSEMBLE_SIZE = 100
 NUM_DENSE_LAYERS = 4
-LOSS_FUNCTION_STRING = 'custom_losses_scalar.mean_squared_distance_kilometres2'
+LOSS_FUNCTION_STRING = 'custom_losses_scalar.weird_crps_kilometres2'
 
 DEFAULT_OPTION_DICT = {
     cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
@@ -50,7 +49,7 @@ DEFAULT_OPTION_DICT = {
     cnn_architecture.USE_BATCH_NORM_KEY: True,
     cnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     cnn_architecture.LOSS_FUNCTION_KEY:
-        custom_losses_scalar.mean_squared_distance_kilometres2,
+        custom_losses_scalar.weird_crps_kilometres2,
     # cnn_architecture.OPTIMIZER_FUNCTION_KEY:
     #     accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
     #         orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5,
@@ -167,7 +166,8 @@ def _run():
                 plateau_learning_rate_multiplier=0.6,
                 early_stopping_patience_epochs=50,
                 architecture_dict=option_dict,
-                is_model_bnn=False
+                is_model_bnn=False,
+                use_cira_ir_data=True
             )
 
 
