@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 import matplotlib.colors
+from scipy.interpolate import interp2d
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -190,12 +191,40 @@ def _plot_data_one_example(
 
     num_grid_rows_low_res = predictor_matrices[-1].shape[0]
     num_grid_columns_low_res = predictor_matrices[-1].shape[1]
+    center_row_index_low_res = int(numpy.round(
+        float(num_grid_rows_low_res) / 2 - 1
+    ))
+    center_column_index_low_res = int(numpy.round(
+        float(num_grid_columns_low_res) / 2 - 1
+    ))
+
+    row_indices_low_res = numpy.linspace(
+        0, num_grid_rows_low_res - 1, num=num_grid_rows_low_res, dtype=float
+    )
+    column_indices_low_res = numpy.linspace(
+        0, num_grid_columns_low_res - 1, num=num_grid_columns_low_res,
+        dtype=float
+    )
+
+    low_res_latitude_interp_object = interp2d(
+        x=column_indices_low_res, y=row_indices_low_res,
+        z=low_res_latitudes_deg_n, kind='linear', bounds_error=True
+    )
+
+    # TODO(thunderhoser): This will not handle wrap-around at International Date
+    # Line.
+    low_res_longitude_interp_object = interp2d(
+        x=column_indices_low_res, y=row_indices_low_res,
+        z=low_res_longitudes_deg_e, kind='linear', bounds_error=True
+    )
 
     num_panels = (
         len(HIGH_RES_WAVELENGTHS_MICRONS) + len(LOW_RES_WAVELENGTHS_MICRONS)
     )
     panel_file_names = [''] * num_panels
     panel_index = -1
+
+    regular_grids = len(low_res_latitudes_deg_n.shape) == 1
 
     for j in range(len(HIGH_RES_WAVELENGTHS_MICRONS)):
         panel_index += 1
@@ -244,15 +273,28 @@ def _plot_data_one_example(
             transform=axes_object.transAxes, zorder=1e10
         )
 
+        if regular_grids:
+            x_coord = 0.5 + target_values[1] / num_grid_columns_low_res
+            y_coord = 0.5 + target_values[0] / num_grid_rows_low_res
+            transform_object = axes_object.transAxes
+        else:
+            y_coord = low_res_latitude_interp_object(
+                center_column_index_low_res + target_values[1],
+                center_row_index_low_res + target_values[0]
+            )
+            x_coord = low_res_longitude_interp_object(
+                center_column_index_low_res + target_values[1],
+                center_row_index_low_res + target_values[0]
+            )
+            transform_object = axes_object.transData
+
         axes_object.plot(
-            0.5 + target_values[1] / num_grid_columns_low_res,
-            0.5 + target_values[0] / num_grid_rows_low_res,
-            linestyle='None',
+            x_coord, y_coord, linestyle='None',
             marker=CYCLONE_CENTER_MARKER, markersize=CYCLONE_CENTER_MARKER_SIZE,
             markerfacecolor=CYCLONE_CENTER_MARKER_COLOUR,
             markeredgecolor=CYCLONE_CENTER_MARKER_COLOUR,
             markeredgewidth=0,
-            transform=axes_object.transAxes, zorder=1e10
+            transform=transform_object, zorder=1e10
         )
 
         title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
@@ -329,15 +371,28 @@ def _plot_data_one_example(
             transform=axes_object.transAxes, zorder=1e10
         )
 
+        if regular_grids:
+            x_coord = 0.5 + target_values[1] / num_grid_columns_low_res
+            y_coord = 0.5 + target_values[0] / num_grid_rows_low_res
+            transform_object = axes_object.transAxes
+        else:
+            y_coord = low_res_latitude_interp_object(
+                center_column_index_low_res + target_values[1],
+                center_row_index_low_res + target_values[0]
+            )
+            x_coord = low_res_longitude_interp_object(
+                center_column_index_low_res + target_values[1],
+                center_row_index_low_res + target_values[0]
+            )
+            transform_object = axes_object.transData
+
         axes_object.plot(
-            0.5 + target_values[1] / num_grid_columns_low_res,
-            0.5 + target_values[0] / num_grid_rows_low_res,
-            linestyle='None',
+            x_coord, y_coord, linestyle='None',
             marker=CYCLONE_CENTER_MARKER, markersize=CYCLONE_CENTER_MARKER_SIZE,
             markerfacecolor=CYCLONE_CENTER_MARKER_COLOUR,
             markeredgecolor=CYCLONE_CENTER_MARKER_COLOUR,
             markeredgewidth=0,
-            transform=axes_object.transAxes, zorder=1e10
+            transform=transform_object, zorder=1e10
         )
 
         title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
