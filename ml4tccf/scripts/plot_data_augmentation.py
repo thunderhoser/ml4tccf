@@ -23,10 +23,12 @@ from ml4tccf.plotting import satellite_plotting
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
 LAG_TIMES_MINUTES = numpy.array([0], dtype=int)
-LOW_RES_WAVELENGTHS_MICRONS = numpy.array([
+LOW_RES_WAVELENGTHS_RG_MICRONS = numpy.array([
     3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
 ])
-HIGH_RES_WAVELENGTHS_MICRONS = numpy.array([0.64])
+HIGH_RES_WAVELENGTHS_RG_MICRONS = numpy.array([0.64])
+LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS = numpy.array([11.2])
+HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS = numpy.array([])
 
 LAG_TIME_TOLERANCE_SEC = 900
 MAX_NUM_MISSING_LAG_TIMES = 1
@@ -155,7 +157,7 @@ def _plot_data_one_example(
         target_time_unix_sec, low_res_latitudes_deg_n, low_res_longitudes_deg_e,
         high_res_latitudes_deg_n, high_res_longitudes_deg_e,
         are_data_normalized, border_latitudes_deg_n, border_longitudes_deg_e,
-        output_file_name):
+        use_cira_ir_data, output_file_name):
     """Plots satellite data for one example.
 
     P = number of points in border set
@@ -179,6 +181,7 @@ def _plot_data_one_example(
         (deg north).  If None, will plot without coords.
     :param border_longitudes_deg_e: length-P numpy array of longitudes
         (deg east).  If None, will plot without coords.
+    :param use_cira_ir_data: See documentation at top of file.
     :param output_file_name: Path to output file.  Figure will be saved here.
     """
 
@@ -211,15 +214,22 @@ def _plot_data_one_example(
         z=low_res_longitudes_deg_e, kind='linear', bounds_error=True
     )
 
+    if use_cira_ir_data:
+        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS
+        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS
+    else:
+        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_RG_MICRONS
+        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_RG_MICRONS
+
     num_panels = (
-        len(HIGH_RES_WAVELENGTHS_MICRONS) + len(LOW_RES_WAVELENGTHS_MICRONS)
+        len(high_res_wavelengths_microns) + len(low_res_wavelengths_microns)
     )
     panel_file_names = [''] * num_panels
     panel_index = -1
 
     regular_grids = len(low_res_latitudes_deg_n.shape) == 1
 
-    for j in range(len(HIGH_RES_WAVELENGTHS_MICRONS)):
+    for j in range(len(high_res_wavelengths_microns)):
         panel_index += 1
 
         figure_object, axes_object = pyplot.subplots(
@@ -291,7 +301,7 @@ def _plot_data_one_example(
         )
 
         title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
-            HIGH_RES_WAVELENGTHS_MICRONS[j],
+            high_res_wavelengths_microns[j],
             cyclone_id_string,
             time_conversion.unix_sec_to_string(
                 target_time_unix_sec, TIME_FORMAT
@@ -301,7 +311,7 @@ def _plot_data_one_example(
 
         panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.jpg'.format(
             os.path.splitext(output_file_name)[0],
-            HIGH_RES_WAVELENGTHS_MICRONS[j]
+            high_res_wavelengths_microns[j]
         )
 
         file_system_utils.mkdir_recursive_if_necessary(
@@ -317,7 +327,7 @@ def _plot_data_one_example(
         )
         pyplot.close(figure_object)
 
-    for j in range(len(LOW_RES_WAVELENGTHS_MICRONS)):
+    for j in range(len(low_res_wavelengths_microns)):
         panel_index += 1
 
         figure_object, axes_object = pyplot.subplots(
@@ -389,7 +399,7 @@ def _plot_data_one_example(
         )
 
         title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
-            LOW_RES_WAVELENGTHS_MICRONS[j],
+            low_res_wavelengths_microns[j],
             cyclone_id_string,
             time_conversion.unix_sec_to_string(
                 target_time_unix_sec, TIME_FORMAT
@@ -399,7 +409,7 @@ def _plot_data_one_example(
 
         panel_file_names[panel_index] = '{0:s}_{1:06.3f}microns.jpg'.format(
             os.path.splitext(output_file_name)[0],
-            LOW_RES_WAVELENGTHS_MICRONS[j]
+            low_res_wavelengths_microns[j]
         )
 
         file_system_utils.mkdir_recursive_if_necessary(
@@ -426,7 +436,7 @@ def _plot_data_one_example(
         concat_figure_file_name=output_file_name
     )
 
-    if len(HIGH_RES_WAVELENGTHS_MICRONS) > 0:
+    if len(high_res_wavelengths_microns) > 0:
         if are_data_normalized:
             colour_map_object = pyplot.get_cmap('seismic', lut=1001)
             colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
@@ -493,12 +503,19 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     :param output_dir_name: Same.
     """
 
+    if use_cira_ir_data:
+        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS
+        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS
+    else:
+        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_RG_MICRONS
+        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_RG_MICRONS
+
     option_dict = {
         neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name,
         neural_net.YEARS_KEY: numpy.array([2000], dtype=int),
         neural_net.LAG_TIMES_KEY: LAG_TIMES_MINUTES,
-        neural_net.HIGH_RES_WAVELENGTHS_KEY: HIGH_RES_WAVELENGTHS_MICRONS,
-        neural_net.LOW_RES_WAVELENGTHS_KEY: LOW_RES_WAVELENGTHS_MICRONS,
+        neural_net.HIGH_RES_WAVELENGTHS_KEY: high_res_wavelengths_microns,
+        neural_net.LOW_RES_WAVELENGTHS_KEY: low_res_wavelengths_microns,
         neural_net.BATCH_SIZE_KEY: 1,
         neural_net.MAX_EXAMPLES_PER_CYCLONE_KEY: 1,
         neural_net.NUM_GRID_ROWS_KEY: num_grid_rows_low_res,
@@ -576,6 +593,7 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
             are_data_normalized=are_data_normalized,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
+            use_cira_ir_data=use_cira_ir_data,
             output_file_name=output_file_name
         )
 
