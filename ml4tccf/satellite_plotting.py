@@ -378,18 +378,20 @@ def plot_2d_grid_latlng(
                 )
             )
 
-        latitudes_to_plot_deg_n = _grid_points_to_edges_2d(
-            latitudes_to_plot_deg_n
-        )
-        longitudes_to_plot_deg_e = _grid_points_to_edges_2d(
-            longitudes_to_plot_deg_e
-        )
+        # latitudes_to_plot_deg_n = _grid_points_to_edges_2d(
+        #     latitudes_to_plot_deg_n
+        # )
+        # longitudes_to_plot_deg_e = _grid_points_to_edges_2d(
+        #     longitudes_to_plot_deg_e
+        # )
 
-    data_matrix_to_plot = grids.latlng_field_grid_points_to_edges(
-        field_matrix=data_matrix,
-        min_latitude_deg=1., min_longitude_deg=1.,
-        lat_spacing_deg=1e-6, lng_spacing_deg=1e-6
-    )[0]
+    # data_matrix_to_plot = grids.latlng_field_grid_points_to_edges(
+    #     field_matrix=data_matrix,
+    #     min_latitude_deg=1., min_longitude_deg=1.,
+    #     lat_spacing_deg=1e-6, lng_spacing_deg=1e-6
+    # )[0]
+
+    data_matrix_to_plot = data_matrix + 0.
 
     # Do actual plotting.
     data_matrix_to_plot = numpy.ma.masked_where(
