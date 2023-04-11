@@ -2138,6 +2138,13 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
     if brightness_temp_matrix_kelvins.size == 0:
         return None
 
+    print('SHAPE OF BRIGHTNESS TEMPERATURES = {0:s}'.format(
+        str(brightness_temp_matrix_kelvins.shape)
+    ))
+    print('NUMBER OF DATA AUGMENTATIONS = {0:d}'.format(
+        data_aug_num_translations
+    ))
+
     brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
     )
@@ -2153,6 +2160,10 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
         stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
         sentinel_value=-10.
     )
+
+    print('SHAPE OF BRIGHTNESS TEMPERATURES = {0:s}'.format(
+        str(brightness_temp_matrix_kelvins.shape)
+    ))
 
     brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
         data_matrix=brightness_temp_matrix_kelvins,
