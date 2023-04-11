@@ -670,6 +670,10 @@ def _read_satellite_data_1cyclone_cira_ir(
     target_times_unix_sec = []
     table_rows_by_target_time = []
 
+    print('NUMBER OF ORIGINAL TARGET TIMES = {0:d}'.format(
+        len(orig_target_times_unix_sec)
+    ))
+
     for i in range(len(orig_target_times_unix_sec)):
         these_predictor_times_unix_sec = (
             orig_target_times_unix_sec[i] - lag_times_sec
@@ -710,6 +714,9 @@ def _read_satellite_data_1cyclone_cira_ir(
         table_rows_by_target_time.append(these_rows)
 
     target_times_unix_sec = numpy.array(target_times_unix_sec, dtype=int)
+    print('NUMBER OF TARGET TIMES = {0:d}'.format(
+        len(target_times_unix_sec)
+    ))
 
     if (
             not need_exact_target_times
