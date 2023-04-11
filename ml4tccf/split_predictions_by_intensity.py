@@ -17,11 +17,14 @@ import number_rounding
 import file_system_utils
 import error_checking
 import prediction_io
+import scalar_prediction_io
 import extended_best_track_io as xbt_io
 import scalar_prediction_utils
 import extended_best_track_utils as xbt_utils
+import neural_net
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+SYNOPTIC_TIME_TOLERANCE_SEC = neural_net.SYNOPTIC_TIME_TOLERANCE_SEC
 
 HOURS_TO_SECONDS = 3600
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
@@ -280,7 +283,7 @@ def _run(input_prediction_file_pattern, xbt_file_name,
     for i in range(num_examples):
         if numpy.mod(i, 100) == 0:
             print((
-                'Have found extended best-track data for {0:d} of {1:d} '
+                'Have sought extended best-track data for {0:d} of {1:d} '
                 'examples...'
             ).format(
                 i, num_examples
@@ -295,29 +298,34 @@ def _run(input_prediction_file_pattern, xbt_file_name,
 
         these_indices = numpy.where(numpy.logical_and(
             xbt_cyclone_id_strings == this_cyclone_id_string,
-            xbt_times_unix_sec == this_time_unix_sec
+            numpy.absolute(xbt_times_unix_sec - this_time_unix_sec) <=
+            SYNOPTIC_TIME_TOLERANCE_SEC
         ))[0]
 
         if len(these_indices) == 0:
-            error_string = (
-                'Cannot find cyclone {0:s} at {1:s} in extended best-track '
-                'data.'
+            warning_string = (
+                'POTENTIAL ERROR: Cannot find cyclone {0:s} within {1:d} '
+                'seconds of {2:s} in extended best-track data.'
             ).format(
                 this_cyclone_id_string,
+                SYNOPTIC_TIME_TOLERANCE_SEC,
                 time_conversion.unix_sec_to_string(
                     this_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
                 )
             )
 
-            raise ValueError(error_string)
+            warnings.warn(warning_string)
+            continue
 
         if len(these_indices) > 1:
             warning_string = (
-                'POTENTIAL ERROR: Found {0:d} instances of cyclone {1:s} at '
-                '{2:s} in extended best-track data:\n{3:s}'
+                'POTENTIAL ERROR: Found {0:d} instances of cyclone {1:s} '
+                'within {2:d} seconds of {3:s} in extended best-track data:'
+                '\n{4:s}'
             ).format(
                 len(these_indices),
                 this_cyclone_id_string,
+                SYNOPTIC_TIME_TOLERANCE_SEC,
                 time_conversion.unix_sec_to_string(
                     this_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
                 ),
@@ -336,7 +344,7 @@ def _run(input_prediction_file_pattern, xbt_file_name,
             xbt_utils.MIN_PRESSURE_KEY
         ].values[these_indices[0]]
 
-    print('Have found extended best-track data for all {0:d} examples!'.format(
+    print('Have sought extended best-track data for all {0:d} examples!'.format(
         num_examples
     ))
     print(SEPARATOR_STRING)
