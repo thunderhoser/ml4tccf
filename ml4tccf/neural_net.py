@@ -650,6 +650,7 @@ def _read_satellite_data_1cyclone_cira_ir(
         synoptic_times_unix_sec = numpy.concatenate((
             first_synoptic_times_unix_sec, second_synoptic_times_unix_sec
         ))
+        synoptic_times_unix_sec = numpy.unique(synoptic_times_unix_sec)
 
         good_indices = numpy.array([
             numpy.argmin(numpy.absolute(st - all_times_unix_sec))
