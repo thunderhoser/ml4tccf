@@ -9,6 +9,7 @@ from matplotlib import pyplot
 import matplotlib.colors
 from scipy.interpolate import interp2d
 from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4tccf.io import border_io
@@ -184,6 +185,18 @@ def _plot_data_one_example(
     :param use_cira_ir_data: See documentation at top of file.
     :param output_file_name: Path to output file.  Figure will be saved here.
     """
+
+    low_res_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        low_res_longitudes_deg_e
+    )
+    longitude_range_deg = (
+        numpy.max(low_res_longitudes_deg_e) -
+        numpy.min(low_res_longitudes_deg_e)
+    )
+    if longitude_range_deg > 100:
+        low_res_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+            low_res_longitudes_deg_e
+        )
 
     num_grid_rows_low_res = predictor_matrices[-1].shape[0]
     num_grid_columns_low_res = predictor_matrices[-1].shape[1]

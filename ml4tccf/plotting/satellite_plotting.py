@@ -111,8 +111,8 @@ def _grid_points_to_edges_2d(grid_point_coord_matrix):
         method='linear', bounds_error=False, fill_value=None
     )
 
-    row_index_matrix_new, column_index_matrix_new = numpy.meshgrid(
-        row_indices_new, column_indices_new
+    column_index_matrix_new, row_index_matrix_new = numpy.meshgrid(
+        column_indices_new, row_indices_new
     )
     rowcol_index_matrix_nw = numpy.transpose(numpy.vstack((
         numpy.ravel(row_index_matrix_new),
