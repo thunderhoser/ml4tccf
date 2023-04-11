@@ -671,10 +671,6 @@ def _read_satellite_data_1cyclone_cira_ir(
     target_times_unix_sec = []
     table_rows_by_target_time = []
 
-    print('NUMBER OF ORIGINAL TARGET TIMES = {0:d}'.format(
-        len(orig_target_times_unix_sec)
-    ))
-
     for i in range(len(orig_target_times_unix_sec)):
         these_predictor_times_unix_sec = (
             orig_target_times_unix_sec[i] - lag_times_sec
@@ -715,9 +711,6 @@ def _read_satellite_data_1cyclone_cira_ir(
         table_rows_by_target_time.append(these_rows)
 
     target_times_unix_sec = numpy.array(target_times_unix_sec, dtype=int)
-    print('NUMBER OF TARGET TIMES = {0:d}'.format(
-        len(target_times_unix_sec)
-    ))
 
     if (
             not need_exact_target_times
@@ -2146,13 +2139,6 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
     if brightness_temp_matrix_kelvins.size == 0:
         return None
 
-    print('SHAPE OF BRIGHTNESS TEMPERATURES = {0:s}'.format(
-        str(brightness_temp_matrix_kelvins.shape)
-    ))
-    print('NUMBER OF DATA AUGMENTATIONS = {0:d}'.format(
-        data_aug_num_translations
-    ))
-
     brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
     )
@@ -2168,10 +2154,6 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
         stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
         sentinel_value=-10.
     )
-
-    print('SHAPE OF BRIGHTNESS TEMPERATURES = {0:s}'.format(
-        str(brightness_temp_matrix_kelvins.shape)
-    ))
 
     brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
         data_matrix=brightness_temp_matrix_kelvins,
