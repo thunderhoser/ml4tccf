@@ -430,6 +430,10 @@ def plot_2d_grid_latlng(
                 edgecolors='None', zorder=-1e11, alpha=opacity
             )
         else:
+            print(longitudes_to_plot_deg_e[:5, :5])
+            print(latitudes_to_plot_deg_n[:5, :5])
+            print(data_matrix_to_plot[:5, :5])
+
             axes_object.pcolor(
                 longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
                 data_matrix_to_plot,
