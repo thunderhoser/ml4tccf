@@ -7,6 +7,7 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 import matplotlib.colors
+from scipy.interpolate import interp2d
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -243,6 +244,35 @@ def _plot_data_one_example(
 
     num_grid_rows_low_res = predictor_matrices[-1].shape[0]
     num_grid_columns_low_res = predictor_matrices[-1].shape[1]
+    regular_grids = len(low_res_latitudes_deg_n.shape) == 1
+
+    center_row_index_low_res = int(numpy.round(
+        float(num_grid_rows_low_res) / 2 - 1
+    ))
+    center_column_index_low_res = int(numpy.round(
+        float(num_grid_columns_low_res) / 2 - 1
+    ))
+
+    row_indices_low_res = numpy.linspace(
+        0, num_grid_rows_low_res - 1, num=num_grid_rows_low_res, dtype=float
+    )
+    column_indices_low_res = numpy.linspace(
+        0, num_grid_columns_low_res - 1, num=num_grid_columns_low_res,
+        dtype=float
+    )
+
+    low_res_latitude_interp_object = interp2d(
+        x=column_indices_low_res, y=row_indices_low_res,
+        z=low_res_latitudes_deg_n, kind='linear', bounds_error=True
+    )
+
+    # TODO(thunderhoser): This will not handle wrap-around at International Date
+    # Line.
+    low_res_longitude_interp_object = interp2d(
+        x=column_indices_low_res, y=row_indices_low_res,
+        z=low_res_longitudes_deg_e, kind='linear', bounds_error=True
+    )
+
     are_predictions_gridded = prediction_matrix.shape[0] > 2
     ensemble_size = 1 if are_predictions_gridded else prediction_matrix.shape[1]
 
@@ -336,15 +366,31 @@ def _plot_data_one_example(
                 parallel_spacing_deg=2., meridian_spacing_deg=2.
             )
 
+            if regular_grids:
+                x_coord = (
+                    0.5 + scalar_target_values[1] / num_grid_columns_low_res
+                )
+                y_coord = 0.5 + scalar_target_values[0] / num_grid_rows_low_res
+                transform_object = axes_object.transAxes
+            else:
+                y_coord = low_res_latitude_interp_object(
+                    center_column_index_low_res + scalar_target_values[1],
+                    center_row_index_low_res + scalar_target_values[0]
+                )
+                x_coord = low_res_longitude_interp_object(
+                    center_column_index_low_res + scalar_target_values[1],
+                    center_row_index_low_res + scalar_target_values[0]
+                )
+                transform_object = axes_object.transData
+
             axes_object.plot(
-                0.5 + scalar_target_values[1] / num_grid_columns_low_res,
-                0.5 + scalar_target_values[0] / num_grid_rows_low_res,
-                linestyle='None', marker=ACTUAL_CENTER_MARKER,
+                x_coord, y_coord, linestyle='None',
+                marker=ACTUAL_CENTER_MARKER,
                 markersize=ACTUAL_CENTER_MARKER_SIZE,
                 markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
                 markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
                 markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-                transform=axes_object.transAxes, zorder=1e10
+                transform=transform_object, zorder=1e10
             )
 
             axes_object.plot(
@@ -358,16 +404,37 @@ def _plot_data_one_example(
 
             if not are_predictions_gridded:
                 for k in range(ensemble_size):
+                    if regular_grids:
+                        x_coord = (
+                            0.5 + prediction_matrix[1, k] /
+                            num_grid_columns_low_res
+                        )
+                        y_coord = (
+                            0.5 + prediction_matrix[0, k] /
+                            num_grid_rows_low_res
+                        )
+                        transform_object = axes_object.transAxes
+                    else:
+                        y_coord = low_res_latitude_interp_object(
+                            center_column_index_low_res +
+                            prediction_matrix[1, k],
+                            center_row_index_low_res + prediction_matrix[0, k]
+                        )
+                        x_coord = low_res_longitude_interp_object(
+                            center_column_index_low_res +
+                            prediction_matrix[1, k],
+                            center_row_index_low_res + prediction_matrix[0, k]
+                        )
+                        transform_object = axes_object.transData
+
                     axes_object.plot(
-                        0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
-                        0.5 + prediction_matrix[0, k] / num_grid_rows_low_res,
-                        linestyle='None',
+                        x_coord, y_coord, linestyle='None',
                         marker=PREDICTED_CENTER_MARKER,
                         markersize=PREDICTED_CENTER_MARKER_SIZE,
                         markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
                         markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
                         markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
-                        transform=axes_object.transAxes, zorder=1e10
+                        transform=transform_object, zorder=1e10
                     )
 
             title_string = (
@@ -461,15 +528,31 @@ def _plot_data_one_example(
                 parallel_spacing_deg=2., meridian_spacing_deg=2.
             )
 
+            if regular_grids:
+                x_coord = (
+                    0.5 + scalar_target_values[1] / num_grid_columns_low_res
+                )
+                y_coord = 0.5 + scalar_target_values[0] / num_grid_rows_low_res
+                transform_object = axes_object.transAxes
+            else:
+                y_coord = low_res_latitude_interp_object(
+                    center_column_index_low_res + scalar_target_values[1],
+                    center_row_index_low_res + scalar_target_values[0]
+                )
+                x_coord = low_res_longitude_interp_object(
+                    center_column_index_low_res + scalar_target_values[1],
+                    center_row_index_low_res + scalar_target_values[0]
+                )
+                transform_object = axes_object.transData
+
             axes_object.plot(
-                0.5 + scalar_target_values[1] / num_grid_columns_low_res,
-                0.5 + scalar_target_values[0] / num_grid_rows_low_res,
-                linestyle='None', marker=ACTUAL_CENTER_MARKER,
+                x_coord, y_coord, linestyle='None',
+                marker=ACTUAL_CENTER_MARKER,
                 markersize=ACTUAL_CENTER_MARKER_SIZE,
                 markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
                 markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
                 markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-                transform=axes_object.transAxes, zorder=1e10
+                transform=transform_object, zorder=1e10
             )
 
             axes_object.plot(
@@ -483,16 +566,37 @@ def _plot_data_one_example(
 
             if not are_predictions_gridded:
                 for k in range(ensemble_size):
+                    if regular_grids:
+                        x_coord = (
+                            0.5 + prediction_matrix[1, k] /
+                            num_grid_columns_low_res
+                        )
+                        y_coord = (
+                            0.5 + prediction_matrix[0, k] /
+                            num_grid_rows_low_res
+                        )
+                        transform_object = axes_object.transAxes
+                    else:
+                        y_coord = low_res_latitude_interp_object(
+                            center_column_index_low_res +
+                            prediction_matrix[1, k],
+                            center_row_index_low_res + prediction_matrix[0, k]
+                        )
+                        x_coord = low_res_longitude_interp_object(
+                            center_column_index_low_res +
+                            prediction_matrix[1, k],
+                            center_row_index_low_res + prediction_matrix[0, k]
+                        )
+                        transform_object = axes_object.transData
+
                     axes_object.plot(
-                        0.5 + prediction_matrix[1, k] / num_grid_columns_low_res,
-                        0.5 + prediction_matrix[0, k] / num_grid_rows_low_res,
-                        linestyle='None',
+                        x_coord, y_coord, linestyle='None',
                         marker=PREDICTED_CENTER_MARKER,
                         markersize=PREDICTED_CENTER_MARKER_SIZE,
                         markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
                         markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
                         markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
-                        transform=axes_object.transAxes, zorder=1e10
+                        transform=transform_object, zorder=1e10
                     )
 
             title_string = (
