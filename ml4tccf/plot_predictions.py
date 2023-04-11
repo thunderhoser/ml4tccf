@@ -16,6 +16,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import time_conversion
+import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
 import imagemagick_utils
@@ -248,6 +249,18 @@ def _plot_data_one_example(
     :param prob_colour_map_name: Name of base colour map for probabilities (must
         be accepted by `matplotlib.pyplot.get_cmap`).
     """
+
+    low_res_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        low_res_longitudes_deg_e
+    )
+    longitude_range_deg = (
+        numpy.max(low_res_longitudes_deg_e) -
+        numpy.min(low_res_longitudes_deg_e)
+    )
+    if longitude_range_deg > 100:
+        low_res_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+            low_res_longitudes_deg_e
+        )
 
     num_grid_rows_low_res = predictor_matrices[-1].shape[0]
     num_grid_columns_low_res = predictor_matrices[-1].shape[1]
