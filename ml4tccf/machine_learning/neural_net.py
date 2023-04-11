@@ -27,6 +27,7 @@ from ml4tccf.machine_learning import u_net_architecture
 from ml4tccf.outside_code import accum_grad_optimizer
 
 TOLERANCE = 1e-6
+SYNOPTIC_TIME_TOLERANCE_SEC = 900
 
 DEG_LATITUDE_TO_KM = 60 * 1.852
 DEGREES_TO_RADIANS = numpy.pi / 180
@@ -643,6 +644,7 @@ def _read_satellite_data_1cyclone_cira_ir(
         synoptic_times_unix_sec = numpy.concatenate((
             first_synoptic_times_unix_sec, second_synoptic_times_unix_sec
         ))
+        synoptic_times_unix_sec = numpy.unique(synoptic_times_unix_sec)
 
         good_indices = numpy.array([
             numpy.argmin(numpy.absolute(st - all_times_unix_sec))
@@ -652,7 +654,9 @@ def _read_satellite_data_1cyclone_cira_ir(
         time_diffs_sec = numpy.absolute(
             all_times_unix_sec[good_indices] - synoptic_times_unix_sec
         )
-        good_subindices = numpy.where(time_diffs_sec <= 900)[0]
+        good_subindices = numpy.where(
+            time_diffs_sec <= SYNOPTIC_TIME_TOLERANCE_SEC
+        )[0]
         good_indices = good_indices[good_subindices]
         target_times_unix_sec = all_times_unix_sec[good_indices]
 
