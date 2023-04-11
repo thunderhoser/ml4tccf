@@ -119,8 +119,8 @@ def _grid_points_to_edges_2d(grid_point_coord_matrix):
         method='linear', bounds_error=False, fill_value=None
     )
 
-    row_index_matrix_new, column_index_matrix_new = numpy.meshgrid(
-        row_indices_new, column_indices_new
+    column_index_matrix_new, row_index_matrix_new = numpy.meshgrid(
+        column_indices_new, row_indices_new
     )
     rowcol_index_matrix_nw = numpy.transpose(numpy.vstack((
         numpy.ravel(row_index_matrix_new),
@@ -378,20 +378,18 @@ def plot_2d_grid_latlng(
                 )
             )
 
-        # latitudes_to_plot_deg_n = _grid_points_to_edges_2d(
-        #     latitudes_to_plot_deg_n
-        # )
-        # longitudes_to_plot_deg_e = _grid_points_to_edges_2d(
-        #     longitudes_to_plot_deg_e
-        # )
+        latitudes_to_plot_deg_n = _grid_points_to_edges_2d(
+            latitudes_to_plot_deg_n
+        )
+        longitudes_to_plot_deg_e = _grid_points_to_edges_2d(
+            longitudes_to_plot_deg_e
+        )
 
-    # data_matrix_to_plot = grids.latlng_field_grid_points_to_edges(
-    #     field_matrix=data_matrix,
-    #     min_latitude_deg=1., min_longitude_deg=1.,
-    #     lat_spacing_deg=1e-6, lng_spacing_deg=1e-6
-    # )[0]
-
-    data_matrix_to_plot = data_matrix + 0.
+    data_matrix_to_plot = grids.latlng_field_grid_points_to_edges(
+        field_matrix=data_matrix,
+        min_latitude_deg=1., min_longitude_deg=1.,
+        lat_spacing_deg=1e-6, lng_spacing_deg=1e-6
+    )[0]
 
     # Do actual plotting.
     data_matrix_to_plot = numpy.ma.masked_where(
@@ -432,10 +430,6 @@ def plot_2d_grid_latlng(
                 edgecolors='None', zorder=-1e11, alpha=opacity
             )
         else:
-            print(longitudes_to_plot_deg_e[:5, :5])
-            print(latitudes_to_plot_deg_n[:5, :5])
-            print(data_matrix_to_plot[:5, :5])
-
             axes_object.pcolor(
                 longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
                 data_matrix_to_plot,
