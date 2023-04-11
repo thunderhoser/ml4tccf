@@ -18,7 +18,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import time_conversion
 import file_system_utils
 import error_checking
-from gewittergefahr.plotting import imagemagick_utils
+import imagemagick_utils
 import prediction_io
 import misc_utils
 import scalar_prediction_utils
