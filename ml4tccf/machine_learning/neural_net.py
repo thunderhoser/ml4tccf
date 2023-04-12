@@ -200,6 +200,7 @@ MAX_INTERP_GAP_KEY = 'max_interp_gap_sec'
 SENTINEL_VALUE_KEY = 'sentinel_value'
 SEMANTIC_SEG_FLAG_KEY = 'semantic_segmentation_flag'
 TARGET_SMOOOTHER_STDEV_KEY = 'target_smoother_stdev_km'
+SYNOPTIC_TIMES_ONLY_KEY = 'synoptic_times_only'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
     HIGH_RES_WAVELENGTHS_KEY: None,
@@ -210,7 +211,8 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     DATA_AUG_MEAN_TRANS_KEY: 15.,
     DATA_AUG_STDEV_TRANS_KEY: 7.5,
     MAX_INTERP_GAP_KEY: 0,
-    SENTINEL_VALUE_KEY: -10.
+    SENTINEL_VALUE_KEY: -10.,
+    SYNOPTIC_TIMES_ONLY_KEY: True
 }
 
 NUM_EPOCHS_KEY = 'num_epochs'
@@ -331,8 +333,8 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_integer(option_dict[MAX_INTERP_GAP_KEY])
     error_checking.assert_is_geq(option_dict[MAX_INTERP_GAP_KEY], 0)
     error_checking.assert_is_not_nan(option_dict[SENTINEL_VALUE_KEY])
-
     error_checking.assert_is_boolean(option_dict[SEMANTIC_SEG_FLAG_KEY])
+    error_checking.assert_is_boolean(option_dict[SYNOPTIC_TIMES_ONLY_KEY])
 
     if option_dict[SEMANTIC_SEG_FLAG_KEY]:
         error_checking.assert_is_greater(
@@ -855,8 +857,8 @@ def _read_satellite_data_1cyclone_cira_ir(
 
 def _read_satellite_data_1cyclone_simple(
         input_file_names, lag_times_minutes, num_rows_low_res,
-        num_columns_low_res, return_coords, num_target_times=None,
-        target_times_unix_sec=None):
+        num_columns_low_res, return_coords, target_times_unix_sec=None,
+        num_target_times=None, synoptic_times_only=None):
     """Reads satellite data for one cyclone.
 
     :param input_file_names: See doc for `_read_satellite_data_one_cyclone`.
@@ -867,18 +869,22 @@ def _read_satellite_data_1cyclone_simple(
     :param return_coords: Same.
     :param num_target_times: Same.
     :param target_times_unix_sec: Same.
+    :param synoptic_times_only: Same.
     :return: data_dict: Same.
     """
 
-    if num_target_times is not None:
+    if target_times_unix_sec is None:
         target_times_unix_sec = numpy.concatenate([
             xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
             for f in input_file_names
         ])
-        target_times_unix_sec = target_times_unix_sec[
-            numpy.mod(target_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC)
-            == 0
-        ]
+
+        if synoptic_times_only:
+            target_times_unix_sec = target_times_unix_sec[
+                numpy.mod(
+                    target_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
+                ) == 0
+            ]
 
         if len(target_times_unix_sec) == 0:
             return None
@@ -1064,7 +1070,8 @@ def _read_satellite_data_one_cyclone(
         max_num_missing_lag_times, max_interp_gap_sec,
         high_res_wavelengths_microns, low_res_wavelengths_microns,
         num_rows_low_res, num_columns_low_res, sentinel_value, return_coords,
-        num_target_times=None, target_times_unix_sec=None):
+        target_times_unix_sec=None, num_target_times=None,
+        synoptic_times_only=None):
     """Reads satellite data for one cyclone.
 
     T = number of target times
@@ -1076,8 +1083,8 @@ def _read_satellite_data_one_cyclone(
     N = number of columns in high-res grid
     n = number of columns in low-res grid = M/4
 
-    Only one of the arguments `num_target_times` and `target_times_unix_sec`
-    will be used.
+    If the argument `target_times_unix_sec` is empty, `num_target_times` and
+    `synoptic_times_only` will be used instead.
 
     :param input_file_names: 1-D list of paths to input files (will be read by
         `satellite_io.read_file`).
@@ -1096,10 +1103,13 @@ def _read_satellite_data_one_cyclone(
     :param num_columns_low_res: n in the above discussion.
     :param sentinel_value: NaN's will be replaced with this value.
     :param return_coords: Boolean flag.  If True, will return coordinates.
-    :param num_target_times: T in the above definitions.  If this argument is
-        None, `target_times_unix_sec` will be used, instead.
     :param target_times_unix_sec: length-T numpy array of target times.  If this
-        argument is None, `num_target_times` will be used, instead.
+        argument is None, `num_target_times` and `synoptic_times_only` will be
+        used instead.
+    :param num_target_times: T in the mathematical definitions above.
+    :param synoptic_times_only: Boolean flag.  If True, target times must be
+        synoptic times (00Z, 06Z, 12Z, 18Z).  If False, target times can be
+        anything.
 
     :return: data_dict: Dictionary with the following keys.  If
         `return_coords == False`, the last 4 keys will be None.
@@ -1126,16 +1136,18 @@ def _read_satellite_data_one_cyclone(
     # TODO(thunderhoser): If I ever start using visible data, I will need to
     # choose target times during the day here.
 
-    if num_target_times is not None:
+    if target_times_unix_sec is None:
         target_times_unix_sec = numpy.concatenate([
             xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
             for f in input_file_names
         ])
-        target_times_unix_sec = target_times_unix_sec[
-            numpy.mod(
-                target_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
-            ) == 0
-        ]
+
+        if synoptic_times_only:
+            target_times_unix_sec = target_times_unix_sec[
+                numpy.mod(
+                    target_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
+                ) == 0
+            ]
 
         if len(target_times_unix_sec) == 0:
             return None
@@ -2456,6 +2468,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     sentinel_value = option_dict[SENTINEL_VALUE_KEY]
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
+    synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -2475,6 +2488,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     data_dict = _read_satellite_data_one_cyclone(
         input_file_names=satellite_file_names,
         num_target_times=num_target_times,
+        synoptic_times_only=synoptic_times_only,
         lag_times_minutes=lag_times_minutes,
         lag_time_tolerance_sec=lag_time_tolerance_sec,
         max_num_missing_lag_times=max_num_missing_lag_times,
@@ -3082,6 +3096,7 @@ def data_generator_simple(option_dict):
     data_aug_stdev_translation_low_res_px = (
         option_dict[DATA_AUG_STDEV_TRANS_KEY]
     )
+    synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -3135,7 +3150,9 @@ def data_generator_simple(option_dict):
                 lag_times_minutes=lag_times_minutes,
                 num_rows_low_res=num_rows_low_res,
                 num_columns_low_res=num_columns_low_res,
-                return_coords=False, num_target_times=num_examples_to_read
+                return_coords=False,
+                num_target_times=num_examples_to_read,
+                synoptic_times_only=synoptic_times_only
             )
             cyclone_index += 1
 
@@ -3320,6 +3337,7 @@ def data_generator(option_dict):
     sentinel_value = option_dict[SENTINEL_VALUE_KEY]
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
+    synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -3372,6 +3390,7 @@ def data_generator(option_dict):
             data_dict = _read_satellite_data_one_cyclone(
                 input_file_names=satellite_file_names_by_cyclone[cyclone_index],
                 num_target_times=num_examples_to_read,
+                synoptic_times_only=synoptic_times_only,
                 lag_times_minutes=lag_times_minutes,
                 lag_time_tolerance_sec=lag_time_tolerance_sec,
                 max_num_missing_lag_times=max_num_missing_lag_times,
@@ -4014,6 +4033,14 @@ def read_metafile(pickle_file_name):
     if TARGET_SMOOOTHER_STDEV_KEY not in training_option_dict:
         training_option_dict[TARGET_SMOOOTHER_STDEV_KEY] = None
         validation_option_dict[TARGET_SMOOOTHER_STDEV_KEY] = None
+
+    if SYNOPTIC_TIMES_ONLY_KEY not in training_option_dict:
+        training_option_dict[SYNOPTIC_TIMES_ONLY_KEY] = (
+            not metadata_dict[USE_CIRA_IR_KEY]
+        )
+        validation_option_dict[SYNOPTIC_TIMES_ONLY_KEY] = (
+            not metadata_dict[USE_CIRA_IR_KEY]
+        )
 
     metadata_dict[TRAINING_OPTIONS_KEY] = training_option_dict
     metadata_dict[VALIDATION_OPTIONS_KEY] = validation_option_dict
