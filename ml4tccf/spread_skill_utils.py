@@ -314,11 +314,12 @@ def _get_results_one_var(
     """
 
     # Check input args.
-    error_checking.assert_is_numpy_array_without_nan(target_values)
     error_checking.assert_is_numpy_array(target_values, num_dimensions=1)
-
-    error_checking.assert_is_numpy_array_without_nan(prediction_matrix)
     error_checking.assert_is_numpy_array(prediction_matrix, num_dimensions=2)
+
+    if not is_var_direction:
+        error_checking.assert_is_numpy_array_without_nan(target_values)
+        error_checking.assert_is_numpy_array_without_nan(prediction_matrix)
 
     num_examples = len(target_values)
     num_ensemble_members = prediction_matrix.shape[1]
