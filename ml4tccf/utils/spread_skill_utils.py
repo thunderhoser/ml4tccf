@@ -72,6 +72,7 @@ OFFSET_DIST_MEAN_MEAN_PRED_DIST_KEY = (
 OFFSET_DIST_MEAN_TARGET_DIST_KEY = 'offset_dist_mean_target_dist_metres'
 
 MODEL_FILE_KEY = 'model_file_name'
+PREDICTION_FILES_KEY = 'prediction_file_names'
 
 
 def _get_predictive_stdistdevs(prediction_matrix):
@@ -87,7 +88,7 @@ def _get_predictive_stdistdevs(prediction_matrix):
         deviations.
     """
 
-    num_examples = prediction_matrix.shape[0]
+    ensemble_size = prediction_matrix.shape[-1]
 
     mean_prediction_matrix = numpy.mean(prediction_matrix, axis=-1)
     prediction_anomaly_matrix = (
@@ -99,7 +100,7 @@ def _get_predictive_stdistdevs(prediction_matrix):
     )
     return numpy.sqrt(
         numpy.sum(prediction_sq_euc_anomaly_matrix, axis=1) /
-        (num_examples - 1)
+        (ensemble_size - 1)
     )
 
 
@@ -717,6 +718,7 @@ def get_results_all_vars(
     result_table_xarray.attrs[MODEL_FILE_KEY] = (
         prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
     )
+    result_table_xarray.attrs[PREDICTION_FILES_KEY] = prediction_file_names
 
     xy_indices = numpy.array([
         TARGET_FIELD_NAMES.index(X_OFFSET_NAME),
