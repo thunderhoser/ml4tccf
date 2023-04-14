@@ -95,7 +95,7 @@ def _get_predictive_stdistdevs(prediction_matrix):
         deviations.
     """
 
-    num_examples = prediction_matrix.shape[0]
+    ensemble_size = prediction_matrix.shape[-1]
 
     mean_prediction_matrix = numpy.mean(prediction_matrix, axis=-1)
     prediction_anomaly_matrix = (
@@ -107,7 +107,7 @@ def _get_predictive_stdistdevs(prediction_matrix):
     )
     return numpy.sqrt(
         numpy.sum(prediction_sq_euc_anomaly_matrix, axis=1) /
-        (num_examples - 1)
+        (ensemble_size - 1)
     )
 
 
@@ -222,9 +222,7 @@ def _get_results_euclidean(
         (mean_prediction_matrix[:, 0] - target_matrix[:, 0]) ** 2 +
         (mean_prediction_matrix[:, 1] - target_matrix[:, 1]) ** 2
     )
-    predictive_stdistdevs = _get_predictive_stdistdevs(
-        prediction_matrix
-    )
+    predictive_stdistdevs = _get_predictive_stdistdevs(prediction_matrix)
 
     mean_prediction_stdistdevs = numpy.full(num_bins, numpy.nan)
     rmsd_values = numpy.full(num_bins, numpy.nan)
@@ -241,7 +239,7 @@ def _get_results_euclidean(
         mean_prediction_stdistdevs[k] = numpy.sqrt(numpy.mean(
             predictive_stdistdevs[these_indices] ** 2
         ))
-        rmsd_values[k] = numpy.sqrt(numpy.nanmean(
+        rmsd_values[k] = numpy.sqrt(numpy.mean(
             squared_errors[these_indices]
         ))
         example_counts[k] = len(these_indices)
@@ -886,7 +884,7 @@ def get_results_all_vars(
         this_result_dict = _get_results_euclidean(
             target_matrix=target_matrix[:, xy_indices],
             prediction_matrix=prediction_matrix[:, xy_indices, :],
-            bin_edge_prediction_stdistdevs=these_bin_edges,
+            bin_edge_prediction_stdistdevs=these_bin_edges
         )
 
         result_table_xarray[OFFSET_DIST_MEAN_STDIST_KEY].values[j, :] = (
