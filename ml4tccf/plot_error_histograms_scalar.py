@@ -344,10 +344,10 @@ def _plot_direction_error_histogram(
     :param output_dir_name: Same.
     """
 
-    predicted_offset_angles_deg = scalar_evaluation._get_offset_angles(
+    predicted_offset_angles_deg = scalar_evaluation.get_offset_angles(
         x_offsets=predicted_x_offsets_km, y_offsets=predicted_y_offsets_km
     )
-    actual_offset_angles_deg = scalar_evaluation._get_offset_angles(
+    actual_offset_angles_deg = scalar_evaluation.get_offset_angles(
         x_offsets=actual_x_offsets_km, y_offsets=actual_y_offsets_km
     )
 
@@ -356,7 +356,7 @@ def _plot_direction_error_histogram(
         numpy.isnan(actual_offset_angles_deg)
     )))[0]
 
-    angular_diffs_deg = scalar_evaluation._get_angular_diffs(
+    angular_diffs_deg = scalar_evaluation.get_angular_diffs(
         target_angles_deg=actual_offset_angles_deg[real_indices],
         predicted_angles_deg=predicted_offset_angles_deg[real_indices]
     )
