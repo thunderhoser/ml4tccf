@@ -6,7 +6,7 @@ from ml4tccf.utils import scalar_evaluation
 
 TOLERANCE = 1e-6
 
-# The following constants are used to test _get_angular_diffs.
+# The following constants are used to test get_angular_diffs.
 TARGET_ANGLES_DEG = numpy.array([
     183, 223, 14, 222, 177, 317, 291, 91, 309, 202, 33, 83, 92, 49, 69,
     209, 62, 262, 280, 225
@@ -22,7 +22,7 @@ ANGULAR_DIFFS_DEG = numpy.array([
     -123, -148, -79, 49, 169
 ], dtype=float)
 
-# The following constants are used to test _get_offset_angles.
+# The following constants are used to test get_offset_angles.
 X_OFFSETS = numpy.array([0, 1, 0, -1, 0, 1], dtype=float)
 Y_OFFSETS = numpy.array([0, 0, 1, 0, -1, 1], dtype=float)
 OFFSET_ANGLES_DEG = numpy.array([numpy.nan, 0, 90, 180, 270, 45])
@@ -53,9 +53,9 @@ class ScalarEvaluationTests(unittest.TestCase):
     """Each method is a unit test for scalar_evaluation.py."""
 
     def test_get_angular_diffs(self):
-        """Ensures correct output from _get_angular_diffs."""
+        """Ensures correct output from get_angular_diffs."""
 
-        these_angular_diffs_deg = scalar_evaluation._get_angular_diffs(
+        these_angular_diffs_deg = scalar_evaluation.get_angular_diffs(
             target_angles_deg=TARGET_ANGLES_DEG,
             predicted_angles_deg=PREDICTED_ANGLES_DEG
         )
@@ -65,9 +65,9 @@ class ScalarEvaluationTests(unittest.TestCase):
         ))
 
     def test_get_offset_angles(self):
-        """Ensures correct output from _get_offset_angles."""
+        """Ensures correct output from get_offset_angles."""
 
-        these_offset_angles_deg = scalar_evaluation._get_offset_angles(
+        these_offset_angles_deg = scalar_evaluation.get_offset_angles(
             x_offsets=X_OFFSETS, y_offsets=Y_OFFSETS
         )
 

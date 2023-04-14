@@ -82,48 +82,6 @@ PREDICTION_FILES_KEY = 'prediction_file_names'
 CLIMO_OFFSET_DISTANCE_KEY = 'climo_offset_distance_metres'
 
 
-def _get_angular_diffs(target_angles_deg, predicted_angles_deg):
-    """Computes angular difference (pred minus target) for each example.
-
-    E = number of examples
-
-    :param target_angles_deg: length-E numpy array of target angles.
-    :param predicted_angles_deg: length-E numpy array of predicted angles.
-    :return: angular_diffs_deg: length-E numpy array of angular differences.
-    """
-
-    angular_diffs_deg = predicted_angles_deg - target_angles_deg
-
-    angular_diffs_deg[angular_diffs_deg > 180] -= 360
-    angular_diffs_deg[angular_diffs_deg < -180] += 360
-    assert not numpy.any(numpy.absolute(angular_diffs_deg) > 180)
-
-    return angular_diffs_deg
-
-
-def _get_offset_angles(x_offsets, y_offsets):
-    """Returns angle of each offset vector.
-
-    E = number of offset vectors
-
-    :param x_offsets: length-E numpy array of x-offsets.
-    :param y_offsets: length-E numpy array of y-offsets.
-    :return: angles_deg: Angles from [0, 360) deg, measured counterclockwise
-        from the vector pointing due east to the offset vector.
-    """
-
-    angles_deg = RADIANS_TO_DEGREES * numpy.arctan2(y_offsets, x_offsets)
-    angles_deg = lng_conversion.convert_lng_positive_in_west(angles_deg)
-
-    nan_indices = numpy.where(numpy.logical_and(
-        numpy.absolute(x_offsets) < TOLERANCE,
-        numpy.absolute(y_offsets) < TOLERANCE
-    ))[0]
-
-    angles_deg[nan_indices] = numpy.nan
-    return angles_deg
-
-
 def _get_mean_distance(target_offset_matrix, predicted_offset_matrix):
     """Computes mean distance between prediction and target.
 
@@ -217,7 +175,7 @@ def _get_mse_one_variable(target_values, predicted_values, is_var_direction):
 
     if is_var_direction:
         return numpy.nanmean(
-            _get_angular_diffs(target_values, predicted_values) ** 2
+            get_angular_diffs(target_values, predicted_values) ** 2
         )
 
     return numpy.mean((target_values - predicted_values) ** 2)
@@ -262,7 +220,7 @@ def _get_mae_one_variable(target_values, predicted_values, is_var_direction):
 
     if is_var_direction:
         return numpy.nanmean(numpy.absolute(
-            _get_angular_diffs(target_values, predicted_values)
+            get_angular_diffs(target_values, predicted_values)
         ))
 
     return numpy.mean(numpy.abs(target_values - predicted_values))
@@ -306,7 +264,7 @@ def _get_bias_one_variable(target_values, predicted_values, is_var_direction):
     """
 
     if is_var_direction:
-        return numpy.nanmean(_get_angular_diffs(
+        return numpy.nanmean(get_angular_diffs(
             target_angles_deg=target_values,
             predicted_angles_deg=predicted_values
         ))
@@ -838,7 +796,7 @@ def _get_reliability(
     if is_var_direction:
         numerator = numpy.nansum(
             binned_example_counts *
-            _get_angular_diffs(binned_mean_predictions, binned_mean_observations)
+            get_angular_diffs(binned_mean_predictions, binned_mean_observations)
             ** 2
         )
     else:
@@ -877,6 +835,72 @@ def _get_resolution(
         (binned_mean_observations - sample_climatology) ** 2
     )
     return numerator / numpy.sum(binned_example_counts)
+
+
+def get_angular_diffs(target_angles_deg, predicted_angles_deg):
+    """Computes angular difference (pred minus target) for each example.
+
+    E = number of examples
+
+    :param target_angles_deg: length-E numpy array of target angles.
+    :param predicted_angles_deg: length-E numpy array of predicted angles.
+    :return: angular_diffs_deg: length-E numpy array of angular differences.
+    """
+
+    error_checking.assert_is_numpy_array(target_angles_deg, num_dimensions=1)
+    error_checking.assert_is_geq_numpy_array(
+        target_angles_deg, 0., allow_nan=True
+    )
+    error_checking.assert_is_less_than_numpy_array(
+        target_angles_deg, 360., allow_nan=True
+    )
+
+    error_checking.assert_is_numpy_array(
+        predicted_angles_deg,
+        exact_dimensions=numpy.array([len(target_angles_deg)], dtype=int)
+    )
+    error_checking.assert_is_geq_numpy_array(
+        predicted_angles_deg, 0., allow_nan=True
+    )
+    error_checking.assert_is_less_than_numpy_array(
+        predicted_angles_deg, 360., allow_nan=True
+    )
+
+    angular_diffs_deg = predicted_angles_deg - target_angles_deg
+
+    angular_diffs_deg[angular_diffs_deg > 180] -= 360
+    angular_diffs_deg[angular_diffs_deg < -180] += 360
+    assert not numpy.any(numpy.absolute(angular_diffs_deg) > 180)
+
+    return angular_diffs_deg
+
+
+def get_offset_angles(x_offsets, y_offsets):
+    """Returns angle of each offset vector.
+
+    :param x_offsets: numpy array of x-offsets.
+    :param y_offsets: numpy array of y-offsets with same shape.
+    :return: angles_deg: Angles from [0, 360) deg, measured counterclockwise
+        from the vector pointing due east to the offset vector.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(x_offsets)
+    error_checking.assert_is_numpy_array_without_nan(y_offsets)
+    error_checking.assert_is_numpy_array(
+        y_offsets,
+        exact_dimensions=numpy.array(x_offsets.shape, dtype=int)
+    )
+
+    angles_deg = RADIANS_TO_DEGREES * numpy.arctan2(y_offsets, x_offsets)
+    angles_deg = lng_conversion.convert_lng_positive_in_west(angles_deg)
+
+    nan_indices = numpy.where(numpy.logical_and(
+        numpy.absolute(x_offsets) < TOLERANCE,
+        numpy.absolute(y_offsets) < TOLERANCE
+    ))
+
+    angles_deg[nan_indices] = numpy.nan
+    return angles_deg
 
 
 def get_scores_all_variables(
@@ -1002,7 +1026,7 @@ def get_scores_all_variables(
 
     prediction_matrix = numpy.hstack((
         prediction_matrix,
-        _get_offset_angles(
+        get_offset_angles(
             x_offsets=prediction_matrix[:, [1]],
             y_offsets=prediction_matrix[:, [0]]
         )
@@ -1010,7 +1034,7 @@ def get_scores_all_variables(
 
     target_matrix = numpy.hstack((
         target_matrix,
-        _get_offset_angles(
+        get_offset_angles(
             x_offsets=target_matrix[:, [1]], y_offsets=target_matrix[:, [0]]
         )
     ))
