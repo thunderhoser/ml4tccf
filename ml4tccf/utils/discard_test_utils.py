@@ -141,7 +141,9 @@ def run_discard_test(prediction_file_names, discard_fractions):
     result_table_xarray.attrs[MODEL_FILE_KEY] = (
         prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
     )
-    result_table_xarray.attrs[PREDICTION_FILES_KEY] = prediction_file_names
+    result_table_xarray.attrs[PREDICTION_FILES_KEY] = ' '.join([
+        '{0:s}'.format(f) for f in prediction_file_names
+    ])
 
     # Do actual stuff.
     xy_indices = numpy.array([
@@ -179,22 +181,38 @@ def run_discard_test(prediction_file_names, discard_fractions):
         for j in range(num_targets):
             if TARGET_FIELD_NAMES[j] == OFFSET_DIRECTION_NAME:
                 these_ensemble_mean_preds = numpy.array([
-                    angular_utils.mean(prediction_matrix[i, j, :], deg=True)
+                    angular_utils.mean(
+                        prediction_matrix[i, j, :][
+                            numpy.invert(numpy.isnan(prediction_matrix[i, j, :]))
+                        ],
+                        deg=True
+                    )
                     for i in use_example_indices
                 ])
+
                 these_target_values = target_matrix[use_example_indices, j]
 
                 t[MEAN_MEAN_PREDICTION_KEY].values[j, k] = angular_utils.mean(
-                    these_ensemble_mean_preds, deg=True
+                    these_ensemble_mean_preds[
+                        numpy.invert(numpy.isnan(these_ensemble_mean_preds))
+                    ],
+                    deg=True
                 )
+
                 t[MEAN_TARGET_KEY].values[j, k] = angular_utils.mean(
-                    these_target_values, deg=True
+                    these_target_values[
+                        numpy.invert(numpy.isnan(these_target_values))
+                    ],
+                    deg=True
                 )
-                t[POST_DISCARD_MAE_KEY].values[j, k] = numpy.mean(numpy.absolute(
-                    scalar_evaluation.get_angular_diffs(
-                        these_ensemble_mean_preds, these_target_values
+
+                t[POST_DISCARD_MAE_KEY].values[j, k] = numpy.nanmean(
+                    numpy.absolute(
+                        scalar_evaluation.get_angular_diffs(
+                            these_ensemble_mean_preds, these_target_values
+                        )
                     )
-                ))
+                )
 
                 continue
 
@@ -234,7 +252,7 @@ def run_discard_test(prediction_file_names, discard_fractions):
         t[MONO_FRACTION_KEY].values[j] = numpy.mean(
             numpy.diff(t[POST_DISCARD_MAE_KEY].values[j, :]) < 0
         )
-        t[MEAN_MAE_IMPROVEMENT_KEY].values[j] = numpy.mean(
+        t[MEAN_MAE_IMPROVEMENT_KEY].values[j] = numpy.nanmean(
             -1 * numpy.diff(t[POST_DISCARD_MAE_KEY].values[j, :]) /
             numpy.diff(discard_fractions)
         )

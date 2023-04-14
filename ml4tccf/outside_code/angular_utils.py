@@ -29,7 +29,7 @@ def var(angles, deg=True):
     '''
     a = np.deg2rad(angles) if deg else np.array(angles)
     angles_complex = np.frompyfunc(cmath.exp, 1, 1)(a * 1j)
-    r =abs(angles_complex.sum()) / len(angles)
+    r =abs(angles_complex.sum()) / (len(angles) - 1)
     return round(1 - r, 7)
 
 def std(angles, deg=True):
@@ -38,7 +38,7 @@ def std(angles, deg=True):
     '''
     a = np.deg2rad(angles) if deg else np.array(angles)
     angles_complex = np.frompyfunc(cmath.exp, 1, 1)(a * 1j)
-    r = abs(angles_complex.sum()) / len(angles)
+    r = abs(angles_complex.sum()) / (len(angles) - 1)
     std = np.sqrt(-2 * np.log(r))
     return round(np.rad2deg(std) if deg else std, 7)
 
