@@ -214,9 +214,7 @@ def _get_results_euclidean(
         (mean_prediction_matrix[:, 0] - target_matrix[:, 0]) ** 2 +
         (mean_prediction_matrix[:, 1] - target_matrix[:, 1]) ** 2
     )
-    predictive_stdistdevs = _get_predictive_stdistdevs(
-        prediction_matrix
-    )
+    predictive_stdistdevs = _get_predictive_stdistdevs(prediction_matrix)
 
     mean_prediction_stdistdevs = numpy.full(num_bins, numpy.nan)
     rmsd_values = numpy.full(num_bins, numpy.nan)
@@ -233,7 +231,7 @@ def _get_results_euclidean(
         mean_prediction_stdistdevs[k] = numpy.sqrt(numpy.mean(
             predictive_stdistdevs[these_indices] ** 2
         ))
-        rmsd_values[k] = numpy.sqrt(numpy.nanmean(
+        rmsd_values[k] = numpy.sqrt(numpy.mean(
             squared_errors[these_indices]
         ))
         example_counts[k] = len(these_indices)
@@ -306,11 +304,12 @@ def _get_results_one_var(
     """
 
     # Check input args.
-    error_checking.assert_is_numpy_array_without_nan(target_values)
     error_checking.assert_is_numpy_array(target_values, num_dimensions=1)
-
-    error_checking.assert_is_numpy_array_without_nan(prediction_matrix)
     error_checking.assert_is_numpy_array(prediction_matrix, num_dimensions=2)
+
+    if not is_var_direction:
+        error_checking.assert_is_numpy_array_without_nan(target_values)
+        error_checking.assert_is_numpy_array_without_nan(prediction_matrix)
 
     num_examples = len(target_values)
     num_ensemble_members = prediction_matrix.shape[1]
