@@ -80,6 +80,7 @@ OFFSET_DIST_MEAN_MEAN_PRED_DIST_KEY = (
 OFFSET_DIST_MEAN_TARGET_DIST_KEY = 'offset_dist_mean_target_dist_metres'
 
 MODEL_FILE_KEY = 'model_file_name'
+PREDICTION_FILES_KEY = 'prediction_file_names'
 
 
 def _get_predictive_stdistdevs(prediction_matrix):
@@ -725,6 +726,7 @@ def get_results_all_vars(
     result_table_xarray.attrs[MODEL_FILE_KEY] = (
         prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
     )
+    result_table_xarray.attrs[PREDICTION_FILES_KEY] = prediction_file_names
 
     xy_indices = numpy.array([
         TARGET_FIELD_NAMES.index(X_OFFSET_NAME),
@@ -884,7 +886,7 @@ def get_results_all_vars(
         this_result_dict = _get_results_euclidean(
             target_matrix=target_matrix[:, xy_indices],
             prediction_matrix=prediction_matrix[:, xy_indices, :],
-            bin_edge_prediction_stdistdevs=these_bin_edges
+            bin_edge_prediction_stdistdevs=these_bin_edges,
         )
 
         result_table_xarray[OFFSET_DIST_MEAN_STDIST_KEY].values[j, :] = (
