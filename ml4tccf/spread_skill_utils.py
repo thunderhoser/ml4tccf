@@ -726,7 +726,9 @@ def get_results_all_vars(
     result_table_xarray.attrs[MODEL_FILE_KEY] = (
         prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
     )
-    result_table_xarray.attrs[PREDICTION_FILES_KEY] = prediction_file_names
+    result_table_xarray.attrs[PREDICTION_FILES_KEY] = ' '.join([
+        '{0:s}'.format(f) for f in prediction_file_names
+    ])
 
     xy_indices = numpy.array([
         TARGET_FIELD_NAMES.index(X_OFFSET_NAME),
