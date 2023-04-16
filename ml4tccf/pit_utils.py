@@ -314,7 +314,7 @@ def get_results_all_vars(prediction_file_names, num_bins):
         PIT_DEVIATION_KEY: (
             (TARGET_FIELD_DIM,), numpy.full(num_targets, numpy.nan)
         ),
-        PERFECT_PITD_KEY: (
+        PERFECT_PIT_DEVIATION_KEY: (
             (TARGET_FIELD_DIM,), numpy.full(num_targets, numpy.nan)
         ),
         BIN_COUNT_KEY: (
