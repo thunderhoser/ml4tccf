@@ -337,10 +337,15 @@ def _plot_data_one_example(
 
         use_prob_contours = False
     elif use_prob_contours:
+        print('prob_contour_smoothing_radius_px = {0:s}'.format(
+            str(prob_contour_smoothing_radius_px)
+        ))
+
         point_latitudes_deg_n = low_res_latitude_interp_object(
             center_column_index_low_res + prediction_matrix[1, :],
             center_row_index_low_res + prediction_matrix[0, :]
         )
+        print(point_latitudes_deg_n)
         point_longitudes_deg_e = low_res_longitude_interp_object(
             center_column_index_low_res + prediction_matrix[1, :],
             center_row_index_low_res + prediction_matrix[0, :]
@@ -353,9 +358,6 @@ def _plot_data_one_example(
         )
 
         prob_colour_map_object = pyplot.get_cmap(prob_colour_map_name)
-        print('prob_contour_smoothing_radius_px = {0:s}'.format(
-            str(prob_contour_smoothing_radius_px)
-        ))
 
         if prob_contour_smoothing_radius_px is not None:
             print((
