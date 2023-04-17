@@ -371,15 +371,15 @@ def _plot_data_one_example(
 
         if prob_contour_smoothing_radius_px is not None:
             print((
-                'Applying {0:d}-by-{0:d} median smoother to newly gridded '
-                'probabilities...'
+                'Applying Gaussian smoother with {0:d}-pixel e-folding radius '
+                'to newly gridded probabilities...'
             ).format(
                 2 * prob_contour_smoothing_radius_px + 1
             ))
 
-            prediction_matrix = gg_general_utils.apply_median_filter(
+            prediction_matrix = gg_general_utils.apply_gaussian_filter(
                 input_matrix=prediction_matrix,
-                num_cells_in_half_window=prob_contour_smoothing_radius_px
+                e_folding_radius_grid_cells=prob_contour_smoothing_radius_px
             )
             prediction_matrix = prediction_matrix / numpy.sum(prediction_matrix)
 
