@@ -337,10 +337,6 @@ def _plot_data_one_example(
 
         use_prob_contours = False
     elif use_prob_contours:
-        print('prob_contour_smoothing_radius_px = {0:s}'.format(
-            str(prob_contour_smoothing_radius_px)
-        ))
-
         point_latitudes_deg_n = numpy.array([
             low_res_latitude_interp_object(
                 center_column_index_low_res + prediction_matrix[1, k],
@@ -356,9 +352,6 @@ def _plot_data_one_example(
             )[0]
             for k in range(ensemble_size)
         ])
-
-        print(point_latitudes_deg_n.shape)
-        print(point_longitudes_deg_e.shape)
 
         prediction_matrix = misc_utils.latlng_points_to_probability_grid(
             point_latitudes_deg_n=point_latitudes_deg_n,
@@ -398,7 +391,6 @@ def _plot_data_one_example(
         prob_contour_levels = numpy.linspace(
             min_colour_value, max_colour_value, num=10
         )
-        print('prob_contour_levels:\n{0:s}'.format(str(prob_contour_levels)))
 
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     d = training_option_dict
