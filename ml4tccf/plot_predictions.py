@@ -374,7 +374,7 @@ def _plot_data_one_example(
                 'Applying {0:d}-by-{0:d} median smoother to newly gridded '
                 'probabilities...'
             ).format(
-                prob_contour_smoothing_radius_px
+                2 * prob_contour_smoothing_radius_px + 1
             ))
 
             prediction_matrix = gg_general_utils.apply_median_filter(
@@ -514,7 +514,7 @@ def _plot_data_one_example(
                     low_res_longitudes_deg_e, low_res_latitudes_deg_n,
                     prediction_matrix, prob_contour_levels,
                     cmap=prob_colour_map_object, norm=prob_colour_norm_object,
-                    linewidths=4, linestyles='solid', zorder=1e6
+                    linewidths=4, linestyles='solid', zorder=1e12
                 )
             elif not are_predictions_gridded:
                 for k in range(ensemble_size):
