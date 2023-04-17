@@ -345,7 +345,8 @@ def _plot_data_one_example(
             center_column_index_low_res + prediction_matrix[1, :],
             center_row_index_low_res + prediction_matrix[0, :]
         )
-        print(point_latitudes_deg_n)
+        print(prediction_matrix.shape)
+        print(point_latitudes_deg_n.shape)
         point_longitudes_deg_e = low_res_longitude_interp_object(
             center_column_index_low_res + prediction_matrix[1, :],
             center_row_index_low_res + prediction_matrix[0, :]
