@@ -330,14 +330,22 @@ def _plot_data_one_example(
 
         use_prob_contours = False
     elif use_prob_contours:
-        point_latitudes_deg_n = low_res_latitude_interp_object(
-            center_column_index_low_res + prediction_matrix[1, :],
-            center_row_index_low_res + prediction_matrix[0, :]
-        )
-        point_longitudes_deg_e = low_res_longitude_interp_object(
-            center_column_index_low_res + prediction_matrix[1, :],
-            center_row_index_low_res + prediction_matrix[0, :]
-        )
+        point_latitudes_deg_n = numpy.array([
+            low_res_latitude_interp_object(
+                center_column_index_low_res + prediction_matrix[1, k],
+                center_row_index_low_res + prediction_matrix[0, k]
+            )[0]
+            for k in range(ensemble_size)
+        ])
+
+        point_longitudes_deg_e = numpy.array([
+            low_res_longitude_interp_object(
+                center_column_index_low_res + prediction_matrix[1, k],
+                center_row_index_low_res + prediction_matrix[0, k]
+            )[0]
+            for k in range(ensemble_size)
+        ])
+
         prediction_matrix = misc_utils.latlng_points_to_probability_grid(
             point_latitudes_deg_n=point_latitudes_deg_n,
             point_longitudes_deg_e=point_longitudes_deg_e,
@@ -346,27 +354,28 @@ def _plot_data_one_example(
         )
 
         prob_colour_map_object = pyplot.get_cmap(prob_colour_map_name)
-        print('prob_contour_smoothing_radius_px = {0:s}'.format(
-            str(prob_contour_smoothing_radius_px)
-        ))
 
         if prob_contour_smoothing_radius_px is not None:
             print((
-                'Applying {0:d}-by-{0:d} median smoother to newly gridded '
-                'probabilities...'
+                'Applying Gaussian smoother with {0:d}-pixel e-folding radius '
+                'to newly gridded probabilities...'
             ).format(
-                prob_contour_smoothing_radius_px
+                2 * prob_contour_smoothing_radius_px + 1
             ))
 
-            prediction_matrix = gg_general_utils.apply_median_filter(
+            prediction_matrix = gg_general_utils.apply_gaussian_filter(
                 input_matrix=prediction_matrix,
-                num_cells_in_half_window=prob_contour_smoothing_radius_px
+                e_folding_radius_grid_cells=prob_contour_smoothing_radius_px
             )
             prediction_matrix = prediction_matrix / numpy.sum(prediction_matrix)
 
-        min_colour_value = numpy.min(
-            prediction_matrix[prediction_matrix > TOLERANCE]
-        )
+        if numpy.any(prediction_matrix > TOLERANCE):
+            min_colour_value = numpy.min(
+                prediction_matrix[prediction_matrix > TOLERANCE]
+            )
+        else:
+            min_colour_value = 0.
+
         max_colour_value = numpy.max(prediction_matrix)
         prob_colour_norm_object = pyplot.Normalize(
             vmin=min_colour_value, vmax=max_colour_value
@@ -495,7 +504,7 @@ def _plot_data_one_example(
                     low_res_longitudes_deg_e, low_res_latitudes_deg_n,
                     prediction_matrix, prob_contour_levels,
                     cmap=prob_colour_map_object, norm=prob_colour_norm_object,
-                    linewidths=4, linestyles='solid', zorder=1e6
+                    linewidths=4, linestyles='solid', zorder=1e12
                 )
             elif not are_predictions_gridded:
                 for k in range(ensemble_size):
@@ -992,7 +1001,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
         predictor_matrices[k] = predictor_matrices[k].astype(numpy.float64)
         predictor_matrices[k][
             predictor_matrices[k] < SENTINEL_VALUE + 1
-        ] = numpy.nan
+            ] = numpy.nan
 
     if are_predictions_gridded:
         pt = gridded_prediction_utils.get_ensemble_mean(pt)
