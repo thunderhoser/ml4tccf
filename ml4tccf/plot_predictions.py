@@ -398,6 +398,7 @@ def _plot_data_one_example(
         prob_contour_levels = numpy.linspace(
             min_colour_value, max_colour_value, num=10
         )
+        print('prob_contour_levels:\n{0:s}'.format(prob_contour_levels))
 
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     d = training_option_dict
