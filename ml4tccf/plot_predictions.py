@@ -229,7 +229,7 @@ def _plot_data_one_example(
         are_data_normalized, border_latitudes_deg_n, border_longitudes_deg_e,
         output_file_name, min_gridded_prob=None, max_gridded_prob=None,
         prob_colour_map_name=None, use_prob_contours=False,
-        prob_contour_smoothing_radius_px=None, grid_spacing_metres=None):
+        prob_contour_smoothing_radius_px=None):
     """Plots satellite data for one example.
 
     P = number of points in border set
@@ -275,7 +275,6 @@ def _plot_data_one_example(
         be accepted by `matplotlib.pyplot.get_cmap`).
     :param use_prob_contours: See documentation at top of file.
     :param prob_contour_smoothing_radius_px: Same.
-    :param grid_spacing_metres: Grid spacing.
     """
 
     low_res_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
@@ -338,16 +337,25 @@ def _plot_data_one_example(
 
         use_prob_contours = False
     elif use_prob_contours:
-        prediction_matrix = misc_utils.points_to_probability_grid(
-            point_x_offsets_metres=
-            grid_spacing_metres * prediction_matrix[1, :],
-            point_y_offsets_metres=
-            grid_spacing_metres * prediction_matrix[0, :],
+        point_latitudes_deg_n = low_res_latitude_interp_object(
+            center_column_index_low_res + prediction_matrix[1, :],
+            center_row_index_low_res + prediction_matrix[0, :]
+        )
+        point_longitudes_deg_e = low_res_longitude_interp_object(
+            center_column_index_low_res + prediction_matrix[1, :],
+            center_row_index_low_res + prediction_matrix[0, :]
+        )
+        prediction_matrix = misc_utils.latlng_points_to_probability_grid(
+            point_latitudes_deg_n=point_latitudes_deg_n,
+            point_longitudes_deg_e=point_longitudes_deg_e,
             grid_latitude_array_deg_n=low_res_latitudes_deg_n,
             grid_longitude_array_deg_e=low_res_longitudes_deg_e
         )
 
         prob_colour_map_object = pyplot.get_cmap(prob_colour_map_name)
+        print('prob_contour_smoothing_radius_px = {0:s}'.format(
+            str(prob_contour_smoothing_radius_px)
+        ))
 
         if prob_contour_smoothing_radius_px is not None:
             print((
@@ -897,10 +905,6 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             error_checking.assert_is_greater(max_gridded_prob, 0.)
     else:
         pt = prediction_table_xarray
-        grid_spacings_metres = (
-            KM_TO_METRES * pt[scalar_prediction_utils.GRID_SPACING_KEY].values
-        )
-
         ensemble_size = len(
             pt.coords[scalar_prediction_utils.ENSEMBLE_MEMBER_DIM_KEY].values
         )
@@ -1074,8 +1078,7 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             max_gridded_prob=this_max_gridded_prob,
             prob_colour_map_name=prob_colour_map_name,
             use_prob_contours=use_prob_contours,
-            prob_contour_smoothing_radius_px=prob_contour_smoothing_radius_px,
-            grid_spacing_metres=grid_spacings_metres[i]
+            prob_contour_smoothing_radius_px=prob_contour_smoothing_radius_px
         )
 
 
