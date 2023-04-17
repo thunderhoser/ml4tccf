@@ -357,6 +357,9 @@ def _plot_data_one_example(
             for k in range(ensemble_size)
         ])
 
+        print(point_latitudes_deg_n.shape)
+        print(point_longitudes_deg_e.shape)
+
         prediction_matrix = misc_utils.latlng_points_to_probability_grid(
             point_latitudes_deg_n=point_latitudes_deg_n,
             point_longitudes_deg_e=point_longitudes_deg_e,
