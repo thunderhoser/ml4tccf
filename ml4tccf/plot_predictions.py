@@ -345,7 +345,7 @@ def _plot_data_one_example(
             low_res_latitude_interp_object(
                 center_column_index_low_res + prediction_matrix[1, k],
                 center_row_index_low_res + prediction_matrix[0, k]
-            )
+            )[0]
             for k in range(ensemble_size)
         ])
 
@@ -353,7 +353,7 @@ def _plot_data_one_example(
             low_res_longitude_interp_object(
                 center_column_index_low_res + prediction_matrix[1, k],
                 center_row_index_low_res + prediction_matrix[0, k]
-            )
+            )[0]
             for k in range(ensemble_size)
         ])
 
