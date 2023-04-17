@@ -383,9 +383,13 @@ def _plot_data_one_example(
             )
             prediction_matrix = prediction_matrix / numpy.sum(prediction_matrix)
 
-        min_colour_value = numpy.min(
-            prediction_matrix[prediction_matrix > TOLERANCE]
-        )
+        if numpy.any(prediction_matrix > TOLERANCE):
+            min_colour_value = numpy.min(
+                prediction_matrix[prediction_matrix > TOLERANCE]
+            )
+        else:
+            min_colour_value = 0.
+
         max_colour_value = numpy.max(prediction_matrix)
         prob_colour_norm_object = pyplot.Normalize(
             vmin=min_colour_value, vmax=max_colour_value
