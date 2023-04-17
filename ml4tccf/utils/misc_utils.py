@@ -559,8 +559,8 @@ def prediction_matrix_to_centroid(prediction_matrix):
     )
 
 
-def points_to_probability_grid(
-        point_x_offsets_metres, point_y_offsets_metres,
+def latlng_points_to_probability_grid(
+        point_latitudes_deg_n, point_longitudes_deg_e,
         grid_latitude_array_deg_n, grid_longitude_array_deg_e):
     """Converts predicted point locations to grid of predicted probabilities.
 
@@ -568,10 +568,9 @@ def points_to_probability_grid(
     M = number of rows in grid
     N = number of columns in grid
 
-    :param point_x_offsets_metres: length-P numpy array of x-offsets from grid
-        center.
-    :param point_y_offsets_metres: length-P numpy array of y-offsets from grid
-        center.
+    :param point_latitudes_deg_n: length-P numpy array of latitudes (deg north).
+    :param point_longitudes_deg_e: length-P numpy array of longitudes (deg
+        east).
     :param grid_latitude_array_deg_n: numpy array of grid-point latitudes (deg
         north).  If regular grid, dimensions should be length-M.  If irregular
         grid, dimensions should be M x N.
@@ -624,6 +623,21 @@ def points_to_probability_grid(
         half_num_columns, half_num_columns_float, atol=TOLERANCE
     )
 
+    error_checking.assert_is_numpy_array(
+        point_latitudes_deg_n, num_dimensions=1
+    )
+    error_checking.assert_is_numpy_array(
+        point_longitudes_deg_e,
+        exact_dimensions=numpy.array(point_latitudes_deg_n.shape, dtype=int)
+    )
+
+    error_checking.assert_is_valid_lat_numpy_array(
+        point_latitudes_deg_n, allow_nan=False
+    )
+    error_checking.assert_is_valid_lng_numpy_array(
+        point_longitudes_deg_e, allow_nan=False
+    )
+
     # Do actual stuff.
     i_start = half_num_rows - 1
     i_end = half_num_rows + 1
@@ -642,15 +656,9 @@ def points_to_probability_grid(
     grid_x_matrix_metres, grid_y_matrix_metres = projection_object(
         grid_longitude_matrix_deg_e, grid_latitude_matrix_deg_n
     )
-    grid_center_x_metres = numpy.mean(
-        grid_x_matrix_metres[i_start:i_end, j_start:j_end]
+    point_x_coords_metres, point_y_coords_metres = projection_object(
+        point_longitudes_deg_e, point_latitudes_deg_n
     )
-    grid_center_y_metres = numpy.mean(
-        grid_y_matrix_metres[i_start:i_end, j_start:j_end]
-    )
-
-    point_x_coords_metres = grid_center_x_metres + point_x_offsets_metres
-    point_y_coords_metres = grid_center_y_metres + point_y_offsets_metres
 
     max_x_spacing_metres = numpy.maximum(
         numpy.max(numpy.diff(grid_x_matrix_metres, axis=0)),
