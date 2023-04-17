@@ -7,6 +7,7 @@ import shutil
 import warnings
 import tempfile
 import numpy
+from pyproj import Proj
 from scipy.ndimage import center_of_mass, distance_transform_edt
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -14,6 +15,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import grids
 import longitude_conversion as lng_conversion
 import time_conversion
 import error_checking
@@ -513,7 +515,6 @@ def target_matrix_to_centroid(target_matrix, test_mode=False):
         centroid_indices_linear = numpy.where(
             numpy.max(target_matrix) - numpy.ravel(target_matrix) < TOLERANCE
         )[0]
-        print(len(centroid_indices_linear))
 
     centroid_row_indices, centroid_column_indices = numpy.unravel_index(
         centroid_indices_linear, target_matrix.shape
@@ -563,3 +564,148 @@ def prediction_matrix_to_centroid(prediction_matrix):
         centroid_row_index - image_center_row_index,
         centroid_column_index - image_center_column_index
     )
+
+
+def points_to_probability_grid(
+        point_x_offsets_metres, point_y_offsets_metres,
+        grid_latitude_array_deg_n, grid_longitude_array_deg_e):
+    """Converts predicted point locations to grid of predicted probabilities.
+
+    P = number of points
+    M = number of rows in grid
+    N = number of columns in grid
+
+    :param point_x_offsets_metres: length-P numpy array of x-offsets from grid
+        center.
+    :param point_y_offsets_metres: length-P numpy array of y-offsets from grid
+        center.
+    :param grid_latitude_array_deg_n: numpy array of grid-point latitudes (deg
+        north).  If regular grid, dimensions should be length-M.  If irregular
+        grid, dimensions should be M x N.
+    :param grid_longitude_array_deg_e: numpy array of grid-point longitudes (deg
+        east).  If regular grid, dimensions should be length-N.  If irregular
+        grid, dimensions should be M x N.
+    :return: probability_matrix: M-by-N numpy array of probabilities.
+    """
+
+    # Check input args.
+    regular_grid = len(grid_latitude_array_deg_n.shape) == 1
+
+    if regular_grid:
+        this_flag = is_regular_grid_valid(
+            latitudes_deg_n=grid_latitude_array_deg_n,
+            longitudes_deg_e=grid_longitude_array_deg_e
+        )[0]
+
+        assert this_flag
+
+        grid_latitude_matrix_deg_n, grid_longitude_matrix_deg_e = (
+            grids.latlng_vectors_to_matrices(
+                unique_latitudes_deg=grid_latitude_array_deg_n,
+                unique_longitudes_deg=grid_longitude_array_deg_e
+            )
+        )
+    else:
+        error_checking.assert_is_numpy_array(
+            grid_latitude_array_deg_n, num_dimensions=2
+        )
+        error_checking.assert_is_numpy_array(
+            grid_longitude_array_deg_e,
+            exact_dimensions=numpy.array(
+                grid_latitude_array_deg_n.shape, dtype=int
+            )
+        )
+
+        grid_latitude_matrix_deg_n = grid_latitude_array_deg_n + 0.
+        grid_longitude_matrix_deg_e = grid_longitude_array_deg_e + 0.
+
+    num_rows = grid_latitude_matrix_deg_n.shape[0]
+    half_num_rows_float = 0.5 * num_rows
+    half_num_rows = int(numpy.round(half_num_rows_float))
+    assert numpy.isclose(half_num_rows, half_num_rows_float, atol=TOLERANCE)
+
+    num_columns = grid_latitude_matrix_deg_n.shape[1]
+    half_num_columns_float = 0.5 * num_columns
+    half_num_columns = int(numpy.round(half_num_columns_float))
+    assert numpy.isclose(
+        half_num_columns, half_num_columns_float, atol=TOLERANCE
+    )
+
+    # Do actual stuff.
+    i_start = half_num_rows - 1
+    i_end = half_num_rows + 1
+    j_start = half_num_columns - 1
+    j_end = half_num_columns + 1
+    grid_center_latitude_deg_n = numpy.mean(
+        grid_latitude_matrix_deg_n[i_start:i_end, j_start:j_end]
+    )
+
+    projection_string = (
+        '+proj=eqc +no_defs +R=6371228 +k=1 +units=m +lat_ts={0:10f}'
+    ).format(grid_center_latitude_deg_n)
+
+    projection_object = Proj(projection_string)
+
+    grid_x_matrix_metres, grid_y_matrix_metres = projection_object(
+        grid_longitude_matrix_deg_e, grid_latitude_matrix_deg_n
+    )
+    grid_center_x_metres = numpy.mean(
+        grid_x_matrix_metres[i_start:i_end, j_start:j_end]
+    )
+    grid_center_y_metres = numpy.mean(
+        grid_y_matrix_metres[i_start:i_end, j_start:j_end]
+    )
+
+    point_x_coords_metres = grid_center_x_metres + point_x_offsets_metres
+    point_y_coords_metres = grid_center_y_metres + point_y_offsets_metres
+
+    max_x_spacing_metres = numpy.maximum(
+        numpy.max(numpy.diff(grid_x_matrix_metres, axis=0)),
+        numpy.max(numpy.diff(grid_x_matrix_metres, axis=1))
+    )
+    assert numpy.all(
+        point_x_coords_metres >=
+        numpy.min(grid_x_matrix_metres) - max_x_spacing_metres / 2
+    )
+    assert numpy.all(
+        point_x_coords_metres <=
+        numpy.max(grid_x_matrix_metres) + max_x_spacing_metres / 2
+    )
+
+    max_y_spacing_metres = numpy.maximum(
+        numpy.max(numpy.diff(grid_y_matrix_metres, axis=0)),
+        numpy.max(numpy.diff(grid_y_matrix_metres, axis=1))
+    )
+    assert numpy.all(
+        point_y_coords_metres >=
+        numpy.min(grid_y_matrix_metres) - max_y_spacing_metres / 2
+    )
+    assert numpy.all(
+        point_y_coords_metres <=
+        numpy.max(grid_y_matrix_metres) + max_y_spacing_metres / 2
+    )
+
+    # TODO(thunderhoser): I could probably make the assignment code faster if
+    # need be.
+    num_points = len(point_x_coords_metres)
+    probability_matrix = numpy.full(grid_x_matrix_metres.shape, 0.)
+
+    for i in range(num_points):
+        if numpy.mod(i, 10) == 0:
+            print('Have assigned {0:d} of {1:d} points to grid cell...'.format(
+                i, num_points
+            ))
+
+        linear_index = numpy.argmin(numpy.ravel(
+            (point_x_coords_metres[i] - grid_x_matrix_metres) ** 2 +
+            (point_y_coords_metres[i] - grid_y_matrix_metres) ** 2
+        ))
+        row_index, column_index = numpy.unravel_index(
+            linear_index, grid_x_matrix_metres.shape
+        )
+        probability_matrix[row_index, column_index] += 1.
+
+    print('Have assigned all {0:d} points to grid cell!'.format(num_points))
+
+    probability_matrix = probability_matrix / num_points
+    return probability_matrix

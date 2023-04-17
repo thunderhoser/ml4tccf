@@ -15,6 +15,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import gg_general_utils
 import time_conversion
 import longitude_conversion as lng_conversion
 import file_system_utils
@@ -29,8 +30,11 @@ import neural_net
 import plotting_utils
 import satellite_plotting
 
+TOLERANCE = 1e-6
 SENTINEL_VALUE = -9999.
 TIME_FORMAT = '%Y-%m-%d-%H%M'
+
+KM_TO_METRES = 1000.
 
 PREDICTED_CENTER_MARKER = 'o'
 PREDICTED_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
@@ -66,6 +70,8 @@ MIN_GRIDDED_PROB_ARG_NAME = 'min_gridded_prob'
 MAX_GRIDDED_PROB_ARG_NAME = 'max_gridded_prob'
 MIN_GRIDDED_PROB_PERCENTILE_ARG_NAME = 'min_gridded_prob_percentile'
 MAX_GRIDDED_PROB_PERCENTILE_ARG_NAME = 'max_gridded_prob_percentile'
+USE_PROB_CONTOURS_ARG_NAME = 'use_prob_contours'
+PROB_CONTOUR_SMOOTH_RADIUS_ARG_NAME = 'prob_contour_smoothing_radius_px'
 PROB_COLOUR_MAP_ARG_NAME = 'prob_colour_map_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -99,6 +105,16 @@ MIN_GRIDDED_PROB_PERCENTILE_HELP_STRING = (
 MAX_GRIDDED_PROB_PERCENTILE_HELP_STRING = 'Same as `{0:s}` but for max.'.format(
     MIN_GRIDDED_PROB_PERCENTILE_HELP_STRING
 )
+USE_PROB_CONTOURS_HELP_STRING = (
+    '[used only if predictions are scalar] Boolean flag.  If 1 (0), will plot '
+    'each ensemble of scalar predictions as a set of probability contours '
+    '(points).'
+)
+PROB_CONTOUR_SMOOTH_RADIUS_HELP_STRING = (
+    '[used only if {0:s} == 1] Smoothing radius for probability contours.  If '
+    'you do not want to smooth, leave this argument alone.'
+).format(PROB_CONTOUR_SMOOTH_RADIUS_ARG_NAME)
+
 PROB_COLOUR_MAP_HELP_STRING = (
     '[used only if predictions are gridded] Name of colour scheme used for '
     'probabilities.  Must be accepted by `pyplot.get_cmap`.'
@@ -135,6 +151,14 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + MAX_GRIDDED_PROB_PERCENTILE_ARG_NAME, type=float, required=False,
     default=0, help=MAX_GRIDDED_PROB_PERCENTILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + USE_PROB_CONTOURS_ARG_NAME, type=int, required=False, default=0,
+    help=USE_PROB_CONTOURS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PROB_CONTOUR_SMOOTH_RADIUS_ARG_NAME, type=int, required=False,
+    default=-1, help=PROB_CONTOUR_SMOOTH_RADIUS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + PROB_COLOUR_MAP_ARG_NAME, type=str, required=False,
@@ -204,7 +228,8 @@ def _plot_data_one_example(
         high_res_latitudes_deg_n, high_res_longitudes_deg_e,
         are_data_normalized, border_latitudes_deg_n, border_longitudes_deg_e,
         output_file_name, min_gridded_prob=None, max_gridded_prob=None,
-        prob_colour_map_name=None):
+        prob_colour_map_name=None, use_prob_contours=False,
+        prob_contour_smoothing_radius_px=None, grid_spacing_metres=None):
     """Plots satellite data for one example.
 
     P = number of points in border set
@@ -248,6 +273,9 @@ def _plot_data_one_example(
     :param max_gridded_prob: Max probability in colour scheme.
     :param prob_colour_map_name: Name of base colour map for probabilities (must
         be accepted by `matplotlib.pyplot.get_cmap`).
+    :param use_prob_contours: See documentation at top of file.
+    :param prob_contour_smoothing_radius_px: Same.
+    :param grid_spacing_metres: Grid spacing.
     """
 
     low_res_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
@@ -296,6 +324,9 @@ def _plot_data_one_example(
     are_predictions_gridded = prediction_matrix.shape[0] > 2
     ensemble_size = 1 if are_predictions_gridded else prediction_matrix.shape[1]
 
+    prob_colour_norm_object = None
+    prob_contour_levels = None
+
     if are_predictions_gridded:
         prob_colour_map_object, prob_colour_norm_object = (
             _get_colour_map_for_gridded_probs(
@@ -304,9 +335,45 @@ def _plot_data_one_example(
                 percent_flag=False
             )
         )
-    else:
-        prob_colour_map_object = None
-        prob_colour_norm_object = None
+
+        use_prob_contours = False
+    elif use_prob_contours:
+        prediction_matrix = misc_utils.points_to_probability_grid(
+            point_x_offsets_metres=
+            grid_spacing_metres * prediction_matrix[1, :],
+            point_y_offsets_metres=
+            grid_spacing_metres * prediction_matrix[0, :],
+            grid_latitude_array_deg_n=low_res_latitudes_deg_n,
+            grid_longitude_array_deg_e=low_res_longitudes_deg_e
+        )
+
+        prob_colour_map_object = pyplot.get_cmap(prob_colour_map_name)
+
+        if prob_contour_smoothing_radius_px is not None:
+            print((
+                'Applying {0:d}-by-{0:d} median smoother to newly gridded '
+                'probabilities...'
+            ).format(
+                prob_contour_smoothing_radius_px
+            ))
+
+            prediction_matrix = gg_general_utils.apply_median_filter(
+                input_matrix=prediction_matrix,
+                num_cells_in_half_window=prob_contour_smoothing_radius_px
+            )
+            prediction_matrix = prediction_matrix / numpy.sum(prediction_matrix)
+
+        min_colour_value = numpy.min(
+            prediction_matrix[prediction_matrix > TOLERANCE]
+        )
+        max_colour_value = numpy.max(prediction_matrix)
+        prob_colour_norm_object = pyplot.Normalize(
+            vmin=min_colour_value, vmax=max_colour_value
+        )
+
+        prob_contour_levels = numpy.linspace(
+            min_colour_value, max_colour_value, num=10
+        )
 
     training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
     d = training_option_dict
@@ -422,7 +489,14 @@ def _plot_data_one_example(
                 transform=axes_object.transAxes, zorder=1e10
             )
 
-            if not are_predictions_gridded:
+            if use_prob_contours:
+                axes_object.contour(
+                    low_res_longitudes_deg_e, low_res_latitudes_deg_n,
+                    prediction_matrix, prob_contour_levels,
+                    cmap=prob_colour_map_object, norm=prob_colour_norm_object,
+                    linewidths=4, linestyles='solid', zorder=1e6
+                )
+            elif not are_predictions_gridded:
                 for k in range(ensemble_size):
                     if regular_grids:
                         x_coord = (
@@ -584,7 +658,14 @@ def _plot_data_one_example(
                 transform=axes_object.transAxes, zorder=1e10
             )
 
-            if not are_predictions_gridded:
+            if use_prob_contours:
+                axes_object.contour(
+                    low_res_longitudes_deg_e, low_res_latitudes_deg_n,
+                    prediction_matrix, prob_contour_levels,
+                    cmap=prob_colour_map_object, norm=prob_colour_norm_object,
+                    linewidths=4, linestyles='solid', zorder=1e6
+                )
+            elif not are_predictions_gridded:
                 for k in range(ensemble_size):
                     if regular_grids:
                         x_coord = (
@@ -772,8 +853,10 @@ def _plot_data_one_example(
 
 
 def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
-         min_gridded_prob, max_gridded_prob, min_gridded_prob_percentile,
-         max_gridded_prob_percentile, prob_colour_map_name, output_dir_name):
+         min_gridded_prob, max_gridded_prob,
+         min_gridded_prob_percentile, max_gridded_prob_percentile,
+         use_prob_contours, prob_contour_smoothing_radius_px,
+         prob_colour_map_name, output_dir_name):
     """Plots predictions.
 
     This is effectively the main method.
@@ -785,6 +868,8 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     :param max_gridded_prob: Same.
     :param min_gridded_prob_percentile: Same.
     :param max_gridded_prob_percentile: Same.
+    :param use_prob_contours: Same.
+    :param prob_contour_smoothing_radius_px: Same.
     :param prob_colour_map_name: Same.
     :param output_dir_name: Same.
     """
@@ -810,6 +895,19 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
         else:
             error_checking.assert_is_greater(min_gridded_prob, 0.)
             error_checking.assert_is_greater(max_gridded_prob, 0.)
+    else:
+        pt = prediction_table_xarray
+        grid_spacings_metres = (
+            KM_TO_METRES * pt[scalar_prediction_utils.GRID_SPACING_KEY].values
+        )
+
+        ensemble_size = len(
+            pt.coords[scalar_prediction_utils.ENSEMBLE_MEMBER_DIM_KEY].values
+        )
+        use_prob_contours = use_prob_contours and ensemble_size > 1
+
+        if prob_contour_smoothing_radius_px < 1:
+            prob_contour_smoothing_radius_px = None
 
     model_file_name = (
         prediction_table_xarray.attrs[scalar_prediction_utils.MODEL_FILE_KEY]
@@ -938,8 +1036,6 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
                     prediction_matrix[i, ...], max_gridded_prob_percentile
                 )
 
-                print('SUM OF PREDICTIONS OVER GRID = {0:f}'.format(numpy.sum(prediction_matrix[i, ...])))
-
                 if this_max_gridded_prob - this_min_gridded_prob < 0.01:
                     new_max = this_min_gridded_prob + 0.01
                     if new_max > 1:
@@ -976,7 +1072,10 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             output_file_name=output_file_name,
             min_gridded_prob=this_min_gridded_prob,
             max_gridded_prob=this_max_gridded_prob,
-            prob_colour_map_name=prob_colour_map_name
+            prob_colour_map_name=prob_colour_map_name,
+            use_prob_contours=use_prob_contours,
+            prob_contour_smoothing_radius_px=prob_contour_smoothing_radius_px,
+            grid_spacing_metres=grid_spacings_metres[i]
         )
 
 
@@ -998,6 +1097,12 @@ if __name__ == '__main__':
         ),
         max_gridded_prob_percentile=getattr(
             INPUT_ARG_OBJECT, MAX_GRIDDED_PROB_PERCENTILE_ARG_NAME
+        ),
+        use_prob_contours=bool(getattr(
+            INPUT_ARG_OBJECT, USE_PROB_CONTOURS_ARG_NAME
+        )),
+        prob_contour_smoothing_radius_px=getattr(
+            INPUT_ARG_OBJECT, PROB_CONTOUR_SMOOTH_RADIUS_ARG_NAME
         ),
         prob_colour_map_name=getattr(
             INPUT_ARG_OBJECT, PROB_COLOUR_MAP_ARG_NAME
