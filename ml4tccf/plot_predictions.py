@@ -341,16 +341,22 @@ def _plot_data_one_example(
             str(prob_contour_smoothing_radius_px)
         ))
 
-        point_latitudes_deg_n = low_res_latitude_interp_object(
-            center_column_index_low_res + prediction_matrix[1, :],
-            center_row_index_low_res + prediction_matrix[0, :]
-        )
-        print(prediction_matrix.shape)
-        print(point_latitudes_deg_n.shape)
-        point_longitudes_deg_e = low_res_longitude_interp_object(
-            center_column_index_low_res + prediction_matrix[1, :],
-            center_row_index_low_res + prediction_matrix[0, :]
-        )
+        point_latitudes_deg_n = numpy.array([
+            low_res_latitude_interp_object(
+                center_column_index_low_res + prediction_matrix[1, k],
+                center_row_index_low_res + prediction_matrix[0, k]
+            )
+            for k in range(ensemble_size)
+        ])
+
+        point_longitudes_deg_e = numpy.array([
+            low_res_longitude_interp_object(
+                center_column_index_low_res + prediction_matrix[1, k],
+                center_row_index_low_res + prediction_matrix[0, k]
+            )
+            for k in range(ensemble_size)
+        ])
+
         prediction_matrix = misc_utils.latlng_points_to_probability_grid(
             point_latitudes_deg_n=point_latitudes_deg_n,
             point_longitudes_deg_e=point_longitudes_deg_e,
