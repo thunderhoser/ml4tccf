@@ -524,6 +524,16 @@ def subset_to_multiple_time_windows(
     :return: new_table_xarray: Same as input but maybe with fewer times.
     """
 
+    t = satellite_table_xarray
+    if (
+            BIDIRECTIONAL_REFLECTANCE_KEY in t
+            and t[BIDIRECTIONAL_REFLECTANCE_KEY].values.size == 0
+    ):
+        return satellite_table_xarray
+
+    if t[BRIGHTNESS_TEMPERATURE_KEY].values.size == 0:
+        return satellite_table_xarray
+
     # Check input args.
     error_checking.assert_is_numpy_array(start_times_unix_sec, num_dimensions=1)
     error_checking.assert_is_integer_numpy_array(start_times_unix_sec)
@@ -610,6 +620,16 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     :raises: ValueError: if number of missing times > `max_num_missing_times`.
     :raises: ValueError: if all brightness temperatures are NaN at the end.
     """
+
+    t = satellite_table_xarray
+    if (
+            BIDIRECTIONAL_REFLECTANCE_KEY in t
+            and t[BIDIRECTIONAL_REFLECTANCE_KEY].values.size == 0
+    ):
+        return satellite_table_xarray
+
+    if t[BRIGHTNESS_TEMPERATURE_KEY].values.size == 0:
+        return satellite_table_xarray
 
     # Check input args.
     error_checking.assert_is_numpy_array(
