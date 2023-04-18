@@ -397,6 +397,17 @@ def subset_grid(satellite_table_xarray, num_rows_to_keep, num_columns_to_keep,
 
     error_checking.assert_is_boolean(for_high_res)
 
+    t = satellite_table_xarray
+    if (
+            for_high_res and t[BIDIRECTIONAL_REFLECTANCE_KEY].values.size == 0
+    ):
+        return satellite_table_xarray
+
+    if (
+            not for_high_res and t[BRIGHTNESS_TEMPERATURE_KEY].values.size == 0
+    ):
+        return satellite_table_xarray
+
     row_dim = HIGH_RES_ROW_DIM if for_high_res else LOW_RES_ROW_DIM
     column_dim = HIGH_RES_COLUMN_DIM if for_high_res else LOW_RES_COLUMN_DIM
 
@@ -458,6 +469,18 @@ def subset_wavelengths(satellite_table_xarray, wavelengths_to_keep_microns,
         len(wavelengths_to_keep_microns),
         len(numpy.unique(wavelengths_to_keep_microns))
     )
+    error_checking.assert_is_boolean(for_high_res)
+
+    t = satellite_table_xarray
+    if (
+            for_high_res and t[BIDIRECTIONAL_REFLECTANCE_KEY].values.size == 0
+    ):
+        return satellite_table_xarray
+
+    if (
+            not for_high_res and t[BRIGHTNESS_TEMPERATURE_KEY].values.size == 0
+    ):
+        return satellite_table_xarray
 
     wavelength_dim = (
         HIGH_RES_WAVELENGTH_DIM if for_high_res else LOW_RES_WAVELENGTH_DIM
@@ -508,6 +531,16 @@ def subset_to_multiple_time_windows(
         window.
     :return: new_table_xarray: Same as input but maybe with fewer times.
     """
+
+    t = satellite_table_xarray
+    if (
+            BIDIRECTIONAL_REFLECTANCE_KEY in t
+            and t[BIDIRECTIONAL_REFLECTANCE_KEY].values.size == 0
+    ):
+        return satellite_table_xarray
+
+    if t[BRIGHTNESS_TEMPERATURE_KEY].values.size == 0:
+        return satellite_table_xarray
 
     # Check input args.
     error_checking.assert_is_numpy_array(start_times_unix_sec, num_dimensions=1)
@@ -595,6 +628,16 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     :raises: ValueError: if number of missing times > `max_num_missing_times`.
     :raises: ValueError: if all brightness temperatures are NaN at the end.
     """
+
+    t = satellite_table_xarray
+    if (
+            BIDIRECTIONAL_REFLECTANCE_KEY in t
+            and t[BIDIRECTIONAL_REFLECTANCE_KEY].values.size == 0
+    ):
+        return satellite_table_xarray
+
+    if t[BRIGHTNESS_TEMPERATURE_KEY].values.size == 0:
+        return satellite_table_xarray
 
     # Check input args.
     error_checking.assert_is_numpy_array(
