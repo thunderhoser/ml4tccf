@@ -224,8 +224,9 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
             'stdev of target and predicted values = {1:f}, {2:f} ... '
             'MSE and skill score = {3:f}, {4:f} ... '
             'MAE and skill score = {5:f}, {6:f} ... '
-            'bias = {7:f} ... correlation = {8:f} ... KGE = {9:f} ... '
-            'reliability = {10:f} ... resolution = {11:f}'
+            'CRPS = {7:f} ... '
+            'bias = {8:f} ... correlation = {9:f} ... KGE = {10:f} ... '
+            'reliability = {11:f} ... resolution = {12:f}'
         ).format(
             target_field_names[j],
             numpy.nanmean(t[scalar_evaluation.TARGET_STDEV_KEY].values[j, :]),
@@ -244,6 +245,7 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
             numpy.nanmean(
                 t[scalar_evaluation.MAE_SKILL_SCORE_KEY].values[j, :]
             ),
+            numpy.nanmean(t[scalar_evaluation.CRPS_KEY].values[j, :]),
             numpy.nanmean(t[scalar_evaluation.BIAS_KEY].values[j, :]),
             numpy.nanmean(t[scalar_evaluation.CORRELATION_KEY].values[j, :]),
             numpy.nanmean(t[scalar_evaluation.KGE_KEY].values[j, :]),
@@ -253,14 +255,12 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
 
     print((
         'Mean distance and skill score = {0:f}, {1:f} ... '
-        'mean squared distance and skill score = {2:f}, {3:f} ... '
-        'CRPS = {4:f}'
+        'mean squared distance and skill score = {2:f}, {3:f}'
     ).format(
         numpy.nanmean(t[scalar_evaluation.MEAN_DISTANCE_KEY].values),
         numpy.nanmean(t[scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY].values),
         numpy.nanmean(t[scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY].values),
-        numpy.nanmean(t[scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY].values),
-        numpy.nanmean(t[scalar_evaluation.CRPS_KEY].values)
+        numpy.nanmean(t[scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY].values)
     ))
 
     print(SEPARATOR_STRING)
