@@ -8,13 +8,12 @@ from ml4tccf.utils import satellite_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-WAVELENGTHS_TO_KEEP_MICRONS = numpy.array([3.9, 11.2])
 NUM_GRID_ROWS_TO_KEEP = 800
 NUM_GRID_COLUMNS_TO_KEEP = 800
 
 INPUT_DIR_ARG_NAME = 'input_dir_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
-USE_3POINT9_ARG_NAME = 'use_3point9_microns'
+WAVELENGTHS_TO_KEEP_ARG_NAME = 'wavelengths_to_keep_microns'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -24,6 +23,9 @@ INPUT_DIR_HELP_STRING = (
 )
 CYCLONE_ID_HELP_STRING = (
     'Will simplify satellite data for this cyclone (format "yyyyBBnn").'
+)
+WAVELENGTHS_TO_KEEP_HELP_STRING = (
+    'List of wavelengths to keep (for infrared brightness temperature only).'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Files with subset satellite data will be '
@@ -41,18 +43,24 @@ INPUT_ARG_PARSER.add_argument(
     help=CYCLONE_ID_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + WAVELENGTHS_TO_KEEP_ARG_NAME, type=float, nargs='+', required=True,
+    help=WAVELENGTHS_TO_KEEP_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
-def _run(input_dir_name, cyclone_id_string, output_dir_name):
+def _run(input_dir_name, cyclone_id_string, wavelengths_to_keep_microns,
+         output_dir_name):
     """Simplifies satellite files by removing most wavelengths and pixels.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of file.
     :param cyclone_id_string: Same.
+    :param wavelengths_to_keep_microns: Same.
     :param output_dir_name: Same.
     """
 
@@ -68,7 +76,7 @@ def _run(input_dir_name, cyclone_id_string, output_dir_name):
 
         satellite_table_xarray = satellite_utils.subset_wavelengths(
             satellite_table_xarray=satellite_table_xarray,
-            wavelengths_to_keep_microns=WAVELENGTHS_TO_KEEP_MICRONS,
+            wavelengths_to_keep_microns=wavelengths_to_keep_microns,
             for_high_res=False
         )
         satellite_table_xarray = satellite_utils.subset_wavelengths(
@@ -146,5 +154,8 @@ if __name__ == '__main__':
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
+        wavelengths_to_keep_microns=numpy.array(
+            getattr(INPUT_ARG_OBJECT, WAVELENGTHS_TO_KEEP_ARG_NAME), dtype=float
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

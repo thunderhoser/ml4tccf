@@ -100,6 +100,12 @@ def concat_over_time(satellite_tables_xarray):
     :raises: ValueError: if cyclone IDs are not identical.
     """
 
+    # TODO(thunderhoser): Might also need to have some condition for BDRF here.
+    satellite_tables_xarray = [
+        t for t in satellite_tables_xarray
+        if t[BRIGHTNESS_TEMPERATURE_KEY].values.size > 0
+    ]
+
     satellite_table_xarray = xarray.concat(
         satellite_tables_xarray, dim=TIME_DIM, data_vars='all',
         coords='minimal', compat='identical', join='exact'
