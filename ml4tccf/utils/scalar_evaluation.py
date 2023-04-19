@@ -1387,7 +1387,7 @@ def get_scores_all_variables(
             ))
 
             for j in range(num_targets):
-                if TARGET_FIELD_NAMES[j] == OFFSET_DIRECTION_NAME:
+                if TARGET_FIELD_NAMES[j] == OFFSET_DISTANCE_NAME:
                     xy_indices = numpy.array([
                         TARGET_FIELD_NAMES.index(X_OFFSET_NAME),
                         TARGET_FIELD_NAMES.index(Y_OFFSET_NAME)
