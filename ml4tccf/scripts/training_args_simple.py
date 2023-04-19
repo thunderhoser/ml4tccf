@@ -4,7 +4,7 @@ TEMPLATE_FILE_ARG_NAME = 'input_template_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_model_dir_name'
 LAG_TIMES_ARG_NAME = 'lag_times_minutes'
 # HIGH_RES_WAVELENGTHS_ARG_NAME = 'high_res_wavelengths_microns'
-# LOW_RES_WAVELENGTHS_ARG_NAME = 'low_res_wavelengths_microns'
+LOW_RES_WAVELENGTHS_ARG_NAME = 'low_res_wavelengths_microns'
 BATCH_SIZE_ARG_NAME = 'num_examples_per_batch'
 MAX_EXAMPLES_PER_CYCLONE_ARG_NAME = 'max_examples_per_cyclone'
 NUM_GRID_ROWS_ARG_NAME = 'num_rows_low_res'
@@ -51,9 +51,9 @@ LAG_TIMES_HELP_STRING = 'List of lag times for predictors (satellite images).'
 # HIGH_RES_WAVELENGTHS_HELP_STRING = (
 #     'List of wavelengths for high-resolution (visible) satellite data.'
 # )
-# LOW_RES_WAVELENGTHS_HELP_STRING = (
-#     'List of wavelengths for low-resolution (infrared) satellite data.'
-# )
+LOW_RES_WAVELENGTHS_HELP_STRING = (
+    'List of wavelengths for low-resolution (infrared) satellite data.'
+)
 BATCH_SIZE_HELP_STRING = 'Batch size before data augmentation.'
 MAX_EXAMPLES_PER_CYCLONE_HELP_STRING = (
     'Max number of examples per cyclone in one batch -- again, before data '
@@ -165,12 +165,10 @@ def add_input_args(parser_object):
     #     '--' + HIGH_RES_WAVELENGTHS_ARG_NAME, type=float, nargs='+',
     #     required=False, default=[], help=HIGH_RES_WAVELENGTHS_HELP_STRING
     # )
-    # parser_object.add_argument(
-    #     '--' + LOW_RES_WAVELENGTHS_ARG_NAME, type=float, nargs='+',
-    #     required=False,
-    #     default=[3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3],
-    #     help=LOW_RES_WAVELENGTHS_HELP_STRING
-    # )
+    parser_object.add_argument(
+        '--' + LOW_RES_WAVELENGTHS_ARG_NAME, type=float, nargs='+',
+        required=True, help=LOW_RES_WAVELENGTHS_HELP_STRING
+    )
     parser_object.add_argument(
         '--' + BATCH_SIZE_ARG_NAME, type=int, required=False, default=8,
         help=BATCH_SIZE_HELP_STRING
