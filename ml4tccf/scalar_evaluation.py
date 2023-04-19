@@ -1393,6 +1393,8 @@ def get_scores_all_variables(
                 i + 1, num_bootstrap_reps
             ))
 
+            epm = ensemble_prediction_matrix
+
             for j in range(num_targets):
                 if TARGET_FIELD_NAMES[j] == OFFSET_DISTANCE_NAME:
                     xy_indices = numpy.array([
@@ -1402,17 +1404,18 @@ def get_scores_all_variables(
 
                     result_table_xarray[CRPS_KEY].values[j, i] = (
                         _get_crps_euclidean(
-                            target_matrix=target_matrix[:, xy_indices],
+                            target_matrix=
+                            target_matrix[:, xy_indices][these_indices, ...],
                             prediction_matrix=
-                            ensemble_prediction_matrix[:, xy_indices, :]
+                            epm[:, xy_indices, :][these_indices, ...]
                         )
                     )
                 else:
                     result_table_xarray[CRPS_KEY].values[j, i] = (
                         _get_crps_one_variable(
-                            target_values=target_matrix[:, j],
-                            prediction_matrix=
-                            ensemble_prediction_matrix[:, j, :],
+                            target_values=
+                            target_matrix[:, j][these_indices, ...],
+                            prediction_matrix=epm[:, j, :][these_indices, ...],
                             is_var_direction=
                             TARGET_FIELD_NAMES[j] == OFFSET_DIRECTION_NAME
                         )
