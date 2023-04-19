@@ -26,7 +26,7 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone
 set TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_rg_data/templates"
 set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_rg_data"
 
-set TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2019/simplified_2bands"
+set TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2019/simplified_11point2microns"
 set VALIDATION_DIR_NAME="${TRAINING_DIR_NAME}"
 
 set FIRST_LAYER_CHANNEL_COUNTS=("08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24")
@@ -63,9 +63,9 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --data_aug_stdev_translation_low_res_px=11.25 \
 --synoptic_times_only=0 \
 --satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
---training_years 2017 2018 2019 \
+--training_years 2017 2018 2019 2020 \
 --satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
---validation_years 2020 \
+--validation_years 2021 \
 --num_epochs=1000 \
---num_training_batches_per_epoch=`expr $num_batches_per_update \* 32` \
---num_validation_batches_per_epoch=32
+--num_training_batches_per_epoch=`expr $num_batches_per_update \* 16` \
+--num_validation_batches_per_epoch=8
