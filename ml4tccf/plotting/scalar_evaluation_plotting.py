@@ -20,6 +20,7 @@ BASIC_TARGET_FIELD_NAMES = [
 ]
 
 BASIC_METRIC_NAMES = [
+    scalar_evaluation.CRPS_KEY,
     scalar_evaluation.MEAN_SQUARED_ERROR_KEY,
     scalar_evaluation.MSE_SKILL_SCORE_KEY,
     scalar_evaluation.MEAN_ABSOLUTE_ERROR_KEY,
@@ -58,6 +59,7 @@ TARGET_FIELD_TO_UNIT_STRING = {
 }
 
 METRIC_TO_UNIT_EXPONENT = {
+    scalar_evaluation.CRPS_KEY: 1,
     scalar_evaluation.MEAN_SQUARED_ERROR_KEY: 2,
     scalar_evaluation.MSE_SKILL_SCORE_KEY: 0,
     scalar_evaluation.MEAN_ABSOLUTE_ERROR_KEY: 1,
@@ -72,6 +74,7 @@ METRIC_TO_UNIT_EXPONENT = {
 }
 
 METRIC_TO_FANCY_NAME = {
+    scalar_evaluation.CRPS_KEY: 'continuous ranked probability score',
     scalar_evaluation.MEAN_SQUARED_ERROR_KEY: 'root mean squared error',
     scalar_evaluation.MSE_SKILL_SCORE_KEY: 'Mean-squared-error skill score',
     scalar_evaluation.MEAN_ABSOLUTE_ERROR_KEY: 'mean absolute error',

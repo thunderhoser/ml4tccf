@@ -1,6 +1,7 @@
 """Evaluation methods for scalar predictions."""
 
 import os
+import copy
 import numpy
 import xarray
 from gewittergefahr.gg_utils import histograms
@@ -38,6 +39,7 @@ OFFSET_DISTANCE_BIN_DIM = 'offset_distance_reliability_bin'
 OFFSET_DIRECTION_BIN_DIM = 'offset_direction_reliability_bin'
 BOOTSTRAP_REP_DIM = 'bootstrap_replicate'
 
+CRPS_KEY = 'continous_rank_probability_score'
 MEAN_SQUARED_ERROR_KEY = 'mean_squared_error'
 MSE_SKILL_SCORE_KEY = 'mse_skill_score'
 MEAN_ABSOLUTE_ERROR_KEY = 'mean_absolute_error'
@@ -159,6 +161,111 @@ def _get_mean_sq_dist_skill_score(target_offset_matrix, predicted_offset_matrix,
     )
 
     return (mean_sq_dist_climo - mean_sq_dist_actual) / mean_sq_dist_climo
+
+
+def _get_crps_one_variable(target_values, prediction_matrix, is_var_direction):
+    """Computes continuous rank prob score (CRPS) for one target variable.
+
+    E = number of examples
+    S = ensemble size
+
+    :param target_values: length-E numpy array of target (actual) values.
+    :param prediction_matrix: E-by-S numpy array of predicted values.
+    :param is_var_direction: Boolean flag.  If True (False), the target variable
+        at hand is direction (anything else).
+    :return: crps: Self-explanatory.
+    """
+
+    if is_var_direction:
+        ensemble_size = prediction_matrix.shape[1]
+        target_matrix = numpy.repeat(
+            numpy.expand_dims(target_values, axis=-1),
+            axis=-1, repeats=ensemble_size
+        )
+        mean_abs_error_by_example = numpy.nanmean(
+            numpy.absolute(get_angular_diffs(target_matrix, prediction_matrix)),
+            axis=-1
+        )
+
+        first_prediction_matrix = numpy.repeat(
+            numpy.expand_dims(prediction_matrix, axis=-1),
+            axis=-1, repeats=ensemble_size
+        )
+        second_prediction_matrix = numpy.repeat(
+            numpy.expand_dims(prediction_matrix, axis=-2),
+            axis=-2, repeats=ensemble_size
+        )
+        prediction_diff_matrix = numpy.absolute(
+            get_angular_diffs(first_prediction_matrix, second_prediction_matrix)
+        )
+        mean_pairwise_diff_by_example = numpy.nanmean(
+            prediction_diff_matrix, axis=(-2, -1)
+        )
+
+        return numpy.nanmean(
+            mean_abs_error_by_example - 0.5 * mean_pairwise_diff_by_example
+        )
+
+    mean_abs_error_by_example = numpy.mean(
+        numpy.absolute(
+            prediction_matrix -
+            numpy.expand_dims(target_values, axis=-1)
+        ),
+        axis=-1
+    )
+
+    prediction_diff_matrix = numpy.absolute(
+        numpy.expand_dims(prediction_matrix, axis=-1) -
+        numpy.expand_dims(prediction_matrix, axis=-2)
+    )
+    mean_pairwise_diff_by_example = numpy.mean(
+        prediction_diff_matrix, axis=(-2, -1)
+    )
+
+    return numpy.mean(
+        mean_abs_error_by_example - 0.5 * mean_pairwise_diff_by_example
+    )
+
+
+def _get_crps_euclidean(target_matrix, prediction_matrix):
+    """Computes Euclidean CRPS.
+
+    E = number of examples
+    S = ensemble size
+
+    :param target_matrix: E-by-2 numpy array of target values.
+        target_matrix[:, 0] contains y-offsets, and target_matrix[:, 1] contains
+        x-offsets.
+    :param prediction_matrix: E-by-2-by-S numpy array of predicted values.
+        prediction_matrix[:, 0, :] contains y-offsets, and
+        prediction_matrix[:, 1, :] contains x-offsets.
+    """
+
+    coord_diff_matrix = (
+        prediction_matrix -
+        numpy.expand_dims(target_matrix, axis=-1)
+    )
+    distance_matrix = numpy.sqrt(
+        coord_diff_matrix[:, 0, :] ** 2 +
+        coord_diff_matrix[:, 1, :] ** 2
+    )
+    mean_dist_error_by_example = numpy.mean(distance_matrix, axis=-1)
+
+    prediction_coord_diff_matrix = numpy.absolute(
+        numpy.expand_dims(prediction_matrix, axis=-1) -
+        numpy.expand_dims(prediction_matrix, axis=-2)
+    )
+    pairwise_distance_matrix = numpy.sqrt(
+        prediction_coord_diff_matrix[:, 0, ...] ** 2 +
+        prediction_coord_diff_matrix[:, 1, ...] ** 2
+    )
+    mean_pairwise_dist_by_example = numpy.mean(
+        pairwise_distance_matrix, axis=(-2, -1)
+    )
+
+    return numpy.mean(
+        mean_dist_error_by_example - 0.5 * mean_pairwise_dist_by_example
+    )
 
 
 def _get_mse_one_variable(target_values, predicted_values, is_var_direction):
@@ -840,14 +947,13 @@ def _get_resolution(
 def get_angular_diffs(target_angles_deg, predicted_angles_deg):
     """Computes angular difference (pred minus target) for each example.
 
-    E = number of examples
-
-    :param target_angles_deg: length-E numpy array of target angles.
-    :param predicted_angles_deg: length-E numpy array of predicted angles.
-    :return: angular_diffs_deg: length-E numpy array of angular differences.
+    :param target_angles_deg: numpy array of target angles.
+    :param predicted_angles_deg: numpy array of predicted angles with the same
+        shape.
+    :return: angular_diffs_deg: numpy array of angular differences with the same
+        shape as the inputs.
     """
 
-    error_checking.assert_is_numpy_array(target_angles_deg, num_dimensions=1)
     error_checking.assert_is_geq_numpy_array(
         target_angles_deg, 0., allow_nan=True
     )
@@ -857,7 +963,7 @@ def get_angular_diffs(target_angles_deg, predicted_angles_deg):
 
     error_checking.assert_is_numpy_array(
         predicted_angles_deg,
-        exact_dimensions=numpy.array([len(target_angles_deg)], dtype=int)
+        exact_dimensions=numpy.array(target_angles_deg.shape, dtype=int)
     )
     error_checking.assert_is_geq_numpy_array(
         predicted_angles_deg, 0., allow_nan=True
@@ -879,9 +985,10 @@ def get_offset_angles(x_offsets, y_offsets):
     """Returns angle of each offset vector.
 
     :param x_offsets: numpy array of x-offsets.
-    :param y_offsets: numpy array of y-offsets with same shape.
-    :return: angles_deg: Angles from [0, 360) deg, measured counterclockwise
-        from the vector pointing due east to the offset vector.
+    :param y_offsets: numpy array of y-offsets with the same shape.
+    :return: angles_deg: Angles from [0, 360) deg, with the same shape as the
+        inputs.  Angles are measured counterclockwise from the vector pointing
+        due east to the offset vector.
     """
 
     error_checking.assert_is_numpy_array_without_nan(x_offsets)
@@ -980,62 +1087,92 @@ def get_scores_all_variables(
         )
 
     num_files = len(prediction_file_names)
-    prediction_tables_xarray = [None] * num_files
+    ensemble_prediction_tables_xarray = [None] * num_files
 
     for i in range(num_files):
         print('Reading data from: "{0:s}"...'.format(prediction_file_names[i]))
-        prediction_tables_xarray[i] = prediction_io.read_file(
+        ensemble_prediction_tables_xarray[i] = prediction_io.read_file(
             prediction_file_names[i]
         )
-        prediction_tables_xarray[i] = prediction_utils.get_ensemble_mean(
-            prediction_tables_xarray[i]
-        )
 
-    prediction_table_xarray = prediction_utils.concat_over_examples(
-        prediction_tables_xarray
+    ensemble_prediction_table_xarray = prediction_utils.concat_over_examples(
+        ensemble_prediction_tables_xarray
     )
-    pt = prediction_table_xarray
+    mean_prediction_table_xarray = prediction_utils.get_ensemble_mean(
+        copy.deepcopy(ensemble_prediction_table_xarray)
+    )
 
-    grid_spacings_km = pt[prediction_utils.GRID_SPACING_KEY].values
-    prediction_matrix = numpy.transpose(numpy.vstack((
+    ept = ensemble_prediction_table_xarray
+    mpt = mean_prediction_table_xarray
+
+    grid_spacings_km = mpt[prediction_utils.GRID_SPACING_KEY].values
+    grid_spacings_km_2d = numpy.expand_dims(grid_spacings_km, axis=-1)
+
+    ensemble_prediction_matrix = numpy.stack((
+        grid_spacings_km_2d *
+        ept[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values,
+        grid_spacings_km_2d *
+        ept[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
+    ), axis=-2)
+
+    mean_prediction_matrix = numpy.transpose(numpy.vstack((
         grid_spacings_km *
-        pt[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[:, 0],
+        mpt[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[:, 0],
         grid_spacings_km *
-        pt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[:, 0]
+        mpt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[:, 0]
     )))
+
     target_matrix = numpy.transpose(numpy.vstack((
-        grid_spacings_km * pt[prediction_utils.ACTUAL_ROW_OFFSET_KEY].values,
-        grid_spacings_km * pt[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
+        grid_spacings_km * mpt[prediction_utils.ACTUAL_ROW_OFFSET_KEY].values,
+        grid_spacings_km * mpt[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
     )))
 
-    prediction_matrix *= KM_TO_METRES
+    ensemble_prediction_matrix *= KM_TO_METRES
+    mean_prediction_matrix *= KM_TO_METRES
     target_matrix *= KM_TO_METRES
 
     # Add vector magnitudes and directions.
-    prediction_matrix = numpy.hstack((
-        prediction_matrix,
+    ensemble_prediction_matrix = numpy.concatenate((
+        ensemble_prediction_matrix,
         numpy.sqrt(
-            prediction_matrix[:, [0]] ** 2 + prediction_matrix[:, [1]] ** 2
+            ensemble_prediction_matrix[:, [0], :] ** 2 +
+            ensemble_prediction_matrix[:, [1], :] ** 2
         )
-    ))
+    ), axis=-2)
 
-    target_matrix = numpy.hstack((
+    target_matrix = numpy.concatenate((
         target_matrix,
         numpy.sqrt(target_matrix[:, [0]] ** 2 + target_matrix[:, [1]] ** 2)
-    ))
+    ), axis=-1)
 
-    prediction_matrix = numpy.hstack((
-        prediction_matrix,
+    ensemble_prediction_matrix = numpy.concatenate((
+        ensemble_prediction_matrix,
         get_offset_angles(
-            x_offsets=prediction_matrix[:, [1]],
-            y_offsets=prediction_matrix[:, [0]]
+            x_offsets=ensemble_prediction_matrix[:, [1], :],
+            y_offsets=ensemble_prediction_matrix[:, [0], :]
         )
-    ))
+    ), axis=-2)
 
-    target_matrix = numpy.hstack((
+    target_matrix = numpy.concatenate((
         target_matrix,
         get_offset_angles(
             x_offsets=target_matrix[:, [1]], y_offsets=target_matrix[:, [0]]
+        )
+    ), axis=-1)
+
+    mean_prediction_matrix = numpy.hstack((
+        mean_prediction_matrix,
+        numpy.sqrt(
+            mean_prediction_matrix[:, [0]] ** 2 +
+            mean_prediction_matrix[:, [1]] ** 2
+        )
+    ))
+
+    mean_prediction_matrix = numpy.hstack((
+        mean_prediction_matrix,
+        get_offset_angles(
+            x_offsets=mean_prediction_matrix[:, [1]],
+            y_offsets=mean_prediction_matrix[:, [0]]
         )
     ))
 
@@ -1044,6 +1181,9 @@ def get_scores_all_variables(
     these_dimensions = (num_targets, num_bootstrap_reps)
     these_dim_keys = (TARGET_FIELD_DIM, BOOTSTRAP_REP_DIM)
     main_data_dict = {
+        CRPS_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
         MEAN_SQUARED_ERROR_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
@@ -1203,7 +1343,7 @@ def get_scores_all_variables(
     )
 
     model_file_name = (
-        prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
+        mean_prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
     )
     model_metafile_name = neural_net.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
@@ -1226,6 +1366,7 @@ def get_scores_all_variables(
     )
 
     num_examples = target_matrix.shape[0]
+    ensemble_size = ensemble_prediction_matrix.shape[-1]
     example_indices = numpy.linspace(
         0, num_examples - 1, num=num_examples, dtype=int
     )
@@ -1238,6 +1379,38 @@ def get_scores_all_variables(
                 example_indices, size=num_examples, replace=True
             )
 
+        if ensemble_size > 1:
+            print((
+                'Computing CRPS for {0:d}th of {1:d} bootstrap replicates...'
+            ).format(
+                i + 1, num_bootstrap_reps
+            ))
+
+            for j in range(num_targets):
+                if TARGET_FIELD_NAMES[j] == OFFSET_DIRECTION_NAME:
+                    xy_indices = numpy.array([
+                        TARGET_FIELD_NAMES.index(X_OFFSET_NAME),
+                        TARGET_FIELD_NAMES.index(Y_OFFSET_NAME)
+                    ], dtype=int)
+
+                    result_table_xarray[CRPS_KEY].values[j, i] = (
+                        _get_crps_euclidean(
+                            target_matrix=target_matrix[:, xy_indices],
+                            prediction_matrix=
+                            ensemble_prediction_matrix[:, xy_indices, :]
+                        )
+                    )
+                else:
+                    result_table_xarray[CRPS_KEY].values[j, i] = (
+                        _get_crps_one_variable(
+                            target_values=target_matrix[:, j],
+                            prediction_matrix=
+                            ensemble_prediction_matrix[:, j, :],
+                            is_var_direction=
+                            TARGET_FIELD_NAMES[j] == OFFSET_DIRECTION_NAME
+                        )
+                    )
+
         print((
             'Computing scores for {0:d}th of {1:d} bootstrap replicates...'
         ).format(
@@ -1246,7 +1419,7 @@ def get_scores_all_variables(
 
         result_table_xarray = _get_scores_one_replicate(
             result_table_xarray=result_table_xarray,
-            full_prediction_matrix=prediction_matrix,
+            full_prediction_matrix=mean_prediction_matrix,
             full_target_matrix=target_matrix,
             replicate_index=i, example_indices_in_replicate=these_indices,
             num_xy_offset_bins=num_xy_offset_bins,
