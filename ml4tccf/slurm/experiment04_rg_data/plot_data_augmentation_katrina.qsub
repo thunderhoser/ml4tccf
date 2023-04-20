@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_data_augmentation_laura2020"
+#SBATCH --job-name="plot_data_augmentation_katrina"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -17,25 +17,25 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_data_augmentation_laura2020_%A.out
+#SBATCH --output=plot_data_augmentation_katrina_%A.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_rg_data"
-set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2019/simplified_11point2microns"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_cira_ir"
+set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tc_project/learning_examples/rotated_with_storm_motion/imputed/normalized"
 
 python3 -u "${CODE_DIR_NAME}/plot_data_augmentation.py" \
 --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
---use_cira_ir_data=0 \
---cyclone_id_string="2020AL13" \
+--use_cira_ir_data=1 \
+--cyclone_id_string="2005AL12" \
 --num_target_times=20 \
---num_grid_rows_low_res=600 \
---num_grid_columns_low_res=600 \
+--num_grid_rows_low_res=290 \
+--num_grid_columns_low_res=450 \
 --num_translations=4 \
---mean_translation_low_res_px=22.5 \
---stdev_translation_low_res_px=11.25 \
---are_data_normalized=0 \
---output_dir_name="${TOP_MODEL_DIR_NAME}/data_aug_plots/2020AL13"
+--mean_translation_low_res_px=12 \
+--stdev_translation_low_res_px=6 \
+--are_data_normalized=1 \
+--output_dir_name="${TOP_MODEL_DIR_NAME}/data_aug_plots/2005AL12"
