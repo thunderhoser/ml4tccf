@@ -207,7 +207,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
-    eval_table_by_wind_listlist = [[None] * num_latitude_bins] * num_wind_bins
+    eval_table_by_wind_listlist = [
+        [None] * num_latitude_bins for _ in range(num_wind_bins)
+    ]
     k = -1
 
     for i in range(num_wind_bins):
