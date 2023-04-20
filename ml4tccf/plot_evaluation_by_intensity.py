@@ -214,6 +214,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         for j in range(num_latitude_bins):
             k += 1
             eval_table_by_wind_listlist[i][j] = eval_table_by_wind[k]
+            print(eval_table_by_wind_listlist[i][j][scalar_evaluation.MEAN_DISTANCE_KEY])
 
     del eval_table_by_wind
 
