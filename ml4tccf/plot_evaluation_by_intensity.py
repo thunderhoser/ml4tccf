@@ -214,9 +214,12 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         for j in range(num_latitude_bins):
             k += 1
             eval_table_by_wind_listlist[i][j] = eval_table_by_wind[k]
-            # print(eval_table_by_wind_listlist[i][j][scalar_evaluation.MEAN_DISTANCE_KEY])
 
     # del eval_table_by_wind
+
+    for i in range(num_wind_bins):
+        for j in range(num_latitude_bins):
+            print(eval_table_by_wind_listlist[i][j][scalar_evaluation.MEAN_DISTANCE_KEY])
 
     latitude_description_strings = [
         '[{0:.1f}, {1:.1f})'.format(l1, l2)
@@ -266,10 +269,10 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                             etbwll[i][j][metric_name].values[k, :]
                         )
 
-                        print(j)
-                        print(i)
-                        print(etbwll[i][j][metric_name].values[k, :])
-                        print('\n\n\n\n\n\n\n\n\n')
+                        # print(j)
+                        # print(i)
+                        # print(etbwll[i][j][metric_name].values[k, :])
+                        # print('\n\n\n\n\n\n\n\n\n')
 
                 if split_into_2d_bins:
                     figure_object = (
