@@ -428,9 +428,9 @@ def _run(input_prediction_file_pattern, xbt_file_name,
                 prediction_latitudes_deg_n <=
                 tc_center_latitude_cutoffs_deg_n[j + 1]
             )
-            these_indices = numpy.logical_and(
+            these_indices = numpy.where(numpy.logical_and(
                 intensity_flags, latitude_flags
-            )[0]
+            ))[0]
 
             this_output_dir_name = '{0:s}/max_wind_kt={1:.1f}-{2:.1f}'.format(
                 top_output_prediction_dir_name,
@@ -472,9 +472,9 @@ def _run(input_prediction_file_pattern, xbt_file_name,
                 prediction_latitudes_deg_n <=
                 tc_center_latitude_cutoffs_deg_n[j + 1]
             )
-            these_indices = numpy.logical_and(
+            these_indices = numpy.where(numpy.logical_and(
                 intensity_flags, latitude_flags
-            )[0]
+            ))[0]
 
             this_output_dir_name = (
                 '{0:s}/min_pressure_mb={1:.1f}-{2:.1f}'
@@ -485,7 +485,7 @@ def _run(input_prediction_file_pattern, xbt_file_name,
 
             if split_into_2d_bins:
                 this_output_dir_name += (
-                    'tc_center_latitude_deg_n={0:.1f}-{1:.1f}'
+                    '_tc_center_latitude_deg_n={0:.1f}-{1:.1f}'
                 ).format(
                     tc_center_latitude_cutoffs_deg_n[j],
                     tc_center_latitude_cutoffs_deg_n[j + 1]
