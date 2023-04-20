@@ -344,7 +344,7 @@ def plot_metric_by_2categories(
     """
 
     # Check input args.
-    error_checking.assert_is_numpy_array(metric_matrix, num_dimensions=3)
+    error_checking.assert_is_numpy_array(metric_matrix, num_dimensions=2)
     error_checking.assert_is_string(y_label_string)
     error_checking.assert_is_string(x_label_string)
 
