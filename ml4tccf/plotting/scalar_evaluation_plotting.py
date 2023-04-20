@@ -336,7 +336,7 @@ def plot_metric_by_2categories(
     """
 
     # Check input args.
-    error_checking.assert_is_numpy_array(metric_matrix, num_dimensions=3)
+    error_checking.assert_is_numpy_array(metric_matrix, num_dimensions=2)
     error_checking.assert_is_string(y_label_string)
     error_checking.assert_is_string(x_label_string)
 
@@ -376,14 +376,22 @@ def plot_metric_by_2categories(
         min_colour_value = 0.
         max_colour_value = 1.
     else:
-        min_colour_value = numpy.nanpercentile(
-            metric_matrix_to_plot, min_colour_percentile
-        )
-        max_colour_value = numpy.nanpercentile(
-            metric_matrix_to_plot, max_colour_percentile
-        )
-
-    max_colour_value = max([max_colour_value, min_colour_value + TOLERANCE])
+        if metric_name == scalar_evaluation.BIAS_KEY:
+            max_colour_value = numpy.nanpercentile(
+                numpy.absolute(metric_matrix_to_plot), max_colour_percentile
+            )
+            max_colour_value = max([max_colour_value, TOLERANCE])
+            min_colour_value = -1 * max_colour_value
+        else:
+            min_colour_value = numpy.nanpercentile(
+                metric_matrix_to_plot, min_colour_percentile
+            )
+            max_colour_value = numpy.nanpercentile(
+                metric_matrix_to_plot, max_colour_percentile
+            )
+            max_colour_value = max([
+                max_colour_value, min_colour_value + TOLERANCE
+            ])
 
     # Do actual stuff.
     figure_object, axes_object = pyplot.subplots(
@@ -399,10 +407,10 @@ def plot_metric_by_2categories(
         vmin=min_colour_value, vmax=max_colour_value
     )
 
-    x_coords = 0.5 + numpy.linspace(
+    x_coords = numpy.linspace(
         0, num_grid_columns - 1, num=num_grid_columns, dtype=float
     )
-    y_coords = 0.5 + numpy.linspace(
+    y_coords = numpy.linspace(
         0, num_grid_rows - 1, num=num_grid_rows, dtype=float
     )
 
@@ -414,7 +422,7 @@ def plot_metric_by_2categories(
     axes_object.set_yticklabels(y_category_description_strings)
     axes_object.set_ylabel(y_label_string)
 
-    title_string = '{0:s}{1:s}{2:s}'.format(
+    title_string = '{0:s}{1:s}\n{2:s}'.format(
         METRIC_TO_FANCY_NAME[metric_name][0].upper(),
         METRIC_TO_FANCY_NAME[metric_name][1:],
         TARGET_FIELD_TO_FANCY_NAME[target_field_name]
@@ -524,7 +532,7 @@ def plot_metric_by_category(
     axes_object.set_xticklabels(category_description_strings, rotation=90.)
     axes_object.set_xlabel(x_label_string)
 
-    title_string = '{0:s}{1:s}{2:s}'.format(
+    title_string = '{0:s}{1:s}\n{2:s}'.format(
         METRIC_TO_FANCY_NAME[metric_name][0].upper(),
         METRIC_TO_FANCY_NAME[metric_name][1:],
         TARGET_FIELD_TO_FANCY_NAME[target_field_name]

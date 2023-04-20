@@ -199,7 +199,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
-    eval_table_by_wind_listlist = [[None] * num_latitude_bins] * num_wind_bins
+    eval_table_by_wind_listlist = [
+        [None] * num_latitude_bins for _ in range(num_wind_bins)
+    ]
     k = -1
 
     for i in range(num_wind_bins):
@@ -260,7 +262,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 if split_into_2d_bins:
                     figure_object = (
                         scalar_eval_plotting.plot_metric_by_2categories(
-                            metric_matrix=metric_matrix,
+                            metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                             metric_name=metric_name,
                             target_field_name=target_field_name,
                             y_category_description_strings=
@@ -317,7 +319,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             if split_into_2d_bins:
                 figure_object = (
                     scalar_eval_plotting.plot_metric_by_2categories(
-                        metric_matrix=metric_matrix,
+                        metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                         metric_name=metric_name,
                         target_field_name=
                         scalar_evaluation.OFFSET_DISTANCE_NAME,
@@ -384,9 +386,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
-    eval_table_by_pressure_listlist = (
-        [[None] * num_latitude_bins] * num_pressure_bins
-    )
+    eval_table_by_pressure_listlist = [
+        [None] * num_latitude_bins for _ in range(num_pressure_bins)
+    ]
     k = -1
 
     for i in range(num_pressure_bins):
@@ -434,7 +436,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             if split_into_2d_bins:
                 figure_object = (
                     scalar_eval_plotting.plot_metric_by_2categories(
-                        metric_matrix=metric_matrix,
+                        metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                         metric_name=metric_name,
                         target_field_name=target_field_name,
                         y_category_description_strings=
@@ -488,7 +490,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         if split_into_2d_bins:
             figure_object = (
                 scalar_eval_plotting.plot_metric_by_2categories(
-                    metric_matrix=metric_matrix,
+                    metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                     metric_name=metric_name,
                     target_field_name=
                     scalar_evaluation.OFFSET_DISTANCE_NAME,
