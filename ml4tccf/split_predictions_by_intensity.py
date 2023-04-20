@@ -317,10 +317,6 @@ def _run(input_prediction_file_pattern, xbt_file_name,
                 'This script does not yet work for gridded predictions.'
             )
 
-        prediction_tables_xarray[i] = scalar_prediction_utils.get_ensemble_mean(
-            prediction_tables_xarray[i]
-        )
-
     prediction_table_xarray = scalar_prediction_utils.concat_over_examples(
         prediction_tables_xarray
     )
