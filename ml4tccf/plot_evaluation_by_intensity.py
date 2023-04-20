@@ -207,6 +207,13 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
+    print(eval_table_by_wind)
+    print('\n\n\n\n\n\n\n')
+    print(numpy.array(eval_table_by_wind))
+    print('\n\n\n\n\n\n\n')
+    print(numpy.array(eval_table_by_wind).shape)
+    print('\n\n\n\n\n\n\n')
+
     eval_table_by_wind_matrix = numpy.reshape(
         numpy.array(eval_table_by_wind),
         (num_latitude_bins, num_wind_bins),
