@@ -589,12 +589,17 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
 
     for i in range(num_examples):
-        output_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
+        this_index = i - numpy.where(
+            target_times_unix_sec == target_times_unix_sec[i]
+        )[0][0]
+
+        output_file_name = '{0:s}/{1:s}_{2:s}_{3:03d}th.jpg'.format(
             output_dir_name,
             cyclone_id_string,
             time_conversion.unix_sec_to_string(
                 target_times_unix_sec[i], TIME_FORMAT
-            )
+            ),
+            this_index
         )
 
         _plot_data_one_example(
