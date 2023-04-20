@@ -863,9 +863,10 @@ def _read_satellite_data_1cyclone_cira_ir(
 
 
 def _read_satellite_data_1cyclone_simple(
-        input_file_names, lag_times_minutes, num_rows_low_res,
-        num_columns_low_res, return_coords, target_times_unix_sec=None,
-        num_target_times=None, synoptic_times_only=None):
+        input_file_names, lag_times_minutes, low_res_wavelengths_microns,
+        num_rows_low_res, num_columns_low_res, return_coords,
+        target_times_unix_sec=None, num_target_times=None,
+        synoptic_times_only=None):
     """Reads satellite data for one cyclone.
 
     :param input_file_names: See doc for `_read_satellite_data_one_cyclone`.
@@ -929,6 +930,12 @@ def _read_satellite_data_1cyclone_simple(
                 end_times_unix_sec=
                 desired_file_to_times_dict[desired_file_names[i]][1]
             )
+        )
+
+        orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
+            satellite_table_xarray=orig_satellite_tables_xarray[i],
+            wavelengths_to_keep_microns=low_res_wavelengths_microns,
+            for_high_res=False
         )
 
         orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
@@ -3094,6 +3101,7 @@ def data_generator_simple(option_dict):
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     years = option_dict[YEARS_KEY]
     lag_times_minutes = option_dict[LAG_TIMES_KEY]
+    low_res_wavelengths_microns = option_dict[LOW_RES_WAVELENGTHS_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
     max_examples_per_cyclone = option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
     num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
@@ -3155,6 +3163,7 @@ def data_generator_simple(option_dict):
             data_dict = _read_satellite_data_1cyclone_simple(
                 input_file_names=satellite_file_names_by_cyclone[cyclone_index],
                 lag_times_minutes=lag_times_minutes,
+                low_res_wavelengths_microns=low_res_wavelengths_microns,
                 num_rows_low_res=num_rows_low_res,
                 num_columns_low_res=num_columns_low_res,
                 return_coords=False,

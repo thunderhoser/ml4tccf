@@ -41,7 +41,6 @@ set template_file_name="${TEMPLATE_DIR_NAME}/num-first-layer-channels=${num_firs
 set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-first-layer-channels=${num_first_layer_channels}_num-batches-per-update=${num_batches_per_update}_max-examples-per-cyclone=${max_examples_per_cyclone}"
 echo $output_dir_name
 
-# --low_res_wavelengths_microns 3.9 11.2 \
 # --sentinel_value=-10 \
 # --lag_time_tolerance_for_training_sec=0 \
 # --max_num_missing_lag_times_for_training=0 \
@@ -54,6 +53,7 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --input_template_file_name="${template_file_name}" \
 --output_model_dir_name="${output_dir_name}" \
 --lag_times_minutes 0 60 120 180 240 \
+--low_res_wavelengths_microns 11.2 \
 --num_examples_per_batch=21 \
 --max_examples_per_cyclone=${max_examples_per_cyclone} \
 --num_rows_low_res=600 \

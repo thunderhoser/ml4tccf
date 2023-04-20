@@ -17,7 +17,8 @@ INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 
 
-def _run(template_file_name, output_dir_name, lag_times_minutes,
+def _run(template_file_name, output_dir_name,
+         lag_times_minutes, low_res_wavelengths_microns,
          num_examples_per_batch, max_examples_per_cyclone,
          num_rows_low_res, num_columns_low_res, data_aug_num_translations,
          data_aug_mean_translation_low_res_px,
@@ -35,6 +36,7 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
     :param template_file_name: See documentation at top of training_args.py.
     :param output_dir_name: Same.
     :param lag_times_minutes: Same.
+    :param low_res_wavelengths_microns: Same.
     :param num_examples_per_batch: Same.
     :param max_examples_per_cyclone: Same.
     :param num_rows_low_res: Same.
@@ -59,12 +61,6 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
         num_rows_low_res = None
     if num_columns_low_res <= 0:
         num_columns_low_res = None
-
-    # TODO(thunderhoser): This is a HACK.
-    if '2bands' in satellite_dir_name_for_training:
-        low_res_wavelengths_microns = numpy.array([3.9, 11.2])
-    else:
-        low_res_wavelengths_microns = numpy.array([11.2])
 
     training_option_dict = {
         neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name_for_training,
@@ -143,6 +139,12 @@ if __name__ == '__main__':
         lag_times_minutes=numpy.array(
             getattr(INPUT_ARG_OBJECT, training_args.LAG_TIMES_ARG_NAME),
             dtype=int
+        ),
+        low_res_wavelengths_microns=numpy.array(
+            getattr(
+                INPUT_ARG_OBJECT, training_args.LOW_RES_WAVELENGTHS_ARG_NAME
+            ),
+            dtype=float
         ),
         num_examples_per_batch=getattr(
             INPUT_ARG_OBJECT, training_args.BATCH_SIZE_ARG_NAME
