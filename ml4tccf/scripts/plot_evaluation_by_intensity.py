@@ -199,11 +199,14 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
-    eval_table_by_wind_matrix = numpy.reshape(
-        numpy.array(eval_table_by_wind),
-        (num_latitude_bins, num_wind_bins),
-        order='F'
-    )
+    eval_table_by_wind_listlist = [[None] * num_latitude_bins] * num_wind_bins
+    k = -1
+
+    for i in range(num_wind_bins):
+        for j in range(num_latitude_bins):
+            k += 1
+            eval_table_by_wind_listlist[i][j] = eval_table_by_wind[k]
+
     del eval_table_by_wind
 
     latitude_description_strings = [
@@ -232,7 +235,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             max_wind_cutoffs_kt[-2]
         )
 
-        etbwm = eval_table_by_wind_matrix
+        etbwll = eval_table_by_wind_listlist
 
         for metric_name in scalar_eval_plotting.BASIC_METRIC_NAMES:
             for target_field_name in scalar_eval_plotting.BASIC_TARGET_FIELD_NAMES:
@@ -244,14 +247,14 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 for j in range(num_latitude_bins):
                     for i in range(num_wind_bins):
                         k = numpy.where(
-                            etbwm[j, i].coords[
+                            etbwll[i][j].coords[
                                 scalar_evaluation.TARGET_FIELD_DIM
                             ].values
                             == target_field_name
                         )[0][0]
 
                         metric_matrix[j, i, :] = (
-                            etbwm[j, i][metric_name].values[k, :]
+                            etbwll[i][j][metric_name].values[k, :]
                         )
 
                 if split_into_2d_bins:
@@ -309,7 +312,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
             for j in range(num_latitude_bins):
                 for i in range(num_wind_bins):
-                    metric_matrix[j, i, :] = etbwm[j, i][metric_name].values[:]
+                    metric_matrix[j, i, :] = etbwll[i][j][metric_name].values[:]
 
             if split_into_2d_bins:
                 figure_object = (
@@ -381,11 +384,16 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
-    eval_table_by_pressure_matrix = numpy.reshape(
-        numpy.array(eval_table_by_pressure),
-        (num_latitude_bins, num_pressure_bins),
-        order='F'
+    eval_table_by_pressure_listlist = (
+        [[None] * num_latitude_bins] * num_pressure_bins
     )
+    k = -1
+
+    for i in range(num_pressure_bins):
+        for j in range(num_latitude_bins):
+            k += 1
+            eval_table_by_pressure_listlist[i][j] = eval_table_by_pressure[k]
+
     del eval_table_by_pressure
 
     pressure_description_strings = [
@@ -401,7 +409,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         min_pressure_cutoffs_mb[-2]
     )
 
-    etbpm = eval_table_by_pressure_matrix
+    etbpll = eval_table_by_pressure_listlist
 
     for metric_name in scalar_eval_plotting.BASIC_METRIC_NAMES:
         for target_field_name in scalar_eval_plotting.BASIC_TARGET_FIELD_NAMES:
@@ -413,14 +421,14 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             for j in range(num_latitude_bins):
                 for i in range(num_pressure_bins):
                     k = numpy.where(
-                        etbpm[j, i].coords[
+                        etbpll[i][j].coords[
                             scalar_evaluation.TARGET_FIELD_DIM
                         ].values
                         == target_field_name
                     )[0][0]
 
                     metric_matrix[j, i, :] = (
-                        etbpm[j, i][metric_name].values[k, :]
+                        etbpll[i][j][metric_name].values[k, :]
                     )
 
             if split_into_2d_bins:
@@ -475,7 +483,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
         for j in range(num_latitude_bins):
             for i in range(num_pressure_bins):
-                metric_matrix[j, i, :] = etbpm[j, i][metric_name].values[:]
+                metric_matrix[j, i, :] = etbpll[i][j][metric_name].values[:]
 
         if split_into_2d_bins:
             figure_object = (
