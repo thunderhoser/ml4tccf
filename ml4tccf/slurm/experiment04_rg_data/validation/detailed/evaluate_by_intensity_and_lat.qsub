@@ -12,7 +12,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=01:00:00
-#SBATCH --array=40
+#SBATCH --array=39
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -25,7 +25,7 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_cira_ir"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_rg_data"
 
 set FIRST_LAYER_CHANNEL_COUNTS=("08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24")
 set BATCHES_PER_UPDATE_COUNTS=("01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05")

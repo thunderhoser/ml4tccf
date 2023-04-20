@@ -62,6 +62,8 @@ CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 NUM_TARGET_TIMES_ARG_NAME = 'num_target_times'
 NUM_GRID_ROWS_ARG_NAME = 'num_grid_rows_low_res'
 NUM_GRID_COLUMNS_ARG_NAME = 'num_grid_columns_low_res'
+LOW_RES_WAVELENGTHS_ARG_NAME = 'low_res_wavelengths_microns'
+HIGH_RES_WAVELENGTHS_ARG_NAME = 'high_res_wavelengths_microns'
 NUM_TRANSLATIONS_ARG_NAME = 'num_translations'
 MEAN_TRANSLATION_ARG_NAME = 'mean_translation_low_res_px'
 STDEV_TRANSLATION_ARG_NAME = 'stdev_translation_low_res_px'
@@ -93,6 +95,16 @@ NUM_GRID_ROWS_HELP_STRING = (
 )
 NUM_GRID_COLUMNS_HELP_STRING = (
     'Number of grid columns to retain in low-resolution (infrared) data.'
+)
+LOW_RES_WAVELENGTHS_HELP_STRING = (
+    'Low-resolution wavelengths to plot.  To use the default (depending on '
+    'whether the data source is CIRA IR or Robert/Galina, leave this argument '
+    'alone.'
+)
+HIGH_RES_WAVELENGTHS_HELP_STRING = (
+    'High-resolution wavelengths to plot.  To use the default (depending on '
+    'whether the data source is CIRA IR or Robert/Galina, leave this argument '
+    'alone.'
 )
 NUM_TRANSLATIONS_HELP_STRING = (
     'Number of translations (i.e., augmentations) for each cyclone.'
@@ -137,6 +149,14 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_GRID_COLUMNS_ARG_NAME, type=int, required=True,
     help=NUM_GRID_COLUMNS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + LOW_RES_WAVELENGTHS_ARG_NAME, type=float, required=False,
+    default=[-1], help=LOW_RES_WAVELENGTHS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + HIGH_RES_WAVELENGTHS_ARG_NAME, type=float, required=False,
+    default=[-1], help=HIGH_RES_WAVELENGTHS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_TRANSLATIONS_ARG_NAME, type=int, required=False, default=1,
@@ -504,6 +524,7 @@ def _plot_data_one_example(
 
 def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
          num_target_times, num_grid_rows_low_res, num_grid_columns_low_res,
+         low_res_wavelengths_microns, high_res_wavelengths_microns,
          num_translations, mean_translation_low_res_px,
          stdev_translation_low_res_px, are_data_normalized, output_dir_name):
     """Plots data augmentation.
@@ -516,6 +537,8 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     :param num_target_times: Same.
     :param num_grid_rows_low_res: Same.
     :param num_grid_columns_low_res: Same.
+    :param low_res_wavelengths_microns: Same.
+    :param high_res_wavelengths_microns: Same.
     :param num_translations: Same.
     :param mean_translation_low_res_px: Same.
     :param stdev_translation_low_res_px: Same.
@@ -523,12 +546,29 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     :param output_dir_name: Same.
     """
 
-    if use_cira_ir_data:
-        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS
-        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS
-    else:
-        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_RG_MICRONS
-        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_RG_MICRONS
+    if (
+            len(low_res_wavelengths_microns) == 1
+            and low_res_wavelengths_microns[0] < 0
+    ):
+        low_res_wavelengths_microns = None
+
+    if (
+            len(high_res_wavelengths_microns) == 1
+            and high_res_wavelengths_microns[0] < 0
+    ):
+        high_res_wavelengths_microns = None
+
+    if low_res_wavelengths_microns is None:
+        low_res_wavelengths_microns = (
+            LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS if use_cira_ir_data
+            else LOW_RES_WAVELENGTHS_RG_MICRONS
+        )
+
+    if high_res_wavelengths_microns is None:
+        high_res_wavelengths_microns = (
+            HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS if use_cira_ir_data
+            else HIGH_RES_WAVELENGTHS_RG_MICRONS
+        )
 
     option_dict = {
         neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name,
@@ -636,6 +676,14 @@ if __name__ == '__main__':
         num_grid_rows_low_res=getattr(INPUT_ARG_OBJECT, NUM_GRID_ROWS_ARG_NAME),
         num_grid_columns_low_res=getattr(
             INPUT_ARG_OBJECT, NUM_GRID_COLUMNS_ARG_NAME
+        ),
+        low_res_wavelengths_microns=numpy.array(
+            getattr(INPUT_ARG_OBJECT, LOW_RES_WAVELENGTHS_ARG_NAME),
+            dtype=float
+        ),
+        high_res_wavelengths_microns=numpy.array(
+            getattr(INPUT_ARG_OBJECT, HIGH_RES_WAVELENGTHS_ARG_NAME),
+            dtype=float
         ),
         num_translations=getattr(INPUT_ARG_OBJECT, NUM_TRANSLATIONS_ARG_NAME),
         mean_translation_low_res_px=getattr(
