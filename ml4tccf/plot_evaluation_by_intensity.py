@@ -23,6 +23,11 @@ import split_predictions_by_intensity as split_predictions
 MAX_WIND_KT = 250.
 MAX_PRESSURE_MB = 1030.
 
+BIAS_COLOUR_MAP_NAME = 'seismic'
+MAIN_COLOUR_MAP_NAME = 'viridis'
+MIN_COLOUR_PERCENTILE = 1.
+MAX_COLOUR_PERCENTILE = 99.
+
 FIGURE_RESOLUTION_DPI = 300
 
 MAX_WIND_CUTOFFS_ARG_NAME = 'max_wind_cutoffs_kt'
@@ -269,7 +274,13 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                             x_category_description_strings=
                             wind_description_strings,
                             x_label_string='Max sustained wind (kt)',
-                            confidence_level=confidence_level
+                            colour_map_name=(
+                                BIAS_COLOUR_MAP_NAME
+                                if metric_name == scalar_evaluation.BIAS_KEY
+                                else MAIN_COLOUR_MAP_NAME
+                            ),
+                            min_colour_percentile=MIN_COLOUR_PERCENTILE,
+                            max_colour_percentile=MAX_COLOUR_PERCENTILE
                         )[0]
                     )
                 else:
@@ -321,7 +332,13 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         x_category_description_strings=
                         wind_description_strings,
                         x_label_string='Max sustained wind (kt)',
-                        confidence_level=confidence_level
+                        colour_map_name=(
+                            BIAS_COLOUR_MAP_NAME
+                            if metric_name == scalar_evaluation.BIAS_KEY
+                            else MAIN_COLOUR_MAP_NAME
+                        ),
+                        min_colour_percentile=MIN_COLOUR_PERCENTILE,
+                        max_colour_percentile=MAX_COLOUR_PERCENTILE
                     )[0]
                 )
             else:
@@ -426,7 +443,13 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         x_category_description_strings=
                         pressure_description_strings,
                         x_label_string='Minimum central pressure (mb)',
-                        confidence_level=confidence_level
+                        colour_map_name=(
+                            BIAS_COLOUR_MAP_NAME
+                            if metric_name == scalar_evaluation.BIAS_KEY
+                            else MAIN_COLOUR_MAP_NAME
+                        ),
+                        min_colour_percentile=MIN_COLOUR_PERCENTILE,
+                        max_colour_percentile=MAX_COLOUR_PERCENTILE
                     )[0]
                 )
             else:
@@ -475,7 +498,13 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     x_category_description_strings=
                     pressure_description_strings,
                     x_label_string='Minimum central pressure (mb)',
-                    confidence_level=confidence_level
+                    colour_map_name=(
+                        BIAS_COLOUR_MAP_NAME
+                        if metric_name == scalar_evaluation.BIAS_KEY
+                        else MAIN_COLOUR_MAP_NAME
+                    ),
+                    min_colour_percentile=MIN_COLOUR_PERCENTILE,
+                    max_colour_percentile=MAX_COLOUR_PERCENTILE
                 )[0]
             )
         else:
