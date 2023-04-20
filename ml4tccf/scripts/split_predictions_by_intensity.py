@@ -31,6 +31,7 @@ INPUT_PREDICTION_FILES_ARG_NAME = 'input_prediction_file_pattern'
 XBT_FILE_ARG_NAME = 'input_extended_best_track_file_name'
 MAX_WIND_CUTOFFS_ARG_NAME = 'max_wind_cutoffs_kt'
 MIN_PRESSURE_CUTOFFS_ARG_NAME = 'min_pressure_cutoffs_mb'
+LATITUDE_CUTOFFS_ARG_NAME = 'tc_center_latitude_cutoffs_deg_n'
 OUTPUT_DIR_ARG_NAME = 'output_prediction_dir_name'
 
 INPUT_PREDICTION_FILES_HELP_STRING = (
@@ -50,6 +51,12 @@ MIN_PRESSURE_CUTOFFS_HELP_STRING = (
     'Category cutoffs for min surface pressure (one measure of intensity).  '
     'Please leave 0 and infinity out of this list, as they will be added '
     'automatically.'
+)
+LATITUDE_CUTOFFS_HELP_STRING = (
+    '[use ONLY if you want to split predictions into 2-D bins, accounting for '
+    'both intensity/latitude] Category cutoffs for actual TC-center latitude '
+    '(deg north).  Please leave -inf and +inf out of this list, as they will '
+    'be added automatically.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of top-level output directory.  Within this directory, one '
@@ -75,6 +82,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + MIN_PRESSURE_CUTOFFS_ARG_NAME, type=float, nargs='+', required=False,
     default=[], help=MIN_PRESSURE_CUTOFFS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + LATITUDE_CUTOFFS_ARG_NAME, type=float, nargs='+', required=False,
+    default=[], help=LATITUDE_CUTOFFS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -141,29 +152,25 @@ def _write_scalar_predictions_1category(prediction_table_1cat_xarray,
         )
 
 
-def _run(input_prediction_file_pattern, xbt_file_name,
-         max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
-         top_output_prediction_dir_name):
-    """Splits predictions by TC intensity.
+def check_input_args(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
+                     tc_center_latitude_cutoffs_deg_n):
+    """Checks input arguments.
 
-    This is effectively the main method.
-
-    :param input_prediction_file_pattern: See documentation at top of file.
-    :param xbt_file_name: Same.
-    :param max_wind_cutoffs_kt: Same.
+    :param max_wind_cutoffs_kt: See documentation at top of file.
     :param min_pressure_cutoffs_mb: Same.
-    :param top_output_prediction_dir_name: Same.
-    :raises: ValueError: if no prediction files could be found.
-    :raises: ValueError: if an example in the prediction files cannot be found
-        in extended best-track data.
+    :param tc_center_latitude_cutoffs_deg_n: Same.
+    :return: max_wind_cutoffs_kt: Same as input but with end values (0 and inf).
+    :return: min_pressure_cutoffs_mb: Same as input but with end values (0 and
+        inf).
+    :return: tc_center_latitude_cutoffs_deg_n: Same as input but with end values
+        (-inf and +inf).
     """
 
-    # Check input args.
     if len(max_wind_cutoffs_kt) > 0:
         max_wind_cutoffs_kt = number_rounding.round_to_nearest(
             max_wind_cutoffs_kt, 0.1
         )
-        max_wind_cutoffs_kt = numpy.sort(max_wind_cutoffs_kt)
+        # max_wind_cutoffs_kt = numpy.sort(max_wind_cutoffs_kt)
 
         error_checking.assert_is_greater_numpy_array(max_wind_cutoffs_kt, 0.)
         error_checking.assert_is_leq_numpy_array(
@@ -183,7 +190,7 @@ def _run(input_prediction_file_pattern, xbt_file_name,
         min_pressure_cutoffs_mb = number_rounding.round_to_nearest(
             min_pressure_cutoffs_mb, 0.1
         )
-        min_pressure_cutoffs_mb = numpy.sort(min_pressure_cutoffs_mb)
+        # min_pressure_cutoffs_mb = numpy.sort(min_pressure_cutoffs_mb)
 
         error_checking.assert_is_greater_numpy_array(
             min_pressure_cutoffs_mb, 0.
@@ -204,6 +211,66 @@ def _run(input_prediction_file_pattern, xbt_file_name,
     error_checking.assert_is_greater(
         len(max_wind_cutoffs_kt) + len(min_pressure_cutoffs_mb), 0
     )
+
+    if len(tc_center_latitude_cutoffs_deg_n) > 0:
+        tc_center_latitude_cutoffs_deg_n = number_rounding.round_to_nearest(
+            tc_center_latitude_cutoffs_deg_n, 0.1
+        )
+        # tc_center_latitude_cutoffs_deg_n = numpy.sort(
+        #     tc_center_latitude_cutoffs_deg_n
+        # )
+
+        error_checking.assert_is_greater_numpy_array(
+            tc_center_latitude_cutoffs_deg_n, -90.
+        )
+        error_checking.assert_is_less_than_numpy_array(
+            tc_center_latitude_cutoffs_deg_n, 90.
+        )
+        error_checking.assert_is_greater_numpy_array(
+            numpy.diff(tc_center_latitude_cutoffs_deg_n), 0.
+        )
+
+    tc_center_latitude_cutoffs_deg_n = numpy.concatenate((
+        numpy.array([-numpy.inf]),
+        tc_center_latitude_cutoffs_deg_n,
+        numpy.array([numpy.inf])
+    ))
+
+    return (
+        max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
+        tc_center_latitude_cutoffs_deg_n
+    )
+
+
+def _run(input_prediction_file_pattern, xbt_file_name,
+         max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
+         tc_center_latitude_cutoffs_deg_n, top_output_prediction_dir_name):
+    """Splits predictions by TC intensity.
+
+    This is effectively the main method.
+
+    :param input_prediction_file_pattern: See documentation at top of file.
+    :param xbt_file_name: Same.
+    :param max_wind_cutoffs_kt: Same.
+    :param min_pressure_cutoffs_mb: Same.
+    :param tc_center_latitude_cutoffs_deg_n: Same.
+    :param top_output_prediction_dir_name: Same.
+    :raises: ValueError: if no prediction files could be found.
+    :raises: ValueError: if an example in the prediction files cannot be found
+        in extended best-track data.
+    """
+
+    (
+        max_wind_cutoffs_kt,
+        min_pressure_cutoffs_mb,
+        tc_center_latitude_cutoffs_deg_n
+    ) = check_input_args(
+        max_wind_cutoffs_kt=max_wind_cutoffs_kt,
+        min_pressure_cutoffs_mb=min_pressure_cutoffs_mb,
+        tc_center_latitude_cutoffs_deg_n=tc_center_latitude_cutoffs_deg_n
+    )
+
+    split_into_2d_bins = len(tc_center_latitude_cutoffs_deg_n) > 2
 
     # Read files.
 
@@ -267,6 +334,9 @@ def _run(input_prediction_file_pattern, xbt_file_name,
 
     # Find intensity corresponding to each prediction.
     num_examples = len(pt[scalar_prediction_utils.TARGET_TIME_KEY].values)
+    prediction_latitudes_deg_n = (
+        pt[scalar_prediction_utils.ACTUAL_CENTER_LATITUDE_KEY].values
+    )
     prediction_max_winds_m_s01 = numpy.full(num_examples, numpy.nan)
     prediction_min_pressures_pa = numpy.full(num_examples, numpy.nan)
 
@@ -347,54 +417,94 @@ def _run(input_prediction_file_pattern, xbt_file_name,
     prediction_min_pressures_mb = PASCALS_TO_MB * prediction_min_pressures_pa
 
     for i in range(len(max_wind_cutoffs_kt) - 1):
-        these_indices = numpy.where(numpy.logical_and(
-            prediction_max_winds_kt >= max_wind_cutoffs_kt[i],
-            prediction_max_winds_kt <= max_wind_cutoffs_kt[i + 1]
-        ))[0]
+        for j in range(len(tc_center_latitude_cutoffs_deg_n) - 1):
+            intensity_flags = numpy.logical_and(
+                prediction_max_winds_kt >= max_wind_cutoffs_kt[i],
+                prediction_max_winds_kt <= max_wind_cutoffs_kt[i + 1]
+            )
+            latitude_flags = numpy.logical_and(
+                prediction_latitudes_deg_n >=
+                tc_center_latitude_cutoffs_deg_n[j],
+                prediction_latitudes_deg_n <=
+                tc_center_latitude_cutoffs_deg_n[j + 1]
+            )
+            these_indices = numpy.logical_and(
+                intensity_flags, latitude_flags
+            )[0]
 
-        this_output_dir_name = '{0:s}/max_wind_kt={1:.1f}-{2:.1f}'.format(
-            top_output_prediction_dir_name,
-            max_wind_cutoffs_kt[i], max_wind_cutoffs_kt[i + 1]
-        )
-        file_system_utils.mkdir_recursive_if_necessary(
-            directory_name=this_output_dir_name
-        )
+            this_output_dir_name = '{0:s}/max_wind_kt={1:.1f}-{2:.1f}'.format(
+                top_output_prediction_dir_name,
+                max_wind_cutoffs_kt[i], max_wind_cutoffs_kt[i + 1]
+            )
 
-        if len(these_indices) == 0:
-            continue
+            if split_into_2d_bins:
+                this_output_dir_name += (
+                    'tc_center_latitude_deg_n={0:.1f}-{1:.1f}'
+                ).format(
+                    tc_center_latitude_cutoffs_deg_n[j],
+                    tc_center_latitude_cutoffs_deg_n[j + 1]
+                )
 
-        _write_scalar_predictions_1category(
-            prediction_table_1cat_xarray=prediction_table_xarray.isel(
-                indexers=
-                {scalar_prediction_utils.EXAMPLE_DIM_KEY: these_indices}
-            ),
-            output_dir_name_1cat=this_output_dir_name
-        )
+            file_system_utils.mkdir_recursive_if_necessary(
+                directory_name=this_output_dir_name
+            )
+
+            if len(these_indices) == 0:
+                continue
+
+            _write_scalar_predictions_1category(
+                prediction_table_1cat_xarray=prediction_table_xarray.isel(
+                    indexers=
+                    {scalar_prediction_utils.EXAMPLE_DIM_KEY: these_indices}
+                ),
+                output_dir_name_1cat=this_output_dir_name
+            )
 
     for i in range(len(min_pressure_cutoffs_mb) - 1):
-        these_indices = numpy.where(numpy.logical_and(
-            prediction_min_pressures_mb >= min_pressure_cutoffs_mb[i],
-            prediction_min_pressures_mb <= min_pressure_cutoffs_mb[i + 1]
-        ))[0]
+        for j in range(len(tc_center_latitude_cutoffs_deg_n) - 1):
+            intensity_flags = numpy.logical_and(
+                prediction_min_pressures_mb >= min_pressure_cutoffs_mb[i],
+                prediction_min_pressures_mb <= min_pressure_cutoffs_mb[i + 1]
+            )
+            latitude_flags = numpy.logical_and(
+                prediction_latitudes_deg_n >=
+                tc_center_latitude_cutoffs_deg_n[j],
+                prediction_latitudes_deg_n <=
+                tc_center_latitude_cutoffs_deg_n[j + 1]
+            )
+            these_indices = numpy.logical_and(
+                intensity_flags, latitude_flags
+            )[0]
 
-        this_output_dir_name = '{0:s}/min_pressure_mb={1:.1f}-{2:.1f}'.format(
-            top_output_prediction_dir_name,
-            min_pressure_cutoffs_mb[i], min_pressure_cutoffs_mb[i + 1]
-        )
-        file_system_utils.mkdir_recursive_if_necessary(
-            directory_name=this_output_dir_name
-        )
+            this_output_dir_name = (
+                '{0:s}/min_pressure_mb={1:.1f}-{2:.1f}'
+            ).format(
+                top_output_prediction_dir_name,
+                min_pressure_cutoffs_mb[i], min_pressure_cutoffs_mb[i + 1]
+            )
 
-        if len(these_indices) == 0:
-            continue
+            if split_into_2d_bins:
+                this_output_dir_name += (
+                    'tc_center_latitude_deg_n={0:.1f}-{1:.1f}'
+                ).format(
+                    tc_center_latitude_cutoffs_deg_n[j],
+                    tc_center_latitude_cutoffs_deg_n[j + 1]
+                )
 
-        _write_scalar_predictions_1category(
-            prediction_table_1cat_xarray=prediction_table_xarray.isel(
-                indexers=
-                {scalar_prediction_utils.EXAMPLE_DIM_KEY: these_indices}
-            ),
-            output_dir_name_1cat=this_output_dir_name
-        )
+            file_system_utils.mkdir_recursive_if_necessary(
+                directory_name=this_output_dir_name
+            )
+
+            if len(these_indices) == 0:
+                continue
+
+            _write_scalar_predictions_1category(
+                prediction_table_1cat_xarray=prediction_table_xarray.isel(
+                    indexers=
+                    {scalar_prediction_utils.EXAMPLE_DIM_KEY: these_indices}
+                ),
+                output_dir_name_1cat=this_output_dir_name
+            )
 
 
 if __name__ == '__main__':
@@ -411,6 +521,10 @@ if __name__ == '__main__':
         ),
         min_pressure_cutoffs_mb=numpy.array(
             getattr(INPUT_ARG_OBJECT, MIN_PRESSURE_CUTOFFS_ARG_NAME),
+            dtype=float
+        ),
+        tc_center_latitude_cutoffs_deg_n=numpy.array(
+            getattr(INPUT_ARG_OBJECT, LATITUDE_CUTOFFS_ARG_NAME),
             dtype=float
         ),
         top_output_prediction_dir_name=getattr(

@@ -7,10 +7,12 @@ import matplotlib.colors
 import matplotlib.patches
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import error_checking
+from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import scalar_evaluation
 from ml4tccf.outside_code import taylor_diagram
 
+TOLERANCE = 1e-6
 METRES_TO_KM = 0.001
 
 BASIC_TARGET_FIELD_NAMES = [
@@ -302,6 +304,141 @@ def _plot_attr_diagram_background(
     )
 
 
+def plot_metric_by_2categories(
+        metric_matrix, metric_name, target_field_name,
+        y_category_description_strings, y_label_string,
+        x_category_description_strings, x_label_string,
+        colour_map_name, min_colour_percentile, max_colour_percentile):
+    """Plots one evaluation metric across 2 categories (stratified evaluation).
+
+    M = number of categories along y-axis
+    N = number of categories along x-axis
+
+    :param metric_matrix: M-by-N numpy array of metric values.
+    :param metric_name: Name of error metric.
+    :param target_field_name: Name of target variable.
+    :param y_category_description_strings: length-M list of category
+        descriptions.
+    :param y_label_string: Label for entire y-axis (all categories along
+        y-axis).
+    :param x_category_description_strings: length-N list of category
+        descriptions.
+    :param x_label_string: Label for entire x-axis (all categories along
+        x-axis).
+    :param colour_map_name: Name of colour scheme (must be accepted by
+        `matplotlib.pyplot.get_cmap`).
+    :param min_colour_percentile: Determines minimum value in colour scheme.
+    :param max_colour_percentile: Determines max value in colour scheme.
+    :return: figure_object: Figure handle (instance of
+        `matplotlib.figure.Figure`).
+    :return: axes_object: Axes handle (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    """
+
+    # Check input args.
+    error_checking.assert_is_numpy_array(metric_matrix, num_dimensions=3)
+    error_checking.assert_is_string(y_label_string)
+    error_checking.assert_is_string(x_label_string)
+
+    num_grid_rows = metric_matrix.shape[0]
+    num_grid_columns = metric_matrix.shape[1]
+
+    error_checking.assert_is_string_list(y_category_description_strings)
+    error_checking.assert_is_numpy_array(
+        numpy.array(y_category_description_strings),
+        exact_dimensions=numpy.array([num_grid_rows], dtype=int)
+    )
+
+    error_checking.assert_is_string_list(x_category_description_strings)
+    error_checking.assert_is_numpy_array(
+        numpy.array(x_category_description_strings),
+        exact_dimensions=numpy.array([num_grid_columns], dtype=int)
+    )
+
+    error_checking.assert_is_geq(min_colour_percentile, 0.)
+    error_checking.assert_is_leq(min_colour_percentile, 5.)
+    error_checking.assert_is_geq(max_colour_percentile, 95.)
+    error_checking.assert_is_leq(max_colour_percentile, 100.)
+
+    colour_map_object = pyplot.get_cmap(colour_map_name)
+
+    # Convert to display units.
+    conv_ratio = (
+        TARGET_FIELD_TO_CONV_RATIO[target_field_name] **
+        METRIC_TO_UNIT_EXPONENT[metric_name]
+    )
+    metric_matrix_to_plot = metric_matrix * conv_ratio
+
+    if METRIC_TO_UNIT_EXPONENT[metric_name] == 2:
+        metric_matrix_to_plot = numpy.sqrt(metric_matrix_to_plot)
+
+    if numpy.all(numpy.isnan(metric_matrix_to_plot)):
+        min_colour_value = 0.
+        max_colour_value = 1.
+    else:
+        min_colour_value = numpy.nanpercentile(
+            metric_matrix_to_plot, min_colour_percentile
+        )
+        max_colour_value = numpy.nanpercentile(
+            metric_matrix_to_plot, max_colour_percentile
+        )
+
+    max_colour_value = max([max_colour_value, min_colour_value + TOLERANCE])
+
+    # Do actual stuff.
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+
+    colour_norm_object = pyplot.Normalize(
+        vmin=min_colour_value, vmax=max_colour_value
+    )
+    axes_object.imshow(
+        metric_matrix_to_plot, origin='lower',
+        cmap=colour_map_object, norm=colour_norm_object,
+        vmin=min_colour_value, vmax=max_colour_value
+    )
+
+    x_coords = 0.5 + numpy.linspace(
+        0, num_grid_columns - 1, num=num_grid_columns, dtype=float
+    )
+    y_coords = 0.5 + numpy.linspace(
+        0, num_grid_rows - 1, num=num_grid_rows, dtype=float
+    )
+
+    axes_object.set_xticks(x_coords)
+    axes_object.set_xticklabels(x_category_description_strings, rotation=90.)
+    axes_object.set_xlabel(x_label_string)
+
+    axes_object.set_yticks(y_coords)
+    axes_object.set_yticklabels(y_category_description_strings)
+    axes_object.set_ylabel(y_label_string)
+
+    title_string = '{0:s}{1:s}{2:s}'.format(
+        METRIC_TO_FANCY_NAME[metric_name][0].upper(),
+        METRIC_TO_FANCY_NAME[metric_name][1:],
+        TARGET_FIELD_TO_FANCY_NAME[target_field_name]
+    )
+
+    unit_exponent = METRIC_TO_UNIT_EXPONENT[metric_name]
+    if unit_exponent == 1 or unit_exponent == 2:
+        title_string += ' ({0:s})'.format(
+            TARGET_FIELD_TO_UNIT_STRING[target_field_name]
+        )
+
+    axes_object.set_title(title_string)
+
+    gg_plotting_utils.plot_colour_bar(
+        axes_object_or_matrix=axes_object,
+        data_matrix=metric_matrix_to_plot,
+        colour_map_object=colour_map_object,
+        colour_norm_object=colour_norm_object,
+        orientation_string='vertical'
+    )
+
+    return figure_object, axes_object
+
+
 def plot_metric_by_category(
         metric_matrix, metric_name, target_field_name,
         category_description_strings, x_label_string, confidence_level):
@@ -322,6 +459,23 @@ def plot_metric_by_category(
         `matplotlib.axes._subplots.AxesSubplot`).
     """
 
+    # Check input args.
+    error_checking.assert_is_numpy_array(metric_matrix, num_dimensions=2)
+    error_checking.assert_is_string(x_label_string)
+
+    num_categories = metric_matrix.shape[0]
+    num_bootstrap_reps = metric_matrix.shape[1]
+    category_indices = 0.5 + numpy.linspace(
+        0, num_categories - 1, num=num_categories, dtype=float
+    )
+
+    error_checking.assert_is_string_list(category_description_strings)
+    error_checking.assert_is_numpy_array(
+        numpy.array(category_description_strings),
+        exact_dimensions=numpy.array([num_categories], dtype=int)
+    )
+
+    # Convert to display units.
     conv_ratio = (
         TARGET_FIELD_TO_CONV_RATIO[target_field_name] **
         METRIC_TO_UNIT_EXPONENT[metric_name]
@@ -331,12 +485,7 @@ def plot_metric_by_category(
     if METRIC_TO_UNIT_EXPONENT[metric_name] == 2:
         metric_matrix_to_plot = numpy.sqrt(metric_matrix_to_plot)
 
-    num_bootstrap_reps = metric_matrix_to_plot.shape[1]
-    num_categories = metric_matrix_to_plot.shape[0]
-    category_indices = 0.5 + numpy.linspace(
-        0, num_categories - 1, num=num_categories, dtype=float
-    )
-
+    # Do actual stuff.
     figure_object, axes_object = pyplot.subplots(
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
