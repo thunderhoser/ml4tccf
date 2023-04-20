@@ -217,11 +217,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             k += 1
             eval_table_by_wind_listlist[i][j] = eval_table_by_wind[k]
 
-    # del eval_table_by_wind
-
-    for i in range(num_wind_bins):
-        for j in range(num_latitude_bins):
-            print(eval_table_by_wind_listlist[i][j][scalar_evaluation.MEAN_DISTANCE_KEY])
+    del eval_table_by_wind
 
     latitude_description_strings = [
         '[{0:.1f}, {1:.1f})'.format(l1, l2)
@@ -270,11 +266,6 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         metric_matrix[j, i, :] = (
                             etbwll[i][j][metric_name].values[k, :]
                         )
-
-                        # print(j)
-                        # print(i)
-                        # print(etbwll[i][j][metric_name].values[k, :])
-                        # print('\n\n\n\n\n\n\n\n\n')
 
                 if split_into_2d_bins:
                     figure_object = (
@@ -403,9 +394,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         )
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
-    eval_table_by_pressure_listlist = (
-        [[None] * num_latitude_bins] * num_pressure_bins
-    )
+    eval_table_by_pressure_listlist = [
+        [None] * num_latitude_bins for _ in range(num_pressure_bins)
+    ]
     k = -1
 
     for i in range(num_pressure_bins):
