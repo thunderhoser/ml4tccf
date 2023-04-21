@@ -405,6 +405,9 @@ def _plot_data_one_example(
         )[0, ...] for p in predictor_matrices
     ]
 
+    print('MIN VALUE IN PREDICTOR MATRICES = {0:f}'.format(numpy.min(predictor_matrices[0])))
+    print('MAX VALUE IN PREDICTOR MATRICES = {0:f}'.format(numpy.max(predictor_matrices[0])))
+
     num_lag_times = len(lag_times_minutes)
     num_high_res_wavelengths = len(high_res_wavelengths_microns)
     num_low_res_wavelengths = len(low_res_wavelengths_microns)
