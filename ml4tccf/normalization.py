@@ -396,6 +396,11 @@ def normalize_data(satellite_table_xarray, normalization_param_table_xarray):
             npt[BIDIRECTIONAL_REFLECTANCE_KEY].values[:, k]
         )
 
+        print('MIN NORMALIZED VALUE = {0:.4f}'.format(numpy.min(bidirectional_reflectance_matrix[..., j])))
+        print('MAX NORMALIZED VALUE = {0:.4f}'.format(numpy.max(bidirectional_reflectance_matrix[..., j])))
+        print('MIN NORMALIZED VALUE = {0:.4f}'.format(numpy.nanmin(bidirectional_reflectance_matrix[..., j])))
+        print('MAX NORMALIZED VALUE = {0:.4f}'.format(numpy.nanmax(bidirectional_reflectance_matrix[..., j])))
+
         st = st.assign({
             BIDIRECTIONAL_REFLECTANCE_KEY: (
                 st[BIDIRECTIONAL_REFLECTANCE_KEY].dims,
@@ -421,6 +426,11 @@ def normalize_data(satellite_table_xarray, normalization_param_table_xarray):
             actual_values_new=brightness_temp_matrix_kelvins[..., j],
             actual_values_training=npt[BRIGHTNESS_TEMPERATURE_KEY].values[:, k]
         )
+
+        print('MIN NORMALIZED VALUE = {0:.4f}'.format(numpy.min(brightness_temp_matrix_kelvins[..., j])))
+        print('MAX NORMALIZED VALUE = {0:.4f}'.format(numpy.max(brightness_temp_matrix_kelvins[..., j])))
+        print('MIN NORMALIZED VALUE = {0:.4f}'.format(numpy.nanmin(brightness_temp_matrix_kelvins[..., j])))
+        print('MAX NORMALIZED VALUE = {0:.4f}'.format(numpy.nanmax(brightness_temp_matrix_kelvins[..., j])))
 
         st = st.assign({
             BRIGHTNESS_TEMPERATURE_KEY: (
