@@ -47,7 +47,9 @@ def _actual_to_uniform_dist(actual_values_new, actual_values_training):
     assert numpy.all(numpy.isfinite(actual_values_training))
 
     actual_values_new_1d = numpy.ravel(actual_values_new)
-    actual_values_new_1d[not numpy.isfinite(actual_values_new_1d)] = numpy.nan
+    actual_values_new_1d[
+        numpy.invert(numpy.isfinite(actual_values_new_1d))
+    ] = numpy.nan
 
     real_indices = numpy.where(
         numpy.invert(numpy.isnan(actual_values_new_1d))
