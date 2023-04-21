@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_predictions_katrina_contours"
+#SBATCH --job-name="plot_predictions_larry2021"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -18,7 +18,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_predictions_katrina_contours_%A_%a.out
+#SBATCH --output=plot_predictions_larry2021_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -39,7 +39,7 @@ set max_examples_per_cyclone=${MAX_EXAMPLES_PER_CYCLONE_COUNTS[$SLURM_ARRAY_TASK
 set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${num_first_layer_channels}_num-batches-per-update=${num_batches_per_update}_max-examples-per-cyclone=${max_examples_per_cyclone}"
 echo $model_dir_name
 
-set CYCLONE_ID_STRINGS=("2005AL12")
+set CYCLONE_ID_STRINGS=("2021AL12")
 set i=1
 
 while ($i <= ${#CYCLONE_ID_STRINGS})
@@ -49,9 +49,7 @@ while ($i <= ${#CYCLONE_ID_STRINGS})
     --input_prediction_file_name="${prediction_file_name}" \
     --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
     --are_data_normalized=1 \
-    --use_prob_contours=1 \
-    --prob_contour_smoothing_radius_px=1 \
-    --output_dir_name="${model_dir_name}/validation/predictions_${CYCLONE_ID_STRINGS[$i]}_contours"
+    --output_dir_name="${model_dir_name}/validation/predictions_${CYCLONE_ID_STRINGS[$i]}"
 
     @ i = $i + 1
 end
