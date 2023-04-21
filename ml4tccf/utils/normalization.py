@@ -36,9 +36,12 @@ def _actual_to_uniform_dist(actual_values_new, actual_values_training):
         with rescaled values from 0...1.
     """
 
-    error_checking.assert_is_numpy_array_without_nan(actual_values_training)
+    # error_checking.assert_is_numpy_array_without_nan(actual_values_training)
+    assert numpy.all(numpy.isfinite(actual_values_training))
 
     actual_values_new_1d = numpy.ravel(actual_values_new)
+    actual_values_new_1d[not numpy.isfinite(actual_values_new_1d)] = numpy.nan
+
     real_indices = numpy.where(
         numpy.invert(numpy.isnan(actual_values_new_1d))
     )[0]
@@ -54,8 +57,10 @@ def _actual_to_uniform_dist(actual_values_new, actual_values_training):
 
     uniform_values_new_1d = actual_values_new_1d + 0.
     num_values = actual_values_training.size
+
     uniform_values_new_1d[real_indices] = search_indices / (num_values - 1)
-    uniform_values_new_1d[uniform_values_new_1d > 1.] = 1.
+    uniform_values_new_1d = numpy.minimum(uniform_values_new_1d, 1.)
+    uniform_values_new_1d = numpy.maximum(uniform_values_new_1d, 0.)
 
     return numpy.reshape(uniform_values_new_1d, actual_values_new.shape)
 
@@ -70,7 +75,15 @@ def _uniform_to_actual_dist(uniform_values_new, actual_values_training):
     :return: actual_values_new: Same.
     """
 
-    error_checking.assert_is_numpy_array_without_nan(actual_values_training)
+    error_checking.assert_is_geq_numpy_array(
+        uniform_values_new, 0., allow_nan=True
+    )
+    error_checking.assert_is_leq_numpy_array(
+        uniform_values_new, 1., allow_nan=True
+    )
+
+    # error_checking.assert_is_numpy_array_without_nan(actual_values_training)
+    assert numpy.all(numpy.isfinite(actual_values_training))
 
     uniform_values_new_1d = numpy.ravel(uniform_values_new)
     real_indices = numpy.where(
