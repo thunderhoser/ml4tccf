@@ -283,7 +283,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 else:
                     figure_object = (
                         scalar_eval_plotting.plot_metric_by_category(
-                            metric_matrix=metric_matrix,
+                            metric_matrix=metric_matrix[0, ...],
                             metric_name=metric_name,
                             target_field_name=target_field_name,
                             category_description_strings=
@@ -340,7 +340,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 )
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
-                    metric_matrix=metric_matrix,
+                    metric_matrix=metric_matrix[0, ...],
                     metric_name=metric_name,
                     target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
                     category_description_strings=wind_description_strings,
@@ -456,7 +456,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 )
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
-                    metric_matrix=metric_matrix,
+                    metric_matrix=metric_matrix[0, ...],
                     metric_name=metric_name,
                     target_field_name=target_field_name,
                     category_description_strings=pressure_description_strings,
@@ -511,7 +511,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             )
         else:
             figure_object = scalar_eval_plotting.plot_metric_by_category(
-                metric_matrix=metric_matrix,
+                metric_matrix=metric_matrix[0, ...],
                 metric_name=metric_name,
                 target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
                 category_description_strings=pressure_description_strings,
