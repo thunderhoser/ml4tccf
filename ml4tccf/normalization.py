@@ -409,6 +409,9 @@ def normalize_data(satellite_table_xarray, normalization_param_table_xarray):
             actual_values_training=npt[BRIGHTNESS_TEMPERATURE_KEY].values[:, k]
         )
 
+        print('MIN NORMALIZED VALUE = {0:.4f}'.format(numpy.min(brightness_temp_matrix_kelvins[..., j])))
+        print('MAX NORMALIZED VALUE = {0:.4f}'.format(numpy.max(brightness_temp_matrix_kelvins[..., j])))
+
         st = st.assign({
             BRIGHTNESS_TEMPERATURE_KEY: (
                 st[BRIGHTNESS_TEMPERATURE_KEY].dims,
