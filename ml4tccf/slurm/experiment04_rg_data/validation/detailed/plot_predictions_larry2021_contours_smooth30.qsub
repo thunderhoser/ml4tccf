@@ -39,7 +39,7 @@ set max_examples_per_cyclone=${MAX_EXAMPLES_PER_CYCLONE_COUNTS[$SLURM_ARRAY_TASK
 set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${num_first_layer_channels}_num-batches-per-update=${num_batches_per_update}_max-examples-per-cyclone=${max_examples_per_cyclone}"
 echo $model_dir_name
 
-set CYCLONE_ID_STRINGS=("2005AL12")
+set CYCLONE_ID_STRINGS=("2021AL12")
 set i=1
 
 while ($i <= ${#CYCLONE_ID_STRINGS})
