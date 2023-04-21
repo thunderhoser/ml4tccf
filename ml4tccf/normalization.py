@@ -121,10 +121,24 @@ def _normalize_one_variable(actual_values_new, actual_values_training):
         `actual_values_new`) with normalized values (z-scores).
     """
 
+    print('MIN and MAX original values = {0:f}, {1:f}'.format(
+        numpy.min(actual_values_new), numpy.max(actual_values_new)
+    ))
+    print('MIN and MAX original values = {0:f}, {1:f}'.format(
+        numpy.nanmin(actual_values_new), numpy.nanmax(actual_values_new)
+    ))
+
     uniform_values_new = _actual_to_uniform_dist(
         actual_values_new=actual_values_new,
         actual_values_training=actual_values_training
     )
+
+    print('MIN and MAX uniformized values = {0:f}, {1:f}'.format(
+        numpy.min(uniform_values_new), numpy.max(uniform_values_new)
+    ))
+    print('MIN and MAX uniformized values = {0:f}, {1:f}'.format(
+        numpy.nanmin(uniform_values_new), numpy.nanmax(uniform_values_new)
+    ))
 
     uniform_values_new_1d = numpy.ravel(uniform_values_new)
     real_indices = numpy.where(
@@ -140,6 +154,13 @@ def _normalize_one_variable(actual_values_new, actual_values_training):
     uniform_values_new_1d[real_indices] = scipy.stats.norm.ppf(
         uniform_values_new_1d[real_indices], loc=0., scale=1.
     )
+
+    print('MIN and MAX normalized values = {0:f}, {1:f}'.format(
+        numpy.min(uniform_values_new_1d), numpy.max(uniform_values_new_1d)
+    ))
+    print('MIN and MAX normalized values = {0:f}, {1:f}'.format(
+        numpy.nanmin(uniform_values_new_1d), numpy.nanmax(uniform_values_new_1d)
+    ))
 
     return numpy.reshape(uniform_values_new_1d, uniform_values_new.shape)
 
