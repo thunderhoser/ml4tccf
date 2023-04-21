@@ -135,6 +135,9 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
         data_aug_num_translations
     )
 
+    # TODO(thunderhoser): I might want to make this an input arg to the script.
+    validation_option_dict[neural_net.SYNOPTIC_TIMES_ONLY_KEY] = True
+
     # TODO(thunderhoser): With many target times and many translations, I might
     # get out-of-memory errors.  In this case, I will write a new version of
     # this script, which calls `create_data` once without data augmentation and
