@@ -1,8 +1,10 @@
 """Normalizes satellite data."""
 
 import argparse
+import numpy
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import normalization
+from ml4tccf.utils import satellite_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -10,6 +12,7 @@ INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
 # COMPRESS_ARG_NAME = 'compress_output_files'
+CHECK_OUTPUT_FILES_ARG_NAME = 'check_output_files'
 OUTPUT_DIR_ARG_NAME = 'output_satellite_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -21,6 +24,10 @@ CYCLONE_ID_HELP_STRING = 'Will normalize satellite data for this cyclone.'
 NORMALIZATION_FILE_HELP_STRING = (
     'Path to file with normalization params (will be read by '
     '`normalization.read_file`).'
+)
+CHECK_OUTPUT_FILES_HELP_STRING = (
+    'Boolean flag.  If 1, will check output files after writing them (i.e., '
+    'will print min/max value for each satellite band).'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Normalized data will be written here by '
@@ -42,13 +49,17 @@ INPUT_ARG_PARSER.add_argument(
     help=NORMALIZATION_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + CHECK_OUTPUT_FILES_ARG_NAME, type=int, required=False, default=1,
+    help=CHECK_OUTPUT_FILES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
 def _run(input_satellite_dir_name, cyclone_id_string, normalization_file_name,
-         output_satellite_dir_name):
+         check_output_files, output_satellite_dir_name):
     """Normalizes satellite data.
 
     This is effectively the main method.
@@ -56,6 +67,7 @@ def _run(input_satellite_dir_name, cyclone_id_string, normalization_file_name,
     :param input_satellite_dir_name: See documentation at top of file.
     :param cyclone_id_string: Same.
     :param normalization_file_name: Same.
+    :param check_output_files: Same.
     :param output_satellite_dir_name: Same.
     """
 
@@ -101,6 +113,37 @@ def _run(input_satellite_dir_name, cyclone_id_string, normalization_file_name,
             zarr_file_name=output_satellite_file_names[i]
         )
 
+        if not check_output_files:
+            continue
+
+        satellite_table_xarray = satellite_io.read_file(
+            output_satellite_file_names[i]
+        )
+        st = satellite_table_xarray
+
+        if satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY in st:
+            print('MIN NORMALIZED VALUE by wavelength for BDRF:')
+            print(numpy.nanmin(
+                st[satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY].values,
+                axis=(0, 1, 2)
+            ))
+            print('MAX NORMALIZED VALUE by wavelength for BDRF:')
+            print(numpy.nanmax(
+                st[satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY].values,
+                axis=(0, 1, 2)
+            ))
+
+        print('MIN NORMALIZED VALUE by wavelength for brightness temp:')
+        print(numpy.nanmin(
+            st[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values,
+            axis=(0, 1, 2)
+        ))
+        print('MAX NORMALIZED VALUE by wavelength for brightness temp:')
+        print(numpy.nanmax(
+            st[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values,
+            axis=(0, 1, 2)
+        ))
+
 
 if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
@@ -110,6 +153,9 @@ if __name__ == '__main__':
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
         normalization_file_name=getattr(
             INPUT_ARG_OBJECT, NORMALIZATION_FILE_ARG_NAME
+        ),
+        check_output_files=bool(
+            getattr(INPUT_ARG_OBJECT, CHECK_OUTPUT_FILES_ARG_NAME)
         ),
         output_satellite_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
