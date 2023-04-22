@@ -19,7 +19,8 @@ import satellite_utils
 
 TOLERANCE = 1e-6
 MIN_CUMULATIVE_DENSITY = 1e-6
-MAX_CUMULATIVE_DENSITY = 1. - 1e-6
+# MAX_CUMULATIVE_DENSITY = 1. - 1e-6
+MAX_CUMULATIVE_DENSITY = 0.9995  # To account for 16-bit floats.
 
 NUM_TIMES_PER_FILE_FOR_PARAMS = 10
 
@@ -43,7 +44,6 @@ def _actual_to_uniform_dist(actual_values_new, actual_values_training):
         with rescaled values from 0...1.
     """
 
-    # error_checking.assert_is_numpy_array_without_nan(actual_values_training)
     assert numpy.all(numpy.isfinite(actual_values_training))
 
     actual_values_new_1d = numpy.ravel(actual_values_new)
@@ -66,8 +66,8 @@ def _actual_to_uniform_dist(actual_values_new, actual_values_training):
 
     uniform_values_new_1d = actual_values_new_1d + 0.
     num_values = actual_values_training.size
-
     uniform_values_new_1d[real_indices] = search_indices / (num_values - 1)
+
     uniform_values_new_1d = numpy.minimum(uniform_values_new_1d, 1.)
     uniform_values_new_1d = numpy.maximum(uniform_values_new_1d, 0.)
 
@@ -90,8 +90,6 @@ def _uniform_to_actual_dist(uniform_values_new, actual_values_training):
     error_checking.assert_is_leq_numpy_array(
         uniform_values_new, 1., allow_nan=True
     )
-
-    # error_checking.assert_is_numpy_array_without_nan(actual_values_training)
     assert numpy.all(numpy.isfinite(actual_values_training))
 
     uniform_values_new_1d = numpy.ravel(uniform_values_new)
@@ -121,24 +119,10 @@ def _normalize_one_variable(actual_values_new, actual_values_training):
         `actual_values_new`) with normalized values (z-scores).
     """
 
-    print('MIN and MAX original values = {0:f}, {1:f}'.format(
-        numpy.min(actual_values_new), numpy.max(actual_values_new)
-    ))
-    print('MIN and MAX original values = {0:f}, {1:f}'.format(
-        numpy.nanmin(actual_values_new), numpy.nanmax(actual_values_new)
-    ))
-
     uniform_values_new = _actual_to_uniform_dist(
         actual_values_new=actual_values_new,
         actual_values_training=actual_values_training
     )
-
-    print('MIN and MAX uniformized values = {0:f}, {1:f}'.format(
-        numpy.min(uniform_values_new), numpy.max(uniform_values_new)
-    ))
-    print('MIN and MAX uniformized values = {0:f}, {1:f}'.format(
-        numpy.nanmin(uniform_values_new), numpy.nanmax(uniform_values_new)
-    ))
 
     uniform_values_new_1d = numpy.ravel(uniform_values_new)
     real_indices = numpy.where(
@@ -154,13 +138,6 @@ def _normalize_one_variable(actual_values_new, actual_values_training):
     uniform_values_new_1d[real_indices] = scipy.stats.norm.ppf(
         uniform_values_new_1d[real_indices], loc=0., scale=1.
     )
-
-    print('MIN and MAX normalized values = {0:f}, {1:f}'.format(
-        numpy.min(uniform_values_new_1d), numpy.max(uniform_values_new_1d)
-    ))
-    print('MIN and MAX normalized values = {0:f}, {1:f}'.format(
-        numpy.nanmin(uniform_values_new_1d), numpy.nanmax(uniform_values_new_1d)
-    ))
 
     return numpy.reshape(uniform_values_new_1d, uniform_values_new.shape)
 
@@ -419,11 +396,6 @@ def normalize_data(satellite_table_xarray, normalization_param_table_xarray):
             npt[BIDIRECTIONAL_REFLECTANCE_KEY].values[:, k]
         )
 
-        print('MIN NORMALIZED VALUE = {0:.4f}'.format(numpy.min(bidirectional_reflectance_matrix[..., j])))
-        print('MAX NORMALIZED VALUE = {0:.4f}'.format(numpy.max(bidirectional_reflectance_matrix[..., j])))
-        print('MIN NORMALIZED VALUE = {0:.4f}'.format(numpy.nanmin(bidirectional_reflectance_matrix[..., j])))
-        print('MAX NORMALIZED VALUE = {0:.4f}'.format(numpy.nanmax(bidirectional_reflectance_matrix[..., j])))
-
         st = st.assign({
             BIDIRECTIONAL_REFLECTANCE_KEY: (
                 st[BIDIRECTIONAL_REFLECTANCE_KEY].dims,
@@ -449,11 +421,6 @@ def normalize_data(satellite_table_xarray, normalization_param_table_xarray):
             actual_values_new=brightness_temp_matrix_kelvins[..., j],
             actual_values_training=npt[BRIGHTNESS_TEMPERATURE_KEY].values[:, k]
         )
-
-        print('MIN NORMALIZED VALUE = {0:.4f}'.format(numpy.min(brightness_temp_matrix_kelvins[..., j])))
-        print('MAX NORMALIZED VALUE = {0:.4f}'.format(numpy.max(brightness_temp_matrix_kelvins[..., j])))
-        print('MIN NORMALIZED VALUE = {0:.4f}'.format(numpy.nanmin(brightness_temp_matrix_kelvins[..., j])))
-        print('MAX NORMALIZED VALUE = {0:.4f}'.format(numpy.nanmax(brightness_temp_matrix_kelvins[..., j])))
 
         st = st.assign({
             BRIGHTNESS_TEMPERATURE_KEY: (
