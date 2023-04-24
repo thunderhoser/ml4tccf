@@ -27,13 +27,8 @@ TOLERANCE = 1e-6
 SENTINEL_VALUE = -9999.
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
-KM_TO_METRES = 1000.
-
 PREDICTED_CENTER_MARKER = 'o'
 PREDICTED_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
-PREDICTED_CENTER_MARKER_COLOUR = matplotlib.colors.to_rgba(
-    PREDICTED_CENTER_MARKER_COLOUR, alpha=0.5
-)
 PREDICTED_CENTER_MARKER_SIZE = 12
 PREDICTED_CENTER_MARKER_EDGE_WIDTH = 0
 PREDICTED_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
@@ -59,13 +54,16 @@ CONCAT_FIGURE_SIZE_PX = int(1e7)
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
 ARE_DATA_NORMALIZED_ARG_NAME = 'are_data_normalized'
-MIN_GRIDDED_PROB_ARG_NAME = 'min_gridded_prob'
-MAX_GRIDDED_PROB_ARG_NAME = 'max_gridded_prob'
-MIN_GRIDDED_PROB_PERCENTILE_ARG_NAME = 'min_gridded_prob_percentile'
-MAX_GRIDDED_PROB_PERCENTILE_ARG_NAME = 'max_gridded_prob_percentile'
-USE_PROB_CONTOURS_ARG_NAME = 'use_prob_contours'
-PROB_CONTOUR_SMOOTH_RADIUS_ARG_NAME = 'prob_contour_smoothing_radius_px'
+PLOT_ONE_LAG_TIME_ARG_NAME = 'plot_one_lag_time'
+MIN_SEMANTIC_SEG_PROB_ARG_NAME = 'min_semantic_seg_prob'
+MAX_SEMANTIC_SEG_PROB_ARG_NAME = 'max_semantic_seg_prob'
+MIN_SEMANTIC_SEG_PROB_PERCENTILE_ARG_NAME = 'min_semantic_seg_prob_percentile'
+MAX_SEMANTIC_SEG_PROB_PERCENTILE_ARG_NAME = 'max_semantic_seg_prob_percentile'
 PROB_COLOUR_MAP_ARG_NAME = 'prob_colour_map_name'
+POINTS_TO_LINE_CONTOURS_ARG_NAME = 'convert_points_to_line_contours'
+LINE_CONTOUR_SMOOTH_RAD_ARG_NAME = 'line_contour_smoothing_radius_px'
+POINT_PREDICTION_OPACITY_ARG_NAME = 'point_prediction_opacity'
+PLOT_MEAN_POINT_PREDICTION_ARG_NAME = 'plot_mean_point_prediction'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 PREDICTION_FILE_HELP_STRING = (
@@ -81,37 +79,55 @@ ARE_DATA_NORMALIZED_HELP_STRING = (
     'Boolean flag.  If 1 (0), plotting code will assume that satellite data '
     'are (un)normalized.'
 )
-MIN_GRIDDED_PROB_HELP_STRING = (
-    '[used only if predictions are gridded] Minimum probability to show in '
+PLOT_ONE_LAG_TIME_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot predictors only at most recent lag '
+    'time (at all lag times).'
+)
+MIN_SEMANTIC_SEG_PROB_HELP_STRING = (
+    '[used only if model does semantic segmentation] Minimum probability in '
     'colour scheme.  If you want to specify colour limits with percentiles '
     'instead, leave this argument alone.'
 )
-MAX_GRIDDED_PROB_HELP_STRING = 'Same as `{0:s}` but for max.'.format(
-    MIN_GRIDDED_PROB_HELP_STRING
+MAX_SEMANTIC_SEG_PROB_HELP_STRING = 'Same as `{0:s}` but for max.'.format(
+    MIN_SEMANTIC_SEG_PROB_HELP_STRING
 )
-MIN_GRIDDED_PROB_PERCENTILE_HELP_STRING = (
-    '[used only if predictions are gridded] Minimum probability to show in '
+MIN_SEMANTIC_SEG_PROB_PERCENTILE_HELP_STRING = (
+    '[used only if model does semantic segmentation] Minimum probability in '
     'colour scheme, stated as a percentile (from 0...100) over all values in '
     'the grid.  If you want to specify colour limits with raw probabilities '
     'instead, leave this argument alone.'
 )
-MAX_GRIDDED_PROB_PERCENTILE_HELP_STRING = 'Same as `{0:s}` but for max.'.format(
-    MIN_GRIDDED_PROB_PERCENTILE_HELP_STRING
-)
-USE_PROB_CONTOURS_HELP_STRING = (
-    '[used only if predictions are scalar] Boolean flag.  If 1 (0), will plot '
-    'each ensemble of scalar predictions as a set of probability contours '
-    '(points).'
-)
-PROB_CONTOUR_SMOOTH_RADIUS_HELP_STRING = (
-    '[used only if {0:s} == 1] Smoothing radius for probability contours.  If '
-    'you do not want to smooth, leave this argument alone.'
-).format(PROB_CONTOUR_SMOOTH_RADIUS_ARG_NAME)
+MAX_SEMANTIC_SEG_PROB_PERCENTILE_HELP_STRING = (
+    'Same as `{0:s}` but for max.'
+).format(MIN_SEMANTIC_SEG_PROB_PERCENTILE_HELP_STRING)
 
 PROB_COLOUR_MAP_HELP_STRING = (
-    '[used only if predictions are gridded] Name of colour scheme used for '
-    'probabilities.  Must be accepted by `pyplot.get_cmap`.'
+    '[used if model does semantic segmentation or {0:s} == 1] Name of colour '
+    'scheme used for probabilities.  Must be accepted by `pyplot.get_cmap`.'
+).format(POINTS_TO_LINE_CONTOURS_ARG_NAME)
+
+POINTS_TO_LINE_CONTOURS_HELP_STRING = (
+    '[used only if model predicts scalar coordinates] Boolean flag.  If 1, '
+    'will convert each ensemble of predictions to a probability grid, then '
+    'plot line contours over the grid.  If 0, will plot each ensemble of '
+    'predictions as points.'
 )
+LINE_CONTOUR_SMOOTH_RAD_HELP_STRING = (
+    '[used only if {0:s} == 1] Smoothing radius for probability contours.  If '
+    'you do not want to smooth, leave this argument alone.'
+).format(POINTS_TO_LINE_CONTOURS_ARG_NAME)
+
+POINT_PREDICTION_OPACITY_HELP_STRING = (
+    '[used only if model predicts scalar coordinates and {0:s} == 0] Opacity, '
+    'in range 0...1, for point predictions (black dots).'
+).format(POINTS_TO_LINE_CONTOURS_ARG_NAME)
+
+PLOT_MEAN_POINT_PREDICTION_HELP_STRING = (
+    '[used only if model predicts scalar coordinates and {0:s} == 0] Boolean '
+    'flag.  If 1 (0), will plot only the mean prediction (every ensemble '
+    'member).'
+).format(POINTS_TO_LINE_CONTOURS_ARG_NAME)
+
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
 )
@@ -130,32 +146,46 @@ INPUT_ARG_PARSER.add_argument(
     help=ARE_DATA_NORMALIZED_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_GRIDDED_PROB_ARG_NAME, type=float, required=False, default=1,
-    help=MIN_GRIDDED_PROB_HELP_STRING
+    '--' + PLOT_ONE_LAG_TIME_ARG_NAME, type=int, required=True,
+    help=PLOT_ONE_LAG_TIME_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_GRIDDED_PROB_ARG_NAME, type=float, required=False, default=0,
-    help=MAX_GRIDDED_PROB_HELP_STRING
+    '--' + MIN_SEMANTIC_SEG_PROB_ARG_NAME, type=float, required=False,
+    default=1, help=MIN_SEMANTIC_SEG_PROB_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MIN_GRIDDED_PROB_PERCENTILE_ARG_NAME, type=float, required=False,
-    default=100, help=MIN_GRIDDED_PROB_PERCENTILE_HELP_STRING
+    '--' + MAX_SEMANTIC_SEG_PROB_ARG_NAME, type=float, required=False,
+    default=0, help=MAX_SEMANTIC_SEG_PROB_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_GRIDDED_PROB_PERCENTILE_ARG_NAME, type=float, required=False,
-    default=0, help=MAX_GRIDDED_PROB_PERCENTILE_HELP_STRING
+    '--' + MIN_SEMANTIC_SEG_PROB_PERCENTILE_ARG_NAME, type=float,
+    required=False, default=100,
+    help=MIN_SEMANTIC_SEG_PROB_PERCENTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + USE_PROB_CONTOURS_ARG_NAME, type=int, required=False, default=0,
-    help=USE_PROB_CONTOURS_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + PROB_CONTOUR_SMOOTH_RADIUS_ARG_NAME, type=int, required=False,
-    default=-1, help=PROB_CONTOUR_SMOOTH_RADIUS_HELP_STRING
+    '--' + MAX_SEMANTIC_SEG_PROB_PERCENTILE_ARG_NAME, type=float,
+    required=False, default=0,
+    help=MAX_SEMANTIC_SEG_PROB_PERCENTILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + PROB_COLOUR_MAP_ARG_NAME, type=str, required=False,
     default='BuGn', help=PROB_COLOUR_MAP_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + POINTS_TO_LINE_CONTOURS_ARG_NAME, type=int, required=False,
+    default=0, help=POINTS_TO_LINE_CONTOURS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + LINE_CONTOUR_SMOOTH_RAD_ARG_NAME, type=int, required=False,
+    default=-1, help=LINE_CONTOUR_SMOOTH_RAD_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + POINT_PREDICTION_OPACITY_ARG_NAME, type=float, required=False,
+    default=0.5, help=POINT_PREDICTION_OPACITY_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PLOT_MEAN_POINT_PREDICTION_ARG_NAME, type=int, required=False,
+    default=0, help=PLOT_MEAN_POINT_PREDICTION_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -163,7 +193,7 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _get_colour_map_for_gridded_probs(
+def _get_probability_colour_map(
         base_colour_map_name, min_value, max_value, percent_flag):
     """Returns colour scheme for gridded probabilities.
 
@@ -214,15 +244,206 @@ def _get_colour_map_for_gridded_probs(
     return colour_map_object, colour_norm_object
 
 
+def _plot_data_one_channel(
+        predictor_matrix, are_data_normalized, plotting_brightness_temp,
+        border_latitudes_deg_n, border_longitudes_deg_e,
+        predictor_grid_latitudes_deg_n, predictor_grid_longitudes_deg_e,
+        actual_center_x_coord, actual_center_y_coord, coord_transform_string,
+        probability_matrix,
+        prediction_grid_latitudes_deg_n, prediction_grid_longitudes_deg_e,
+        prob_colour_map_object, prob_colour_norm_object, prob_contour_levels,
+        predicted_x_coords, predicted_y_coords, prediction_opacity,
+        title_string, output_file_name):
+    """Plots satellite data and predictions for one channel.
+
+    One channel = one wavelength at one lag time
+
+    M = number of rows in predictor grid
+    N = number of columns in predictor grid
+    P = number of points in border set
+    m = number of rows in prediction grid
+    n = number of columns in prediction grid
+    S = ensemble size
+
+    If plotting gridded predictions, you will need the following input args:
+
+    - probability_matrix
+    - prediction_grid_latitudes_deg_n
+    - prediction_grid_longitudes_deg_e
+    - prob_colour_map_object
+    - prob_colour_norm_object
+    - prob_contour_levels if you want line contours
+
+    If plotting point predictions, you will need the following input args:
+
+    - predicted_x_coords
+    - predicted_y_coords
+    - prediction_opacity
+
+    :param predictor_matrix: M-by-N numpy array of predictor values.
+    :param are_data_normalized: Boolean flag.
+    :param plotting_brightness_temp: Boolean flag.
+    :param border_latitudes_deg_n: length-P numpy array of latitudes (deg
+        north).
+    :param border_longitudes_deg_e: length-P numpy array of longitudes (deg
+        east).
+    :param predictor_grid_latitudes_deg_n: numpy array of latitudes (deg north).
+        Array shape is length-M if regular grid, M-by-N otherwise.
+    :param predictor_grid_longitudes_deg_e: numpy array of longitudes (deg
+        east).  Array shape is length-N if regular grid, M-by-N otherwise.
+    :param actual_center_x_coord: x-coordinate of actual TC center.
+    :param actual_center_y_coord: y-coordinate of actual TC center.
+    :param coord_transform_string: Either "transAxes" or "transData".
+    :param probability_matrix: m-by-n numpy array of probabilities.
+    :param prediction_grid_latitudes_deg_n: numpy array of latitudes (deg
+        north).  Array shape is length-m if regular grid, m-by-n otherwise.
+    :param prediction_grid_longitudes_deg_e: numpy array of longitudes (deg
+        east).  Array shape is length-n if regular grid, m-by-n otherwise.
+    :param prob_colour_map_object: Colour scheme (instance of
+        `matplotlib.pyplot.cm`).
+    :param prob_colour_norm_object: Colour-normalizer (maps from data space to
+        colour-bar space, which goes from 0...1).  This is an instance of
+        `matplotlib.colors.Normalize`.
+    :param prob_contour_levels: 1-D numpy array of probabilities for which to
+        plot contour lines.
+    :param predicted_x_coords: length-S numpy array of x-coordinates.
+    :param predicted_y_coords: length-S numpy array of y-coordinates.
+    :param prediction_opacity: Opacity (from 0...1) for point predictions.
+    :param title_string: Title.
+    :param output_file_name: Path to output file.  Figure will be saved here.
+    """
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+
+    if are_data_normalized:
+        colour_map_object = pyplot.get_cmap('seismic', lut=1001)
+        colour_norm_object = matplotlib.colors.Normalize(vmin=-3., vmax=3.)
+    else:
+        colour_map_object, colour_norm_object = (
+            satellite_plotting.get_colour_scheme_for_bdrf()
+        )
+
+    plotting_utils.plot_borders(
+        border_latitudes_deg_n=border_latitudes_deg_n,
+        border_longitudes_deg_e=border_longitudes_deg_e,
+        axes_object=axes_object
+    )
+
+    plot_filled_contours = (
+        probability_matrix is not None and prob_contour_levels is None
+    )
+    plot_line_contours = (
+        probability_matrix is not None and prob_contour_levels is not None
+    )
+
+    satellite_plotting.plot_2d_grid_latlng(
+        data_matrix=predictor_matrix,
+        axes_object=axes_object,
+        latitude_array_deg_n=predictor_grid_latitudes_deg_n,
+        longitude_array_deg_e=predictor_grid_longitudes_deg_e,
+        plotting_brightness_temp=plotting_brightness_temp,
+        cbar_orientation_string=None,
+        colour_map_object=colour_map_object,
+        colour_norm_object=colour_norm_object,
+        opacity=0.5 if plot_filled_contours else 1.
+    )
+
+    if plot_filled_contours:
+        satellite_plotting.plot_2d_grid_latlng(
+            data_matrix=probability_matrix,
+            axes_object=axes_object,
+            latitude_array_deg_n=prediction_grid_latitudes_deg_n,
+            longitude_array_deg_e=prediction_grid_longitudes_deg_e,
+            plotting_brightness_temp=False,
+            cbar_orientation_string=None,
+            colour_map_object=prob_colour_map_object,
+            colour_norm_object=prob_colour_norm_object,
+            use_contourf=True
+        )
+
+    plotting_utils.plot_grid_lines(
+        plot_latitudes_deg_n=numpy.ravel(predictor_grid_latitudes_deg_n),
+        plot_longitudes_deg_e=numpy.ravel(predictor_grid_longitudes_deg_e),
+        axes_object=axes_object,
+        parallel_spacing_deg=2., meridian_spacing_deg=2.
+    )
+
+    coord_transform_object = (
+        axes_object.transAxes if coord_transform_string == 'transAxes'
+        else axes_object.transData
+    )
+    axes_object.plot(
+        actual_center_x_coord, actual_center_y_coord, linestyle='None',
+        marker=ACTUAL_CENTER_MARKER,
+        markersize=ACTUAL_CENTER_MARKER_SIZE,
+        markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
+        markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
+        markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
+        transform=coord_transform_object, zorder=1e10
+    )
+
+    axes_object.plot(
+        0.5, 0.5, linestyle='None',
+        marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
+        markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
+        markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
+        markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
+        transform=axes_object.transAxes, zorder=1e10
+    )
+
+    if plot_line_contours:
+        axes_object.contour(
+            prediction_grid_longitudes_deg_e, prediction_grid_latitudes_deg_n,
+            probability_matrix, prob_contour_levels,
+            cmap=prob_colour_map_object, norm=prob_colour_norm_object,
+            linewidths=4, linestyles='solid', zorder=1e12
+        )
+    elif not plot_filled_contours:
+        ensemble_size = len(predicted_x_coords)
+        this_colour = matplotlib.colors.to_rgba(
+            c=PREDICTED_CENTER_MARKER_COLOUR, alpha=prediction_opacity
+        )
+
+        for k in range(ensemble_size):
+            axes_object.plot(
+                predicted_x_coords[k], predicted_y_coords[k], linestyle='None',
+                marker=PREDICTED_CENTER_MARKER,
+                markersize=PREDICTED_CENTER_MARKER_SIZE,
+                markerfacecolor=this_colour,
+                markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
+                markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
+                transform=coord_transform_object, zorder=1e10
+            )
+
+    axes_object.set_title(title_string)
+    file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
+
+    print('Saving figure to file: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name,
+        dpi=FIGURE_RESOLUTION_DPI, pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    imagemagick_utils.resize_image(
+        input_file_name=output_file_name, output_file_name=output_file_name,
+        output_size_pixels=PANEL_SIZE_PX
+    )
+
+
 def _plot_data_one_example(
         predictor_matrices, scalar_target_values, prediction_matrix,
-        model_metadata_dict, cyclone_id_string, target_time_unix_sec,
+        model_metadata_dict, cyclone_id_string,
         low_res_latitudes_deg_n, low_res_longitudes_deg_e,
         high_res_latitudes_deg_n, high_res_longitudes_deg_e,
         are_data_normalized, border_latitudes_deg_n, border_longitudes_deg_e,
-        output_file_name, min_gridded_prob=None, max_gridded_prob=None,
-        prob_colour_map_name=None, use_prob_contours=False,
-        prob_contour_smoothing_radius_px=None):
+        output_file_name, prob_colour_map_name=None,
+        min_semantic_seg_prob=None, max_semantic_seg_prob=None,
+        convert_points_to_line_contours=False,
+        line_contour_smoothing_radius_px=None,
+        point_prediction_opacity=None):
     """Plots satellite data for one example.
 
     P = number of points in border set
@@ -247,7 +468,6 @@ def _plot_data_one_example(
     :param model_metadata_dict: Dictionary with model metadata, in format
         returned by `neural_net.read_metafile`.
     :param cyclone_id_string: Cyclone ID.
-    :param target_time_unix_sec: Target time.
     :param low_res_latitudes_deg_n: Same as output from `neural_net.create_data`
         but without first or last axis.
     :param low_res_longitudes_deg_e: Same as output from
@@ -262,14 +482,16 @@ def _plot_data_one_example(
     :param border_longitudes_deg_e: length-P numpy array of longitudes
         (deg east).  If None, will plot without coords.
     :param output_file_name: Path to output file.  Figure will be saved here.
-    :param min_gridded_prob: Minimum probability in colour scheme.
-    :param max_gridded_prob: Max probability in colour scheme.
-    :param prob_colour_map_name: Name of base colour map for probabilities (must
-        be accepted by `matplotlib.pyplot.get_cmap`).
-    :param use_prob_contours: See documentation at top of file.
-    :param prob_contour_smoothing_radius_px: Same.
+    :param prob_colour_map_name: : Name of base colour map for
+        probabilities (must be accepted by `matplotlib.pyplot.get_cmap`).
+    :param min_semantic_seg_prob: Minimum probability in colour scheme.
+    :param max_semantic_seg_prob: Max probability in colour scheme.
+    :param convert_points_to_line_contours: See documentation at top of file.
+    :param line_contour_smoothing_radius_px: Same.
+    :param point_prediction_opacity: Same.
     """
 
+    # Housekeeping for coordinates.
     low_res_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
         low_res_longitudes_deg_e
     )
@@ -301,35 +523,39 @@ def _plot_data_one_example(
         dtype=float
     )
 
+    # TODO(thunderhoser): This will not handle wrap-around at International Date
+    # Line.
     low_res_latitude_interp_object = interp2d(
         x=column_indices_low_res, y=row_indices_low_res,
         z=low_res_latitudes_deg_n, kind='linear', bounds_error=True
     )
-
-    # TODO(thunderhoser): This will not handle wrap-around at International Date
-    # Line.
     low_res_longitude_interp_object = interp2d(
         x=column_indices_low_res, y=row_indices_low_res,
         z=low_res_longitudes_deg_e, kind='linear', bounds_error=True
     )
 
-    are_predictions_gridded = prediction_matrix.shape[0] > 2
-    ensemble_size = 1 if are_predictions_gridded else prediction_matrix.shape[1]
+    # Housekeeping for prediction format (points, filled contours, or line
+    # contours).
+    plot_filled_contours = prediction_matrix.shape[0] > 2
+    ensemble_size = 1 if plot_filled_contours else prediction_matrix.shape[1]
 
+    probability_matrix = None
+    prob_colour_map_object = None
     prob_colour_norm_object = None
     prob_contour_levels = None
 
-    if are_predictions_gridded:
+    if plot_filled_contours:
         prob_colour_map_object, prob_colour_norm_object = (
-            _get_colour_map_for_gridded_probs(
+            _get_probability_colour_map(
                 base_colour_map_name=prob_colour_map_name,
-                min_value=min_gridded_prob, max_value=max_gridded_prob,
+                min_value=min_semantic_seg_prob,
+                max_value=max_semantic_seg_prob,
                 percent_flag=False
             )
         )
 
-        use_prob_contours = False
-    elif use_prob_contours:
+        convert_points_to_line_contours = False
+    elif convert_points_to_line_contours:
         point_latitudes_deg_n = numpy.array([
             low_res_latitude_interp_object(
                 center_column_index_low_res + prediction_matrix[1, k],
@@ -346,7 +572,7 @@ def _plot_data_one_example(
             for k in range(ensemble_size)
         ])
 
-        prediction_matrix = misc_utils.latlng_points_to_probability_grid(
+        probability_matrix = misc_utils.latlng_points_to_probability_grid(
             point_latitudes_deg_n=point_latitudes_deg_n,
             point_longitudes_deg_e=point_longitudes_deg_e,
             grid_latitude_array_deg_n=low_res_latitudes_deg_n,
@@ -355,38 +581,43 @@ def _plot_data_one_example(
 
         prob_colour_map_object = pyplot.get_cmap(prob_colour_map_name)
 
-        if prob_contour_smoothing_radius_px is not None:
+        if line_contour_smoothing_radius_px is not None:
             print((
                 'Applying Gaussian smoother with {0:d}-pixel e-folding radius '
                 'to newly gridded probabilities...'
             ).format(
-                2 * prob_contour_smoothing_radius_px + 1
+                2 * line_contour_smoothing_radius_px + 1
             ))
 
-            prediction_matrix = gg_general_utils.apply_gaussian_filter(
-                input_matrix=prediction_matrix,
-                e_folding_radius_grid_cells=prob_contour_smoothing_radius_px
+            probability_matrix = gg_general_utils.apply_gaussian_filter(
+                input_matrix=probability_matrix,
+                e_folding_radius_grid_cells=line_contour_smoothing_radius_px
             )
-            prediction_matrix = prediction_matrix / numpy.sum(prediction_matrix)
+            probability_matrix = (
+                probability_matrix / numpy.sum(probability_matrix)
+            )
 
-        if numpy.any(prediction_matrix > TOLERANCE):
+        if numpy.any(probability_matrix > TOLERANCE):
             min_colour_value = numpy.min(
-                prediction_matrix[prediction_matrix > TOLERANCE]
+                probability_matrix[probability_matrix > TOLERANCE]
             )
         else:
             min_colour_value = 0.
 
-        max_colour_value = numpy.max(prediction_matrix)
+        max_colour_value = numpy.max(probability_matrix)
         prob_colour_norm_object = pyplot.Normalize(
             vmin=min_colour_value, vmax=max_colour_value
         )
-
         prob_contour_levels = numpy.linspace(
             min_colour_value, max_colour_value, num=10
         )
 
-    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
-    d = training_option_dict
+    plot_line_contours = convert_points_to_line_contours
+
+    validation_option_dict = model_metadata_dict[
+        neural_net.TRAINING_OPTIONS_KEY
+    ]
+    d = validation_option_dict
     high_res_wavelengths_microns = d[neural_net.HIGH_RES_WAVELENGTHS_KEY]
     low_res_wavelengths_microns = d[neural_net.LOW_RES_WAVELENGTHS_KEY]
     lag_times_minutes = d[neural_net.LAG_TIMES_KEY]
@@ -397,6 +628,52 @@ def _plot_data_one_example(
             num_lag_times=len(lag_times_minutes)
         )[0, ...] for p in predictor_matrices
     ]
+
+    if regular_grids:
+        actual_center_x_coord = (
+            0.5 + scalar_target_values[1] / num_grid_columns_low_res
+        )
+        actual_center_y_coord = (
+            0.5 + scalar_target_values[0] / num_grid_rows_low_res
+        )
+        coord_transform_string = 'transAxes'
+    else:
+        actual_center_x_coord = low_res_latitude_interp_object(
+            center_column_index_low_res + scalar_target_values[1],
+            center_row_index_low_res + scalar_target_values[0]
+        )
+        actual_center_y_coord = low_res_longitude_interp_object(
+            center_column_index_low_res + scalar_target_values[1],
+            center_row_index_low_res + scalar_target_values[0]
+        )
+        coord_transform_string = 'transData'
+
+    if plot_line_contours or plot_filled_contours:
+        predicted_x_coords = None
+        predicted_y_coords = None
+    else:
+        predicted_x_coords = numpy.full(ensemble_size, numpy.nan)
+        predicted_y_coords = numpy.full(ensemble_size, numpy.nan)
+
+        for k in range(ensemble_size):
+            if regular_grids:
+                predicted_x_coords[k] = (
+                    0.5 + prediction_matrix[1, k] / num_grid_columns_low_res
+                )
+                predicted_y_coords[k] = (
+                    0.5 + prediction_matrix[0, k] / num_grid_rows_low_res
+                )
+            else:
+                predicted_x_coords[k] = low_res_latitude_interp_object(
+                    center_column_index_low_res +
+                    prediction_matrix[1, k],
+                    center_row_index_low_res + prediction_matrix[0, k]
+                )
+                predicted_y_coords[k] = low_res_longitude_interp_object(
+                    center_column_index_low_res +
+                    prediction_matrix[1, k],
+                    center_row_index_low_res + prediction_matrix[0, k]
+                )
 
     num_lag_times = len(lag_times_minutes)
     num_high_res_wavelengths = len(high_res_wavelengths_microns)
@@ -411,136 +688,6 @@ def _plot_data_one_example(
 
     for i in range(num_lag_times):
         for j in range(num_high_res_wavelengths):
-            figure_object, axes_object = pyplot.subplots(
-                1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
-            )
-
-            if are_data_normalized:
-                colour_map_object = pyplot.get_cmap('seismic', lut=1001)
-                colour_norm_object = matplotlib.colors.Normalize(
-                    vmin=-3., vmax=3.
-                )
-            else:
-                colour_map_object, colour_norm_object = (
-                    satellite_plotting.get_colour_scheme_for_bdrf()
-                )
-
-            plotting_utils.plot_borders(
-                border_latitudes_deg_n=border_latitudes_deg_n,
-                border_longitudes_deg_e=border_longitudes_deg_e,
-                axes_object=axes_object
-            )
-
-            satellite_plotting.plot_2d_grid_latlng(
-                data_matrix=predictor_matrices[0][..., i, j],
-                axes_object=axes_object,
-                latitude_array_deg_n=high_res_latitudes_deg_n,
-                longitude_array_deg_e=high_res_longitudes_deg_e,
-                plotting_brightness_temp=False,
-                cbar_orientation_string=None,
-                colour_map_object=colour_map_object,
-                colour_norm_object=colour_norm_object,
-                opacity=0.5 if are_predictions_gridded else 1.
-            )
-
-            if are_predictions_gridded:
-                satellite_plotting.plot_2d_grid_latlng(
-                    data_matrix=prediction_matrix,
-                    axes_object=axes_object,
-                    latitude_array_deg_n=low_res_latitudes_deg_n,
-                    longitude_array_deg_e=low_res_longitudes_deg_e,
-                    plotting_brightness_temp=False,
-                    cbar_orientation_string=None,
-                    colour_map_object=prob_colour_map_object,
-                    colour_norm_object=prob_colour_norm_object,
-                    use_contourf=True
-                )
-
-            plotting_utils.plot_grid_lines(
-                plot_latitudes_deg_n=numpy.ravel(high_res_latitudes_deg_n),
-                plot_longitudes_deg_e=numpy.ravel(high_res_longitudes_deg_e),
-                axes_object=axes_object,
-                parallel_spacing_deg=2., meridian_spacing_deg=2.
-            )
-
-            if regular_grids:
-                x_coord = (
-                    0.5 + scalar_target_values[1] / num_grid_columns_low_res
-                )
-                y_coord = 0.5 + scalar_target_values[0] / num_grid_rows_low_res
-                transform_object = axes_object.transAxes
-            else:
-                y_coord = low_res_latitude_interp_object(
-                    center_column_index_low_res + scalar_target_values[1],
-                    center_row_index_low_res + scalar_target_values[0]
-                )
-                x_coord = low_res_longitude_interp_object(
-                    center_column_index_low_res + scalar_target_values[1],
-                    center_row_index_low_res + scalar_target_values[0]
-                )
-                transform_object = axes_object.transData
-
-            axes_object.plot(
-                x_coord, y_coord, linestyle='None',
-                marker=ACTUAL_CENTER_MARKER,
-                markersize=ACTUAL_CENTER_MARKER_SIZE,
-                markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
-                markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
-                markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-                transform=transform_object, zorder=1e10
-            )
-
-            axes_object.plot(
-                0.5, 0.5, linestyle='None',
-                marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
-                markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
-                markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
-                markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
-                transform=axes_object.transAxes, zorder=1e10
-            )
-
-            if use_prob_contours:
-                axes_object.contour(
-                    low_res_longitudes_deg_e, low_res_latitudes_deg_n,
-                    prediction_matrix, prob_contour_levels,
-                    cmap=prob_colour_map_object, norm=prob_colour_norm_object,
-                    linewidths=4, linestyles='solid', zorder=1e12
-                )
-            elif not are_predictions_gridded:
-                for k in range(ensemble_size):
-                    if regular_grids:
-                        x_coord = (
-                            0.5 + prediction_matrix[1, k] /
-                            num_grid_columns_low_res
-                        )
-                        y_coord = (
-                            0.5 + prediction_matrix[0, k] /
-                            num_grid_rows_low_res
-                        )
-                        transform_object = axes_object.transAxes
-                    else:
-                        y_coord = low_res_latitude_interp_object(
-                            center_column_index_low_res +
-                            prediction_matrix[1, k],
-                            center_row_index_low_res + prediction_matrix[0, k]
-                        )
-                        x_coord = low_res_longitude_interp_object(
-                            center_column_index_low_res +
-                            prediction_matrix[1, k],
-                            center_row_index_low_res + prediction_matrix[0, k]
-                        )
-                        transform_object = axes_object.transData
-
-                    axes_object.plot(
-                        x_coord, y_coord, linestyle='None',
-                        marker=PREDICTED_CENTER_MARKER,
-                        markersize=PREDICTED_CENTER_MARKER_SIZE,
-                        markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
-                        markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
-                        markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
-                        transform=transform_object, zorder=1e10
-                    )
-
             title_string = (
                 '{0:.3f}-micron BDRF for {1:s} at {2:d}-minute lag'
             ).format(
@@ -548,7 +695,6 @@ def _plot_data_one_example(
                 cyclone_id_string,
                 int(numpy.round(lag_times_minutes[i]))
             )
-            axes_object.set_title(title_string)
 
             high_res_panel_file_name_matrix[i, j] = (
                 '{0:s}_{1:04d}minutes_{2:06.3f}microns.{3:s}'
@@ -556,160 +702,35 @@ def _plot_data_one_example(
                 os.path.splitext(output_file_name)[0],
                 int(numpy.round(lag_times_minutes[i])),
                 high_res_wavelengths_microns[j],
-                'png' if are_predictions_gridded else 'jpg'
+                'png' if plot_filled_contours else 'jpg'
             )
 
-            file_system_utils.mkdir_recursive_if_necessary(
-                file_name=high_res_panel_file_name_matrix[i, j]
-            )
-
-            print('Saving figure to file: "{0:s}"...'.format(
-                high_res_panel_file_name_matrix[i, j]
-            ))
-            figure_object.savefig(
-                high_res_panel_file_name_matrix[i, j],
-                dpi=FIGURE_RESOLUTION_DPI, pad_inches=0, bbox_inches='tight'
-            )
-            pyplot.close(figure_object)
-
-            imagemagick_utils.resize_image(
-                input_file_name=high_res_panel_file_name_matrix[i, j],
-                output_file_name=high_res_panel_file_name_matrix[i, j],
-                output_size_pixels=PANEL_SIZE_PX
+            _plot_data_one_channel(
+                predictor_matrix=predictor_matrices[0][..., i, j],
+                are_data_normalized=are_data_normalized,
+                plotting_brightness_temp=False,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                predictor_grid_latitudes_deg_n=high_res_latitudes_deg_n,
+                predictor_grid_longitudes_deg_e=high_res_longitudes_deg_e,
+                actual_center_x_coord=actual_center_x_coord,
+                actual_center_y_coord=actual_center_y_coord,
+                coord_transform_string=coord_transform_string,
+                probability_matrix=probability_matrix,
+                prediction_grid_latitudes_deg_n=low_res_latitudes_deg_n,
+                prediction_grid_longitudes_deg_e=low_res_longitudes_deg_e,
+                prob_colour_map_object=prob_colour_map_object,
+                prob_colour_norm_object=prob_colour_norm_object,
+                prob_contour_levels=prob_contour_levels,
+                predicted_x_coords=predicted_x_coords,
+                predicted_y_coords=predicted_y_coords,
+                prediction_opacity=point_prediction_opacity,
+                title_string=title_string,
+                output_file_name=high_res_panel_file_name_matrix[i, j]
             )
 
     for i in range(num_lag_times):
         for j in range(num_low_res_wavelengths):
-            figure_object, axes_object = pyplot.subplots(
-                1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
-            )
-
-            if are_data_normalized:
-                colour_map_object = pyplot.get_cmap('seismic', lut=1001)
-                colour_norm_object = matplotlib.colors.Normalize(
-                    vmin=-3., vmax=3.
-                )
-            else:
-                colour_map_object, colour_norm_object = (
-                    satellite_plotting.get_colour_scheme_for_brightness_temp()
-                )
-
-            plotting_utils.plot_borders(
-                border_latitudes_deg_n=border_latitudes_deg_n,
-                border_longitudes_deg_e=border_longitudes_deg_e,
-                axes_object=axes_object
-            )
-
-            satellite_plotting.plot_2d_grid_latlng(
-                data_matrix=predictor_matrices[-1][..., i, j],
-                axes_object=axes_object,
-                latitude_array_deg_n=low_res_latitudes_deg_n,
-                longitude_array_deg_e=low_res_longitudes_deg_e,
-                plotting_brightness_temp=True,
-                cbar_orientation_string=None,
-                colour_map_object=colour_map_object,
-                colour_norm_object=colour_norm_object,
-                opacity=0.5 if are_predictions_gridded else 1.
-            )
-
-            if are_predictions_gridded:
-                satellite_plotting.plot_2d_grid_latlng(
-                    data_matrix=prediction_matrix,
-                    axes_object=axes_object,
-                    latitude_array_deg_n=low_res_latitudes_deg_n,
-                    longitude_array_deg_e=low_res_longitudes_deg_e,
-                    plotting_brightness_temp=False,
-                    cbar_orientation_string=None,
-                    colour_map_object=prob_colour_map_object,
-                    colour_norm_object=prob_colour_norm_object,
-                    use_contourf=True
-                )
-
-            plotting_utils.plot_grid_lines(
-                plot_latitudes_deg_n=numpy.ravel(low_res_latitudes_deg_n),
-                plot_longitudes_deg_e=numpy.ravel(low_res_longitudes_deg_e),
-                axes_object=axes_object,
-                parallel_spacing_deg=2., meridian_spacing_deg=2.
-            )
-
-            if regular_grids:
-                x_coord = (
-                    0.5 + scalar_target_values[1] / num_grid_columns_low_res
-                )
-                y_coord = 0.5 + scalar_target_values[0] / num_grid_rows_low_res
-                transform_object = axes_object.transAxes
-            else:
-                y_coord = low_res_latitude_interp_object(
-                    center_column_index_low_res + scalar_target_values[1],
-                    center_row_index_low_res + scalar_target_values[0]
-                )
-                x_coord = low_res_longitude_interp_object(
-                    center_column_index_low_res + scalar_target_values[1],
-                    center_row_index_low_res + scalar_target_values[0]
-                )
-                transform_object = axes_object.transData
-
-            axes_object.plot(
-                x_coord, y_coord, linestyle='None',
-                marker=ACTUAL_CENTER_MARKER,
-                markersize=ACTUAL_CENTER_MARKER_SIZE,
-                markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
-                markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
-                markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-                transform=transform_object, zorder=1e10
-            )
-
-            axes_object.plot(
-                0.5, 0.5, linestyle='None',
-                marker=IMAGE_CENTER_MARKER, markersize=IMAGE_CENTER_MARKER_SIZE,
-                markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
-                markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
-                markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
-                transform=axes_object.transAxes, zorder=1e10
-            )
-
-            if use_prob_contours:
-                axes_object.contour(
-                    low_res_longitudes_deg_e, low_res_latitudes_deg_n,
-                    prediction_matrix, prob_contour_levels,
-                    cmap=prob_colour_map_object, norm=prob_colour_norm_object,
-                    linewidths=4, linestyles='solid', zorder=1e6
-                )
-            elif not are_predictions_gridded:
-                for k in range(ensemble_size):
-                    if regular_grids:
-                        x_coord = (
-                            0.5 + prediction_matrix[1, k] /
-                            num_grid_columns_low_res
-                        )
-                        y_coord = (
-                            0.5 + prediction_matrix[0, k] /
-                            num_grid_rows_low_res
-                        )
-                        transform_object = axes_object.transAxes
-                    else:
-                        y_coord = low_res_latitude_interp_object(
-                            center_column_index_low_res +
-                            prediction_matrix[1, k],
-                            center_row_index_low_res + prediction_matrix[0, k]
-                        )
-                        x_coord = low_res_longitude_interp_object(
-                            center_column_index_low_res +
-                            prediction_matrix[1, k],
-                            center_row_index_low_res + prediction_matrix[0, k]
-                        )
-                        transform_object = axes_object.transData
-
-                    axes_object.plot(
-                        x_coord, y_coord, linestyle='None',
-                        marker=PREDICTED_CENTER_MARKER,
-                        markersize=PREDICTED_CENTER_MARKER_SIZE,
-                        markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
-                        markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
-                        markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
-                        transform=transform_object, zorder=1e10
-                    )
-
             title_string = (
                 r'{0:.3f}-micron $T_b$ for {1:s} at {2:d}-minute lag'
             ).format(
@@ -717,7 +738,6 @@ def _plot_data_one_example(
                 cyclone_id_string,
                 int(numpy.round(lag_times_minutes[i]))
             )
-            axes_object.set_title(title_string)
 
             low_res_panel_file_name_matrix[i, j] = (
                 '{0:s}_{1:04d}minutes_{2:06.3f}microns.{3:s}'
@@ -725,26 +745,31 @@ def _plot_data_one_example(
                 os.path.splitext(output_file_name)[0],
                 int(numpy.round(lag_times_minutes[i])),
                 low_res_wavelengths_microns[j],
-                'png' if are_predictions_gridded else 'jpg'
+                'png' if plot_filled_contours else 'jpg'
             )
 
-            file_system_utils.mkdir_recursive_if_necessary(
-                file_name=low_res_panel_file_name_matrix[i, j]
-            )
-
-            print('Saving figure to file: "{0:s}"...'.format(
-                low_res_panel_file_name_matrix[i, j]
-            ))
-            figure_object.savefig(
-                low_res_panel_file_name_matrix[i, j],
-                dpi=FIGURE_RESOLUTION_DPI, pad_inches=0, bbox_inches='tight'
-            )
-            pyplot.close(figure_object)
-
-            imagemagick_utils.resize_image(
-                input_file_name=low_res_panel_file_name_matrix[i, j],
-                output_file_name=low_res_panel_file_name_matrix[i, j],
-                output_size_pixels=PANEL_SIZE_PX
+            _plot_data_one_channel(
+                predictor_matrix=predictor_matrices[-1][..., i, j],
+                are_data_normalized=are_data_normalized,
+                plotting_brightness_temp=True,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                predictor_grid_latitudes_deg_n=low_res_latitudes_deg_n,
+                predictor_grid_longitudes_deg_e=low_res_longitudes_deg_e,
+                actual_center_x_coord=actual_center_x_coord,
+                actual_center_y_coord=actual_center_y_coord,
+                coord_transform_string=coord_transform_string,
+                probability_matrix=probability_matrix,
+                prediction_grid_latitudes_deg_n=low_res_latitudes_deg_n,
+                prediction_grid_longitudes_deg_e=low_res_longitudes_deg_e,
+                prob_colour_map_object=prob_colour_map_object,
+                prob_colour_norm_object=prob_colour_norm_object,
+                prob_contour_levels=prob_contour_levels,
+                predicted_x_coords=predicted_x_coords,
+                predicted_y_coords=predicted_y_coords,
+                prediction_opacity=point_prediction_opacity,
+                title_string=title_string,
+                output_file_name=high_res_panel_file_name_matrix[i, j]
             )
 
     num_panels_total = num_lag_times * (
@@ -763,7 +788,7 @@ def _plot_data_one_example(
                 '{0:s}_{1:04d}minute-lag.{2:s}'.format(
                     os.path.splitext(output_file_name)[0],
                     int(numpy.round(lag_times_minutes[i])),
-                    'png' if are_predictions_gridded else 'jpg'
+                    'png' if plot_filled_contours else 'jpg'
                 )
             )
 
@@ -811,7 +836,7 @@ def _plot_data_one_example(
                 tick_label_format_string='{0:.2f}', log_space=False,
                 temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
                     this_figure_file_name[:-4],
-                    'png' if are_predictions_gridded else 'jpg'
+                    'png' if plot_filled_contours else 'jpg'
                 )
             )
 
@@ -835,15 +860,16 @@ def _plot_data_one_example(
             tick_label_format_string='{0:.0f}', log_space=False,
             temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
                 this_figure_file_name[:-4],
-                'png' if are_predictions_gridded else 'jpg'
+                'png' if plot_filled_contours else 'jpg'
             )
         )
 
-        if are_predictions_gridded:
+        if plot_filled_contours:
             prob_colour_map_object, prob_colour_norm_object = (
-                _get_colour_map_for_gridded_probs(
+                _get_probability_colour_map(
                     base_colour_map_name=prob_colour_map_name,
-                    min_value=min_gridded_prob, max_value=max_gridded_prob,
+                    min_value=min_semantic_seg_prob,
+                    max_value=max_semantic_seg_prob,
                     percent_flag=True
                 )
             )
@@ -857,16 +883,18 @@ def _plot_data_one_example(
                 tick_label_format_string='{0:.2f}', log_space=False,
                 temporary_cbar_file_name='{0:s}_cbar.{1:s}'.format(
                     this_figure_file_name[:-4],
-                    'png' if are_predictions_gridded else 'jpg'
+                    'png' if plot_filled_contours else 'jpg'
                 )
             )
 
 
-def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
-         min_gridded_prob, max_gridded_prob,
-         min_gridded_prob_percentile, max_gridded_prob_percentile,
-         use_prob_contours, prob_contour_smoothing_radius_px,
-         prob_colour_map_name, output_dir_name):
+def _run(prediction_file_name, satellite_dir_name,
+         are_data_normalized, plot_one_lag_time, prob_colour_map_name,
+         min_semantic_seg_prob, max_semantic_seg_prob,
+         min_semantic_seg_prob_percentile, max_semantic_seg_prob_percentile,
+         convert_points_to_line_contours, line_contour_smoothing_radius_px,
+         point_prediction_opacity, plot_mean_point_prediction,
+         output_dir_name):
     """Plots predictions.
 
     This is effectively the main method.
@@ -874,47 +902,58 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     :param prediction_file_name: See documentation at top of file.
     :param satellite_dir_name: Same.
     :param are_data_normalized: Same.
-    :param min_gridded_prob: Same.
-    :param max_gridded_prob: Same.
-    :param min_gridded_prob_percentile: Same.
-    :param max_gridded_prob_percentile: Same.
-    :param use_prob_contours: Same.
-    :param prob_contour_smoothing_radius_px: Same.
+    :param plot_one_lag_time: Same.
     :param prob_colour_map_name: Same.
+    :param min_semantic_seg_prob: Same.
+    :param max_semantic_seg_prob: Same.
+    :param min_semantic_seg_prob_percentile: Same.
+    :param max_semantic_seg_prob_percentile: Same.
+    :param convert_points_to_line_contours: Same.
+    :param line_contour_smoothing_radius_px: Same.
+    :param point_prediction_opacity: Same.
+    :param plot_mean_point_prediction: Same.
     :param output_dir_name: Same.
     """
 
+    # Check and process input args.
     print('Reading data from: "{0:s}"...'.format(prediction_file_name))
     prediction_table_xarray = prediction_io.read_file(prediction_file_name)
 
-    are_predictions_gridded = (
+    semantic_seg_flag = (
         scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY
         not in prediction_table_xarray
     )
 
-    if are_predictions_gridded:
-        if min_gridded_prob >= max_gridded_prob:
-            min_gridded_prob = None
-            max_gridded_prob = None
+    if semantic_seg_flag:
+        if min_semantic_seg_prob >= max_semantic_seg_prob:
+            min_semantic_seg_prob = None
+            max_semantic_seg_prob = None
 
-            error_checking.assert_is_geq(min_gridded_prob_percentile, 50.)
-            error_checking.assert_is_leq(max_gridded_prob_percentile, 100.)
+            error_checking.assert_is_geq(min_semantic_seg_prob_percentile, 50.)
+            error_checking.assert_is_leq(max_semantic_seg_prob_percentile, 100.)
             error_checking.assert_is_greater(
-                max_gridded_prob_percentile, min_gridded_prob_percentile
+                max_semantic_seg_prob_percentile,
+                min_semantic_seg_prob_percentile
             )
         else:
-            error_checking.assert_is_greater(min_gridded_prob, 0.)
-            error_checking.assert_is_greater(max_gridded_prob, 0.)
+            error_checking.assert_is_greater(min_semantic_seg_prob, 0.)
+            error_checking.assert_is_greater(max_semantic_seg_prob, 0.)
     else:
         pt = prediction_table_xarray
         ensemble_size = len(
             pt.coords[scalar_prediction_utils.ENSEMBLE_MEMBER_DIM_KEY].values
         )
-        use_prob_contours = use_prob_contours and ensemble_size > 1
+        convert_points_to_line_contours = (
+            convert_points_to_line_contours and ensemble_size > 1
+        )
 
-        if prob_contour_smoothing_radius_px < 1:
-            prob_contour_smoothing_radius_px = None
+        if line_contour_smoothing_radius_px < 1:
+            line_contour_smoothing_radius_px = None
 
+    error_checking.assert_is_greater(point_prediction_opacity, 0.)
+    error_checking.assert_is_leq(point_prediction_opacity, 1.)
+
+    # Read model metadata.
     model_file_name = (
         prediction_table_xarray.attrs[scalar_prediction_utils.MODEL_FILE_KEY]
     )
@@ -933,16 +972,16 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
     )
     validation_option_dict[neural_net.SENTINEL_VALUE_KEY] = SENTINEL_VALUE
 
-    pt = prediction_table_xarray
-
     # TODO(thunderhoser): This will not work if I ever have multiple cyclones in
     # one prediction file.
+    pt = prediction_table_xarray
     cyclone_id_string = (
         pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[0].decode('utf-8')
     )
     target_times_unix_sec = pt[scalar_prediction_utils.TARGET_TIME_KEY].values
 
-    if are_predictions_gridded:
+    # Find actual TC centers.
+    if semantic_seg_flag:
         num_examples = len(target_times_unix_sec)
         actual_row_offsets = numpy.full(num_examples, 0, dtype=int)
         actual_column_offsets = numpy.full(num_examples, 0, dtype=int)
@@ -963,7 +1002,16 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
         ).astype(int)
 
     validation_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY] = False
+    if plot_one_lag_time:
+        validation_option_dict[neural_net.LAG_TIMES_KEY] = numpy.array([
+            numpy.min(validation_option_dict[neural_net.LAG_TIMES_KEY])
+        ])
 
+    model_metadata_dict[neural_net.VALIDATION_OPTIONS_KEY] = (
+        validation_option_dict
+    )
+
+    # Read predictor data.
     if model_metadata_dict[neural_net.USE_CIRA_IR_KEY]:
         data_dict = neural_net.create_data_cira_ir_specific_trans(
             option_dict=validation_option_dict,
@@ -1001,9 +1049,10 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
         predictor_matrices[k] = predictor_matrices[k].astype(numpy.float64)
         predictor_matrices[k][
             predictor_matrices[k] < SENTINEL_VALUE + 1
-            ] = numpy.nan
+        ] = numpy.nan
 
-    if are_predictions_gridded:
+    # Do the plotting.
+    if semantic_seg_flag:
         pt = gridded_prediction_utils.get_ensemble_mean(pt)
         prediction_matrix = (
             pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY].values[..., 0]
@@ -1013,6 +1062,11 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             pt[scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY].values,
             pt[scalar_prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
         ), axis=-2)
+
+        if plot_mean_point_prediction:
+            prediction_matrix = numpy.mean(
+                prediction_matrix, axis=-1, keepdims=True
+            )
 
     num_examples = predictor_matrices[0].shape[0]
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
@@ -1030,30 +1084,30 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
                 target_times_unix_sec[i], TIME_FORMAT
             ),
             this_index,
-            'png' if are_predictions_gridded else 'jpg'
+            'png' if semantic_seg_flag else 'jpg'
         )
 
-        if are_predictions_gridded:
-            if min_gridded_prob is None:
-                this_min_gridded_prob = numpy.percentile(
-                    prediction_matrix[i, ...], min_gridded_prob_percentile
+        if semantic_seg_flag:
+            if min_semantic_seg_prob is None:
+                this_min_prob = numpy.percentile(
+                    prediction_matrix[i, ...], min_semantic_seg_prob_percentile
                 )
-                this_max_gridded_prob = numpy.percentile(
-                    prediction_matrix[i, ...], max_gridded_prob_percentile
+                this_max_prob = numpy.percentile(
+                    prediction_matrix[i, ...], max_semantic_seg_prob_percentile
                 )
 
-                if this_max_gridded_prob - this_min_gridded_prob < 0.01:
-                    new_max = this_min_gridded_prob + 0.01
+                if this_max_prob - this_min_prob < 0.01:
+                    new_max = this_min_prob + 0.01
                     if new_max > 1:
-                        this_min_gridded_prob = this_max_gridded_prob - 0.01
+                        this_min_prob = this_max_prob - 0.01
                     else:
-                        this_max_gridded_prob = this_min_gridded_prob + 0.01
+                        this_max_prob = this_min_prob + 0.01
             else:
-                this_min_gridded_prob = min_gridded_prob + 0.
-                this_max_gridded_prob = max_gridded_prob + 0.
+                this_min_prob = min_semantic_seg_prob + 0.
+                this_max_prob = max_semantic_seg_prob + 0.
         else:
-            this_min_gridded_prob = None
-            this_max_gridded_prob = None
+            this_min_prob = None
+            this_max_prob = None
 
         _plot_data_one_example(
             predictor_matrices=[p[i, ...] for p in predictor_matrices],
@@ -1061,7 +1115,6 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             prediction_matrix=prediction_matrix[i, ...],
             model_metadata_dict=model_metadata_dict,
             cyclone_id_string=cyclone_id_string,
-            target_time_unix_sec=target_times_unix_sec[i],
             low_res_latitudes_deg_n=low_res_latitude_matrix_deg_n[i, ..., 0],
             low_res_longitudes_deg_e=low_res_longitude_matrix_deg_e[i, ..., 0],
             high_res_latitudes_deg_n=(
@@ -1076,11 +1129,12 @@ def _run(prediction_file_name, satellite_dir_name, are_data_normalized,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
             output_file_name=output_file_name,
-            min_gridded_prob=this_min_gridded_prob,
-            max_gridded_prob=this_max_gridded_prob,
             prob_colour_map_name=prob_colour_map_name,
-            use_prob_contours=use_prob_contours,
-            prob_contour_smoothing_radius_px=prob_contour_smoothing_radius_px
+            min_semantic_seg_prob=this_min_prob,
+            max_semantic_seg_prob=this_max_prob,
+            convert_points_to_line_contours=convert_points_to_line_contours,
+            line_contour_smoothing_radius_px=line_contour_smoothing_radius_px,
+            point_prediction_opacity=point_prediction_opacity
         )
 
 
@@ -1095,22 +1149,35 @@ if __name__ == '__main__':
         are_data_normalized=bool(getattr(
             INPUT_ARG_OBJECT, ARE_DATA_NORMALIZED_ARG_NAME
         )),
-        min_gridded_prob=getattr(INPUT_ARG_OBJECT, MIN_GRIDDED_PROB_ARG_NAME),
-        max_gridded_prob=getattr(INPUT_ARG_OBJECT, MAX_GRIDDED_PROB_ARG_NAME),
-        min_gridded_prob_percentile=getattr(
-            INPUT_ARG_OBJECT, MIN_GRIDDED_PROB_PERCENTILE_ARG_NAME
-        ),
-        max_gridded_prob_percentile=getattr(
-            INPUT_ARG_OBJECT, MAX_GRIDDED_PROB_PERCENTILE_ARG_NAME
-        ),
-        use_prob_contours=bool(getattr(
-            INPUT_ARG_OBJECT, USE_PROB_CONTOURS_ARG_NAME
+        plot_one_lag_time=bool(getattr(
+            INPUT_ARG_OBJECT, PLOT_ONE_LAG_TIME_ARG_NAME
         )),
-        prob_contour_smoothing_radius_px=getattr(
-            INPUT_ARG_OBJECT, PROB_CONTOUR_SMOOTH_RADIUS_ARG_NAME
+        min_semantic_seg_prob=getattr(
+            INPUT_ARG_OBJECT, MIN_SEMANTIC_SEG_PROB_ARG_NAME
+        ),
+        max_semantic_seg_prob=getattr(
+            INPUT_ARG_OBJECT, MAX_SEMANTIC_SEG_PROB_ARG_NAME
+        ),
+        min_semantic_seg_prob_percentile=getattr(
+            INPUT_ARG_OBJECT, MIN_SEMANTIC_SEG_PROB_PERCENTILE_ARG_NAME
+        ),
+        max_semantic_seg_prob_percentile=getattr(
+            INPUT_ARG_OBJECT, MAX_SEMANTIC_SEG_PROB_PERCENTILE_ARG_NAME
         ),
         prob_colour_map_name=getattr(
             INPUT_ARG_OBJECT, PROB_COLOUR_MAP_ARG_NAME
         ),
+        convert_points_to_line_contours=bool(getattr(
+            INPUT_ARG_OBJECT, POINTS_TO_LINE_CONTOURS_ARG_NAME
+        )),
+        line_contour_smoothing_radius_px=getattr(
+            INPUT_ARG_OBJECT, LINE_CONTOUR_SMOOTH_RAD_ARG_NAME
+        ),
+        point_prediction_opacity=getattr(
+            INPUT_ARG_OBJECT, POINT_PREDICTION_OPACITY_ARG_NAME
+        ),
+        plot_mean_point_prediction=bool(getattr(
+            INPUT_ARG_OBJECT, PLOT_MEAN_POINT_PREDICTION_ARG_NAME
+        )),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
