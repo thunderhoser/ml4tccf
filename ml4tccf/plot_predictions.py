@@ -622,7 +622,7 @@ def _plot_data_one_example(
     plot_line_contours = convert_points_to_line_contours
 
     validation_option_dict = model_metadata_dict[
-        neural_net.TRAINING_OPTIONS_KEY
+        neural_net.VALIDATION_OPTIONS_KEY
     ]
     d = validation_option_dict
     high_res_wavelengths_microns = d[neural_net.HIGH_RES_WAVELENGTHS_KEY]
