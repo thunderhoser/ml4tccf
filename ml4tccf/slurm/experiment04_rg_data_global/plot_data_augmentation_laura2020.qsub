@@ -35,7 +35,7 @@ python3 -u "${CODE_DIR_NAME}/plot_data_augmentation.py" \
 --num_grid_rows_low_res=600 \
 --num_grid_columns_low_res=600 \
 --low_res_wavelengths_microns 11.2 \
---high_res_wavelengths_microns \
+--high_res_wavelengths_microns "" \
 --num_translations=4 \
 --mean_translation_low_res_px=22.5 \
 --stdev_translation_low_res_px=11.25 \
