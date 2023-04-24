@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_predictions_katrina_mean_point"
+#SBATCH --job-name="plot_predictions_katrina_contours"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -12,12 +12,13 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=01:00:00
+#SBATCH --array=1-10
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_predictions_katrina_mean_point_%A.out
+#SBATCH --output=plot_predictions_katrina_contours_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -39,6 +40,9 @@ set max_examples_per_cyclone=${MAX_EXAMPLES_PER_CYCLONE_COUNTS[$BEST_MODEL_INDEX
 set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${num_first_layer_channels}_num-batches-per-update=${num_batches_per_update}_max-examples-per-cyclone=${max_examples_per_cyclone}"
 echo $model_dir_name
 
+set SMOOTHING_RADII_PX=("01" "02" "03" "04" "05" "06" "07" "08" "09" "10")
+set smoothing_radius_px=${SMOOTHING_RADII_PX[$SLURM_ARRAY_TASK_ID]}
+
 set CYCLONE_ID_STRINGS=("2005AL12")
 set i=1
 
@@ -51,10 +55,9 @@ while ($i <= ${#CYCLONE_ID_STRINGS})
     --are_data_normalized=1 \
     --plot_one_lag_time=1 \
     --prob_colour_map_name="BuGn" \
-    --convert_points_to_line_contours=0 \
-    --point_prediction_opacity=1 \
-    --plot_mean_point_prediction=1 \
-    --output_dir_name="${model_dir_name}/validation/predictions_${CYCLONE_ID_STRINGS[$i]}_mean_point"
+    --convert_points_to_line_contours=1 \
+    --line_contour_smoothing_radius_px=${smoothing_radius_px} \
+    --output_dir_name="${model_dir_name}/validation/predictions_${CYCLONE_ID_STRINGS[$i]}_contours/smoothing_radius_px=${smoothing_radius_px}"
 
     @ i = $i + 1
 end
