@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_predictions_irma2017_mean_point"
+#SBATCH --job-name="apply_neural_nets_irma2017"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -11,30 +11,30 @@
 ##SBATCH --ntasks=1
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
-#SBATCH --time=01:00:00
+#SBATCH --time=30:00:00
+#SBATCH --array=75
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_predictions_irma2017_mean_point_%A.out
+#SBATCH --output=apply_neural_nets_irma2017_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_cira_ir"
-set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tc_project/learning_examples/rotated_with_storm_motion/imputed/normalized"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_rg_data_global"
+set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020/simplified_11point2microns"
 
 set FIRST_LAYER_CHANNEL_COUNTS=("08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24")
 set BATCHES_PER_UPDATE_COUNTS=("01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05")
 set MAX_EXAMPLES_PER_CYCLONE_COUNTS=("1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4")
-set BEST_MODEL_INDEX=40 
 
-set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$BEST_MODEL_INDEX]}
-set num_batches_per_update=${BATCHES_PER_UPDATE_COUNTS[$BEST_MODEL_INDEX]}
-set max_examples_per_cyclone=${MAX_EXAMPLES_PER_CYCLONE_COUNTS[$BEST_MODEL_INDEX]}
+set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_batches_per_update=${BATCHES_PER_UPDATE_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set max_examples_per_cyclone=${MAX_EXAMPLES_PER_CYCLONE_COUNTS[$SLURM_ARRAY_TASK_ID]}
 
 set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${num_first_layer_channels}_num-batches-per-update=${num_batches_per_update}_max-examples-per-cyclone=${max_examples_per_cyclone}"
 echo $model_dir_name
@@ -43,18 +43,14 @@ set CYCLONE_ID_STRINGS=("2017AL11")
 set i=1
 
 while ($i <= ${#CYCLONE_ID_STRINGS})
-    set prediction_file_name="${model_dir_name}/training/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
-
-    python3 -u "${CODE_DIR_NAME}/plot_predictions.py" \
-    --input_prediction_file_name="${prediction_file_name}" \
-    --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
-    --are_data_normalized=1 \
-    --plot_one_lag_time=1 \
-    --prob_colour_map_name="BuGn" \
-    --convert_points_to_line_contours=0 \
-    --point_prediction_opacity=1 \
-    --plot_mean_point_prediction=1 \
-    --output_dir_name="${model_dir_name}/training/predictions_${CYCLONE_ID_STRINGS[$i]}_mean_point"
+    python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+    --input_model_file_name="${model_dir_name}/model.h5" \
+    --input_satellite_dir_name="${VALIDATION_DIR_NAME}" \
+    --cyclone_id_string="${CYCLONE_ID_STRINGS[$i]}" \
+    --num_bnn_iterations=1 \
+    --max_ensemble_size=100 \
+    --data_aug_num_translations=8 \
+    --output_dir_name="${model_dir_name}/training"
 
     @ i = $i + 1
 end

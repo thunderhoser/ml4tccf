@@ -47,7 +47,7 @@ set CYCLONE_ID_STRINGS=("2017AL11")
 set i=1
 
 while ($i <= ${#CYCLONE_ID_STRINGS})
-    set prediction_file_name="${model_dir_name}/validation/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
+    set prediction_file_name="${model_dir_name}/training/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
 
     python3 -u "${CODE_DIR_NAME}/plot_predictions.py" \
     --input_prediction_file_name="${prediction_file_name}" \
@@ -58,7 +58,7 @@ while ($i <= ${#CYCLONE_ID_STRINGS})
     --convert_points_to_line_contours=0 \
     --point_prediction_opacity=${opacity_level} \
     --plot_mean_point_prediction=0 \
-    --output_dir_name="${model_dir_name}/validation/predictions_${CYCLONE_ID_STRINGS[$i]}_many_points/opacity=${opacity_level}"
+    --output_dir_name="${model_dir_name}/training/predictions_${CYCLONE_ID_STRINGS[$i]}_many_points/opacity=${opacity_level}"
 
     @ i = $i + 1
 end
