@@ -776,7 +776,7 @@ def _plot_data_one_example(
                 predicted_y_coords=predicted_y_coords,
                 prediction_opacity=point_prediction_opacity,
                 title_string=title_string,
-                output_file_name=high_res_panel_file_name_matrix[i, j]
+                output_file_name=low_res_panel_file_name_matrix[i, j]
             )
 
     num_panels_total = num_lag_times * (
