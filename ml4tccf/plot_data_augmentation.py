@@ -28,6 +28,7 @@ import satellite_plotting
 # lat/long coordinates, so all images plotted by this script will NOT line up
 # properly with lat/long coordinates.  I could fix this, but meh... later.
 
+TOLERANCE = 1e-6
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
 LAG_TIMES_MINUTES = numpy.array([0], dtype=int)
@@ -98,13 +99,14 @@ NUM_GRID_COLUMNS_HELP_STRING = (
 )
 LOW_RES_WAVELENGTHS_HELP_STRING = (
     'Low-resolution wavelengths to plot.  To use the default (depending on '
-    'whether the data source is CIRA IR or Robert/Galina, leave this argument '
+    'whether the data source is CIRA IR or Robert/Galina), leave this argument '
     'alone.'
 )
 HIGH_RES_WAVELENGTHS_HELP_STRING = (
     'High-resolution wavelengths to plot.  To use the default (depending on '
-    'whether the data source is CIRA IR or Robert/Galina, leave this argument '
-    'alone.'
+    'whether the data source is CIRA IR or Robert/Galina), leave this argument '
+    'alone.  To omit high-res data completely, make this a one-item list with '
+    'zero only.'
 )
 NUM_TRANSLATIONS_HELP_STRING = (
     'Number of translations (i.e., augmentations) for each cyclone.'
@@ -552,11 +554,11 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     ):
         low_res_wavelengths_microns = None
 
-    if (
-            len(high_res_wavelengths_microns) == 1
-            and high_res_wavelengths_microns[0] < 0
-    ):
-        high_res_wavelengths_microns = None
+    if len(high_res_wavelengths_microns) == 1:
+        if numpy.isclose(high_res_wavelengths_microns[0], 0, atol=TOLERANCE):
+            high_res_wavelengths_microns = numpy.array([])
+        else:
+            high_res_wavelengths_microns = None
 
     if low_res_wavelengths_microns is None:
         low_res_wavelengths_microns = (
