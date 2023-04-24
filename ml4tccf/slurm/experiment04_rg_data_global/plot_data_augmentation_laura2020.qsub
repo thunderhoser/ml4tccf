@@ -24,8 +24,8 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_rg_data_global"
-set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020/simplified_11point2microns"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_rg_data"
+set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2019/simplified_11point2microns"
 
 python3 -u "${CODE_DIR_NAME}/plot_data_augmentation.py" \
 --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \

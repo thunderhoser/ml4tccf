@@ -1,0 +1,56 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="evaluate_by_intensity_and_lat"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --array=27,31,39,45,48,55,94
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=evaluate_by_intensity_and_lat_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment04_rg_data_global"
+
+set FIRST_LAYER_CHANNEL_COUNTS=("08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24")
+set BATCHES_PER_UPDATE_COUNTS=("01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05")
+set MAX_EXAMPLES_PER_CYCLONE_COUNTS=("1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4")
+
+set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_batches_per_update=${BATCHES_PER_UPDATE_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set max_examples_per_cyclone=${MAX_EXAMPLES_PER_CYCLONE_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${num_first_layer_channels}_num-batches-per-update=${num_batches_per_update}_max-examples-per-cyclone=${max_examples_per_cyclone}"
+echo $model_dir_name
+
+set WIND_CUTOFF_STRINGS=("max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=-inf-20.0" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=20.0-30.0" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=30.0-inf" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=-inf-20.0" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=20.0-30.0" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=30.0-inf" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=-inf-20.0" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=20.0-30.0" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=30.0-inf")
+set i=1
+
+while ($i <= ${#WIND_CUTOFF_STRINGS})
+    python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+    --input_prediction_file_pattern="${model_dir_name}/validation/${WIND_CUTOFF_STRINGS[$i]}/predictions*.nc" \
+    --num_bootstrap_reps=100 \
+    --num_xy_offset_bins=30 \
+    --xy_offset_limits_metres -45000 45000 \
+    --num_offset_distance_bins=30 \
+    --offset_distance_limits_metres 0 60000 \
+    --num_offset_direction_bins=36 \
+    --output_file_name="${model_dir_name}/validation/${WIND_CUTOFF_STRINGS[$i]}/evaluation.nc"
+
+    @ i = $i + 1
+end
