@@ -370,12 +370,6 @@ def _plot_data_one_channel(
         parallel_spacing_deg=2., meridian_spacing_deg=2.
     )
 
-    print(actual_center_x_coord)
-    print(actual_center_y_coord)
-    print(coord_transform_string)
-    print('ACTUAL CENTER COORDS: x = {0:f}, y = {1:f}, transform = {2:s}'.format(
-        actual_center_x_coord, actual_center_y_coord, coord_transform_string
-    ))
     coord_transform_object = (
         axes_object.transAxes if coord_transform_string == 'transAxes'
         else axes_object.transData
@@ -413,10 +407,6 @@ def _plot_data_one_channel(
         )
 
         for k in range(ensemble_size):
-            print('PREDICTED CENTER COORDS: x = {0:f}, y = {1:f}, transform = {2:s}'.format(
-                predicted_x_coords[k], predicted_y_coords[k], coord_transform_string
-            ))
-
             axes_object.plot(
                 predicted_x_coords[k], predicted_y_coords[k], linestyle='None',
                 marker=PREDICTED_CENTER_MARKER,

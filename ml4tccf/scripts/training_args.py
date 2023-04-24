@@ -85,9 +85,8 @@ TARGET_SMOOTHER_STDEV_HELP_STRING = (
     'Standard-deviation distance for Gaussian smoothing of target field.'
 )
 SYNOPTIC_TIMES_ONLY_HELP_STRING = (
-    '[used only if model is trained with Robert/Galina data] Boolean flag.  If '
-    '1, only synoptic times can be target times.  If 0, any time can be a '
-    'target time.'
+    'Boolean flag.  If 1, only synoptic times can be target times.  If 0, any '
+    'time can be a target time.'
 )
 
 TIME_TOLERANCE_FOR_TRAINING_HELP_STRING = (

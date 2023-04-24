@@ -14,7 +14,7 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
          num_examples_per_batch, max_examples_per_cyclone,
          num_rows_low_res, num_columns_low_res, data_aug_num_translations,
          data_aug_mean_translation_low_res_px,
-         data_aug_stdev_translation_low_res_px,
+         data_aug_stdev_translation_low_res_px, synoptic_times_only,
          satellite_dir_name_for_training, training_years,
          satellite_dir_name_for_validation, validation_years,
          num_epochs,
@@ -35,6 +35,7 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
     :param data_aug_num_translations: Same.
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
+    :param synoptic_times_only: Same.
     :param satellite_dir_name_for_training: Same.
     :param training_years: Same.
     :param satellite_dir_name_for_validation: Same.
@@ -71,7 +72,8 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
         neural_net.MAX_MISSING_LAG_TIMES_KEY: 0,
         neural_net.MAX_INTERP_GAP_KEY: 0,
         neural_net.SENTINEL_VALUE_KEY: -10.,
-        neural_net.TARGET_SMOOOTHER_STDEV_KEY: 1e-6
+        neural_net.TARGET_SMOOOTHER_STDEV_KEY: 1e-6,
+        neural_net.SYNOPTIC_TIMES_ONLY_KEY: synoptic_times_only
     }
 
     validation_option_dict = {
@@ -150,6 +152,9 @@ if __name__ == '__main__':
         data_aug_stdev_translation_low_res_px=getattr(
             INPUT_ARG_OBJECT, training_args.DATA_AUG_STDEV_TRANS_ARG_NAME
         ),
+        synoptic_times_only=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.SYNOPTIC_TIMES_ONLY_ARG_NAME
+        )),
         satellite_dir_name_for_training=getattr(
             INPUT_ARG_OBJECT, training_args.SATELLITE_DIR_FOR_TRAINING_ARG_NAME
         ),
