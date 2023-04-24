@@ -377,6 +377,9 @@ def _plot_data_one_channel(
         parallel_spacing_deg=2., meridian_spacing_deg=2.
     )
 
+    print(actual_center_x_coord)
+    print(actual_center_y_coord)
+    print(coord_transform_string)
     print('ACTUAL CENTER COORDS: x = {0:f}, y = {1:f}, transform = {2:s}'.format(
         actual_center_x_coord, actual_center_y_coord, coord_transform_string
     ))
