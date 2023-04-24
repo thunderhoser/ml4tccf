@@ -150,7 +150,7 @@ INPUT_ARG_PARSER.add_argument(
     default=[-1], help=LOW_RES_WAVELENGTHS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + HIGH_RES_WAVELENGTHS_ARG_NAME, type=float, required=False,
+    '--' + HIGH_RES_WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
     default=[-1], help=HIGH_RES_WAVELENGTHS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(

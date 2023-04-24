@@ -51,6 +51,7 @@ TARGET_STDEV_KEY = 'target_stdev'
 PREDICTION_STDEV_KEY = 'prediction_stdev'
 
 MEAN_DISTANCE_KEY = 'mean_distance'
+MEDIAN_DISTANCE_KEY = 'mean_distance'
 MEAN_SQUARED_DISTANCE_KEY = 'mean_squared_distance'
 MEAN_DIST_SKILL_SCORE_KEY = 'mean_distance_skill_score'
 MEAN_SQ_DIST_SKILL_SCORE_KEY = 'mean_squared_distance_skill_score'
@@ -95,6 +96,22 @@ def _get_mean_distance(target_offset_matrix, predicted_offset_matrix):
     """
 
     return numpy.mean(numpy.sqrt(
+        (target_offset_matrix[:, 0] - predicted_offset_matrix[:, 0]) ** 2
+        + (target_offset_matrix[:, 1] - predicted_offset_matrix[:, 1]) ** 2
+    ))
+
+
+def _get_median_distance(target_offset_matrix, predicted_offset_matrix):
+    """Computes median distance between prediction and target.
+
+    E = number of examples
+
+    :param target_offset_matrix: E-by-2 numpy array of actual offsets.
+    :param predicted_offset_matrix: E-by-2 numpy array of predicted offsets.
+    :return: median_distance: Median distance between prediction and target.
+    """
+
+    return numpy.median(numpy.sqrt(
         (target_offset_matrix[:, 0] - predicted_offset_matrix[:, 0]) ** 2
         + (target_offset_matrix[:, 1] - predicted_offset_matrix[:, 1]) ** 2
     ))
@@ -673,6 +690,10 @@ def _get_scores_one_replicate(
         target_offset_matrix=bootstrapped_target_matrix[:, xy_indices],
         predicted_offset_matrix=bootstrapped_prediction_matrix[:, xy_indices]
     )
+    t[MEDIAN_DISTANCE_KEY].values[i] = _get_median_distance(
+        target_offset_matrix=bootstrapped_target_matrix[:, xy_indices],
+        predicted_offset_matrix=bootstrapped_prediction_matrix[:, xy_indices]
+    )
     t[MEAN_DIST_SKILL_SCORE_KEY].values[i] = _get_mean_dist_skill_score(
         target_offset_matrix=bootstrapped_target_matrix[:, xy_indices],
         predicted_offset_matrix=bootstrapped_prediction_matrix[:, xy_indices],
@@ -1223,6 +1244,9 @@ def get_scores_all_variables(
     these_dim_keys = (BOOTSTRAP_REP_DIM,)
     main_data_dict.update({
         MEAN_DISTANCE_KEY: (
+            these_dim_keys, numpy.full(these_dimensions, numpy.nan)
+        ),
+        MEDIAN_DISTANCE_KEY: (
             these_dim_keys, numpy.full(these_dimensions, numpy.nan)
         ),
         MEAN_SQUARED_DISTANCE_KEY: (
