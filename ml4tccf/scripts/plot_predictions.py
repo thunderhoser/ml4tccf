@@ -370,6 +370,12 @@ def _plot_data_one_channel(
         parallel_spacing_deg=2., meridian_spacing_deg=2.
     )
 
+    print(actual_center_x_coord)
+    print(actual_center_y_coord)
+    print(coord_transform_string)
+    print('ACTUAL CENTER COORDS: x = {0:f}, y = {1:f}, transform = {2:s}'.format(
+        actual_center_x_coord, actual_center_y_coord, coord_transform_string
+    ))
     coord_transform_object = (
         axes_object.transAxes if coord_transform_string == 'transAxes'
         else axes_object.transData
@@ -381,7 +387,7 @@ def _plot_data_one_channel(
         markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
         markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
         markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-        transform=coord_transform_object, zorder=1e10
+        transform=axes_object.transData, zorder=1e12
     )
 
     axes_object.plot(
@@ -407,6 +413,10 @@ def _plot_data_one_channel(
         )
 
         for k in range(ensemble_size):
+            print('PREDICTED CENTER COORDS: x = {0:f}, y = {1:f}, transform = {2:s}'.format(
+                predicted_x_coords[k], predicted_y_coords[k], coord_transform_string
+            ))
+
             axes_object.plot(
                 predicted_x_coords[k], predicted_y_coords[k], linestyle='None',
                 marker=PREDICTED_CENTER_MARKER,
@@ -615,7 +625,7 @@ def _plot_data_one_example(
     plot_line_contours = convert_points_to_line_contours
 
     validation_option_dict = model_metadata_dict[
-        neural_net.TRAINING_OPTIONS_KEY
+        neural_net.VALIDATION_OPTIONS_KEY
     ]
     d = validation_option_dict
     high_res_wavelengths_microns = d[neural_net.HIGH_RES_WAVELENGTHS_KEY]
@@ -638,14 +648,14 @@ def _plot_data_one_example(
         )
         coord_transform_string = 'transAxes'
     else:
-        actual_center_x_coord = low_res_latitude_interp_object(
+        actual_center_y_coord = low_res_latitude_interp_object(
             center_column_index_low_res + scalar_target_values[1],
             center_row_index_low_res + scalar_target_values[0]
-        )
-        actual_center_y_coord = low_res_longitude_interp_object(
+        )[0]
+        actual_center_x_coord = low_res_longitude_interp_object(
             center_column_index_low_res + scalar_target_values[1],
             center_row_index_low_res + scalar_target_values[0]
-        )
+        )[0]
         coord_transform_string = 'transData'
 
     if plot_line_contours or plot_filled_contours:
@@ -664,12 +674,12 @@ def _plot_data_one_example(
                     0.5 + prediction_matrix[0, k] / num_grid_rows_low_res
                 )
             else:
-                predicted_x_coords[k] = low_res_latitude_interp_object(
+                predicted_y_coords[k] = low_res_latitude_interp_object(
                     center_column_index_low_res +
                     prediction_matrix[1, k],
                     center_row_index_low_res + prediction_matrix[0, k]
                 )
-                predicted_y_coords[k] = low_res_longitude_interp_object(
+                predicted_x_coords[k] = low_res_longitude_interp_object(
                     center_column_index_low_res +
                     prediction_matrix[1, k],
                     center_row_index_low_res + prediction_matrix[0, k]
@@ -769,7 +779,7 @@ def _plot_data_one_example(
                 predicted_y_coords=predicted_y_coords,
                 prediction_opacity=point_prediction_opacity,
                 title_string=title_string,
-                output_file_name=high_res_panel_file_name_matrix[i, j]
+                output_file_name=low_res_panel_file_name_matrix[i, j]
             )
 
     num_panels_total = num_lag_times * (
@@ -1049,7 +1059,7 @@ def _run(prediction_file_name, satellite_dir_name,
         predictor_matrices[k] = predictor_matrices[k].astype(numpy.float64)
         predictor_matrices[k][
             predictor_matrices[k] < SENTINEL_VALUE + 1
-        ] = numpy.nan
+            ] = numpy.nan
 
     # Do the plotting.
     if semantic_seg_flag:

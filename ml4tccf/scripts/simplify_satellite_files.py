@@ -8,8 +8,8 @@ from ml4tccf.utils import satellite_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
-NUM_GRID_ROWS_TO_KEEP = 800
-NUM_GRID_COLUMNS_TO_KEEP = 800
+NUM_GRID_ROWS_TO_KEEP = 760
+NUM_GRID_COLUMNS_TO_KEEP = 1080
 
 INPUT_DIR_ARG_NAME = 'input_dir_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'

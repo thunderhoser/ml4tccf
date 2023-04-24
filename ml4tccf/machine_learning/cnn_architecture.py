@@ -22,6 +22,7 @@ USE_BATCH_NORM_KEY = 'use_batch_normalization'
 ENSEMBLE_SIZE_KEY = 'ensemble_size'
 LOSS_FUNCTION_KEY = 'loss_function'
 OPTIMIZER_FUNCTION_KEY = 'optimizer_function'
+START_WITH_POOLING_KEY = 'start_with_pooling_layer'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
@@ -35,7 +36,8 @@ DEFAULT_OPTION_DICT = {
     DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
     INNER_ACTIV_FUNCTION_KEY: architecture_utils.RELU_FUNCTION_STRING,
     INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    USE_BATCH_NORM_KEY: True
+    USE_BATCH_NORM_KEY: True,
+    START_WITH_POOLING_KEY: False
 }
 
 
@@ -81,6 +83,7 @@ def check_input_args(option_dict):
     option_dict["ensemble_size"]: Number of ensemble members.
     option_dict["loss_function"]: Loss function.
     option_dict["optimizer_function"]: Optimizer function.
+    option_dict["start_with_pooling_layer"]: Boolean flag.
 
     :return: option_dict: Same as input but maybe with default values added.
     """
@@ -169,6 +172,7 @@ def check_input_args(option_dict):
     error_checking.assert_is_boolean(option_dict[USE_BATCH_NORM_KEY])
     error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
     error_checking.assert_is_geq(option_dict[ENSEMBLE_SIZE_KEY], 1)
+    error_checking.assert_is_boolean(option_dict[START_WITH_POOLING_KEY])
 
     return option_dict
 
@@ -197,17 +201,35 @@ def create_model(option_dict):
     loss_function = option_dict[LOSS_FUNCTION_KEY]
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
+    start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
 
     input_layer_object_low_res = keras.layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
     )
 
+    if start_with_pooling_layer:
+        input_layer_object_low_res = (
+            architecture_utils.get_2d_pooling_layer(
+                num_rows_in_window=2, num_columns_in_window=2,
+                num_rows_per_stride=2, num_columns_per_stride=2,
+                pooling_type_string=architecture_utils.MAX_POOLING_STRING
+            )(input_layer_object_low_res)
+        )
+
     if include_high_res_data:
         input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
-
         input_layer_object_high_res = keras.layers.Input(
             shape=tuple(input_dimensions_high_res.tolist())
         )
+
+        if start_with_pooling_layer:
+            input_layer_object_high_res = (
+                architecture_utils.get_2d_pooling_layer(
+                    num_rows_in_window=2, num_columns_in_window=2,
+                    num_rows_per_stride=2, num_columns_per_stride=2,
+                    pooling_type_string=architecture_utils.MAX_POOLING_STRING
+                )(input_layer_object_high_res)
+            )
     else:
         input_layer_object_high_res = None
 
