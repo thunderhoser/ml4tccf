@@ -58,7 +58,7 @@ TARGET_STDEV_KEY = 'target_stdev'
 PREDICTION_STDEV_KEY = 'prediction_stdev'
 
 MEAN_DISTANCE_KEY = 'mean_distance'
-MEDIAN_DISTANCE_KEY = 'mean_distance'
+MEDIAN_DISTANCE_KEY = 'median_distance'
 MEAN_SQUARED_DISTANCE_KEY = 'mean_squared_distance'
 MEAN_DIST_SKILL_SCORE_KEY = 'mean_distance_skill_score'
 MEAN_SQ_DIST_SKILL_SCORE_KEY = 'mean_squared_distance_skill_score'
