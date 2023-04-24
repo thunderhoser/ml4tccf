@@ -394,7 +394,7 @@ def _plot_data_one_channel(
         markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
         markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
         markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-        transform=coord_transform_object, zorder=1e10
+        transform=axes_object.transData, zorder=1e12
     )
 
     axes_object.plot(
