@@ -655,11 +655,11 @@ def _plot_data_one_example(
         )
         coord_transform_string = 'transAxes'
     else:
-        actual_center_x_coord = low_res_latitude_interp_object(
+        actual_center_y_coord = low_res_latitude_interp_object(
             center_column_index_low_res + scalar_target_values[1],
             center_row_index_low_res + scalar_target_values[0]
         )[0]
-        actual_center_y_coord = low_res_longitude_interp_object(
+        actual_center_x_coord = low_res_longitude_interp_object(
             center_column_index_low_res + scalar_target_values[1],
             center_row_index_low_res + scalar_target_values[0]
         )[0]
@@ -681,12 +681,12 @@ def _plot_data_one_example(
                     0.5 + prediction_matrix[0, k] / num_grid_rows_low_res
                 )
             else:
-                predicted_x_coords[k] = low_res_latitude_interp_object(
+                predicted_y_coords[k] = low_res_latitude_interp_object(
                     center_column_index_low_res +
                     prediction_matrix[1, k],
                     center_row_index_low_res + prediction_matrix[0, k]
                 )
-                predicted_y_coords[k] = low_res_longitude_interp_object(
+                predicted_x_coords[k] = low_res_longitude_interp_object(
                     center_column_index_low_res +
                     prediction_matrix[1, k],
                     center_row_index_low_res + prediction_matrix[0, k]
