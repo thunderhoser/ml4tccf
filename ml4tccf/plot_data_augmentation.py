@@ -151,7 +151,7 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_GRID_COLUMNS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + LOW_RES_WAVELENGTHS_ARG_NAME, type=float, required=False,
+    '--' + LOW_RES_WAVELENGTHS_ARG_NAME, type=float, nargs='+', required=False,
     default=[-1], help=LOW_RES_WAVELENGTHS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
