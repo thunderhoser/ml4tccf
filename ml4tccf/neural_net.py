@@ -619,7 +619,8 @@ def _read_brightness_temp_1file_cira_ir(
 
 def _read_satellite_data_1cyclone_cira_ir(
         input_file_name, lag_times_minutes, num_grid_rows, num_grid_columns,
-        return_coords, num_target_times=None, target_times_unix_sec=None):
+        return_coords, num_target_times=None, target_times_unix_sec=None,
+        synoptic_times_only=None):
     """Reads satellite data for one cyclone from CIRA IR dataset.
 
     :param input_file_name: See doc for `_read_satellite_data_one_cyclone`.
@@ -629,6 +630,7 @@ def _read_satellite_data_1cyclone_cira_ir(
     :param return_coords: Same.
     :param num_target_times: Same.
     :param target_times_unix_sec: Same.
+    :param synoptic_times_only: Same.
     :return: data_dict: Same.
     :raises: ValueError: if `target_times_unix_sec is not None` and any desired
         time cannot be found.
@@ -644,30 +646,33 @@ def _read_satellite_data_1cyclone_cira_ir(
     ].values
 
     if not need_exact_target_times:
-        first_synoptic_times_unix_sec = number_rounding.floor_to_nearest(
-            all_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
-        )
-        second_synoptic_times_unix_sec = number_rounding.ceiling_to_nearest(
-            all_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
-        )
-        synoptic_times_unix_sec = numpy.concatenate((
-            first_synoptic_times_unix_sec, second_synoptic_times_unix_sec
-        ))
-        synoptic_times_unix_sec = numpy.unique(synoptic_times_unix_sec)
+        if synoptic_times_only:
+            first_synoptic_times_unix_sec = number_rounding.floor_to_nearest(
+                all_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
+            )
+            second_synoptic_times_unix_sec = number_rounding.ceiling_to_nearest(
+                all_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
+            )
+            synoptic_times_unix_sec = numpy.concatenate((
+                first_synoptic_times_unix_sec, second_synoptic_times_unix_sec
+            ))
+            synoptic_times_unix_sec = numpy.unique(synoptic_times_unix_sec)
 
-        good_indices = numpy.array([
-            numpy.argmin(numpy.absolute(st - all_times_unix_sec))
-            for st in synoptic_times_unix_sec
-        ], dtype=int)
+            good_indices = numpy.array([
+                numpy.argmin(numpy.absolute(st - all_times_unix_sec))
+                for st in synoptic_times_unix_sec
+            ], dtype=int)
 
-        time_diffs_sec = numpy.absolute(
-            all_times_unix_sec[good_indices] - synoptic_times_unix_sec
-        )
-        good_subindices = numpy.where(
-            time_diffs_sec <= SYNOPTIC_TIME_TOLERANCE_SEC
-        )[0]
-        good_indices = good_indices[good_subindices]
-        target_times_unix_sec = all_times_unix_sec[good_indices]
+            time_diffs_sec = numpy.absolute(
+                all_times_unix_sec[good_indices] - synoptic_times_unix_sec
+            )
+            good_subindices = numpy.where(
+                time_diffs_sec <= SYNOPTIC_TIME_TOLERANCE_SEC
+            )[0]
+            good_indices = good_indices[good_subindices]
+            target_times_unix_sec = all_times_unix_sec[good_indices]
+        else:
+            target_times_unix_sec = all_times_unix_sec + 0
 
         if len(target_times_unix_sec) == 0:
             return None
@@ -2093,6 +2098,7 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
     # main generator (from Robert/Galina data), to CIRA IR generator.
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
+    synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
 
     orig_num_grid_rows = num_grid_rows + 0
     orig_num_grid_columns = num_grid_columns + 0
@@ -2115,7 +2121,8 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
         lag_times_minutes=lag_times_minutes,
         num_grid_rows=num_grid_rows,
         num_grid_columns=num_grid_columns,
-        return_coords=True, num_target_times=num_target_times
+        return_coords=True, num_target_times=num_target_times,
+        synoptic_times_only=synoptic_times_only
     )
 
     if data_dict is None:
@@ -2952,6 +2959,7 @@ def data_generator_cira_ir(option_dict):
     data_aug_stdev_translation_low_res_px = (
         option_dict[DATA_AUG_STDEV_TRANS_KEY]
     )
+    synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
 
     orig_num_grid_rows = num_grid_rows + 0
     orig_num_grid_columns = num_grid_columns + 0
@@ -3007,7 +3015,8 @@ def data_generator_cira_ir(option_dict):
                 lag_times_minutes=lag_times_minutes,
                 num_grid_rows=num_grid_rows,
                 num_grid_columns=num_grid_columns,
-                return_coords=False, num_target_times=num_examples_to_read
+                return_coords=False, num_target_times=num_examples_to_read,
+                synoptic_times_only=synoptic_times_only
             )
 
             cyclone_index += 1

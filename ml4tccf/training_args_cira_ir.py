@@ -14,6 +14,7 @@ DATA_AUG_MEAN_TRANS_ARG_NAME = 'data_aug_mean_translation_low_res_px'
 DATA_AUG_STDEV_TRANS_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
 # SENTINEL_VALUE_ARG_NAME = 'sentinel_value'
 # TARGET_SMOOTHER_STDEV_ARG_NAME = 'target_smoother_stdev_km'
+SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
 
 # TIME_TOLERANCE_FOR_TRAINING_ARG_NAME = 'lag_time_tolerance_for_training_sec'
 # MAX_MISSING_TIMES_FOR_TRAINING_ARG_NAME = (
@@ -83,6 +84,10 @@ DATA_AUG_STDEV_TRANS_HELP_STRING = (
 #     '[used only if model does gridded prediction, not scalar prediction] '
 #     'Standard-deviation distance for Gaussian smoothing of target field.'
 # )
+SYNOPTIC_TIMES_ONLY_HELP_STRING = (
+    'Boolean flag.  If 1, only synoptic times can be target times.  If 0, any '
+    'time can be a target time.'
+)
 
 # TIME_TOLERANCE_FOR_TRAINING_HELP_STRING = (
 #     'Tolerance for lag times in training data.'
@@ -201,6 +206,10 @@ def add_input_args(parser_object):
     #     '--' + TARGET_SMOOTHER_STDEV_ARG_NAME, type=float, required=False,
     #     default=1e-6, help=TARGET_SMOOTHER_STDEV_HELP_STRING
     # )
+    parser_object.add_argument(
+        '--' + SYNOPTIC_TIMES_ONLY_ARG_NAME, type=int, required=False,
+        default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
+    )
 
     # parser_object.add_argument(
     #     '--' + TIME_TOLERANCE_FOR_TRAINING_ARG_NAME, type=int, required=False,
