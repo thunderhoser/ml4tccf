@@ -211,12 +211,15 @@ def create_model(option_dict):
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
     start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
 
+    pooling_layer_object_low_res = None
+    pooling_layer_object_high_res = None
+
     input_layer_object_low_res = keras.layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
     )
 
     if start_with_pooling_layer:
-        input_layer_object_low_res = (
+        pooling_layer_object_low_res = (
             architecture_utils.get_2d_pooling_layer(
                 num_rows_in_window=2, num_columns_in_window=2,
                 num_rows_per_stride=2, num_columns_per_stride=2,
@@ -231,7 +234,7 @@ def create_model(option_dict):
         )
 
         if start_with_pooling_layer:
-            input_layer_object_high_res = (
+            pooling_layer_object_high_res = (
                 architecture_utils.get_2d_pooling_layer(
                     num_rows_in_window=2, num_columns_in_window=2,
                     num_rows_per_stride=2, num_columns_per_stride=2,
@@ -252,14 +255,24 @@ def create_model(option_dict):
                 k = layer_index
 
                 if k == 0:
-                    layer_object = architecture_utils.get_2d_conv_layer(
-                        num_kernel_rows=3, num_kernel_columns=3,
-                        num_rows_per_stride=1, num_columns_per_stride=1,
-                        num_filters=num_channels_by_conv_layer[k],
-                        padding_type_string=
-                        architecture_utils.YES_PADDING_STRING,
-                        weight_regularizer=l2_function
-                    )(input_layer_object_high_res)
+                    if pooling_layer_object_high_res is None:
+                        layer_object = architecture_utils.get_2d_conv_layer(
+                            num_kernel_rows=3, num_kernel_columns=3,
+                            num_rows_per_stride=1, num_columns_per_stride=1,
+                            num_filters=num_channels_by_conv_layer[k],
+                            padding_type_string=
+                            architecture_utils.YES_PADDING_STRING,
+                            weight_regularizer=l2_function
+                        )(input_layer_object_high_res)
+                    else:
+                        layer_object = architecture_utils.get_2d_conv_layer(
+                            num_kernel_rows=3, num_kernel_columns=3,
+                            num_rows_per_stride=1, num_columns_per_stride=1,
+                            num_filters=num_channels_by_conv_layer[k],
+                            padding_type_string=
+                            architecture_utils.YES_PADDING_STRING,
+                            weight_regularizer=l2_function
+                        )(pooling_layer_object_high_res)
                 else:
                     layer_object = architecture_utils.get_2d_conv_layer(
                         num_kernel_rows=3, num_kernel_columns=3,
@@ -292,11 +305,19 @@ def create_model(option_dict):
                 pooling_type_string=architecture_utils.MAX_POOLING_STRING
             )(layer_object)
 
-        layer_object = keras.layers.Concatenate(axis=-1)([
-            layer_object, input_layer_object_low_res
-        ])
+        if pooling_layer_object_low_res is None:
+            layer_object = keras.layers.Concatenate(axis=-1)([
+                layer_object, input_layer_object_low_res
+            ])
+        else:
+            layer_object = keras.layers.Concatenate(axis=-1)([
+                layer_object, pooling_layer_object_low_res
+            ])
     else:
-        layer_object = input_layer_object_low_res
+        if pooling_layer_object_low_res is None:
+            layer_object = input_layer_object_low_res
+        else:
+            layer_object = pooling_layer_object_low_res
 
     num_conv_blocks = len(num_conv_layers_by_block)
     start_index = 2 if include_high_res_data else 0
