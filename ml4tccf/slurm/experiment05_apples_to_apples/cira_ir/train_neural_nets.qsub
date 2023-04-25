@@ -58,5 +58,5 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_cira_ir.py" \
 --satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
 --validation_years 2019 \
 --num_epochs=1000 \
---num_training_batches_per_epoch=`expr $num_batches_per_update \* 32` \
---num_validation_batches_per_epoch=16
+--num_training_batches_per_epoch=`expr $num_batches_per_update \* 24` \
+--num_validation_batches_per_epoch=12
