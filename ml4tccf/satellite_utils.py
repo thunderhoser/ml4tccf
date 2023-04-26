@@ -419,6 +419,13 @@ def subset_grid(satellite_table_xarray, num_rows_to_keep, num_columns_to_keep,
 
     num_rows_orig = len(satellite_table_xarray.coords[row_dim].values)
     num_columns_orig = len(satellite_table_xarray.coords[column_dim].values)
+
+    print(num_rows_orig)
+    print(num_columns_orig)
+    print(num_rows_to_keep)
+    print(num_columns_to_keep)
+    print('\n\n\n\n\n\n\n\n*********************\n\n\n\n\n\n\n\n')
+
     assert numpy.mod(num_rows_orig, 2) == 0
     assert numpy.mod(num_columns_orig, 2) == 0
 
