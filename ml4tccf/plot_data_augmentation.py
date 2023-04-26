@@ -249,25 +249,28 @@ def _plot_data_one_example(
         dtype=float
     )
 
-    low_res_latitude_interp_object = interp2d(
-        x=column_indices_low_res, y=row_indices_low_res,
-        z=low_res_latitudes_deg_n, kind='linear', bounds_error=True
-    )
+    regular_grids = len(low_res_latitudes_deg_n.shape) == 1
 
     # TODO(thunderhoser): This will not handle wrap-around at International Date
     # Line.
-    low_res_longitude_interp_object = interp2d(
-        x=column_indices_low_res, y=row_indices_low_res,
-        z=low_res_longitudes_deg_e, kind='linear', bounds_error=True
-    )
+    if regular_grids:
+        low_res_latitude_interp_object = None
+        low_res_longitude_interp_object = None
+    else:
+        low_res_latitude_interp_object = interp2d(
+            x=column_indices_low_res, y=row_indices_low_res,
+            z=low_res_latitudes_deg_n, kind='linear', bounds_error=True
+        )
+        low_res_longitude_interp_object = interp2d(
+            x=column_indices_low_res, y=row_indices_low_res,
+            z=low_res_longitudes_deg_e, kind='linear', bounds_error=True
+        )
 
     num_panels = (
         len(high_res_wavelengths_microns) + len(low_res_wavelengths_microns)
     )
     panel_file_names = [''] * num_panels
     panel_index = -1
-
-    regular_grids = len(low_res_latitudes_deg_n.shape) == 1
 
     for j in range(len(high_res_wavelengths_microns)):
         panel_index += 1
