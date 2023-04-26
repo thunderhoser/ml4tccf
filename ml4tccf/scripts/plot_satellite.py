@@ -25,7 +25,7 @@ METRES_TO_MICRONS = 1e6
 
 IMAGE_CENTER_MARKER = 'o'
 IMAGE_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
-IMAGE_CENTER_MARKER_SIZE = 18
+IMAGE_CENTER_MARKER_SIZE = 19
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -477,6 +477,12 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
     """
 
     # Check input args.
+    if (
+            len(high_res_wavelengths_microns) == 1
+            and high_res_wavelengths_microns[0] < 0
+    ):
+            high_res_wavelengths_microns = numpy.array([])
+
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
     )

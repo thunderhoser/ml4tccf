@@ -64,7 +64,7 @@ def _compute_interpolation_gap(source_times_unix_sec, target_time_unix_sec):
     if numpy.any(source_times_unix_sec <= target_time_unix_sec):
         nearest_orig_time_before_unix_sec = source_times_unix_sec[
             source_times_unix_sec <= target_time_unix_sec
-            ].max()
+        ].max()
 
         time_diff_before_sec = (
             target_time_unix_sec - nearest_orig_time_before_unix_sec
@@ -73,7 +73,7 @@ def _compute_interpolation_gap(source_times_unix_sec, target_time_unix_sec):
     if numpy.any(source_times_unix_sec >= target_time_unix_sec):
         nearest_orig_time_after_unix_sec = source_times_unix_sec[
             source_times_unix_sec >= target_time_unix_sec
-            ].min()
+        ].min()
 
         time_diff_after_sec = (
             nearest_orig_time_after_unix_sec - target_time_unix_sec
@@ -148,10 +148,10 @@ def quality_control_low_res(
 
     brightness_temp_matrix_kelvins[
         brightness_temp_matrix_kelvins < MIN_BRIGHTNESS_TEMP_KELVINS
-        ] = numpy.nan
+    ] = numpy.nan
     brightness_temp_matrix_kelvins[
         brightness_temp_matrix_kelvins > MAX_BRIGHTNESS_TEMP_KELVINS
-        ] = numpy.nan
+    ] = numpy.nan
 
     these_indices = numpy.where(numpy.isnan(brightness_temp_matrix_kelvins))
     bad_time_indices = these_indices[0]
