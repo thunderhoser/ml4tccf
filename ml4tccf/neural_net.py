@@ -1733,6 +1733,7 @@ def _subset_grid_after_data_aug(data_matrix, num_rows_to_keep,
     dummy_satellite_table_xarray = xarray.Dataset(
         data_vars=main_data_dict, coords=metadata_dict
     )
+    print(dummy_satellite_table_xarray)
 
     dummy_satellite_table_xarray = satellite_utils.subset_grid(
         satellite_table_xarray=dummy_satellite_table_xarray,
@@ -2164,9 +2165,6 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
         stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
         sentinel_value=-10.
     )
-
-    print(brightness_temp_matrix_kelvins.shape)
-    print('\n\n\n\n\n\n*********************\n\n\n\n\n\n')
 
     brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
         data_matrix=brightness_temp_matrix_kelvins,
