@@ -210,6 +210,33 @@ def plot_data_one_time(
         t.coords[satellite_utils.LOW_RES_WAVELENGTH_DIM].values
     )
 
+    grid_latitudes_deg_n = (
+        t[satellite_utils.LATITUDE_LOW_RES_KEY].values[time_index, :]
+    )
+    num_grid_rows = len(grid_latitudes_deg_n)
+    i_start = int(numpy.round(
+        float(num_grid_rows) / 2
+    ))
+    i_end = i_start + 2
+    center_latitude_deg_n = numpy.mean(grid_latitudes_deg_n[i_start:i_end])
+
+    # TODO(thunderhoser): This does not handle wrap-around at International
+    # Date Line.
+    grid_longitudes_deg_e = (
+        t[satellite_utils.LONGITUDE_LOW_RES_KEY].values[time_index, :]
+    )
+    num_grid_columns = len(grid_longitudes_deg_e)
+    j_start = int(numpy.round(
+        float(num_grid_columns) / 2
+    ))
+    j_end = j_start + 2
+    center_longitude_deg_e = numpy.mean(
+        grid_longitudes_deg_e[j_start:j_end]
+    )
+    center_longitude_deg_e = lng_conversion.convert_lng_negative_in_west(
+        center_longitude_deg_e
+    )
+
     num_panels = (
         len(high_res_wavelengths_microns) + len(low_res_wavelengths_microns)
     )
@@ -230,33 +257,6 @@ def plot_data_one_time(
             colour_map_object, colour_norm_object = (
                 satellite_plotting.get_colour_scheme_for_bdrf()
             )
-
-        grid_latitudes_deg_n = (
-            t[satellite_utils.LATITUDE_HIGH_RES_KEY].values[time_index, :]
-        )
-        num_grid_rows = len(grid_latitudes_deg_n)
-        i_start = int(numpy.round(
-            float(num_grid_rows) / 2
-        ))
-        i_end = i_start + 2
-        center_latitude_deg_n = numpy.mean(grid_latitudes_deg_n[i_start:i_end])
-
-        # TODO(thunderhoser): This does not handle wrap-around at International
-        # Date Line.
-        grid_longitudes_deg_e = (
-            t[satellite_utils.LONGITUDE_HIGH_RES_KEY].values[time_index, :]
-        )
-        num_grid_columns = len(grid_longitudes_deg_e)
-        j_start = int(numpy.round(
-            float(num_grid_columns) / 2
-        ))
-        j_end = j_start + 2
-        center_longitude_deg_e = numpy.mean(
-            grid_longitudes_deg_e[j_start:j_end]
-        )
-        center_longitude_deg_e = lng_conversion.convert_lng_negative_in_west(
-            center_longitude_deg_e
-        )
 
         if plot_with_coords:
             plotting_utils.plot_borders(
@@ -407,6 +407,18 @@ def plot_data_one_time(
             markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
             markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
             markeredgewidth=0,
+            transform=axes_object.transAxes, zorder=1e10
+        )
+
+        label_string = (
+            '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
+            '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
+        )
+        axes_object.text(
+            0.55, 0.5, label_string, color=numpy.full(3, 0.),
+            fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
+            bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
+            horizontalalignment='left', verticalalignment='center',
             transform=axes_object.transAxes, zorder=1e10
         )
 
