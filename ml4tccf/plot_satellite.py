@@ -16,6 +16,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import time_conversion
+import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
 import imagemagick_utils
@@ -34,6 +35,14 @@ METRES_TO_MICRONS = 1e6
 IMAGE_CENTER_MARKER = 'o'
 IMAGE_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
 IMAGE_CENTER_MARKER_SIZE = 9
+
+IMAGE_CENTER_LABEL_FONT_SIZE = 32
+IMAGE_CENTER_LABEL_BBOX_DICT = {
+    'alpha': 0.5,
+    'edgecolor': numpy.full(3, 0.),
+    'linewidth': 1,
+    'facecolor': numpy.full(3, 1.)
+}
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -222,18 +231,38 @@ def plot_data_one_time(
                 satellite_plotting.get_colour_scheme_for_bdrf()
             )
 
+        grid_latitudes_deg_n = (
+            t[satellite_utils.LATITUDE_HIGH_RES_KEY].values[time_index, :]
+        )
+        num_grid_rows = len(grid_latitudes_deg_n)
+        i_start = int(numpy.round(
+            float(num_grid_rows) / 2
+        ))
+        i_end = i_start + 2
+        center_latitude_deg_n = numpy.mean(grid_latitudes_deg_n[i_start:i_end])
+
+        # TODO(thunderhoser): This does not handle wrap-around at International
+        # Date Line.
+        grid_longitudes_deg_e = (
+            t[satellite_utils.LONGITUDE_HIGH_RES_KEY].values[time_index, :]
+        )
+        num_grid_columns = len(grid_longitudes_deg_e)
+        j_start = int(numpy.round(
+            float(num_grid_columns) / 2
+        ))
+        j_end = j_start + 2
+        center_longitude_deg_e = numpy.mean(
+            grid_longitudes_deg_e[j_start:j_end]
+        )
+        center_longitude_deg_e = lng_conversion.convert_lng_negative_in_west(
+            center_longitude_deg_e
+        )
+
         if plot_with_coords:
             plotting_utils.plot_borders(
                 border_latitudes_deg_n=border_latitudes_deg_n,
                 border_longitudes_deg_e=border_longitudes_deg_e,
                 axes_object=axes_object
-            )
-
-            grid_latitudes_deg_n = (
-                t[satellite_utils.LATITUDE_HIGH_RES_KEY].values[time_index, :]
-            )
-            grid_longitudes_deg_e = (
-                t[satellite_utils.LONGITUDE_HIGH_RES_KEY].values[time_index, :]
             )
 
             satellite_plotting.plot_2d_grid_latlng(
@@ -272,6 +301,18 @@ def plot_data_one_time(
             markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
             markeredgecolor=IMAGE_CENTER_MARKER_COLOUR,
             markeredgewidth=0,
+            transform=axes_object.transAxes, zorder=1e10
+        )
+
+        label_string = (
+            '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
+            '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
+        )
+        axes_object.text(
+            0.55, 0.5, label_string, color=numpy.full(3, 0.),
+            fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
+            bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
+            horizontalalignment='left', verticalalignment='center',
             transform=axes_object.transAxes, zorder=1e10
         )
 
