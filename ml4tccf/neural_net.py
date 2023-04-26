@@ -604,12 +604,21 @@ def _read_brightness_temp_1file_cira_ir(
         brightness_temp_matrix = (
             brightness_temp_matrix[:, :, first_index:last_index, ...]
         )
-        grid_latitude_matrix_deg_n = (
-            grid_latitude_matrix_deg_n[:, :, first_index:last_index, ...]
-        )
-        grid_longitude_matrix_deg_e = (
-            grid_longitude_matrix_deg_e[:, :, first_index:last_index, ...]
-        )
+
+        if regular_grids:
+            grid_latitude_matrix_deg_n = (
+                grid_latitude_matrix_deg_n[:, first_index:last_index, ...]
+            )
+            grid_longitude_matrix_deg_e = (
+                grid_longitude_matrix_deg_e[:, first_index:last_index, ...]
+            )
+        else:
+            grid_latitude_matrix_deg_n = (
+                grid_latitude_matrix_deg_n[:, :, first_index:last_index, ...]
+            )
+            grid_longitude_matrix_deg_e = (
+                grid_longitude_matrix_deg_e[:, :, first_index:last_index, ...]
+            )
 
     return (
         brightness_temp_matrix, grid_latitude_matrix_deg_n,
