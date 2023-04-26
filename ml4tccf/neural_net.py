@@ -2165,6 +2165,9 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
         sentinel_value=-10.
     )
 
+    print(brightness_temp_matrix_kelvins.shape)
+    print('\n\n\n\n\n\n*********************\n\n\n\n\n\n')
+
     brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
         data_matrix=brightness_temp_matrix_kelvins,
         num_rows_to_keep=orig_num_grid_rows,
