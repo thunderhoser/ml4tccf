@@ -4,7 +4,7 @@ import os
 import argparse
 import numpy
 from ml4tccf.machine_learning import neural_net
-from ml4tccf.scripts import training_args_simple as training_args
+from ml4tccf.scripts import training_args_cira_ir as training_args
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
