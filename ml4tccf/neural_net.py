@@ -2119,6 +2119,12 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
     num_grid_rows += num_extra_rowcols
     num_grid_columns += num_extra_rowcols
 
+    print(orig_num_grid_rows)
+    print(orig_num_grid_columns)
+    print(num_grid_rows)
+    print(num_grid_columns)
+    print('\n\n\n\n\n\n\n\n*********************\n\n\n\n\n\n\n\n')
+
     example_file_name = cira_ir_example_io.find_file(
         directory_name=example_dir_name, cyclone_id_string=cyclone_id_string,
         prefer_zipped=False, allow_other_format=False,
