@@ -36,5 +36,5 @@ python3 -u "${CODE_DIR_NAME}/plot_satellite.py" \
 --plot_latlng_coords=1 \
 --are_data_normalized=0 \
 --low_res_wavelengths_microns 11.2 \
---high_res_wavelengths_microns 0 \
+--high_res_wavelengths_microns -1 \
 --output_dir_name="${OUTPUT_DIR_NAME}"

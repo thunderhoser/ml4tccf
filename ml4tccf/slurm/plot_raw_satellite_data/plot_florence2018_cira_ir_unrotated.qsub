@@ -27,7 +27,7 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tc_standalone/m
 set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tc_project/learning_examples"
 set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/raw_satellite_plots/cira_ir_unrotated/florence2018"
 
-python3 -u "${CODE_DIR_NAME}/plot_data_augmentation.py" \
+python3 -u "${CODE_DIR_NAME}/plot_satellite.py" \
 --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
 --first_time_string="1900-01-01-000000" \
 --last_time_string="2021-01-01-000000" \
