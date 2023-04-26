@@ -546,6 +546,10 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     :param output_dir_name: Same.
     """
 
+    if use_cira_ir_data:
+        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS
+        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS
+
     if (
             len(low_res_wavelengths_microns) == 1
             and low_res_wavelengths_microns[0] < 0
@@ -559,16 +563,9 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
             high_res_wavelengths_microns = None
 
     if low_res_wavelengths_microns is None:
-        low_res_wavelengths_microns = (
-            LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS if use_cira_ir_data
-            else LOW_RES_WAVELENGTHS_RG_MICRONS
-        )
-
+        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_RG_MICRONS
     if high_res_wavelengths_microns is None:
-        high_res_wavelengths_microns = (
-            HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS if use_cira_ir_data
-            else HIGH_RES_WAVELENGTHS_RG_MICRONS
-        )
+        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_RG_MICRONS
 
     option_dict = {
         neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name,
