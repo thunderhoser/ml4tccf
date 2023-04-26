@@ -1,0 +1,41 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_data_aug_florence2018_cira_ir_rotated"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=30:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_data_aug_florence2018_cira_ir_rotated_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tc_project/learning_examples/rotated_with_storm_motion"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/data_aug_plots/cira_ir_rotated/florence2018"
+
+python3 -u "${CODE_DIR_NAME}/plot_data_augmentation.py" \
+--input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
+--use_cira_ir_data=1 \
+--cyclone_id_string="2018AL06" \
+--num_target_times=1000 \
+--num_grid_rows_low_res=290 \
+--num_grid_columns_low_res=450 \
+--num_translations=4 \
+--mean_translation_low_res_px=12 \
+--stdev_translation_low_res_px=6 \
+--are_data_normalized=0 \
+--output_dir_name="${OUTPUT_DIR_NAME}"
