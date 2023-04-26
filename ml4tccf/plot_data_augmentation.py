@@ -184,10 +184,12 @@ INPUT_ARG_PARSER.add_argument(
 
 def _plot_data_one_example(
         predictor_matrices, target_values, cyclone_id_string,
-        target_time_unix_sec, low_res_latitudes_deg_n, low_res_longitudes_deg_e,
+        target_time_unix_sec, low_res_wavelengths_microns,
+        low_res_latitudes_deg_n, low_res_longitudes_deg_e,
+        high_res_wavelengths_microns,
         high_res_latitudes_deg_n, high_res_longitudes_deg_e,
         are_data_normalized, border_latitudes_deg_n, border_longitudes_deg_e,
-        use_cira_ir_data, output_file_name):
+        output_file_name):
     """Plots satellite data for one example.
 
     P = number of points in border set
@@ -198,10 +200,14 @@ def _plot_data_one_example(
         without first axis.
     :param cyclone_id_string: Cyclone ID.
     :param target_time_unix_sec: Target time.
+    :param low_res_wavelengths_microns: 1-D numpy array of wavelengths for low-
+        resolution data.
     :param low_res_latitudes_deg_n: Same as output from `neural_net.create_data`
         but without first or last axis.
     :param low_res_longitudes_deg_e: Same as output from
         `neural_net.create_data` but without first or last axis.
+    :param high_res_wavelengths_microns: 1-D numpy array of wavelengths for
+        high-resolution data.
     :param high_res_latitudes_deg_n: Same as output from
         `neural_net.create_data` but without first or last axis.
     :param high_res_longitudes_deg_e: Same as output from
@@ -211,7 +217,6 @@ def _plot_data_one_example(
         (deg north).  If None, will plot without coords.
     :param border_longitudes_deg_e: length-P numpy array of longitudes
         (deg east).  If None, will plot without coords.
-    :param use_cira_ir_data: See documentation at top of file.
     :param output_file_name: Path to output file.  Figure will be saved here.
     """
 
@@ -255,13 +260,6 @@ def _plot_data_one_example(
         x=column_indices_low_res, y=row_indices_low_res,
         z=low_res_longitudes_deg_e, kind='linear', bounds_error=True
     )
-
-    if use_cira_ir_data:
-        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS
-        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS
-    else:
-        high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_RG_MICRONS
-        low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_RG_MICRONS
 
     num_panels = (
         len(high_res_wavelengths_microns) + len(low_res_wavelengths_microns)
@@ -557,7 +555,7 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     if len(high_res_wavelengths_microns) == 1:
         if numpy.isclose(high_res_wavelengths_microns[0], 0, atol=TOLERANCE):
             high_res_wavelengths_microns = numpy.array([])
-        else:
+        elif high_res_wavelengths_microns[0] < 0:
             high_res_wavelengths_microns = None
 
     if low_res_wavelengths_microns is None:
@@ -649,8 +647,10 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
             target_values=target_matrix[i, ...],
             cyclone_id_string=cyclone_id_string,
             target_time_unix_sec=target_times_unix_sec[i],
+            low_res_wavelengths_microns=low_res_wavelengths_microns,
             low_res_latitudes_deg_n=low_res_latitude_matrix_deg_n[i, ..., 0],
             low_res_longitudes_deg_e=low_res_longitude_matrix_deg_e[i, ..., 0],
+            high_res_wavelengths_microns=high_res_wavelengths_microns,
             high_res_latitudes_deg_n=(
                 None if high_res_latitude_matrix_deg_n is None
                 else high_res_latitude_matrix_deg_n[i, ..., 0]
@@ -662,7 +662,6 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
             are_data_normalized=are_data_normalized,
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            use_cira_ir_data=use_cira_ir_data,
             output_file_name=output_file_name
         )
 
