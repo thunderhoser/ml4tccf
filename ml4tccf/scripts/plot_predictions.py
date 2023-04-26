@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 import matplotlib.colors
-from scipy.interpolate import interp2d
+from scipy.interpolate import interp1d, interp2d
 from gewittergefahr.gg_utils import general_utils as gg_general_utils
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
@@ -525,14 +525,24 @@ def _plot_data_one_example(
 
     # TODO(thunderhoser): This will not handle wrap-around at International Date
     # Line.
-    low_res_latitude_interp_object = interp2d(
-        x=column_indices_low_res, y=row_indices_low_res,
-        z=low_res_latitudes_deg_n, kind='linear', bounds_error=True
-    )
-    low_res_longitude_interp_object = interp2d(
-        x=column_indices_low_res, y=row_indices_low_res,
-        z=low_res_longitudes_deg_e, kind='linear', bounds_error=True
-    )
+    if regular_grids:
+        low_res_latitude_interp_object = interp1d(
+            x=row_indices_low_res, y=low_res_latitudes_deg_n, kind='linear',
+            bounds_error=True
+        )
+        low_res_longitude_interp_object = interp1d(
+            x=column_indices_low_res, y=low_res_longitudes_deg_e, kind='linear',
+            bounds_error=True
+        )
+    else:
+        low_res_latitude_interp_object = interp2d(
+            x=column_indices_low_res, y=row_indices_low_res,
+            z=low_res_latitudes_deg_n, kind='linear', bounds_error=True
+        )
+        low_res_longitude_interp_object = interp2d(
+            x=column_indices_low_res, y=row_indices_low_res,
+            z=low_res_longitudes_deg_e, kind='linear', bounds_error=True
+        )
 
     # Housekeeping for prediction format (points, filled contours, or line
     # contours).

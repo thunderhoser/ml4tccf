@@ -575,12 +575,22 @@ def _read_brightness_temp_1file_cira_ir(
         brightness_temp_matrix = (
             brightness_temp_matrix[:, first_index:last_index, ...]
         )
+
+        print(grid_latitude_matrix_deg_n.shape)
+        print(grid_longitude_matrix_deg_e.shape)
+        print('\n')
+
         grid_latitude_matrix_deg_n = (
             grid_latitude_matrix_deg_n[:, first_index:last_index, ...]
         )
-        grid_longitude_matrix_deg_e = (
-            grid_longitude_matrix_deg_e[:, first_index:last_index, ...]
-        )
+        if not regular_grids:
+            grid_longitude_matrix_deg_e = (
+                grid_longitude_matrix_deg_e[:, first_index:last_index, ...]
+            )
+
+        print(grid_latitude_matrix_deg_n.shape)
+        print(grid_longitude_matrix_deg_e.shape)
+        print('\n\n\n\n\n\n')
 
     if num_grid_columns is not None:
         error_checking.assert_is_less_than(
@@ -597,12 +607,26 @@ def _read_brightness_temp_1file_cira_ir(
         brightness_temp_matrix = (
             brightness_temp_matrix[:, :, first_index:last_index, ...]
         )
-        grid_latitude_matrix_deg_n = (
-            grid_latitude_matrix_deg_n[:, :, first_index:last_index, ...]
-        )
-        grid_longitude_matrix_deg_e = (
-            grid_longitude_matrix_deg_e[:, :, first_index:last_index, ...]
-        )
+
+        print(grid_latitude_matrix_deg_n.shape)
+        print(grid_longitude_matrix_deg_e.shape)
+        print('\n')
+
+        if regular_grids:
+            grid_longitude_matrix_deg_e = (
+                grid_longitude_matrix_deg_e[:, first_index:last_index, ...]
+            )
+        else:
+            grid_latitude_matrix_deg_n = (
+                grid_latitude_matrix_deg_n[:, :, first_index:last_index, ...]
+            )
+            grid_longitude_matrix_deg_e = (
+                grid_longitude_matrix_deg_e[:, :, first_index:last_index, ...]
+            )
+
+        print(grid_latitude_matrix_deg_n.shape)
+        print(grid_longitude_matrix_deg_e.shape)
+        print('\n\n\n\n\n\n')
 
     return (
         brightness_temp_matrix, grid_latitude_matrix_deg_n,
@@ -890,7 +914,7 @@ def _read_satellite_data_1cyclone_simple(
                 numpy.mod(
                     target_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
                 ) == 0
-            ]
+                ]
 
         if len(target_times_unix_sec) == 0:
             return None
@@ -1159,7 +1183,7 @@ def _read_satellite_data_one_cyclone(
                 numpy.mod(
                     target_times_unix_sec, INTERVAL_BETWEEN_TARGET_TIMES_SEC
                 ) == 0
-            ]
+                ]
 
         if len(target_times_unix_sec) == 0:
             return None
@@ -1314,13 +1338,13 @@ def _read_satellite_data_one_cyclone(
         )
         these_tolerances_sec[
             these_desired_times_unix_sec == target_times_unix_sec[i]
-        ] = 0
+            ] = 0
         these_max_gaps_sec = numpy.full(
             len(these_desired_times_unix_sec), max_interp_gap_sec
         )
         these_max_gaps_sec[
             these_desired_times_unix_sec == target_times_unix_sec[i]
-        ] = 0
+            ] = 0
 
         try:
             new_table_xarray = satellite_utils.subset_times(
@@ -1717,6 +1741,7 @@ def _subset_grid_after_data_aug(data_matrix, num_rows_to_keep,
     dummy_satellite_table_xarray = xarray.Dataset(
         data_vars=main_data_dict, coords=metadata_dict
     )
+    print(dummy_satellite_table_xarray)
 
     dummy_satellite_table_xarray = satellite_utils.subset_grid(
         satellite_table_xarray=dummy_satellite_table_xarray,
@@ -4097,7 +4122,7 @@ def read_model(hdf5_file_name):
 
     if architecture_dict is not None:
         if is_model_bnn:
-            from ml4tccf.machine_learning import cnn_architecture_bayesian
+            import cnn_architecture_bayesian
 
             for this_key in [
                     cnn_architecture_bayesian.LOSS_FUNCTION_KEY,
