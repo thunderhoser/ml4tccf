@@ -582,12 +582,21 @@ def _read_brightness_temp_1file_cira_ir(
         brightness_temp_matrix = (
             brightness_temp_matrix[:, first_index:last_index, ...]
         )
+
+        print(grid_latitude_matrix_deg_n.shape)
+        print(grid_longitude_matrix_deg_e.shape)
+        print('\n')
+
         grid_latitude_matrix_deg_n = (
             grid_latitude_matrix_deg_n[:, first_index:last_index, ...]
         )
         grid_longitude_matrix_deg_e = (
             grid_longitude_matrix_deg_e[:, first_index:last_index, ...]
         )
+
+        print(grid_latitude_matrix_deg_n.shape)
+        print(grid_longitude_matrix_deg_e.shape)
+        print('\n\n\n\n\n\n')
 
     if num_grid_columns is not None:
         error_checking.assert_is_less_than(
@@ -605,6 +614,10 @@ def _read_brightness_temp_1file_cira_ir(
             brightness_temp_matrix[:, :, first_index:last_index, ...]
         )
 
+        print(grid_latitude_matrix_deg_n.shape)
+        print(grid_longitude_matrix_deg_e.shape)
+        print('\n')
+
         if regular_grids:
             grid_latitude_matrix_deg_n = (
                 grid_latitude_matrix_deg_n[:, first_index:last_index, ...]
@@ -619,6 +632,10 @@ def _read_brightness_temp_1file_cira_ir(
             grid_longitude_matrix_deg_e = (
                 grid_longitude_matrix_deg_e[:, :, first_index:last_index, ...]
             )
+
+        print(grid_latitude_matrix_deg_n.shape)
+        print(grid_longitude_matrix_deg_e.shape)
+        print('\n\n\n\n\n\n')
 
     return (
         brightness_temp_matrix, grid_latitude_matrix_deg_n,
@@ -762,9 +779,6 @@ def _read_satellite_data_1cyclone_cira_ir(
         num_grid_rows=num_grid_rows,
         num_grid_columns=num_grid_columns
     )
-
-    print(grid_latitude_matrix_deg_n.shape)
-    print(grid_longitude_matrix_deg_e.shape)
 
     assert not numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
     regular_grids = len(grid_latitude_matrix_deg_n.shape) == 3
