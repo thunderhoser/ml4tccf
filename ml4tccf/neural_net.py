@@ -583,10 +583,6 @@ def _read_brightness_temp_1file_cira_ir(
             brightness_temp_matrix[:, first_index:last_index, ...]
         )
 
-        print(grid_latitude_matrix_deg_n.shape)
-        print(grid_longitude_matrix_deg_e.shape)
-        print('\n')
-
         grid_latitude_matrix_deg_n = (
             grid_latitude_matrix_deg_n[:, first_index:last_index, ...]
         )
@@ -594,10 +590,6 @@ def _read_brightness_temp_1file_cira_ir(
             grid_longitude_matrix_deg_e = (
                 grid_longitude_matrix_deg_e[:, first_index:last_index, ...]
             )
-
-        print(grid_latitude_matrix_deg_n.shape)
-        print(grid_longitude_matrix_deg_e.shape)
-        print('\n\n\n\n\n\n')
 
     if num_grid_columns is not None:
         error_checking.assert_is_less_than(
@@ -615,10 +607,6 @@ def _read_brightness_temp_1file_cira_ir(
             brightness_temp_matrix[:, :, first_index:last_index, ...]
         )
 
-        print(grid_latitude_matrix_deg_n.shape)
-        print(grid_longitude_matrix_deg_e.shape)
-        print('\n')
-
         if regular_grids:
             grid_longitude_matrix_deg_e = (
                 grid_longitude_matrix_deg_e[:, first_index:last_index, ...]
@@ -630,10 +618,6 @@ def _read_brightness_temp_1file_cira_ir(
             grid_longitude_matrix_deg_e = (
                 grid_longitude_matrix_deg_e[:, :, first_index:last_index, ...]
             )
-
-        print(grid_latitude_matrix_deg_n.shape)
-        print(grid_longitude_matrix_deg_e.shape)
-        print('\n\n\n\n\n\n')
 
     return (
         brightness_temp_matrix, grid_latitude_matrix_deg_n,
@@ -1748,7 +1732,6 @@ def _subset_grid_after_data_aug(data_matrix, num_rows_to_keep,
     dummy_satellite_table_xarray = xarray.Dataset(
         data_vars=main_data_dict, coords=metadata_dict
     )
-    print(dummy_satellite_table_xarray)
 
     dummy_satellite_table_xarray = satellite_utils.subset_grid(
         satellite_table_xarray=dummy_satellite_table_xarray,

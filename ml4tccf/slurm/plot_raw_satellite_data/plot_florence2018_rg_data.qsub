@@ -1,0 +1,40 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_florence2018_rg_data"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=30:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_florence2018_rg_data_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed"
+set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/raw_satellite_plots/rg_data/florence2018"
+
+python3 -u "${CODE_DIR_NAME}/plot_satellite.py" \
+--input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
+--cyclone_id_string="2018AL06" \
+--num_times=1000 \
+--first_date_string="1900-01-01" \
+--last_date_string="2100-01-01" \
+--plot_latlng_coords=1 \
+--are_data_normalized=0 \
+--low_res_wavelengths_microns 11.2 \
+--high_res_wavelengths_microns 0 \
+--output_dir_name="${OUTPUT_DIR_NAME}"
