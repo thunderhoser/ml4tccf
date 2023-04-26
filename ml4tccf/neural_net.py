@@ -2174,6 +2174,8 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
     )
 
     regular_grids = len(grid_latitude_matrix_deg_n.shape) == 3
+    print(grid_latitude_matrix_deg_n.shape)
+    print(grid_longitude_matrix_deg_e.shape)
 
     if regular_grids:
         grid_latitude_matrix_deg_n, grid_longitude_matrix_deg_e = (
@@ -2182,6 +2184,9 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
                 longitude_matrix_deg_e=grid_longitude_matrix_deg_e
             )
         )
+
+    print(grid_latitude_matrix_deg_n.shape)
+    print(grid_longitude_matrix_deg_e.shape)
 
     grid_latitude_matrix_deg_n = _subset_grid_after_data_aug(
         data_matrix=grid_latitude_matrix_deg_n,
