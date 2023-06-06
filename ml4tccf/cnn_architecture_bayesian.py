@@ -29,7 +29,9 @@ VALID_CONV_LAYER_TYPE_STRINGS = [
 
 INPUT_DIMENSIONS_LOW_RES_KEY = cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY
 INPUT_DIMENSIONS_HIGH_RES_KEY = cnn_architecture.INPUT_DIMENSIONS_HIGH_RES_KEY
+INPUT_DIMENSIONS_SCALAR_KEY = cnn_architecture.INPUT_DIMENSIONS_SCALAR_KEY
 INCLUDE_HIGH_RES_KEY = cnn_architecture.INCLUDE_HIGH_RES_KEY
+INCLUDE_SCALAR_DATA_KEY = cnn_architecture.INCLUDE_SCALAR_DATA_KEY
 NUM_CONV_LAYERS_KEY = cnn_architecture.NUM_CONV_LAYERS_KEY
 NUM_CHANNELS_KEY = cnn_architecture.NUM_CHANNELS_KEY
 CONV_DROPOUT_RATES_KEY = cnn_architecture.CONV_DROPOUT_RATES_KEY
@@ -233,6 +235,7 @@ def create_model(option_dict):
 
     input_dimensions_low_res = option_dict[INPUT_DIMENSIONS_LOW_RES_KEY]
     include_high_res_data = option_dict[INCLUDE_HIGH_RES_KEY]
+    include_scalar_data = option_dict[INCLUDE_SCALAR_DATA_KEY]
     num_conv_layers_by_block = option_dict[NUM_CONV_LAYERS_KEY]
     num_channels_by_conv_layer = option_dict[NUM_CHANNELS_KEY]
     dropout_rate_by_conv_layer = option_dict[CONV_DROPOUT_RATES_KEY]
@@ -256,12 +259,19 @@ def create_model(option_dict):
 
     if include_high_res_data:
         input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
-
         input_layer_object_high_res = keras.layers.Input(
             shape=tuple(input_dimensions_high_res.tolist())
         )
     else:
         input_layer_object_high_res = None
+
+    if include_scalar_data:
+        input_dimensions_scalar = option_dict[INPUT_DIMENSIONS_SCALAR_KEY]
+        input_layer_object_scalar = keras.layers.Input(
+            shape=tuple(input_dimensions_scalar.tolist())
+        )
+    else:
+        input_layer_object_scalar = None
 
     l2_function = architecture_utils.get_weight_regularizer(l2_weight=l2_weight)
     layer_index = -1
@@ -351,6 +361,11 @@ def create_model(option_dict):
             )(layer_object)
 
     layer_object = architecture_utils.get_flattening_layer()(layer_object)
+    if include_scalar_data:
+        layer_object = keras.layers.Concatenate(axis=-1)([
+            layer_object, input_layer_object_scalar
+        ])
+
     num_dense_layers = len(num_neurons_by_dense_layer)
 
     for i in range(num_dense_layers):

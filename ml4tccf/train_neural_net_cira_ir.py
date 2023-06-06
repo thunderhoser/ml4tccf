@@ -22,6 +22,7 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
          num_rows_low_res, num_columns_low_res, data_aug_num_translations,
          data_aug_mean_translation_low_res_px,
          data_aug_stdev_translation_low_res_px, synoptic_times_only,
+         scalar_a_deck_field_names, a_deck_file_name,
          satellite_dir_name_for_training, training_years,
          satellite_dir_name_for_validation, validation_years,
          num_epochs,
@@ -43,6 +44,8 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
     :param synoptic_times_only: Same.
+    :param scalar_a_deck_field_names: Same.
+    :param a_deck_file_name: Same.
     :param satellite_dir_name_for_training: Same.
     :param training_years: Same.
     :param satellite_dir_name_for_validation: Same.
@@ -80,7 +83,9 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
         neural_net.MAX_INTERP_GAP_KEY: 0,
         neural_net.SENTINEL_VALUE_KEY: -10.,
         neural_net.TARGET_SMOOOTHER_STDEV_KEY: 1e-6,
-        neural_net.SYNOPTIC_TIMES_ONLY_KEY: synoptic_times_only
+        neural_net.SYNOPTIC_TIMES_ONLY_KEY: synoptic_times_only,
+        neural_net.SCALAR_A_DECK_FIELDS_KEY: scalar_a_deck_field_names,
+        neural_net.A_DECK_FILE_KEY: a_deck_file_name
     }
 
     validation_option_dict = {
@@ -162,6 +167,12 @@ if __name__ == '__main__':
         synoptic_times_only=bool(getattr(
             INPUT_ARG_OBJECT, training_args.SYNOPTIC_TIMES_ONLY_ARG_NAME
         )),
+        scalar_a_deck_field_names=getattr(
+            INPUT_ARG_OBJECT, training_args.SCALAR_A_DECK_FIELDS_ARG_NAME
+        ),
+        a_deck_file_name=getattr(
+            INPUT_ARG_OBJECT, training_args.A_DECK_FILE_ARG_NAME
+        ),
         satellite_dir_name_for_training=getattr(
             INPUT_ARG_OBJECT, training_args.SATELLITE_DIR_FOR_TRAINING_ARG_NAME
         ),
