@@ -28,6 +28,11 @@ LOW_RES_CHANNEL_KEYS = [
 ]
 HIGH_RES_CHANNEL_KEYS = ['C02']
 
+# LOW_RES_CHANNEL_KEYS = [
+#     'B07', 'B08', 'B09', 'B10', 'B11', 'B12', 'B13', 'B14', 'B15', 'B16'
+# ]
+# HIGH_RES_CHANNEL_KEYS = ['B03']
+
 X_COORD_KEY = 'x'
 Y_COORD_KEY = 'y'
 LATITUDE_KEY = 'latitude'
