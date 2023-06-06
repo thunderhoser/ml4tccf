@@ -217,8 +217,9 @@ SENTINEL_VALUE_KEY = 'sentinel_value'
 SEMANTIC_SEG_FLAG_KEY = 'semantic_segmentation_flag'
 TARGET_SMOOOTHER_STDEV_KEY = 'target_smoother_stdev_km'
 SYNOPTIC_TIMES_ONLY_KEY = 'synoptic_times_only'
-SCALAR_A_DECK_FIELDS_KEY = 'scalar_a_deck_field_names'
 A_DECK_FILE_KEY = 'a_deck_file_name'
+SCALAR_A_DECK_FIELDS_KEY = 'scalar_a_deck_field_names'
+REMOVE_NONTROPICAL_KEY = 'remove_nontropical_systems'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
     HIGH_RES_WAVELENGTHS_KEY: None,
@@ -231,9 +232,19 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     MAX_INTERP_GAP_KEY: 0,
     SENTINEL_VALUE_KEY: -10.,
     SYNOPTIC_TIMES_ONLY_KEY: True,
+    A_DECK_FILE_KEY: None,
     SCALAR_A_DECK_FIELDS_KEY: [],
-    A_DECK_FILE_KEY: None
+    REMOVE_NONTROPICAL_KEY: False
 }
+
+TROPICAL_SYSTEM_TYPE_STRINGS = [
+    a_deck_io.TROPICAL_DEPRESSION_TYPE_STRING,
+    a_deck_io.TROPICAL_STORM_TYPE_STRING,
+    a_deck_io.TROPICAL_TYPHOON_TYPE_STRING,
+    a_deck_io.TROPICAL_SUPER_TYPHOON_TYPE_STRING,
+    a_deck_io.TROPICAL_CYCLONE_TYPE_STRING,
+    a_deck_io.TROPICAL_HURRICANE_TYPE_STRING
+]
 
 NUM_EPOCHS_KEY = 'num_epochs'
 NUM_TRAINING_BATCHES_KEY = 'num_training_batches_per_epoch'
@@ -364,18 +375,21 @@ def _check_generator_args(option_dict):
         option_dict[TARGET_SMOOOTHER_STDEV_KEY] = None
 
     error_checking.assert_is_list(option_dict[SCALAR_A_DECK_FIELDS_KEY])
+    error_checking.assert_is_boolean(option_dict[REMOVE_NONTROPICAL_KEY])
 
-    if (
-            len(option_dict[SCALAR_A_DECK_FIELDS_KEY]) == 0 or
-            option_dict[A_DECK_FILE_KEY] is None
-    ):
-        option_dict[SCALAR_A_DECK_FIELDS_KEY] = []
-        option_dict[A_DECK_FILE_KEY] = None
+    if option_dict[REMOVE_NONTROPICAL_KEY]:
+        assert option_dict[A_DECK_FILE_KEY] is not None
+    elif len(option_dict[SCALAR_A_DECK_FIELDS_KEY]) > 0:
+        assert option_dict[A_DECK_FILE_KEY] is not None
     else:
+        option_dict[A_DECK_FILE_KEY] = None
+
+    if option_dict[A_DECK_FILE_KEY] is not None:
+        error_checking.assert_is_string(option_dict[A_DECK_FILE_KEY])
+    if len(option_dict[SCALAR_A_DECK_FIELDS_KEY]) > 0:
         error_checking.assert_is_string_list(
             option_dict[SCALAR_A_DECK_FIELDS_KEY]
         )
-        error_checking.assert_is_string(option_dict[A_DECK_FILE_KEY])
 
     return option_dict
 
@@ -1477,8 +1491,8 @@ def _read_satellite_data_one_cyclone(
 
 
 def _read_scalar_data_one_cyclone(
-        a_deck_file_name, field_names, cyclone_id_string,
-        target_times_unix_sec):
+        a_deck_file_name, field_names, remove_nontropical_systems,
+        cyclone_id_string, target_times_unix_sec):
     """Reads scalar data for one cyclone.
 
     F = number of fields
@@ -1488,12 +1502,12 @@ def _read_scalar_data_one_cyclone(
         `a_deck_io.read_file`.
     :param field_names: length-F list of fields to read.  Each field name must
         be in the constant list `VALID_SCALAR_FIELD_NAMES`.
+    :param remove_nontropical_systems: Boolean flag.  If True, will return only
+        NaN for non-tropical systems.
     :param cyclone_id_string: Cyclone ID.
     :param target_times_unix_sec: length-T numpy array of target times.
     :return: scalar_predictor_matrix: T-by-F numpy array.
     """
-
-    # TODO(thunderhoser): Eventually (soon) write a method to get rid of non-tropical or extratropical systems.
 
     print('Reading data from: "{0:s}"...'.format(a_deck_file_name))
     a_deck_table_xarray = a_deck_io.read_file(a_deck_file_name)
@@ -1524,7 +1538,17 @@ def _read_scalar_data_one_cyclone(
         if len(these_indices) == 0:
             continue
 
+        keep_this_time = True
         this_index = these_indices[0]
+
+        if remove_nontropical_systems:
+            keep_this_time = (
+                a_deck_table_xarray[a_deck_io.STORM_TYPE_KEY].values[this_index]
+                in TROPICAL_SYSTEM_TYPE_STRINGS
+            )
+
+        if not keep_this_time:
+            continue
 
         for j in range(num_fields):
             scalar_predictor_matrix[i, j] = (
@@ -2192,8 +2216,9 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
-    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
 
     orig_num_grid_rows = num_grid_rows + 0
     orig_num_grid_columns = num_grid_columns + 0
@@ -2237,6 +2262,7 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
         scalar_predictor_matrix = _read_scalar_data_one_cyclone(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
+            remove_nontropical_systems=remove_nontropical_systems,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
         )
@@ -2419,8 +2445,9 @@ def create_data_cira_ir_specific_trans(
     num_grid_columns = option_dict[NUM_GRID_COLUMNS_KEY]
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
-    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
 
     orig_num_grid_rows = num_grid_rows + 0
     orig_num_grid_columns = num_grid_columns + 0
@@ -2460,6 +2487,7 @@ def create_data_cira_ir_specific_trans(
         scalar_predictor_matrix = _read_scalar_data_one_cyclone(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
+            remove_nontropical_systems=remove_nontropical_systems,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
         )
@@ -2637,8 +2665,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
-    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -2687,6 +2716,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         scalar_predictor_matrix = _read_scalar_data_one_cyclone(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
+            remove_nontropical_systems=remove_nontropical_systems,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
         )
@@ -2934,8 +2964,9 @@ def create_data_specific_trans(
     sentinel_value = option_dict[SENTINEL_VALUE_KEY]
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
-    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -2981,6 +3012,7 @@ def create_data_specific_trans(
         scalar_predictor_matrix = _read_scalar_data_one_cyclone(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
+            remove_nontropical_systems=remove_nontropical_systems,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
         )
@@ -3177,8 +3209,9 @@ def data_generator_cira_ir(option_dict):
         option_dict[DATA_AUG_STDEV_TRANS_KEY]
     )
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
-    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
 
     orig_num_grid_rows = num_grid_rows + 0
     orig_num_grid_columns = num_grid_columns + 0
@@ -3257,6 +3290,7 @@ def data_generator_cira_ir(option_dict):
                 this_scalar_predictor_matrix = _read_scalar_data_one_cyclone(
                     a_deck_file_name=a_deck_file_name,
                     field_names=scalar_a_deck_field_names,
+                    remove_nontropical_systems=remove_nontropical_systems,
                     cyclone_id_string=cyclone_id_strings[cyclone_index - 1],
                     target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
                 )
@@ -3385,8 +3419,9 @@ def data_generator_simple(option_dict):
         option_dict[DATA_AUG_STDEV_TRANS_KEY]
     )
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
-    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -3465,6 +3500,7 @@ def data_generator_simple(option_dict):
                 this_scalar_predictor_matrix = _read_scalar_data_one_cyclone(
                     a_deck_file_name=a_deck_file_name,
                     field_names=scalar_a_deck_field_names,
+                    remove_nontropical_systems=remove_nontropical_systems,
                     cyclone_id_string=cyclone_id_strings[cyclone_index - 1],
                     target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
                 )
@@ -3684,8 +3720,9 @@ def data_generator(option_dict):
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
-    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -3769,6 +3806,7 @@ def data_generator(option_dict):
                 this_scalar_predictor_matrix = _read_scalar_data_one_cyclone(
                     a_deck_file_name=a_deck_file_name,
                     field_names=scalar_a_deck_field_names,
+                    remove_nontropical_systems=remove_nontropical_systems,
                     cyclone_id_string=cyclone_id_strings[cyclone_index - 1],
                     target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
                 )

@@ -24,7 +24,8 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
          data_aug_mean_translation_low_res_px,
          data_aug_stdev_translation_low_res_px,
          sentinel_value, target_smoother_stdev_km, synoptic_times_only,
-         scalar_a_deck_field_names, a_deck_file_name,
+         a_deck_file_name, scalar_a_deck_field_names,
+         remove_nontropical_systems,
          lag_time_tolerance_for_training_sec,
          max_num_missing_lag_times_for_training,
          max_interp_gap_for_training_sec,
@@ -56,8 +57,9 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
     :param sentinel_value: Same.
     :param target_smoother_stdev_km: Same.
     :param synoptic_times_only: Same.
-    :param scalar_a_deck_field_names: Same.
     :param a_deck_file_name: Same.
+    :param scalar_a_deck_field_names: Same.
+    :param remove_nontropical_systems: Same.
     :param lag_time_tolerance_for_training_sec: Same.
     :param max_num_missing_lag_times_for_training: Same.
     :param max_interp_gap_for_training_sec: Same.
@@ -103,8 +105,9 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
         neural_net.SENTINEL_VALUE_KEY: sentinel_value,
         neural_net.TARGET_SMOOOTHER_STDEV_KEY: target_smoother_stdev_km,
         neural_net.SYNOPTIC_TIMES_ONLY_KEY: synoptic_times_only,
+        neural_net.A_DECK_FILE_KEY: a_deck_file_name,
         neural_net.SCALAR_A_DECK_FIELDS_KEY: scalar_a_deck_field_names,
-        neural_net.A_DECK_FILE_KEY: a_deck_file_name
+        neural_net.REMOVE_NONTROPICAL_KEY: remove_nontropical_systems
     }
 
     validation_option_dict = {
@@ -205,12 +208,15 @@ if __name__ == '__main__':
         synoptic_times_only=bool(getattr(
             INPUT_ARG_OBJECT, training_args.SYNOPTIC_TIMES_ONLY_ARG_NAME
         )),
-        scalar_a_deck_field_names=getattr(
-            INPUT_ARG_OBJECT, training_args.SCALAR_A_DECK_FIELDS_ARG_NAME
-        ),
         a_deck_file_name=getattr(
             INPUT_ARG_OBJECT, training_args.A_DECK_FILE_ARG_NAME
         ),
+        scalar_a_deck_field_names=getattr(
+            INPUT_ARG_OBJECT, training_args.SCALAR_A_DECK_FIELDS_ARG_NAME
+        ),
+        remove_nontropical_systems=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.REMOVE_NONTROPICAL_ARG_NAME
+        )),
         lag_time_tolerance_for_training_sec=getattr(
             INPUT_ARG_OBJECT, training_args.TIME_TOLERANCE_FOR_TRAINING_ARG_NAME
         ),
