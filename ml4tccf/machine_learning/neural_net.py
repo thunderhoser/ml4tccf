@@ -3910,6 +3910,57 @@ def data_generator(option_dict):
         yield predictor_matrices, target_matrix
 
 
+def get_low_res_data_from_predictors(predictor_matrices):
+    """Fetches low-resolution satellite data from list of predictor matrices.
+
+    :param predictor_matrices: Same as output from `create_data`.
+    :return: brightness_temp_matrix: numpy array of brightness temperatures.
+    :raises: ValueError: if low-resolution satellite data cannot be found.
+    """
+
+    error_checking.assert_is_list(predictor_matrices)
+    num_matrices = len(predictor_matrices)
+
+    for k in range(num_matrices)[::-1]:
+        error_checking.assert_is_numpy_array(predictor_matrices[k])
+        if len(predictor_matrices[k].shape) > 2:
+            return predictor_matrices[k]
+
+    error_string = (
+        'Cannot find low-resolution satellite data in predictor matrices with '
+        'the following shapes:\n'
+    )
+    for k in range(num_matrices):
+        error_string += '{0:s}\n'.format(str(predictor_matrices[k].shape))
+
+    raise ValueError(error_string)
+
+
+def get_high_res_data_from_predictors(predictor_matrices):
+    """Fetches high-resolution satellite data from list of predictor matrices.
+
+    :param predictor_matrices: Same as output from `create_data`.
+    :return: bidirectional_reflectance_matrix: numpy array of bidirectional
+        reflectances.
+    :raises: ValueError: if high-resolution satellite data cannot be found.
+    """
+
+    error_checking.assert_is_list(predictor_matrices)
+    num_matrices = len(predictor_matrices)
+
+    if len(predictor_matrices[0].shape) > 2:
+        return predictor_matrices[0]
+
+    error_string = (
+        'Cannot find high-resolution satellite data in predictor matrices with '
+        'the following shapes:\n'
+    )
+    for k in range(num_matrices):
+        error_string += '{0:s}\n'.format(str(predictor_matrices[k].shape))
+
+    raise ValueError(error_string)
+
+
 def train_model_cira_ir(
         model_object, output_dir_name, num_epochs,
         num_training_batches_per_epoch, training_option_dict,

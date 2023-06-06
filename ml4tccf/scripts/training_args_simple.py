@@ -15,6 +15,8 @@ DATA_AUG_STDEV_TRANS_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
 # SENTINEL_VALUE_ARG_NAME = 'sentinel_value'
 # TARGET_SMOOTHER_STDEV_ARG_NAME = 'target_smoother_stdev_km'
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
+SCALAR_A_DECK_FIELDS_ARG_NAME = 'scalar_a_deck_field_names'
+A_DECK_FILE_ARG_NAME = 'a_deck_file_name'
 
 # TIME_TOLERANCE_FOR_TRAINING_ARG_NAME = 'lag_time_tolerance_for_training_sec'
 # MAX_MISSING_TIMES_FOR_TRAINING_ARG_NAME = (
@@ -88,6 +90,15 @@ SYNOPTIC_TIMES_ONLY_HELP_STRING = (
     '[used only if model is trained with Robert/Galina data] Boolean flag.  If '
     '1, only synoptic times can be target times.  If 0, any time can be a '
     'target time.'
+)
+SCALAR_A_DECK_FIELDS_HELP_STRING = (
+    'List of scalar fields to use in predictors.  Each field must be a KEY '
+    'listed at the top of a_deck_io.py.  If you do not want to use scalar '
+    'predictors, leave this alone.'
+)
+A_DECK_FILE_HELP_STRING = (
+    'Path to A-deck file, from which scalar predictors will be read.  If you '
+    'do not want to use scalar predictors, leave this alone.'
 )
 
 # TIME_TOLERANCE_FOR_TRAINING_HELP_STRING = (
@@ -208,6 +219,14 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + SYNOPTIC_TIMES_ONLY_ARG_NAME, type=int, required=False,
         default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + SCALAR_A_DECK_FIELDS_ARG_NAME, type=str, nargs='+',
+        required=False, default=[''], help=SCALAR_A_DECK_FIELDS_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + A_DECK_FILE_ARG_NAME, type=str, required=False, default='',
+        help=A_DECK_FILE_HELP_STRING
     )
 
     # parser_object.add_argument(

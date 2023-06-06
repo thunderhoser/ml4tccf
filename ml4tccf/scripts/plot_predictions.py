@@ -504,8 +504,15 @@ def _plot_data_one_example(
             low_res_longitudes_deg_e
         )
 
-    num_grid_rows_low_res = predictor_matrices[-1].shape[0]
-    num_grid_columns_low_res = predictor_matrices[-1].shape[1]
+    brightness_temp_matrix = neural_net.get_low_res_data_from_predictors(
+        predictor_matrices
+    )
+    bidirectional_reflectance_matrix = (
+        neural_net.get_high_res_data_from_predictors(predictor_matrices)
+    )
+
+    num_grid_rows_low_res = brightness_temp_matrix.shape[0]
+    num_grid_columns_low_res = brightness_temp_matrix.shape[1]
     regular_grids = len(low_res_latitudes_deg_n.shape) == 1
 
     center_row_index_low_res = int(numpy.round(
@@ -632,12 +639,18 @@ def _plot_data_one_example(
     low_res_wavelengths_microns = d[neural_net.LOW_RES_WAVELENGTHS_KEY]
     lag_times_minutes = d[neural_net.LAG_TIMES_KEY]
 
-    predictor_matrices = [
+    brightness_temp_matrix = neural_net.separate_lag_times_and_wavelengths(
+        satellite_data_matrix=numpy.expand_dims(brightness_temp_matrix, axis=0),
+        num_lag_times=len(lag_times_minutes)
+    )[0, ...]
+
+    bidirectional_reflectance_matrix = (
         neural_net.separate_lag_times_and_wavelengths(
-            satellite_data_matrix=numpy.expand_dims(p, axis=0),
+            satellite_data_matrix=
+            numpy.expand_dims(bidirectional_reflectance_matrix, axis=0),
             num_lag_times=len(lag_times_minutes)
-        )[0, ...] for p in predictor_matrices
-    ]
+        )[0, ...]
+    )
 
     if regular_grids:
         actual_center_x_coord = (
@@ -716,7 +729,7 @@ def _plot_data_one_example(
             )
 
             _plot_data_one_channel(
-                predictor_matrix=predictor_matrices[0][..., i, j],
+                predictor_matrix=bidirectional_reflectance_matrix[..., i, j],
                 are_data_normalized=are_data_normalized,
                 plotting_brightness_temp=False,
                 border_latitudes_deg_n=border_latitudes_deg_n,
@@ -759,7 +772,7 @@ def _plot_data_one_example(
             )
 
             _plot_data_one_channel(
-                predictor_matrix=predictor_matrices[-1][..., i, j],
+                predictor_matrix=brightness_temp_matrix[..., i, j],
                 are_data_normalized=are_data_normalized,
                 plotting_brightness_temp=True,
                 border_latitudes_deg_n=border_latitudes_deg_n,
@@ -1057,9 +1070,9 @@ def _run(prediction_file_name, satellite_dir_name,
 
     for k in range(len(predictor_matrices)):
         predictor_matrices[k] = predictor_matrices[k].astype(numpy.float64)
-        predictor_matrices[k][
-            predictor_matrices[k] < SENTINEL_VALUE + 1
-            ] = numpy.nan
+        predictor_matrices[k][predictor_matrices[k] < SENTINEL_VALUE + 1] = (
+            numpy.nan
+        )
 
     # Do the plotting.
     if semantic_seg_flag:

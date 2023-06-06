@@ -225,8 +225,15 @@ def _plot_data_one_example(
             low_res_longitudes_deg_e
         )
 
-    num_grid_rows_low_res = predictor_matrices[-1].shape[0]
-    num_grid_columns_low_res = predictor_matrices[-1].shape[1]
+    brightness_temp_matrix = neural_net.get_low_res_data_from_predictors(
+        predictor_matrices
+    )
+    bidirectional_reflectance_matrix = (
+        neural_net.get_high_res_data_from_predictors(predictor_matrices)
+    )
+
+    num_grid_rows_low_res = brightness_temp_matrix.shape[0]
+    num_grid_columns_low_res = brightness_temp_matrix.shape[1]
     center_row_index_low_res = int(numpy.round(
         float(num_grid_rows_low_res) / 2 - 1
     ))
@@ -287,7 +294,7 @@ def _plot_data_one_example(
         )
 
         satellite_plotting.plot_2d_grid_latlng(
-            data_matrix=predictor_matrices[0][..., j],
+            data_matrix=bidirectional_reflectance_matrix[..., j],
             axes_object=axes_object,
             latitude_array_deg_n=high_res_latitudes_deg_n,
             longitude_array_deg_e=high_res_longitudes_deg_e,
@@ -385,7 +392,7 @@ def _plot_data_one_example(
         )
 
         satellite_plotting.plot_2d_grid_latlng(
-            data_matrix=predictor_matrices[-1][..., j],
+            data_matrix=brightness_temp_matrix[..., j],
             axes_object=axes_object,
             latitude_array_deg_n=low_res_latitudes_deg_n,
             longitude_array_deg_e=low_res_longitudes_deg_e,
@@ -614,9 +621,9 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
 
     for k in range(len(predictor_matrices)):
         predictor_matrices[k] = predictor_matrices[k].astype(numpy.float64)
-        predictor_matrices[k][
-            predictor_matrices[k] < SENTINEL_VALUE + 1
-            ] = numpy.nan
+        predictor_matrices[k][predictor_matrices[k] < SENTINEL_VALUE + 1] = (
+            numpy.nan
+        )
 
     num_examples = predictor_matrices[0].shape[0]
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()

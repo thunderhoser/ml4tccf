@@ -9,7 +9,9 @@ from ml4tccf.machine_learning import neural_net
 
 INPUT_DIMENSIONS_LOW_RES_KEY = 'input_dimensions_low_res'
 INPUT_DIMENSIONS_HIGH_RES_KEY = 'input_dimensions_high_res'
+INPUT_DIMENSIONS_SCALAR_KEY = 'input_dimensions_scalar'
 INCLUDE_HIGH_RES_KEY = 'include_high_res_data'
+INCLUDE_SCALAR_DATA_KEY = 'include_scalar_data'
 NUM_CONV_LAYERS_KEY = 'num_conv_layers_by_block'
 NUM_CHANNELS_KEY = 'num_channels_by_conv_layer'
 CONV_DROPOUT_RATES_KEY = 'dropout_rate_by_conv_layer'
@@ -26,6 +28,7 @@ START_WITH_POOLING_KEY = 'start_with_pooling_layer'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
+    INCLUDE_SCALAR_DATA_KEY: False,
     NUM_CONV_LAYERS_KEY: numpy.full(11, 2, dtype=int),
     NUM_CHANNELS_KEY: numpy.array([
         2, 2, 4, 4, 16, 16, 32, 32, 64, 64, 96, 96, 128, 128, 184, 184,
@@ -56,9 +59,14 @@ def check_input_args(option_dict):
         numpy array with input dimensions for high-resolution satellite data:
         [num_grid_rows, num_grid_columns, num_lag_times * num_wavelengths].
         If you are not including high-res data, make this None.
+    option_dict["input_dimensions_scalar"]:
+        numpy array with input dimensions for scalar data: [num_fields].
+        If you are not including scalar data, make this None.
     option_dict["include_high_res_data"]: Boolean flag.  If True, will create
         architecture that includes high-resolution satellite data (1/4 the grid
         spacing of low-resolution data) as input.
+    option_dict["include_scalar_data"]: Boolean flag.  If True, will create
+        architecture that includes scalar data as input.
     option_dict["num_conv_layers_by_block"]: length-B numpy array with number of
         conv layers for each block.
     option_dict["num_channels_by_conv_layer"]: length-C numpy array with number
@@ -104,7 +112,6 @@ def check_input_args(option_dict):
     )
 
     error_checking.assert_is_boolean(option_dict[INCLUDE_HIGH_RES_KEY])
-
     if option_dict[INCLUDE_HIGH_RES_KEY]:
         error_checking.assert_is_numpy_array(
             option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY],
@@ -124,6 +131,19 @@ def check_input_args(option_dict):
         error_checking.assert_equals(
             option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY][1],
             4 * option_dict[INPUT_DIMENSIONS_LOW_RES_KEY][1]
+        )
+
+    error_checking.assert_is_boolean(option_dict[INCLUDE_SCALAR_DATA_KEY])
+    if option_dict[INCLUDE_SCALAR_DATA_KEY]:
+        error_checking.assert_is_numpy_array(
+            option_dict[INPUT_DIMENSIONS_SCALAR_KEY],
+            exact_dimensions=numpy.array([1], dtype=int)
+        )
+        error_checking.assert_is_integer_numpy_array(
+            option_dict[INPUT_DIMENSIONS_SCALAR_KEY]
+        )
+        error_checking.assert_is_greater_numpy_array(
+            option_dict[INPUT_DIMENSIONS_SCALAR_KEY], 0
         )
 
     error_checking.assert_is_numpy_array(
@@ -189,6 +209,7 @@ def create_model(option_dict):
 
     input_dimensions_low_res = option_dict[INPUT_DIMENSIONS_LOW_RES_KEY]
     include_high_res_data = option_dict[INCLUDE_HIGH_RES_KEY]
+    include_scalar_data = option_dict[INCLUDE_SCALAR_DATA_KEY]
     num_conv_layers_by_block = option_dict[NUM_CONV_LAYERS_KEY]
     num_channels_by_conv_layer = option_dict[NUM_CHANNELS_KEY]
     dropout_rate_by_conv_layer = option_dict[CONV_DROPOUT_RATES_KEY]
@@ -232,6 +253,14 @@ def create_model(option_dict):
             )
     else:
         input_layer_object_high_res = None
+
+    if include_scalar_data:
+        input_dimensions_scalar = option_dict[INPUT_DIMENSIONS_SCALAR_KEY]
+        input_layer_object_scalar = keras.layers.Input(
+            shape=tuple(input_dimensions_scalar.tolist())
+        )
+    else:
+        input_layer_object_scalar = None
 
     l2_function = architecture_utils.get_weight_regularizer(l2_weight=l2_weight)
     layer_index = -1
@@ -331,6 +360,11 @@ def create_model(option_dict):
             )(layer_object)
 
     layer_object = architecture_utils.get_flattening_layer()(layer_object)
+    if include_scalar_data:
+        layer_object = keras.layers.Concatenate(axis=-1)([
+            layer_object, input_layer_object_scalar
+        ])
+
     num_dense_layers = len(num_neurons_by_dense_layer)
 
     for i in range(num_dense_layers):
