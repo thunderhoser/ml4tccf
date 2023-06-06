@@ -409,8 +409,15 @@ def create_model(option_dict):
         input_layer_objects = [
             input_layer_object_high_res, input_layer_object_low_res
         ]
+        if include_scalar_data:
+            input_layer_objects.append(input_layer_object_scalar)
     else:
-        input_layer_objects = input_layer_object_low_res
+        if include_scalar_data:
+            input_layer_objects = [
+                input_layer_object_low_res, input_layer_object_scalar
+            ]
+        else:
+            input_layer_objects = input_layer_object_low_res
 
     model_object = keras.models.Model(
         inputs=input_layer_objects, outputs=layer_object
