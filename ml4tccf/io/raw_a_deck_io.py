@@ -102,24 +102,24 @@ RAW_FIELD_TO_CONV_FACTOR = {
 }
 
 STORM_TYPE_RENAMING_DICT = {
-    'DB': 'tropical_disturbance',
-    'TD': 'tropical_depression',
-    'TS': 'tropical_storm',
-    'TY': 'tropical_typhoon',
-    'ST': 'tropical_super_typhoon',
-    'TC': 'tropical_cyclone',
-    'HU': 'tropical_hurricane',
-    'SD': 'subtropical_depression',
-    'SS': 'subtropical_storm',
-    'EX': 'extratropical_system',
-    'PT': 'posttropical_system',
-    'IN': 'inland',
-    'DS': 'dissipating',
-    'LO': 'low',
-    'WV': 'wave',
-    'ET': 'extrapolated',
-    'MD': 'monsoon_depression',
-    'XX': 'unknown'
+    'DB': a_deck_io.TROPICAL_DISTURBANCE_TYPE_STRING,
+    'TD': a_deck_io.TROPICAL_DEPRESSION_TYPE_STRING,
+    'TS': a_deck_io.TROPICAL_STORM_TYPE_STRING,
+    'TY': a_deck_io.TROPICAL_TYPHOON_TYPE_STRING,
+    'ST': a_deck_io.TROPICAL_SUPER_TYPHOON_TYPE_STRING,
+    'TC': a_deck_io.TROPICAL_CYCLONE_TYPE_STRING,
+    'HU': a_deck_io.TROPICAL_HURRICANE_TYPE_STRING,
+    'SD': a_deck_io.SUBTROPICAL_DEPRESSION_TYPE_STRING,
+    'SS': a_deck_io.SUBTROPICAL_STORM_TYPE_STRING,
+    'EX': a_deck_io.EXTRATROPICAL_TYPE_STRING,
+    'PT': a_deck_io.POSTTROPICAL_TYPE_STRING,
+    'IN': a_deck_io.INLAND_TYPE_STRING,
+    'DS': a_deck_io.DISSIPATING_TYPE_STRING,
+    'LO': a_deck_io.LOW_TYPE_STRING,
+    'WV': a_deck_io.WAVE_TYPE_STRING,
+    'ET': a_deck_io.EXTRAPOLATED_TYPE_STRING,
+    'MD': a_deck_io.MONSOON_DEPRESSION_TYPE_STRING,
+    'XX': a_deck_io.UNKNOWN_TYPE_STRING
 }
 
 WIND_THRESHOLDS_KEY = 'wind_thresholds_kt'

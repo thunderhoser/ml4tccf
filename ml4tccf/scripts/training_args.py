@@ -15,8 +15,9 @@ DATA_AUG_STDEV_TRANS_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
 SENTINEL_VALUE_ARG_NAME = 'sentinel_value'
 TARGET_SMOOTHER_STDEV_ARG_NAME = 'target_smoother_stdev_km'
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
-SCALAR_A_DECK_FIELDS_ARG_NAME = 'scalar_a_deck_field_names'
 A_DECK_FILE_ARG_NAME = 'a_deck_file_name'
+SCALAR_A_DECK_FIELDS_ARG_NAME = 'scalar_a_deck_field_names'
+REMOVE_NONTROPICAL_ARG_NAME = 'remove_nontropical_systems'
 
 TIME_TOLERANCE_FOR_TRAINING_ARG_NAME = 'lag_time_tolerance_for_training_sec'
 MAX_MISSING_TIMES_FOR_TRAINING_ARG_NAME = (
@@ -90,14 +91,18 @@ SYNOPTIC_TIMES_ONLY_HELP_STRING = (
     'Boolean flag.  If 1, only synoptic times can be target times.  If 0, any '
     'time can be a target time.'
 )
+A_DECK_FILE_HELP_STRING = (
+    'Path to A-deck file, from which scalar predictors will be read.  If you '
+    'do not want to use scalar predictors, leave this alone.'
+)
 SCALAR_A_DECK_FIELDS_HELP_STRING = (
     'List of scalar fields to use in predictors.  Each field must be a KEY '
     'listed at the top of a_deck_io.py.  If you do not want to use scalar '
     'predictors, leave this alone.'
 )
-A_DECK_FILE_HELP_STRING = (
-    'Path to A-deck file, from which scalar predictors will be read.  If you '
-    'do not want to use scalar predictors, leave this alone.'
+REMOVE_NONTROPICAL_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will train with only tropical systems (all '
+    'systems).'
 )
 
 TIME_TOLERANCE_FOR_TRAINING_HELP_STRING = (
@@ -222,12 +227,16 @@ def add_input_args(parser_object):
         default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
     )
     parser_object.add_argument(
+        '--' + A_DECK_FILE_ARG_NAME, type=str, required=False, default='',
+        help=A_DECK_FILE_HELP_STRING
+    )
+    parser_object.add_argument(
         '--' + SCALAR_A_DECK_FIELDS_ARG_NAME, type=str, nargs='+',
         required=False, default=[''], help=SCALAR_A_DECK_FIELDS_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + A_DECK_FILE_ARG_NAME, type=str, required=False, default='',
-        help=A_DECK_FILE_HELP_STRING
+        '--' + REMOVE_NONTROPICAL_ARG_NAME, type=int, required=False, default=0,
+        help=REMOVE_NONTROPICAL_HELP_STRING
     )
 
     parser_object.add_argument(

@@ -51,6 +51,25 @@ NORTHWARD_MOTION_KEY = 'northward_motion_m_s01'
 
 TRAINING_YEARS_FOR_NORM_KEY = 'training_years_for_normalization'
 
+TROPICAL_DISTURBANCE_TYPE_STRING = 'tropical_disturbance'
+TROPICAL_DEPRESSION_TYPE_STRING = 'tropical_depression'
+TROPICAL_STORM_TYPE_STRING = 'tropical_storm'
+TROPICAL_TYPHOON_TYPE_STRING = 'tropical_typhoon'
+TROPICAL_SUPER_TYPHOON_TYPE_STRING = 'tropical_super_typhoon'
+TROPICAL_CYCLONE_TYPE_STRING = 'tropical_cyclone'
+TROPICAL_HURRICANE_TYPE_STRING = 'tropical_hurricane'
+SUBTROPICAL_DEPRESSION_TYPE_STRING = 'subtropical_depression'
+SUBTROPICAL_STORM_TYPE_STRING = 'subtropical_storm'
+EXTRATROPICAL_TYPE_STRING = 'extratropical_system'
+POSTTROPICAL_TYPE_STRING = 'posttropical_system'
+INLAND_TYPE_STRING = 'inland'
+DISSIPATING_TYPE_STRING = 'dissipating'
+LOW_TYPE_STRING = 'low'
+WAVE_TYPE_STRING = 'wave'
+EXTRAPOLATED_TYPE_STRING = 'extrapolated'
+MONSOON_DEPRESSION_TYPE_STRING = 'monsoon_depression'
+UNKNOWN_TYPE_STRING = 'unknown'
+
 
 def read_file(netcdf_file_name):
     """Reads A-deck data from NetCDF file.
