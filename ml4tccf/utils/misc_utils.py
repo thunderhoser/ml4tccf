@@ -710,3 +710,33 @@ def latlng_points_to_probability_grid(
 
     probability_matrix = probability_matrix / num_points
     return probability_matrix
+
+
+def standard_to_geodetic_angles(standard_angles_deg):
+    """Converts angles from standard to geodetic format.
+
+    "Standard format" = measured counterclockwise from due east
+    "Geodetic format" = measured clockwise from due north
+
+    :param standard_angles_deg: numpy array of standard angles (degrees).
+    :return: geodetic_angles_deg: equivalent-size numpy array of geodetic
+        angles.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(standard_angles_deg)
+    return numpy.mod((450. - standard_angles_deg), 360.)
+
+
+def geodetic_to_standard_angles(geodetic_angles_deg):
+    """Converts angles from geodetic to standard format.
+
+    For the definitions of "geodetic format" and "standard format," see doc for
+    `standard_to_geodetic_angles`.
+
+    :param geodetic_angles_deg: numpy array of geodetic angles (degrees).
+    :return: standard_angles_deg: equivalent-size numpy array of standard
+        angles.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(geodetic_angles_deg)
+    return numpy.mod((450. - geodetic_angles_deg), 360.)

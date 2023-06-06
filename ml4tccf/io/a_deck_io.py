@@ -43,6 +43,14 @@ WAVE_HEIGHT_RADIUS_NW_QUADRANT_KEY = 'wave_height_radius_nw_quadrant_metres'
 WAVE_HEIGHT_RADIUS_SW_QUADRANT_KEY = 'wave_height_radius_sw_quadrant_metres'
 WAVE_HEIGHT_RADIUS_SE_QUADRANT_KEY = 'wave_height_radius_se_quadrant_metres'
 
+ABSOLUTE_LATITUDE_KEY = 'absolute_latitude_deg_n'
+LONGITUDE_COSINE_KEY = 'longitude_cosine'
+LONGITUDE_SINE_KEY = 'longitude_sine'
+EASTWARD_MOTION_KEY = 'eastward_motion_m_s01'
+NORTHWARD_MOTION_KEY = 'northward_motion_m_s01'
+
+TRAINING_YEARS_FOR_NORM_KEY = 'training_years_for_normalization'
+
 
 def read_file(netcdf_file_name):
     """Reads A-deck data from NetCDF file.
