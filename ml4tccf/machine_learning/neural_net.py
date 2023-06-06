@@ -2927,6 +2927,8 @@ def create_data_specific_trans(
     sentinel_value = option_dict[SENTINEL_VALUE_KEY]
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    a_deck_file_name = option_dict[A_DECK_FILE_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -2961,55 +2963,82 @@ def create_data_specific_trans(
 
     if data_dict is None:
         return None
-
-    bidirectional_reflectance_matrix = data_dict[BIDIRECTIONAL_REFLECTANCES_KEY]
-    brightness_temp_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
-    grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
-    cyclone_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
-    low_res_latitude_matrix_deg_n = data_dict[LOW_RES_LATITUDES_KEY]
-    low_res_longitude_matrix_deg_e = data_dict[LOW_RES_LONGITUDES_KEY]
-    high_res_latitude_matrix_deg_n = data_dict[HIGH_RES_LATITUDES_KEY]
-    high_res_longitude_matrix_deg_e = data_dict[HIGH_RES_LONGITUDES_KEY]
-
-    if brightness_temp_matrix_kelvins is None:
+    if data_dict[BRIGHTNESS_TEMPS_KEY] is None:
         return None
-    if brightness_temp_matrix_kelvins.size == 0:
+    if data_dict[BRIGHTNESS_TEMPS_KEY].size == 0:
         return None
+
+    if a_deck_file_name is None:
+        scalar_predictor_matrix = None
+    else:
+        scalar_predictor_matrix = _read_scalar_data_one_cyclone(
+            a_deck_file_name=a_deck_file_name,
+            field_names=scalar_a_deck_field_names,
+            cyclone_id_string=cyclone_id_string,
+            target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
+        )
 
     reconstruction_indices = numpy.array([
         numpy.where(unique_target_times_unix_sec == t)[0][0]
         for t in target_times_unix_sec
     ], dtype=int)
 
-    brightness_temp_matrix_kelvins = (
-        brightness_temp_matrix_kelvins[reconstruction_indices, ...]
-    )
-    grid_spacings_km = grid_spacings_km[reconstruction_indices]
-    cyclone_center_latitudes_deg_n = (
-        cyclone_center_latitudes_deg_n[reconstruction_indices]
-    )
-    low_res_latitude_matrix_deg_n = (
-        low_res_latitude_matrix_deg_n[reconstruction_indices, ...]
-    )
-    low_res_longitude_matrix_deg_e = (
-        low_res_longitude_matrix_deg_e[reconstruction_indices, ...]
-    )
+    dd = data_dict
+    idxs = reconstruction_indices
+
+    brightness_temp_matrix_kelvins = dd[BRIGHTNESS_TEMPS_KEY][idxs, ...]
+    grid_spacings_km = dd[GRID_SPACINGS_KEY][idxs, ...]
+    cyclone_center_latitudes_deg_n = dd[CENTER_LATITUDES_KEY][idxs, ...]
+    low_res_latitude_matrix_deg_n = dd[LOW_RES_LATITUDES_KEY][idxs, ...]
+    low_res_longitude_matrix_deg_e = dd[LOW_RES_LONGITUDES_KEY][idxs, ...]
+
+    if data_dict[BIDIRECTIONAL_REFLECTANCES_KEY] is None:
+        bidirectional_reflectance_matrix = None
+        high_res_latitude_matrix_deg_n = None
+        high_res_longitude_matrix_deg_e = None
+    else:
+        bidirectional_reflectance_matrix = dd[BIDIRECTIONAL_REFLECTANCES_KEY][
+            idxs, ...
+        ]
+        high_res_latitude_matrix_deg_n = dd[HIGH_RES_LATITUDES_KEY][idxs, ...]
+        high_res_longitude_matrix_deg_e = dd[HIGH_RES_LONGITUDES_KEY][idxs, ...]
+
+    if scalar_predictor_matrix is None:
+        good_time_indices = numpy.linspace(
+            0, len(grid_spacings_km) - 1, num=len(grid_spacings_km), dtype=int
+        )
+    else:
+        scalar_predictor_matrix = scalar_predictor_matrix[idxs, ...]
+        good_time_indices = numpy.all(
+            numpy.isfinite(scalar_predictor_matrix), axis=1
+        )
+        scalar_predictor_matrix = scalar_predictor_matrix[
+            good_time_indices, ...
+        ]
+
+    idxs = good_time_indices
+    brightness_temp_matrix_kelvins = brightness_temp_matrix_kelvins[idxs, ...]
+    grid_spacings_km = grid_spacings_km[idxs, ...]
+    cyclone_center_latitudes_deg_n = cyclone_center_latitudes_deg_n[idxs, ...]
+    target_times_unix_sec = target_times_unix_sec[idxs, ...]
+    low_res_latitude_matrix_deg_n = low_res_latitude_matrix_deg_n[idxs, ...]
+    low_res_longitude_matrix_deg_e = low_res_longitude_matrix_deg_e[idxs, ...]
+
+    if bidirectional_reflectance_matrix is not None:
+        bidirectional_reflectance_matrix = bidirectional_reflectance_matrix[
+            idxs, ...
+        ]
+        high_res_latitude_matrix_deg_n = high_res_latitude_matrix_deg_n[
+            idxs, ...
+        ]
+        high_res_longitude_matrix_deg_e = high_res_longitude_matrix_deg_e[
+            idxs, ...
+        ]
 
     brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
     )
-
     if bidirectional_reflectance_matrix is not None:
-        bidirectional_reflectance_matrix = (
-            bidirectional_reflectance_matrix[reconstruction_indices, ...]
-        )
-        high_res_latitude_matrix_deg_n = (
-            high_res_latitude_matrix_deg_n[reconstruction_indices, ...]
-        )
-        high_res_longitude_matrix_deg_e = (
-            high_res_longitude_matrix_deg_e[reconstruction_indices, ...]
-        )
-
         bidirectional_reflectance_matrix = combine_lag_times_and_wavelengths(
             bidirectional_reflectance_matrix
         )
@@ -3084,6 +3113,8 @@ def create_data_specific_trans(
     predictor_matrices = [brightness_temp_matrix_kelvins]
     if bidirectional_reflectance_matrix is not None:
         predictor_matrices.insert(0, bidirectional_reflectance_matrix)
+    if scalar_predictor_matrix is not None:
+        predictor_matrices.append(scalar_predictor_matrix)
 
     if semantic_segmentation_flag:
         target_matrix = _make_targets_for_semantic_seg(
