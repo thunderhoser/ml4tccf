@@ -1132,6 +1132,10 @@ def _read_satellite_data_1cyclone_simple(
     """
 
     # TODO(thunderhoser): This could be simplified more.
+    print('Input files:\n{0:s}'.format(str(input_file_names)))
+    print('Target times:\n{0:s}'.format(str(target_times_unix_sec)))
+    print('\n\n\n')
+
     desired_file_to_times_dict = _decide_files_to_read_one_cyclone(
         satellite_file_names=input_file_names,
         target_times_unix_sec=target_times_unix_sec,
