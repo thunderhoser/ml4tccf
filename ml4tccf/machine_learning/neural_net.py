@@ -756,8 +756,7 @@ def _choose_random_target_times(all_target_times_unix_sec, num_times_desired,
 
 def _read_satellite_data_1cyclone_cira_ir(
         input_file_name, lag_times_minutes, num_grid_rows, num_grid_columns,
-        return_coords, num_target_times=None, target_times_unix_sec=None,
-        synoptic_times_only=None):
+        return_coords, target_times_unix_sec):
     """Reads satellite data for one cyclone from CIRA IR dataset.
 
     :param input_file_name: See doc for `_read_satellite_data_one_cyclone`.
@@ -765,9 +764,7 @@ def _read_satellite_data_1cyclone_cira_ir(
     :param num_grid_rows: Same.
     :param num_grid_columns: Same.
     :param return_coords: Same.
-    :param num_target_times: Same.
     :param target_times_unix_sec: Same.
-    :param synoptic_times_only: Same.
     :return: data_dict: Same.
     :raises: ValueError: if `target_times_unix_sec is not None` and any desired
         time cannot be found.
@@ -776,39 +773,21 @@ def _read_satellite_data_1cyclone_cira_ir(
     # lag_times_minutes = numpy.sort(lag_times_minutes)[::-1]  # Already done in _check_generator_args.
     lag_times_sec = lag_times_minutes * MINUTES_TO_SECONDS
 
-    need_exact_target_times = target_times_unix_sec is not None
-
     all_times_unix_sec = cira_ir_example_io.read_file(input_file_name).coords[
         CIRA_IR_TIME_DIM
     ].values
 
-    if not need_exact_target_times:
-        if synoptic_times_only:
-            target_times_unix_sec = _get_synoptic_target_times(
-                all_target_times_unix_sec=all_times_unix_sec, for_cira_ir=True
-            )
-        else:
-            target_times_unix_sec = all_times_unix_sec + 0
-
-        if len(target_times_unix_sec) == 0:
-            return None
-
-    orig_target_times_unix_sec = target_times_unix_sec + 0
-    target_times_unix_sec = []
     table_rows_by_target_time = []
 
-    for i in range(len(orig_target_times_unix_sec)):
+    for i in range(len(target_times_unix_sec)):
         these_predictor_times_unix_sec = (
-            orig_target_times_unix_sec[i] - lag_times_sec
+            target_times_unix_sec[i] - lag_times_sec
         )
 
         if not numpy.all(numpy.isin(
                 element=these_predictor_times_unix_sec,
                 test_elements=all_times_unix_sec
         )):
-            if not need_exact_target_times:
-                continue
-
             missing_flags = numpy.invert(numpy.isin(
                 element=these_predictor_times_unix_sec,
                 test_elements=all_times_unix_sec
@@ -833,27 +812,7 @@ def _read_satellite_data_1cyclone_cira_ir(
             for t in these_predictor_times_unix_sec
         ], dtype=int)
 
-        target_times_unix_sec.append(orig_target_times_unix_sec[i])
         table_rows_by_target_time.append(these_rows)
-
-    target_times_unix_sec = numpy.array(target_times_unix_sec, dtype=int)
-
-    if (
-            not need_exact_target_times
-            and num_target_times < len(target_times_unix_sec)
-    ):
-        example_indices = numpy.linspace(
-            0, len(target_times_unix_sec) - 1, num=len(target_times_unix_sec),
-            dtype=int
-        )
-        example_indices = numpy.random.choice(
-            example_indices, size=num_target_times, replace=False
-        )
-
-        target_times_unix_sec = target_times_unix_sec[example_indices]
-        table_rows_by_target_time = [
-            table_rows_by_target_time[k] for k in example_indices
-        ]
 
     print('Reading data from: "{0:s}"...'.format(input_file_name))
     example_table_xarray = cira_ir_example_io.read_file(input_file_name)
@@ -1584,11 +1543,13 @@ def _read_scalar_data_one_cyclone(
 
 def _get_target_times_and_scalar_predictors(
         cyclone_id_strings, synoptic_times_only,
-        satellite_file_names_by_cyclone, a_deck_file_name,
-        scalar_a_deck_field_names, remove_nontropical_systems):
+        satellite_file_names_by_cyclone, cira_ir_file_name_by_cyclone,
+        a_deck_file_name, scalar_a_deck_field_names,
+        remove_nontropical_systems):
     """Returns target times and scalar predictors for each cyclone.
 
-    This method can be used only for Robert/Galina data, not CIRA IR data!
+    If using CIRA IR data, make `satellite_file_names_by_cyclone = None`.
+    If using Robert/Galina data, make `cira_ir_file_name_by_cyclone = None`.
 
     C = number of cyclones
     F = number of scalar fields
@@ -1615,21 +1576,28 @@ def _get_target_times_and_scalar_predictors(
         item is a numpy array (T_i x F) of scalar predictors.
     """
 
+    for_cira_ir = satellite_file_names_by_cyclone is None
+
     num_cyclones = len(cyclone_id_strings)
     target_times_by_cyclone_unix_sec = (
         [numpy.array([], dtype=int)] * num_cyclones
     )
 
     for i in range(num_cyclones):
-        target_times_by_cyclone_unix_sec[i] = numpy.concatenate([
-            xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
-            for f in satellite_file_names_by_cyclone[i]
-        ])
+        if for_cira_ir:
+            target_times_by_cyclone_unix_sec[i] = cira_ir_example_io.read_file(
+                cira_ir_file_name_by_cyclone[i]
+            ).coords[CIRA_IR_TIME_DIM].values
+        else:
+            target_times_by_cyclone_unix_sec[i] = numpy.concatenate([
+                xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
+                for f in satellite_file_names_by_cyclone[i]
+            ])
 
         if synoptic_times_only:
             target_times_by_cyclone_unix_sec[i] = _get_synoptic_target_times(
                 all_target_times_unix_sec=target_times_by_cyclone_unix_sec[i],
-                for_cira_ir=False
+                for_cira_ir=for_cira_ir
             )
 
     if a_deck_file_name is None:
@@ -2790,10 +2758,34 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         raise_error_if_all_missing=True
     )
 
+    (
+        all_target_times_unix_sec, all_scalar_predictor_matrix
+    ) = _get_target_times_and_scalar_predictors(
+        cyclone_id_strings=[cyclone_id_string],
+        synoptic_times_only=synoptic_times_only,
+        satellite_file_names_by_cyclone=[satellite_file_names],
+        cira_ir_file_name_by_cyclone=None,
+        a_deck_file_name=a_deck_file_name,
+        scalar_a_deck_field_names=scalar_a_deck_field_names,
+        remove_nontropical_systems=remove_nontropical_systems
+    )
+
+    all_target_times_unix_sec = all_target_times_unix_sec[0]
+    all_scalar_predictor_matrix = all_scalar_predictor_matrix[0]
+    conservative_num_target_times = max([
+        int(numpy.round(num_target_times * 1.25)),
+        num_target_times + 2
+    ])
+
+    chosen_target_times_unix_sec = _choose_random_target_times(
+        all_target_times_unix_sec=all_target_times_unix_sec + 0,
+        num_times_desired=conservative_num_target_times,
+        for_cira_ir=False
+    )[0]
+
     data_dict = _read_satellite_data_one_cyclone(
         input_file_names=satellite_file_names,
-        num_target_times=num_target_times,
-        synoptic_times_only=synoptic_times_only,
+        target_times_unix_sec=chosen_target_times_unix_sec,
         lag_times_minutes=lag_times_minutes,
         lag_time_tolerance_sec=lag_time_tolerance_sec,
         max_num_missing_lag_times=max_num_missing_lag_times,
@@ -2805,54 +2797,57 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         sentinel_value=sentinel_value, return_coords=True
     )
 
-    if data_dict is None:
-        return None
-    if data_dict[BRIGHTNESS_TEMPS_KEY] is None:
-        return None
-    if data_dict[BRIGHTNESS_TEMPS_KEY].size == 0:
+    if (
+            data_dict is None
+            or data_dict[BRIGHTNESS_TEMPS_KEY] is None
+            or data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
+    ):
         return None
 
     if a_deck_file_name is None:
         scalar_predictor_matrix = None
-        good_time_indices = numpy.linspace(
-            0, len(data_dict[GRID_SPACINGS_KEY]) - 1,
-            num=len(data_dict[GRID_SPACINGS_KEY]), dtype=int
-        )
     else:
-        scalar_predictor_matrix = _read_scalar_data_one_cyclone(
-            a_deck_file_name=a_deck_file_name,
-            field_names=scalar_a_deck_field_names,
-            remove_nontropical_systems=remove_nontropical_systems,
-            cyclone_id_string=cyclone_id_string,
-            target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
-        )
-        good_time_indices = numpy.all(
-            numpy.isfinite(scalar_predictor_matrix), axis=1
-        )
-        scalar_predictor_matrix = scalar_predictor_matrix[
-            good_time_indices, ...
-        ]
+        row_indices = numpy.array([
+            numpy.where(all_target_times_unix_sec == t)[0][0]
+            for t in data_dict[TARGET_TIMES_KEY]
+        ], dtype=int)
 
-    dd = data_dict
-    idxs = good_time_indices
+        scalar_predictor_matrix = all_scalar_predictor_matrix[row_indices, :]
+        scalar_predictor_matrix = scalar_predictor_matrix[:num_target_times, :]
 
-    brightness_temp_matrix_kelvins = dd[BRIGHTNESS_TEMPS_KEY][idxs, ...]
-    grid_spacings_km = dd[GRID_SPACINGS_KEY][idxs, ...]
-    cyclone_center_latitudes_deg_n = dd[CENTER_LATITUDES_KEY][idxs, ...]
-    target_times_unix_sec = dd[TARGET_TIMES_KEY][idxs, ...]
-    low_res_latitude_matrix_deg_n = dd[LOW_RES_LATITUDES_KEY][idxs, ...]
-    low_res_longitude_matrix_deg_e = dd[LOW_RES_LONGITUDES_KEY][idxs, ...]
+    brightness_temp_matrix_kelvins = (
+        data_dict[BRIGHTNESS_TEMPS_KEY][:num_target_times, ...]
+    )
+    grid_spacings_km = (
+        data_dict[GRID_SPACINGS_KEY][:num_target_times, ...]
+    )
+    cyclone_center_latitudes_deg_n = (
+        data_dict[CENTER_LATITUDES_KEY][:num_target_times, ...]
+    )
+    target_times_unix_sec = (
+        data_dict[TARGET_TIMES_KEY][:num_target_times, ...]
+    )
+    low_res_latitude_matrix_deg_n = (
+        data_dict[LOW_RES_LATITUDES_KEY][:num_target_times, ...]
+    )
+    low_res_longitude_matrix_deg_e = (
+        data_dict[LOW_RES_LONGITUDES_KEY][:num_target_times, ...]
+    )
 
-    if dd[BIDIRECTIONAL_REFLECTANCES_KEY] is None:
+    if data_dict[BIDIRECTIONAL_REFLECTANCES_KEY] is None:
         bidirectional_reflectance_matrix = None
         high_res_latitude_matrix_deg_n = None
         high_res_longitude_matrix_deg_e = None
     else:
-        bidirectional_reflectance_matrix = dd[BIDIRECTIONAL_REFLECTANCES_KEY][
-            idxs, ...
-        ]
-        high_res_latitude_matrix_deg_n = dd[HIGH_RES_LATITUDES_KEY][idxs, ...]
-        high_res_longitude_matrix_deg_e = dd[HIGH_RES_LONGITUDES_KEY][idxs, ...]
+        bidirectional_reflectance_matrix = (
+            data_dict[BIDIRECTIONAL_REFLECTANCES_KEY][:num_target_times, ...]
+        )
+        high_res_latitude_matrix_deg_n = (
+            data_dict[HIGH_RES_LATITUDES_KEY][:num_target_times, ...]
+        )
+        high_res_longitude_matrix_deg_e = (
+            data_dict[HIGH_RES_LONGITUDES_KEY][:num_target_times, ...]
+        )
 
     brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
@@ -3342,7 +3337,7 @@ def data_generator_cira_ir(option_dict):
     cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
     random.shuffle(cyclone_id_strings)
 
-    example_file_names = [
+    example_file_name_by_cyclone = [
         cira_ir_example_io.find_file(
             directory_name=example_dir_name, cyclone_id_string=c,
             prefer_zipped=False, allow_other_format=False,
@@ -3350,6 +3345,18 @@ def data_generator_cira_ir(option_dict):
         )
         for c in cyclone_id_strings
     ]
+
+    (
+        target_times_by_cyclone_unix_sec, scalar_predictor_matrix_by_cyclone
+    ) = _get_target_times_and_scalar_predictors(
+        cyclone_id_strings=cyclone_id_strings,
+        synoptic_times_only=synoptic_times_only,
+        satellite_file_names_by_cyclone=None,
+        cira_ir_file_name_by_cyclone=example_file_name_by_cyclone,
+        a_deck_file_name=a_deck_file_name,
+        scalar_a_deck_field_names=scalar_a_deck_field_names,
+        remove_nontropical_systems=remove_nontropical_systems
+    )
 
     cyclone_index = 0
 
@@ -3369,53 +3376,50 @@ def data_generator_cira_ir(option_dict):
                 num_examples_per_batch - num_examples_in_memory
             ])
 
+            new_target_times_unix_sec = _choose_random_target_times(
+                all_target_times_unix_sec=
+                target_times_by_cyclone_unix_sec[cyclone_index] + 0,
+                num_times_desired=num_examples_to_read,
+                for_cira_ir=True
+            )[0]
+
             data_dict = _read_satellite_data_1cyclone_cira_ir(
-                input_file_name=example_file_names[cyclone_index],
+                input_file_name=example_file_name_by_cyclone[cyclone_index],
                 lag_times_minutes=lag_times_minutes,
                 num_grid_rows=num_grid_rows,
                 num_grid_columns=num_grid_columns,
-                return_coords=False, num_target_times=num_examples_to_read,
-                synoptic_times_only=synoptic_times_only
+                return_coords=False,
+                target_times_unix_sec=new_target_times_unix_sec
             )
-
             cyclone_index += 1
-            if data_dict is None:
+
+            if (
+                    data_dict is None
+                    or data_dict[BRIGHTNESS_TEMPS_KEY] is None
+                    or data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
+            ):
                 continue
-            if data_dict[BRIGHTNESS_TEMPS_KEY] is None:
-                continue
-            if data_dict[BRIGHTNESS_TEMPS_KEY].size == 0:
-                continue
+
+            this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+            these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
+            these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
-                good_time_indices = numpy.linspace(
-                    0, len(data_dict[GRID_SPACINGS_KEY]) - 1,
-                    num=len(data_dict[GRID_SPACINGS_KEY]), dtype=int
-                )
             else:
-                this_scalar_predictor_matrix = _read_scalar_data_one_cyclone(
-                    a_deck_file_name=a_deck_file_name,
-                    field_names=scalar_a_deck_field_names,
-                    remove_nontropical_systems=remove_nontropical_systems,
-                    cyclone_id_string=cyclone_id_strings[cyclone_index - 1],
-                    target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
+                row_indices = numpy.array([
+                    numpy.where(
+                        target_times_by_cyclone_unix_sec[cyclone_index - 1] == t
+                    )[0][0]
+                    for t in data_dict[TARGET_TIMES_KEY]
+                ], dtype=int)
+
+                this_scalar_predictor_matrix = (
+                    scalar_predictor_matrix_by_cyclone[cyclone_index - 1][
+                        row_indices, :
+                    ]
                 )
-                good_time_indices = numpy.all(
-                    numpy.isfinite(this_scalar_predictor_matrix), axis=1
-                )
-                this_scalar_predictor_matrix = this_scalar_predictor_matrix[
-                    good_time_indices, ...
-                ]
 
-            if len(good_time_indices) == 0:
-                continue
-
-            dd = data_dict
-            idxs = good_time_indices
-
-            this_bt_matrix_kelvins = dd[BRIGHTNESS_TEMPS_KEY][idxs, ...]
-            these_grid_spacings_km = dd[GRID_SPACINGS_KEY][idxs, ...]
-            these_center_latitudes_deg_n = dd[CENTER_LATITUDES_KEY][idxs, ...]
             this_bt_matrix_kelvins = combine_lag_times_and_wavelengths(
                 this_bt_matrix_kelvins
             )
@@ -3565,6 +3569,7 @@ def data_generator_simple(option_dict):
         cyclone_id_strings=cyclone_id_strings,
         synoptic_times_only=synoptic_times_only,
         satellite_file_names_by_cyclone=satellite_file_names_by_cyclone,
+        cira_ir_file_name_by_cyclone=None,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
         remove_nontropical_systems=remove_nontropical_systems
@@ -3873,6 +3878,7 @@ def data_generator(option_dict):
         cyclone_id_strings=cyclone_id_strings,
         synoptic_times_only=synoptic_times_only,
         satellite_file_names_by_cyclone=satellite_file_names_by_cyclone,
+        cira_ir_file_name_by_cyclone=None,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
         remove_nontropical_systems=remove_nontropical_systems
