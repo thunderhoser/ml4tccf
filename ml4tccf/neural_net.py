@@ -1132,10 +1132,6 @@ def _read_satellite_data_1cyclone_simple(
     """
 
     # TODO(thunderhoser): This could be simplified more.
-    print('Input files:\n{0:s}'.format(str(input_file_names)))
-    print('Target times:\n{0:s}'.format(str(target_times_unix_sec)))
-    print('\n\n\n')
-
     desired_file_to_times_dict = _decide_files_to_read_one_cyclone(
         satellite_file_names=input_file_names,
         target_times_unix_sec=target_times_unix_sec,
@@ -3418,6 +3414,10 @@ def data_generator_cira_ir(option_dict):
                 for_cira_ir=True
             )[0]
 
+            if len(new_target_times_unix_sec) == 0:
+                cyclone_index += 1
+                continue
+
             data_dict = _read_satellite_data_1cyclone_cira_ir(
                 input_file_name=example_file_name_by_cyclone[cyclone_index],
                 lag_times_minutes=lag_times_minutes,
@@ -3634,6 +3634,10 @@ def data_generator_simple(option_dict):
                 num_times_desired=num_examples_to_read,
                 for_cira_ir=False
             )[0]
+
+            if len(new_target_times_unix_sec) == 0:
+                cyclone_index += 1
+                continue
 
             data_dict = _read_satellite_data_1cyclone_simple(
                 input_file_names=satellite_file_names_by_cyclone[cyclone_index],
@@ -3944,6 +3948,10 @@ def data_generator(option_dict):
                 num_times_desired=num_examples_to_read,
                 for_cira_ir=False
             )[0]
+
+            if len(new_target_times_unix_sec) == 0:
+                cyclone_index += 1
+                continue
 
             data_dict = _read_satellite_data_one_cyclone(
                 input_file_names=satellite_file_names_by_cyclone[cyclone_index],

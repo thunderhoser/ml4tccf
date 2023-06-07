@@ -56,9 +56,9 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --scalar_a_deck_field_names "absolute_latitude_deg_n" "longitude_cosine" "longitude_sine" "eastward_motion_m_s01" "northward_motion_m_s01" "intensity_m_s01" "sea_level_pressure_pa" \
 --remove_nontropical_systems=1 \
 --satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
---training_years 2017 2018 2020 2021 2022 \
+--training_years 2017 2018 2019 2020 2021 \
 --satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
---validation_years 2019 \
+--validation_years 2022 \
 --num_epochs=1000 \
 --num_training_batches_per_epoch=48 \
 --num_validation_batches_per_epoch=12
