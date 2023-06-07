@@ -237,13 +237,15 @@ def create_model(option_dict):
     )
 
     if start_with_pooling_layer:
-        input_layer_object_low_res = (
+        layer_object_low_res = (
             architecture_utils.get_2d_pooling_layer(
                 num_rows_in_window=2, num_columns_in_window=2,
                 num_rows_per_stride=2, num_columns_per_stride=2,
                 pooling_type_string=architecture_utils.MAX_POOLING_STRING
             )(input_layer_object_low_res)
         )
+    else:
+        layer_object_low_res = None
 
     if include_high_res_data:
         input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
@@ -252,15 +254,18 @@ def create_model(option_dict):
         )
 
         if start_with_pooling_layer:
-            input_layer_object_high_res = (
+            layer_object_high_res = (
                 architecture_utils.get_2d_pooling_layer(
                     num_rows_in_window=2, num_columns_in_window=2,
                     num_rows_per_stride=2, num_columns_per_stride=2,
                     pooling_type_string=architecture_utils.MAX_POOLING_STRING
                 )(input_layer_object_high_res)
             )
+        else:
+            layer_object_high_res = None
     else:
         input_layer_object_high_res = None
+        layer_object_high_res = None
 
     if include_scalar_data:
         input_dimensions_scalar = option_dict[INPUT_DIMENSIONS_SCALAR_KEY]
@@ -288,7 +293,11 @@ def create_model(option_dict):
                         padding_type_string=
                         architecture_utils.YES_PADDING_STRING,
                         weight_regularizer=l2_function
-                    )(input_layer_object_high_res)
+                    )(
+                        input_layer_object_high_res
+                        if layer_object_high_res is None
+                        else layer_object_high_res
+                    )
                 else:
                     layer_object = architecture_utils.get_2d_conv_layer(
                         num_kernel_rows=3, num_kernel_columns=3,
@@ -322,10 +331,15 @@ def create_model(option_dict):
             )(layer_object)
 
         layer_object = keras.layers.Concatenate(axis=-1)([
-            layer_object, input_layer_object_low_res
+            layer_object,
+            input_layer_object_low_res if layer_object_low_res is None
+            else layer_object_low_res
         ])
     else:
-        layer_object = input_layer_object_low_res
+        layer_object = (
+            input_layer_object_low_res if layer_object_low_res is None
+            else layer_object_low_res
+        )
 
     num_conv_blocks = len(num_conv_layers_by_block)
     start_index = 2 if include_high_res_data else 0
