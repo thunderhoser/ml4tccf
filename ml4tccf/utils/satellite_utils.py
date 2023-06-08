@@ -900,3 +900,90 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     warnings.warn(warning_string)
 
     raise ValueError(error_string)
+
+
+def subset_times_exact(satellite_table_xarray, desired_times_unix_sec):
+    """Subsets time steps exactly (no error tolerance).
+
+    T = number of desired times
+
+    :param satellite_table_xarray: xarray table in format returned by
+        `read_file`.
+    :param desired_times_unix_sec: length-T numpy array of desired times.
+    :return: new_table_xarray: Same as input but maybe with fewer times.
+    """
+
+    t = satellite_table_xarray
+    if (
+            BIDIRECTIONAL_REFLECTANCE_KEY in t
+            and t[BIDIRECTIONAL_REFLECTANCE_KEY].values.size == 0
+    ):
+        return satellite_table_xarray
+
+    if t[BRIGHTNESS_TEMPERATURE_KEY].values.size == 0:
+        return satellite_table_xarray
+
+    # Check input args.
+    error_checking.assert_is_numpy_array(
+        desired_times_unix_sec, num_dimensions=1
+    )
+    error_checking.assert_is_integer_numpy_array(desired_times_unix_sec)
+    error_checking.assert_equals(
+        len(desired_times_unix_sec),
+        len(numpy.unique(desired_times_unix_sec))
+    )
+
+    num_desired_times = len(desired_times_unix_sec)
+
+    # Do actual stuff.
+    orig_times_unix_sec = satellite_table_xarray.coords[TIME_DIM].values
+    desired_indices = numpy.full(num_desired_times, -1, dtype=int)
+
+    for i in range(num_desired_times):
+        these_diffs_sec = numpy.absolute(
+            orig_times_unix_sec - desired_times_unix_sec[i]
+        )
+        if numpy.min(these_diffs_sec) > 0:
+            continue
+
+        desired_indices[i] = numpy.argmin(these_diffs_sec)
+
+    num_missing_times = numpy.sum(desired_indices == -1)
+
+    if num_missing_times > 0:
+        missing_time_strings = [
+            time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES)
+            for t in desired_times_unix_sec[desired_indices == -1]
+        ]
+
+        error_string = (
+            'Could not find satellite data at the following times:\n{0:s}'
+        ).format(str(missing_time_strings))
+
+        warning_string = 'POTENTIAL ERROR: {0:s}'.format(error_string)
+        warnings.warn(warning_string)
+
+        raise ValueError(error_string)
+
+    new_table_xarray = satellite_table_xarray.isel(
+        indexers={TIME_DIM: desired_indices}
+    )
+    bad_time_flags = _find_times_with_all_nan_maps(new_table_xarray)
+
+    if not numpy.any(bad_time_flags):
+        return new_table_xarray
+
+    desired_indices[bad_time_flags] = -1
+    missing_time_strings = [
+        time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES)
+        for t in desired_times_unix_sec[desired_indices == -1]
+    ]
+
+    error_string = (
+        'Could not find satellite data at the following times:\n{0:s}'
+    ).format(str(missing_time_strings))
+
+    warning_string = 'POTENTIAL ERROR: {0:s}'.format(error_string)
+    warnings.warn(warning_string)
+
+    raise ValueError(error_string)
