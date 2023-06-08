@@ -3,6 +3,7 @@
 import os
 import sys
 import copy
+import time
 import random
 import pickle
 import numpy
@@ -3639,6 +3640,7 @@ def data_generator_simple(option_dict):
                 cyclone_index += 1
                 continue
 
+            exec_start_time_unix_sec = time.time()
             data_dict = _read_satellite_data_1cyclone_simple(
                 input_file_names=satellite_file_names_by_cyclone[cyclone_index],
                 lag_times_minutes=lag_times_minutes,
@@ -3649,6 +3651,10 @@ def data_generator_simple(option_dict):
                 target_times_unix_sec=new_target_times_unix_sec
             )
             cyclone_index += 1
+
+            print('_read_satellite_data_1cyclone_simple took {0:.4f} s'.format(
+                time.time() - exec_start_time_unix_sec
+            ))
 
             if (
                     data_dict is None
@@ -3718,6 +3724,8 @@ def data_generator_simple(option_dict):
 
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
+        exec_start_time_unix_sec = time.time()
+
         (
             _, brightness_temp_matrix_kelvins,
             row_translations_low_res_px, column_translations_low_res_px
@@ -3730,13 +3738,22 @@ def data_generator_simple(option_dict):
             sentinel_value=-10.
         )
 
+        print('_augment_data took {0:.4f} s'.format(
+            time.time() - exec_start_time_unix_sec
+        ))
+
+        exec_start_time_unix_sec = time.time()
         brightness_temp_matrix_kelvins = _subset_grid_after_data_aug(
             data_matrix=brightness_temp_matrix_kelvins,
             num_rows_to_keep=orig_num_rows_low_res,
             num_columns_to_keep=orig_num_columns_low_res,
             for_high_res=False
         )
+        print('_subset_grid_after_data_aug took {0:.4f} s'.format(
+            time.time() - exec_start_time_unix_sec
+        ))
 
+        exec_start_time_unix_sec = time.time()
         grid_spacings_km = numpy.repeat(
             grid_spacings_km, repeats=data_aug_num_translations
         )
@@ -3748,6 +3765,10 @@ def data_generator_simple(option_dict):
                 scalar_predictor_matrix, axis=0,
                 repeats=data_aug_num_translations
             )
+
+        print('Repeating arrays took {0:.4f} s'.format(
+            time.time() - exec_start_time_unix_sec
+        ))
 
         predictor_matrices = [brightness_temp_matrix_kelvins]
         if scalar_predictor_matrix is not None:
