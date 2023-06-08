@@ -1168,19 +1168,19 @@ def _read_satellite_data_1cyclone_simple(
         #     time.time() - exec_start_time_unix_sec
         # ))
 
-        exec_start_time_unix_sec = time.time()
-        orig_satellite_tables_xarray[i] = (
-            satellite_utils.subset_to_multiple_time_windows(
-                satellite_table_xarray=orig_satellite_tables_xarray[i],
-                start_times_unix_sec=
-                desired_file_to_times_dict[desired_file_names[i]][0],
-                end_times_unix_sec=
-                desired_file_to_times_dict[desired_file_names[i]][1]
-            )
-        )
-        print('subset_to_multiple_time_windows took {0:.4f} s'.format(
-            time.time() - exec_start_time_unix_sec
-        ))
+        # exec_start_time_unix_sec = time.time()
+        # orig_satellite_tables_xarray[i] = (
+        #     satellite_utils.subset_to_multiple_time_windows(
+        #         satellite_table_xarray=orig_satellite_tables_xarray[i],
+        #         start_times_unix_sec=
+        #         desired_file_to_times_dict[desired_file_names[i]][0],
+        #         end_times_unix_sec=
+        #         desired_file_to_times_dict[desired_file_names[i]][1]
+        #     )
+        # )
+        # print('subset_to_multiple_time_windows took {0:.4f} s'.format(
+        #     time.time() - exec_start_time_unix_sec
+        # ))
 
         exec_start_time_unix_sec = time.time()
         orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
