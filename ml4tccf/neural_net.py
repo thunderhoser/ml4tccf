@@ -1159,12 +1159,26 @@ def _read_satellite_data_1cyclone_simple(
 
         # TODO(thunderhoser): This could be simplified more.
 
+        # exec_start_time_unix_sec = time.time()
+        # orig_satellite_tables_xarray[i] = satellite_utils.subset_times_exact_but_lenient(
+        #     satellite_table_xarray=orig_satellite_tables_xarray[i],
+        #     desired_times_unix_sec=desired_times_unix_sec
+        # )
+        # print('subset_times_exact_but_lenient took {0:.4f} s'.format(
+        #     time.time() - exec_start_time_unix_sec
+        # ))
+
         exec_start_time_unix_sec = time.time()
-        orig_satellite_tables_xarray[i] = satellite_utils.subset_times_exact_but_lenient(
-            satellite_table_xarray=orig_satellite_tables_xarray[i],
-            desired_times_unix_sec=desired_times_unix_sec
+        orig_satellite_tables_xarray[i] = (
+            satellite_utils.subset_to_multiple_time_windows(
+                satellite_table_xarray=orig_satellite_tables_xarray[i],
+                start_times_unix_sec=
+                desired_file_to_times_dict[desired_file_names[i]][0],
+                end_times_unix_sec=
+                desired_file_to_times_dict[desired_file_names[i]][1]
+            )
         )
-        print('subset_times_exact_but_lenient took {0:.4f} s'.format(
+        print('subset_to_multiple_time_windows took {0:.4f} s'.format(
             time.time() - exec_start_time_unix_sec
         ))
 
@@ -1234,7 +1248,7 @@ def _read_satellite_data_1cyclone_simple(
     lag_times_sec = MINUTES_TO_SECONDS * lag_times_minutes
     target_time_success_flags = numpy.full(num_target_times, 0, dtype=bool)
 
-    exec_start_time_unix_sec = time.time()
+    all_start_time_unix_sec = time.time()
     for i in range(num_target_times):
         print('Finding satellite data for target time {0:s}...'.format(
             time_conversion.unix_sec_to_string(
@@ -1252,6 +1266,7 @@ def _read_satellite_data_1cyclone_simple(
             len(these_desired_times_unix_sec), 0, dtype=int
         )
 
+        exec_start_time_unix_sec = time.time()
         try:
             # TODO(thunderhoser): This could be simplified more.
             new_table_xarray = satellite_utils.subset_times_exact(
@@ -1261,6 +1276,9 @@ def _read_satellite_data_1cyclone_simple(
             target_time_success_flags[i] = True
         except ValueError:
             continue
+        print('subset_times_exact took {0:.4f} s'.format(
+            time.time() - exec_start_time_unix_sec
+        ))
 
         t = new_table_xarray
         this_bt_matrix_kelvins = numpy.swapaxes(
@@ -1303,7 +1321,7 @@ def _read_satellite_data_1cyclone_simple(
     )
 
     print('Finding data for specific target times took {0:.4f} s'.format(
-        time.time() - exec_start_time_unix_sec
+        time.time() - all_start_time_unix_sec
     ))
 
     assert not numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
