@@ -1145,6 +1145,12 @@ def _read_satellite_data_1cyclone_simple(
     num_files = len(desired_file_names)
     orig_satellite_tables_xarray = [None] * num_files
 
+    lag_times_sec = MINUTES_TO_SECONDS * lag_times_minutes
+    desired_times_unix_sec = numpy.concatenate([
+        t - lag_times_sec for t in target_times_unix_sec
+    ])
+    desired_times_unix_sec = numpy.unique(desired_times_unix_sec)
+
     for i in range(num_files):
         print('Reading data from: "{0:s}"...'.format(desired_file_names[i]))
         orig_satellite_tables_xarray[i] = satellite_io.read_file(
@@ -1154,16 +1160,11 @@ def _read_satellite_data_1cyclone_simple(
         # TODO(thunderhoser): This could be simplified more.
 
         exec_start_time_unix_sec = time.time()
-        orig_satellite_tables_xarray[i] = (
-            satellite_utils.subset_to_multiple_time_windows(
-                satellite_table_xarray=orig_satellite_tables_xarray[i],
-                start_times_unix_sec=
-                desired_file_to_times_dict[desired_file_names[i]][0],
-                end_times_unix_sec=
-                desired_file_to_times_dict[desired_file_names[i]][1]
-            )
+        orig_satellite_tables_xarray[i] = satellite_utils.subset_times_exact_but_lenient(
+            satellite_table_xarray=orig_satellite_tables_xarray[i],
+            desired_times_unix_sec=desired_times_unix_sec
         )
-        print('subset_to_multiple_time_windows took {0:.4f} s'.format(
+        print('subset_times_exact_but_lenient took {0:.4f} s'.format(
             time.time() - exec_start_time_unix_sec
         ))
 
