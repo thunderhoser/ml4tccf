@@ -957,31 +957,11 @@ def subset_times_exact(satellite_table_xarray, desired_times_unix_sec):
         desired_indices[i] = numpy.argmin(these_diffs_sec)
 
     num_missing_times = numpy.sum(desired_indices == -1)
+    if num_missing_times == 0:
+        return satellite_table_xarray.isel(
+            indexers={TIME_DIM: desired_indices}
+        )
 
-    if num_missing_times > 0:
-        missing_time_strings = [
-            time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES)
-            for t in desired_times_unix_sec[desired_indices == -1]
-        ]
-
-        error_string = (
-            'Could not find satellite data at the following times:\n{0:s}'
-        ).format(str(missing_time_strings))
-
-        warning_string = 'POTENTIAL ERROR: {0:s}'.format(error_string)
-        warnings.warn(warning_string)
-
-        raise ValueError(error_string)
-
-    new_table_xarray = satellite_table_xarray.isel(
-        indexers={TIME_DIM: desired_indices}
-    )
-    bad_time_flags = _find_times_with_all_nan_maps(new_table_xarray)
-
-    if not numpy.any(bad_time_flags):
-        return new_table_xarray
-
-    desired_indices[bad_time_flags] = -1
     missing_time_strings = [
         time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES)
         for t in desired_times_unix_sec[desired_indices == -1]

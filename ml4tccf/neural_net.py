@@ -841,7 +841,7 @@ def _get_target_times_and_scalar_predictors(
         cyclone_id_strings, synoptic_times_only,
         satellite_file_names_by_cyclone, cira_ir_file_name_by_cyclone,
         a_deck_file_name, scalar_a_deck_field_names,
-        remove_nontropical_systems):
+        remove_nontropical_systems, predictor_lag_times_minutes):
     """Returns target times and scalar predictors for each cyclone.
 
     If using CIRA IR data, make `satellite_file_names_by_cyclone = None`.
@@ -866,11 +866,20 @@ def _get_target_times_and_scalar_predictors(
         [used only if `a_deck_file_name` is not None]
         Boolean flag.  If True, will return only target times corresponding to
         tropical systems (no extratropical, subtropical, etc.).
+    :param predictor_lag_times_minutes: 1-D numpy array of lag times for
+        predictors.  If you do not want to consider lag times, make this None.
     :return: target_times_by_cyclone_unix_sec: length-C list, where the [i]th
         item is a numpy array (length T_i) of target times.
     :return: scalar_predictor_matrix_by_cyclone: length-C list, where the [i]th
         item is a numpy array (T_i x F) of scalar predictors.
     """
+
+    # TODO(thunderhoser): Clarify that using lag times makes sense only for
+    # simple generators with Robert/Galina data.
+    if predictor_lag_times_minutes is None:
+        predictor_lag_times_sec = None
+    else:
+        predictor_lag_times_sec = MINUTES_TO_SECONDS * predictor_lag_times_minutes
 
     for_cira_ir = satellite_file_names_by_cyclone is None
 
@@ -889,6 +898,23 @@ def _get_target_times_and_scalar_predictors(
                 xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
                 for f in satellite_file_names_by_cyclone[i]
             ])
+
+        if predictor_lag_times_sec is not None:
+            good_indices = []
+
+            for j in range(len(target_times_by_cyclone_unix_sec[i])):
+                these_predictor_times_unix_sec = target_times_by_cyclone_unix_sec[i][j] - predictor_lag_times_sec
+
+                if not numpy.all(numpy.isin(
+                        element=these_predictor_times_unix_sec,
+                        test_elements=target_times_by_cyclone_unix_sec[i]
+                )):
+                    continue
+
+                good_indices.append(j)
+
+            good_indices = numpy.array(good_indices, dtype=int)
+            target_times_by_cyclone_unix_sec[i] = target_times_by_cyclone_unix_sec[i][good_indices]
 
         if synoptic_times_only:
             target_times_by_cyclone_unix_sec[i] = _get_synoptic_target_times(
@@ -1150,6 +1176,10 @@ def _read_satellite_data_1cyclone_simple(
         t - lag_times_sec for t in target_times_unix_sec
     ])
     desired_times_unix_sec = numpy.unique(desired_times_unix_sec)
+    desired_date_strings = numpy.array([
+        time_conversion.unix_sec_to_string(t, satellite_io.DATE_FORMAT)
+        for t in desired_times_unix_sec
+    ])
 
     for i in range(num_files):
         print('Reading data from: "{0:s}"...'.format(desired_file_names[i]))
@@ -1158,13 +1188,29 @@ def _read_satellite_data_1cyclone_simple(
         )
 
         # TODO(thunderhoser): This could be simplified more.
+        this_date_string = satellite_io.file_name_to_date(desired_file_names[i])
+
+        exec_start_time_unix_sec = time.time()
+        orig_satellite_tables_xarray[i] = satellite_utils.subset_times_exact(
+            satellite_table_xarray=orig_satellite_tables_xarray[i],
+            desired_times_unix_sec=
+            desired_times_unix_sec[desired_date_strings == this_date_string]
+        )
+        print('subset_times_exact took {0:.4f} s'.format(
+            time.time() - exec_start_time_unix_sec
+        ))
 
         # exec_start_time_unix_sec = time.time()
-        # orig_satellite_tables_xarray[i] = satellite_utils.subset_times_exact_but_lenient(
-        #     satellite_table_xarray=orig_satellite_tables_xarray[i],
-        #     desired_times_unix_sec=desired_times_unix_sec
+        # orig_satellite_tables_xarray[i] = (
+        #     satellite_utils.subset_to_multiple_time_windows(
+        #         satellite_table_xarray=orig_satellite_tables_xarray[i],
+        #         start_times_unix_sec=
+        #         desired_file_to_times_dict[desired_file_names[i]][0],
+        #         end_times_unix_sec=
+        #         desired_file_to_times_dict[desired_file_names[i]][1]
+        #     )
         # )
-        # print('subset_times_exact_but_lenient took {0:.4f} s'.format(
+        # print('subset_to_multiple_time_windows took {0:.4f} s'.format(
         #     time.time() - exec_start_time_unix_sec
         # ))
 
@@ -1175,20 +1221,6 @@ def _read_satellite_data_1cyclone_simple(
             for_high_res=False
         )
         print('subset_wavelengths took {0:.4f} s'.format(
-            time.time() - exec_start_time_unix_sec
-        ))
-
-        exec_start_time_unix_sec = time.time()
-        orig_satellite_tables_xarray[i] = (
-            satellite_utils.subset_to_multiple_time_windows(
-                satellite_table_xarray=orig_satellite_tables_xarray[i],
-                start_times_unix_sec=
-                desired_file_to_times_dict[desired_file_names[i]][0],
-                end_times_unix_sec=
-                desired_file_to_times_dict[desired_file_names[i]][1]
-            )
-        )
-        print('subset_to_multiple_time_windows took {0:.4f} s'.format(
             time.time() - exec_start_time_unix_sec
         ))
 
@@ -2365,7 +2397,8 @@ def create_data_cira_ir(option_dict, cyclone_id_string, num_target_times):
         cira_ir_file_name_by_cyclone=[example_file_name],
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
-        remove_nontropical_systems=remove_nontropical_systems
+        remove_nontropical_systems=remove_nontropical_systems,
+        predictor_lag_times_minutes=None
     )
 
     all_target_times_unix_sec = all_target_times_unix_sec[0]
@@ -2837,7 +2870,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         cira_ir_file_name_by_cyclone=None,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
-        remove_nontropical_systems=remove_nontropical_systems
+        remove_nontropical_systems=remove_nontropical_systems,
+        predictor_lag_times_minutes=None
     )
 
     all_target_times_unix_sec = all_target_times_unix_sec[0]
@@ -3425,7 +3459,8 @@ def data_generator_cira_ir(option_dict):
         cira_ir_file_name_by_cyclone=example_file_name_by_cyclone,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
-        remove_nontropical_systems=remove_nontropical_systems
+        remove_nontropical_systems=remove_nontropical_systems,
+        predictor_lag_times_minutes=None
     )
 
     cyclone_index = 0
@@ -3646,7 +3681,8 @@ def data_generator_simple(option_dict):
         cira_ir_file_name_by_cyclone=None,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
-        remove_nontropical_systems=remove_nontropical_systems
+        remove_nontropical_systems=remove_nontropical_systems,
+        predictor_lag_times_minutes=lag_times_minutes
     )
 
     cyclone_index = 0
@@ -3979,7 +4015,8 @@ def data_generator(option_dict):
         cira_ir_file_name_by_cyclone=None,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
-        remove_nontropical_systems=remove_nontropical_systems
+        remove_nontropical_systems=remove_nontropical_systems,
+        predictor_lag_times_minutes=None
     )
 
     cyclone_index = 0
