@@ -1253,12 +1253,9 @@ def _read_satellite_data_1cyclone_simple(
 
         try:
             # TODO(thunderhoser): This could be simplified more.
-            new_table_xarray = satellite_utils.subset_times(
+            new_table_xarray = satellite_utils.subset_times_exact(
                 satellite_table_xarray=satellite_table_xarray,
-                desired_times_unix_sec=these_desired_times_unix_sec,
-                tolerances_sec=these_tolerances_sec,
-                max_num_missing_times=0,
-                max_interp_gaps_sec=these_max_gaps_sec
+                desired_times_unix_sec=these_desired_times_unix_sec
             )
             target_time_success_flags[i] = True
         except ValueError:
