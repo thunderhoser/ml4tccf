@@ -42,7 +42,8 @@ set template_file_name="${TEMPLATE_DIR_NAME}/model.h5"
 python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --input_template_file_name="${template_file_name}" \
 --output_model_dir_name="${output_dir_name}" \
---lag_times_minutes 0 60 120 180 240 \
+# --lag_times_minutes 0 60 120 180 240 \
+--lag_times_minutes 0 30 60 90 120 \
 --low_res_wavelengths_microns ${wavelength_group_string_microns} \
 --num_examples_per_batch=21 \
 --max_examples_per_cyclone=3 \
@@ -60,5 +61,6 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
 --validation_years 2022 \
 --num_epochs=1000 \
---num_training_batches_per_epoch=48 \
+# --num_training_batches_per_epoch=48 \
+--num_training_batches_per_epoch=24 \
 --num_validation_batches_per_epoch=12
