@@ -245,6 +245,10 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
         )
         is_input_chunk_processed_matrix[working_indices_2d] = True
 
+        print(working_indices_2d)
+        print(working_indices_2d[0])
+        print(working_indices_2d[1])
+
         print('Reading data from: "{0:s}"...'.format(
             input_file_names[working_indices_2d[0]]
         ))
