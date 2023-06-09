@@ -3,7 +3,8 @@
 import os
 import argparse
 import numpy
-from ml4tccf.machine_learning import neural_net
+from ml4tccf.machine_learning import neural_net_utils as nn_utils
+from ml4tccf.machine_learning import neural_net_training_fancy as nn_training
 from ml4tccf.scripts import training_args
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -77,71 +78,71 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
         num_columns_low_res = None
 
     training_option_dict = {
-        neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name_for_training,
-        neural_net.YEARS_KEY: training_years,
-        neural_net.LAG_TIMES_KEY: lag_times_minutes,
-        neural_net.HIGH_RES_WAVELENGTHS_KEY: high_res_wavelengths_microns,
-        neural_net.LOW_RES_WAVELENGTHS_KEY: low_res_wavelengths_microns,
-        neural_net.BATCH_SIZE_KEY: num_examples_per_batch,
-        neural_net.MAX_EXAMPLES_PER_CYCLONE_KEY: max_examples_per_cyclone,
-        neural_net.NUM_GRID_ROWS_KEY: num_rows_low_res,
-        neural_net.NUM_GRID_COLUMNS_KEY: num_columns_low_res,
-        neural_net.DATA_AUG_NUM_TRANS_KEY: data_aug_num_translations,
-        neural_net.DATA_AUG_MEAN_TRANS_KEY:
+        nn_utils.SATELLITE_DIRECTORY_KEY: satellite_dir_name_for_training,
+        nn_utils.YEARS_KEY: training_years,
+        nn_utils.LAG_TIMES_KEY: lag_times_minutes,
+        nn_utils.HIGH_RES_WAVELENGTHS_KEY: high_res_wavelengths_microns,
+        nn_utils.LOW_RES_WAVELENGTHS_KEY: low_res_wavelengths_microns,
+        nn_utils.BATCH_SIZE_KEY: num_examples_per_batch,
+        nn_utils.MAX_EXAMPLES_PER_CYCLONE_KEY: max_examples_per_cyclone,
+        nn_utils.NUM_GRID_ROWS_KEY: num_rows_low_res,
+        nn_utils.NUM_GRID_COLUMNS_KEY: num_columns_low_res,
+        nn_utils.DATA_AUG_NUM_TRANS_KEY: data_aug_num_translations,
+        nn_utils.DATA_AUG_MEAN_TRANS_KEY:
             data_aug_mean_translation_low_res_px,
-        neural_net.DATA_AUG_STDEV_TRANS_KEY:
+        nn_utils.DATA_AUG_STDEV_TRANS_KEY:
             data_aug_stdev_translation_low_res_px,
-        neural_net.LAG_TIME_TOLERANCE_KEY: lag_time_tolerance_for_training_sec,
-        neural_net.MAX_MISSING_LAG_TIMES_KEY:
+        nn_utils.LAG_TIME_TOLERANCE_KEY: lag_time_tolerance_for_training_sec,
+        nn_utils.MAX_MISSING_LAG_TIMES_KEY:
             max_num_missing_lag_times_for_training,
-        neural_net.MAX_INTERP_GAP_KEY: max_interp_gap_for_training_sec,
-        neural_net.SENTINEL_VALUE_KEY: sentinel_value,
-        neural_net.TARGET_SMOOOTHER_STDEV_KEY: target_smoother_stdev_km,
-        neural_net.SYNOPTIC_TIMES_ONLY_KEY: synoptic_times_only,
-        neural_net.A_DECK_FILE_KEY: a_deck_file_name,
-        neural_net.SCALAR_A_DECK_FIELDS_KEY: scalar_a_deck_field_names,
-        neural_net.REMOVE_NONTROPICAL_KEY: remove_nontropical_systems
+        nn_utils.MAX_INTERP_GAP_KEY: max_interp_gap_for_training_sec,
+        nn_utils.SENTINEL_VALUE_KEY: sentinel_value,
+        nn_utils.TARGET_SMOOOTHER_STDEV_KEY: target_smoother_stdev_km,
+        nn_utils.SYNOPTIC_TIMES_ONLY_KEY: synoptic_times_only,
+        nn_utils.A_DECK_FILE_KEY: a_deck_file_name,
+        nn_utils.SCALAR_A_DECK_FIELDS_KEY: scalar_a_deck_field_names,
+        nn_utils.REMOVE_NONTROPICAL_KEY: remove_nontropical_systems
     }
 
     validation_option_dict = {
-        neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name_for_validation,
-        neural_net.YEARS_KEY: validation_years,
-        neural_net.LAG_TIME_TOLERANCE_KEY: lag_time_tolerance_for_validation_sec,
-        neural_net.MAX_MISSING_LAG_TIMES_KEY:
+        nn_utils.SATELLITE_DIRECTORY_KEY: satellite_dir_name_for_validation,
+        nn_utils.YEARS_KEY: validation_years,
+        nn_utils.LAG_TIME_TOLERANCE_KEY: lag_time_tolerance_for_validation_sec,
+        nn_utils.MAX_MISSING_LAG_TIMES_KEY:
             max_num_missing_lag_times_for_validation,
-        neural_net.MAX_INTERP_GAP_KEY: max_interp_gap_for_validation_sec
+        nn_utils.MAX_INTERP_GAP_KEY: max_interp_gap_for_validation_sec
     }
 
     print('Reading model template from: "{0:s}"...'.format(template_file_name))
-    model_object = neural_net.read_model(hdf5_file_name=template_file_name)
+    model_object = nn_utils.read_model(hdf5_file_name=template_file_name)
 
-    model_metafile_name = neural_net.find_metafile(
+    model_metafile_name = nn_utils.find_metafile(
         model_dir_name=os.path.split(template_file_name)[0],
         raise_error_if_missing=True
     )
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
-    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
-    training_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY] = (
-        model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY][
-            neural_net.SEMANTIC_SEG_FLAG_KEY
+    model_metadata_dict = nn_utils.read_metafile(model_metafile_name)
+    training_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = (
+        model_metadata_dict[nn_utils.TRAINING_OPTIONS_KEY][
+            nn_utils.SEMANTIC_SEG_FLAG_KEY
         ]
     )
 
-    neural_net.train_model(
+    nn_training.train_model(
         model_object=model_object, output_dir_name=output_dir_name,
         num_epochs=num_epochs,
         num_training_batches_per_epoch=num_training_batches_per_epoch,
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
-        loss_function_string=model_metadata_dict[neural_net.LOSS_FUNCTION_KEY],
+        loss_function_string=model_metadata_dict[nn_utils.LOSS_FUNCTION_KEY],
         optimizer_function_string=
-        model_metadata_dict[neural_net.OPTIMIZER_FUNCTION_KEY],
+        model_metadata_dict[nn_utils.OPTIMIZER_FUNCTION_KEY],
         plateau_patience_epochs=plateau_patience_epochs,
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
-        architecture_dict=model_metadata_dict[neural_net.ARCHITECTURE_KEY],
-        is_model_bnn=model_metadata_dict[neural_net.IS_MODEL_BNN_KEY]
+        architecture_dict=model_metadata_dict[nn_utils.ARCHITECTURE_KEY],
+        is_model_bnn=model_metadata_dict[nn_utils.IS_MODEL_BNN_KEY]
     )
 
 

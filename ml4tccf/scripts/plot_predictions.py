@@ -19,7 +19,11 @@ from ml4tccf.utils import misc_utils
 from ml4tccf.utils import scalar_prediction_utils
 from ml4tccf.utils import gridded_prediction_utils
 from ml4tccf.io import border_io
-from ml4tccf.machine_learning import neural_net
+from ml4tccf.machine_learning import neural_net_utils as nn_utils
+from ml4tccf.machine_learning import \
+    neural_net_training_cira_ir as nn_training_cira_ir
+from ml4tccf.machine_learning import \
+    neural_net_training_simple as nn_training_simple
 from ml4tccf.plotting import plotting_utils
 from ml4tccf.plotting import satellite_plotting
 
@@ -451,9 +455,9 @@ def _plot_data_one_example(
     M = number of rows
     N = number of columns
 
-    :param predictor_matrices: Same as output from `neural_net.create_data` but
-        without first axis.
-    :param scalar_target_values: Same as output from `neural_net.create_data`
+    :param predictor_matrices: Same as output from `nn_training*.create_data`
+        but without first axis.
+    :param scalar_target_values: Same as output from `nn_training*.create_data`
         but without first axis.
     :param prediction_matrix: If predictions are scalar...
 
@@ -466,16 +470,16 @@ def _plot_data_one_example(
     M-by-N numpy array of predicted probabilities.
 
     :param model_metadata_dict: Dictionary with model metadata, in format
-        returned by `neural_net.read_metafile`.
+        returned by `nn_utils.read_metafile`.
     :param cyclone_id_string: Cyclone ID.
-    :param low_res_latitudes_deg_n: Same as output from `neural_net.create_data`
-        but without first or last axis.
+    :param low_res_latitudes_deg_n: Same as output from
+        `nn_training*.create_data` but without first or last axis.
     :param low_res_longitudes_deg_e: Same as output from
-        `neural_net.create_data` but without first or last axis.
+        `nn_training*.create_data` but without first or last axis.
     :param high_res_latitudes_deg_n: Same as output from
-        `neural_net.create_data` but without first or last axis.
+        `nn_training*.create_data` but without first or last axis.
     :param high_res_longitudes_deg_e: Same as output from
-        `neural_net.create_data` but without first or last axis.
+        `nn_training*.create_data` but without first or last axis.
     :param are_data_normalized: See documentation at top of file.
     :param border_latitudes_deg_n: length-P numpy array of latitudes
         (deg north).  If None, will plot without coords.
@@ -504,11 +508,11 @@ def _plot_data_one_example(
             low_res_longitudes_deg_e
         )
 
-    brightness_temp_matrix = neural_net.get_low_res_data_from_predictors(
+    brightness_temp_matrix = nn_utils.get_low_res_data_from_predictors(
         predictor_matrices
     )
     bidirectional_reflectance_matrix = (
-        neural_net.get_high_res_data_from_predictors(predictor_matrices)
+        nn_utils.get_high_res_data_from_predictors(predictor_matrices)
     )
 
     num_grid_rows_low_res = brightness_temp_matrix.shape[0]
@@ -632,20 +636,20 @@ def _plot_data_one_example(
     plot_line_contours = convert_points_to_line_contours
 
     validation_option_dict = model_metadata_dict[
-        neural_net.VALIDATION_OPTIONS_KEY
+        nn_utils.VALIDATION_OPTIONS_KEY
     ]
     d = validation_option_dict
-    high_res_wavelengths_microns = d[neural_net.HIGH_RES_WAVELENGTHS_KEY]
-    low_res_wavelengths_microns = d[neural_net.LOW_RES_WAVELENGTHS_KEY]
-    lag_times_minutes = d[neural_net.LAG_TIMES_KEY]
+    high_res_wavelengths_microns = d[nn_utils.HIGH_RES_WAVELENGTHS_KEY]
+    low_res_wavelengths_microns = d[nn_utils.LOW_RES_WAVELENGTHS_KEY]
+    lag_times_minutes = d[nn_utils.LAG_TIMES_KEY]
 
-    brightness_temp_matrix = neural_net.separate_lag_times_and_wavelengths(
+    brightness_temp_matrix = nn_utils.separate_lag_times_and_wavelengths(
         satellite_data_matrix=numpy.expand_dims(brightness_temp_matrix, axis=0),
         num_lag_times=len(lag_times_minutes)
     )[0, ...]
 
     bidirectional_reflectance_matrix = (
-        neural_net.separate_lag_times_and_wavelengths(
+        nn_utils.separate_lag_times_and_wavelengths(
             satellite_data_matrix=
             numpy.expand_dims(bidirectional_reflectance_matrix, axis=0),
             num_lag_times=len(lag_times_minutes)
@@ -980,20 +984,20 @@ def _run(prediction_file_name, satellite_dir_name,
     model_file_name = (
         prediction_table_xarray.attrs[scalar_prediction_utils.MODEL_FILE_KEY]
     )
-    model_metafile_name = neural_net.find_metafile(
+    model_metafile_name = nn_utils.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
     )
 
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
-    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    model_metadata_dict = nn_utils.read_metafile(model_metafile_name)
     validation_option_dict = (
-        model_metadata_dict[neural_net.VALIDATION_OPTIONS_KEY]
+        model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
     )
-    validation_option_dict[neural_net.SATELLITE_DIRECTORY_KEY] = (
+    validation_option_dict[nn_utils.SATELLITE_DIRECTORY_KEY] = (
         satellite_dir_name
     )
-    validation_option_dict[neural_net.SENTINEL_VALUE_KEY] = SENTINEL_VALUE
+    validation_option_dict[nn_utils.SENTINEL_VALUE_KEY] = SENTINEL_VALUE
 
     # TODO(thunderhoser): This will not work if I ever have multiple cyclones in
     # one prediction file.
@@ -1024,19 +1028,19 @@ def _run(prediction_file_name, satellite_dir_name,
             pt[scalar_prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values
         ).astype(int)
 
-    validation_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY] = False
+    validation_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
     if plot_one_lag_time:
-        validation_option_dict[neural_net.LAG_TIMES_KEY] = numpy.array([
-            numpy.min(validation_option_dict[neural_net.LAG_TIMES_KEY])
+        validation_option_dict[nn_utils.LAG_TIMES_KEY] = numpy.array([
+            numpy.min(validation_option_dict[nn_utils.LAG_TIMES_KEY])
         ])
 
-    model_metadata_dict[neural_net.VALIDATION_OPTIONS_KEY] = (
+    model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY] = (
         validation_option_dict
     )
 
     # Read predictor data.
-    if model_metadata_dict[neural_net.USE_CIRA_IR_KEY]:
-        data_dict = neural_net.create_data_cira_ir_specific_trans(
+    if model_metadata_dict[nn_utils.USE_CIRA_IR_KEY]:
+        data_dict = nn_training_cira_ir.create_data_specific_trans(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=target_times_unix_sec,
@@ -1044,7 +1048,7 @@ def _run(prediction_file_name, satellite_dir_name,
             column_translations_low_res_px=actual_column_offsets
         )
     else:
-        data_dict = neural_net.create_data_specific_trans(
+        data_dict = nn_training_simple.create_data_specific_trans(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=target_times_unix_sec,
@@ -1055,17 +1059,17 @@ def _run(prediction_file_name, satellite_dir_name,
     if data_dict is None:
         return
 
-    predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
-    scalar_target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]
-    low_res_latitude_matrix_deg_n = data_dict[neural_net.LOW_RES_LATITUDES_KEY]
+    predictor_matrices = data_dict[nn_utils.PREDICTOR_MATRICES_KEY]
+    scalar_target_matrix = data_dict[nn_utils.TARGET_MATRIX_KEY]
+    low_res_latitude_matrix_deg_n = data_dict[nn_utils.LOW_RES_LATITUDES_KEY]
     low_res_longitude_matrix_deg_e = (
-        data_dict[neural_net.LOW_RES_LONGITUDES_KEY]
+        data_dict[nn_utils.LOW_RES_LONGITUDES_KEY]
     )
     high_res_latitude_matrix_deg_n = (
-        data_dict[neural_net.HIGH_RES_LATITUDES_KEY]
+        data_dict[nn_utils.HIGH_RES_LATITUDES_KEY]
     )
     high_res_longitude_matrix_deg_e = (
-        data_dict[neural_net.HIGH_RES_LONGITUDES_KEY]
+        data_dict[nn_utils.HIGH_RES_LONGITUDES_KEY]
     )
 
     for k in range(len(predictor_matrices)):

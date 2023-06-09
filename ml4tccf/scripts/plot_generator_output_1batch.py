@@ -11,7 +11,11 @@ from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import border_io
 from ml4tccf.utils import misc_utils
-from ml4tccf.machine_learning import neural_net
+from ml4tccf.machine_learning import neural_net_utils as nn_utils
+from ml4tccf.machine_learning import \
+    neural_net_training_cira_ir as nn_training_cira_ir
+from ml4tccf.machine_learning import \
+    neural_net_training_simple as nn_training_simple
 from ml4tccf.scripts import plot_predictions
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
@@ -37,7 +41,7 @@ TARGET_COLOUR_MAP_ARG_NAME = 'target_colour_map_name'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 MODEL_FILE_HELP_STRING = (
-    'Path to trained model (will be read by `neural_net.read_model`).'
+    'Path to trained model (will be read by `nn_utils.read_model`).'
 )
 SATELLITE_DIR_HELP_STRING = (
     'Name of directory with satellite data (predictors).  Files therein will '
@@ -162,37 +166,39 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
         error_checking.assert_is_greater(min_target_value, 0.)
         error_checking.assert_is_greater(max_target_value, 0.)
 
-    model_metafile_name = neural_net.find_metafile(
+    model_metafile_name = nn_utils.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
     )
 
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
-    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
-    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    model_metadata_dict = nn_utils.read_metafile(model_metafile_name)
+    training_option_dict = model_metadata_dict[
+        nn_utils.TRAINING_OPTIONS_KEY
+    ]
 
-    assert training_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY]
-    training_option_dict[neural_net.SATELLITE_DIRECTORY_KEY] = (
-        satellite_dir_name
-    )
-    training_option_dict[neural_net.YEARS_KEY] = years
-    training_option_dict[neural_net.BATCH_SIZE_KEY] = num_examples
-    training_option_dict[neural_net.MAX_EXAMPLES_PER_CYCLONE_KEY] = (
+    assert training_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY]
+    training_option_dict[nn_utils.SATELLITE_DIRECTORY_KEY] = satellite_dir_name
+    training_option_dict[nn_utils.YEARS_KEY] = years
+    training_option_dict[nn_utils.BATCH_SIZE_KEY] = num_examples
+    training_option_dict[nn_utils.MAX_EXAMPLES_PER_CYCLONE_KEY] = (
         max_examples_per_cyclone
     )
-    training_option_dict[neural_net.DATA_AUG_NUM_TRANS_KEY] = 1
-    # training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY] = 100.
-    # training_option_dict[neural_net.DATA_AUG_STDEV_TRANS_KEY] = 25.
+    training_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 1
+    # training_option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = 100.
+    # training_option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = 25.
 
-    model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY] = training_option_dict
+    model_metadata_dict[nn_utils.TRAINING_OPTIONS_KEY] = training_option_dict
     print(SEPARATOR_STRING)
 
-    if model_metadata_dict[neural_net.USE_CIRA_IR_KEY]:
-        generator_handle = neural_net.data_generator_cira_ir(
+    if model_metadata_dict[training_option_dict.USE_CIRA_IR_KEY]:
+        generator_handle = nn_training_cira_ir.data_generator(
             training_option_dict
         )
     else:
-        generator_handle = neural_net.data_generator(training_option_dict)
+        generator_handle = nn_training_simple.data_generator(
+            training_option_dict
+        )
 
     predictor_matrices, target_matrix = next(generator_handle)
     target_matrix = target_matrix[..., 0]

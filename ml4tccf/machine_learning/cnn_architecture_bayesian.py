@@ -8,7 +8,7 @@ from tensorflow_probability.python.distributions import \
     kullback_leibler as kl_lib
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
-from ml4tccf.machine_learning import neural_net
+from ml4tccf.machine_learning import neural_net_utils
 from ml4tccf.machine_learning import cnn_architecture
 
 POINT_ESTIMATE_TYPE_STRING = 'point_estimate'
@@ -416,7 +416,7 @@ def create_model(option_dict):
     )
     model_object.compile(
         loss=loss_function, optimizer=optimizer_function,
-        metrics=neural_net.METRIC_FUNCTION_LIST_SCALAR
+        metrics=neural_net_utils.METRIC_FUNCTION_LIST_SCALAR
     )
     model_object.summary()
 
