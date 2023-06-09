@@ -25,6 +25,7 @@ NUM_CHUNKS_PER_INPUT_ARG_NAME = 'num_chunks_per_input_file'
 NUM_CHUNKS_PER_OUTPUT_ARG_NAME = 'num_chunks_per_output_file'
 TIME_INTERVAL_ARG_NAME = 'output_time_interval_minutes'
 YEARS_ARG_NAME = 'years'
+FIRST_OUT_FILE_NUM_ARG_NAME = 'first_output_file_num'
 OUTPUT_DIR_ARG_NAME = 'output_satellite_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -41,6 +42,10 @@ TIME_INTERVAL_HELP_STRING = (
     'Time interval for output files.  This must be a multiple of 30 minutes.'
 )
 YEARS_HELP_STRING = 'List of years.  Will shuffle all cyclones in these years.'
+FIRST_OUT_FILE_NUM_HELP_STRING = (
+    'Number used to name first output file produced by this script.  For each '
+    'successive output file, the number will increment by 1.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Shuffled files will be written here by '
     '`satellite_io.write_file`, to exact locations determined by '
@@ -67,6 +72,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + YEARS_ARG_NAME, type=int, nargs='+', required=True,
     help=YEARS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + FIRST_OUT_FILE_NUM_ARG_NAME, type=int, required=True,
+    help=FIRST_OUT_FILE_NUM_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -135,7 +144,8 @@ def _get_time_range_by_chunk(num_chunks_per_input_file,
 
 
 def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
-         output_time_interval_minutes, years, output_dir_name):
+         output_time_interval_minutes, years, first_output_file_num,
+         output_dir_name):
     """Shuffles satellite files to make training more efficient.
 
     This is effectively the main method.
@@ -145,12 +155,14 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
     :param num_chunks_per_output_file: Same.
     :param output_time_interval_minutes: Same.
     :param years: Same.
+    :param first_output_file_num: Same.
     :param output_dir_name: Same.
     """
 
     # Check input args.
     error_checking.assert_is_geq(num_chunks_per_input_file, 2)
     error_checking.assert_is_geq(num_chunks_per_output_file, 2)
+    error_checking.assert_is_geq(first_output_file_num, 0)
 
     error_checking.assert_is_geq(
         output_time_interval_minutes, INPUT_TIME_INTERVAL_MINUTES
@@ -180,7 +192,7 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
     num_time_steps_per_output_file = (
         num_time_steps_per_output_chunk * num_chunks_per_output_file
     )
-    error_checking.assert_is_leq(num_time_steps_per_output_file, 100)
+    error_checking.assert_is_leq(num_time_steps_per_output_file, 200)
 
     # Do actual stuff.
     cyclone_id_strings = satellite_io.find_cyclones(
@@ -238,10 +250,10 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
         is_input_chunk_processed_matrix[working_indices_2d] = True
 
         print('Reading data from: "{0:s}"...'.format(
-            input_file_names[working_indices_2d[0]]
+            input_file_names[working_indices_2d[0][0]]
         ))
         this_satellite_table_xarray = satellite_io.read_file(
-            input_file_names[working_indices_2d[0]]
+            input_file_names[working_indices_2d[0][0]]
         )
         this_satellite_table_xarray = satellite_utils.subset_wavelengths(
             satellite_table_xarray=this_satellite_table_xarray,
@@ -250,16 +262,16 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
         )
 
         this_date_unix_sec = time_conversion.string_to_unix_sec(
-            valid_date_string_by_input_file[working_indices_2d[0]],
+            valid_date_string_by_input_file[working_indices_2d[0][0]],
             satellite_io.DATE_FORMAT
         )
         this_start_time_unix_sec = (
             this_date_unix_sec +
-            start_time_by_chunk_sec_into_day[working_indices_2d[1]]
+            start_time_by_chunk_sec_into_day[working_indices_2d[1][0]]
         )
         this_end_time_unix_sec = (
             this_date_unix_sec +
-            end_time_by_chunk_sec_into_day[working_indices_2d[1]]
+            end_time_by_chunk_sec_into_day[working_indices_2d[1][0]]
         )
 
         print('Subsetting chunk from {0:s} to {1:s}...'.format(
@@ -355,7 +367,7 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
 
         output_file_name = satellite_io.find_shuffled_file(
             directory_name=output_dir_name,
-            file_number=num_output_files_written,
+            file_number=num_output_files_written + first_output_file_num,
             raise_error_if_missing=False
         )
 
@@ -385,5 +397,8 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, TIME_INTERVAL_ARG_NAME
         ),
         years=numpy.array(getattr(INPUT_ARG_OBJECT, YEARS_ARG_NAME), dtype=int),
+        first_output_file_num=getattr(
+            INPUT_ARG_OBJECT, FIRST_OUT_FILE_NUM_ARG_NAME
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
