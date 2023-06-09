@@ -42,7 +42,7 @@ def find_shuffled_file(directory_name, file_number,
     error_checking.assert_is_geq(file_number, 0)
     error_checking.assert_is_boolean(raise_error_if_missing)
 
-    zarr_file_name = '{0:s}/satellite_shuffled_file{1:04d}.zarr'.format(
+    zarr_file_name = '{0:s}/satellite_shuffled_file{1:05d}.zarr'.format(
         directory_name, file_number
     )
 
@@ -75,7 +75,7 @@ def find_shuffled_files(directory_name, raise_error_if_all_missing=True):
     error_checking.assert_is_boolean(raise_error_if_all_missing)
 
     file_pattern = (
-        '{0:s}/satellite_shuffled_file[0-9][0-9][0-9][0-9].zarr'
+        '{0:s}/satellite_shuffled_file[0-9][0-9][0-9][0-9][0-9].zarr'
     ).format(directory_name)
 
     zarr_file_names = glob.glob(file_pattern)

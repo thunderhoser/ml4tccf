@@ -26,14 +26,16 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020"
-set OUTPUT_DIR_NAME="${INPUT_DIR_NAME}/shuffled_6hour_chunks"
 
-set YEARS=(2017 2018 2019 2020 2021 2022)
+set YEAR_SETS=("2017 2018 2021" "2019 2020" "2022")
+set OUTPUT_DIR_NAMES=("${INPUT_DIR_NAME}/shuffled_6hour_chunks/training_2017-2021" "${INPUT_DIR_NAME}/shuffled_6hour_chunks/training_2017-2021" "${INPUT_DIR_NAME}/shuffled_6hour_chunks/validation_2022")
+set FIRST_OUTPUT_FILE_NUMS=(0 10000 0)
 
 python3 -u "${CODE_DIR_NAME}/shuffle_satellite_files.py" \
 --input_satellite_dir_name="${INPUT_DIR_NAME}" \
 --num_chunks_per_input_file=4 \
 --num_chunks_per_output_file=8 \
 --output_time_interval_minutes=30 \
---years ${YEARS[$SLURM_ARRAY_TASK_ID]} \
---output_satellite_dir_name="${OUTPUT_DIR_NAME}"
+--years ${YEAR_SETS[$SLURM_ARRAY_TASK_ID]} \
+--first_output_file_num=${FIRST_OUTPUT_FILE_NUMS[$SLURM_ARRAY_TASK_ID]} \
+--output_satellite_dir_name="${OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
