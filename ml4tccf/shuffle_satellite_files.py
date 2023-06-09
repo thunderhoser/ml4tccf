@@ -245,15 +245,11 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
         )
         is_input_chunk_processed_matrix[working_indices_2d] = True
 
-        print(working_indices_2d)
-        print(working_indices_2d[0])
-        print(working_indices_2d[1])
-
         print('Reading data from: "{0:s}"...'.format(
-            input_file_names[working_indices_2d[0]]
+            input_file_names[working_indices_2d[0][0]]
         ))
         this_satellite_table_xarray = satellite_io.read_file(
-            input_file_names[working_indices_2d[0]]
+            input_file_names[working_indices_2d[0][0]]
         )
         this_satellite_table_xarray = satellite_utils.subset_wavelengths(
             satellite_table_xarray=this_satellite_table_xarray,
@@ -262,16 +258,16 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
         )
 
         this_date_unix_sec = time_conversion.string_to_unix_sec(
-            valid_date_string_by_input_file[working_indices_2d[0]],
+            valid_date_string_by_input_file[working_indices_2d[0][0]],
             satellite_io.DATE_FORMAT
         )
         this_start_time_unix_sec = (
             this_date_unix_sec +
-            start_time_by_chunk_sec_into_day[working_indices_2d[1]]
+            start_time_by_chunk_sec_into_day[working_indices_2d[1][0]]
         )
         this_end_time_unix_sec = (
             this_date_unix_sec +
-            end_time_by_chunk_sec_into_day[working_indices_2d[1]]
+            end_time_by_chunk_sec_into_day[working_indices_2d[1][0]]
         )
 
         print('Subsetting chunk from {0:s} to {1:s}...'.format(
