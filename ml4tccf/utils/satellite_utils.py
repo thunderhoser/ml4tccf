@@ -89,16 +89,20 @@ def _compute_interpolation_gap(source_times_unix_sec, target_time_unix_sec):
     return interp_gap_sec
 
 
-def concat_over_time(satellite_tables_xarray):
+def concat_over_time(satellite_tables_xarray, allow_different_cyclones=False):
     """Concatenates satellite data over many time steps.
 
     All time steps must contain data for the same tropical cyclone.
 
     :param satellite_tables_xarray: 1-D list of input tables, in format returned
         by `satellite_io.read_file`.
+    :param allow_different_cyclones: Boolean flag.  If True, will allow data for
+        different cyclones to be concatenated together.
     :return: satellite_table_xarray: xarray table with all time steps.
     :raises: ValueError: if cyclone IDs are not identical.
     """
+
+    error_checking.assert_is_boolean(allow_different_cyclones)
 
     # TODO(thunderhoser): Might also need to have some condition for BDRF here.
     satellite_tables_xarray = [
@@ -110,6 +114,9 @@ def concat_over_time(satellite_tables_xarray):
         satellite_tables_xarray, dim=TIME_DIM, data_vars='all',
         coords='minimal', compat='identical', join='exact'
     )
+
+    if allow_different_cyclones:
+        return satellite_table_xarray
 
     cyclone_id_strings = (
         satellite_table_xarray[CYCLONE_ID_KEY].values

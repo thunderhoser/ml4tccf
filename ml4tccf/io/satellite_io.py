@@ -15,6 +15,74 @@ CYCLONE_ID_REGEX = '[0-9][0-9][0-9][0-9][A-Z][A-Z][0-9][0-9]'
 DATE_REGEX = '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'
 
 
+def find_shuffled_file(directory_name, file_number,
+                       raise_error_if_missing=True):
+    """Finds file with shuffled satellite data (instead of one cyclone-day).
+
+    :param directory_name: Name of directory.
+    :param file_number: File number (integer).
+    :param raise_error_if_missing: Boolean flag.  If file is not found and
+        `raise_error_if_missing == True`, this method will raise an error.  If
+        file is not found and `raise_error_if_missing == False`, this method
+        will return the expected file path.
+    :return: zarr_file_name: Actual or expected file path.
+    :raises: ValueError: if file is not found and
+        `raise_error_if_missing == True`.
+    """
+
+    error_checking.assert_is_string(directory_name)
+    error_checking.assert_is_integer(file_number)
+    error_checking.assert_is_geq(file_number, 0)
+    error_checking.assert_is_boolean(raise_error_if_missing)
+
+    zarr_file_name = '{0:s}/satellite_shuffled_file{1:04d}.zarr'.format(
+        directory_name, file_number
+    )
+
+    if os.path.isdir(zarr_file_name):
+        return zarr_file_name
+
+    if not raise_error_if_missing:
+        return zarr_file_name
+
+    error_string = 'Cannot find satellite file.  Expected at: "{0:s}"'.format(
+        zarr_file_name
+    )
+    raise ValueError(error_string)
+
+
+def find_shuffled_files(directory_name, raise_error_if_all_missing=True):
+    """Finds all satellite files with shuffled data.
+
+    :param directory_name: Name of directory.
+    :param raise_error_if_all_missing: Boolean flag.  If no files are found and
+        `raise_error_if_all_missing == True`, this method will raise an error.
+        If no files are found and `raise_error_if_all_missing == False`, this
+        method will return an empty list.
+    :return: zarr_file_names: 1-D list of paths to existing files.
+    :raises: ValueError: if no files are found and
+        `raise_error_if_all_missing == True`.
+    """
+
+    error_checking.assert_is_string(directory_name)
+    error_checking.assert_is_boolean(raise_error_if_all_missing)
+
+    file_pattern = (
+        '{0:s}/satellite_shuffled_file[0-9][0-9][0-9][0-9].zarr'
+    ).format(directory_name)
+
+    zarr_file_names = glob.glob(file_pattern)
+    zarr_file_names.sort()
+
+    if len(zarr_file_names) > 0 or not raise_error_if_all_missing:
+        return zarr_file_names
+
+    error_string = 'No shuffled files were found in directory: "{0:s}"'.format(
+        directory_name
+    )
+    raise ValueError(error_string)
+
+
 def find_file(directory_name, cyclone_id_string, valid_date_string,
               raise_error_if_missing=True):
     """Finds file with satellite data.
