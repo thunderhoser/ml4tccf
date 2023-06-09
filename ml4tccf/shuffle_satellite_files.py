@@ -188,7 +188,7 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
     num_time_steps_per_output_file = (
         num_time_steps_per_output_chunk * num_chunks_per_output_file
     )
-    error_checking.assert_is_leq(num_time_steps_per_output_file, 100)
+    error_checking.assert_is_leq(num_time_steps_per_output_file, 200)
 
     # Do actual stuff.
     cyclone_id_strings = satellite_io.find_cyclones(
