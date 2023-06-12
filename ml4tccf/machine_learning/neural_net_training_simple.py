@@ -1,6 +1,7 @@
 """NN-training with simplified Robert/Galina satellite data."""
 
 import random
+import warnings
 import numpy
 import keras
 import xarray
@@ -27,6 +28,7 @@ BRIGHTNESS_TEMPS_KEY = neural_net_utils.BRIGHTNESS_TEMPS_KEY
 GRID_SPACINGS_KEY = neural_net_utils.GRID_SPACINGS_KEY
 CENTER_LATITUDES_KEY = neural_net_utils.CENTER_LATITUDES_KEY
 TARGET_TIMES_KEY = neural_net_utils.TARGET_TIMES_KEY
+CYCLONE_IDS_KEY = 'cyclone_id_strings'
 LOW_RES_LATITUDES_KEY = neural_net_utils.LOW_RES_LATITUDES_KEY
 LOW_RES_LONGITUDES_KEY = neural_net_utils.LOW_RES_LONGITUDES_KEY
 
@@ -86,6 +88,216 @@ def _date_in_time_period(date_string, start_time_unix_sec, end_time_unix_sec):
         return True
 
     return False
+
+
+def _read_satellite_data_1shuffled_file(
+        input_file_name, lag_times_minutes, low_res_wavelengths_microns,
+        num_rows_low_res, num_columns_low_res, return_coords,
+        cyclone_id_strings, target_times_unix_sec):
+    """Reads satellite data from one shuffled file.
+
+    T = number of cyclone objects
+    L = number of lag times
+    w = number of wavelengths
+    m = number of rows in grid
+    n = number of columns in grid
+
+    :param input_file_name: Path to input file (will be read by
+        `satellite_io.read_file`).
+    :param lag_times_minutes: length-L numpy array of lag times for predictors.
+    :param low_res_wavelengths_microns: length-w numpy array of desired
+        wavelengths.
+    :param num_rows_low_res: m in the above discussion.
+    :param num_columns_low_res: n in the above discussion.
+    :param return_coords: Boolean flag.  If True, will return coordinates.
+    :param cyclone_id_strings: length-T list of cyclone IDs.
+    :param target_times_unix_sec: length-T numpy array of target times.
+
+    :return: data_dict: Dictionary with the following keys.  If
+        `return_coords == False`, the last 2 keys will be None.
+
+    data_dict["brightness_temp_matrix_kelvins"]: T-by-m-by-n-by-L-by-w numpy
+        array of brightness temperatures.
+    data_dict["grid_spacings_low_res_km"]: length-T numpy array of grid spacings
+        for low-resolution data.
+    data_dict["cyclone_center_latitudes_deg_n"]: length-T numpy array of
+        center latitudes (deg north).
+    data_dict["cyclone_id_strings"]: length-T list of cyclone IDs.
+    data_dict["target_times_unix_sec"]: length-T numpy array of target times.
+    data_dict["low_res_latitude_matrix_deg_n"]: T-by-m-by-L numpy array of
+        latitudes (deg north).
+    data_dict["low_res_longitude_matrix_deg_e"]: T-by-n-by-L numpy array of
+        longitudes (deg east).
+    """
+
+    print('Reading data from: "{0:s}"...'.format(input_file_name))
+    satellite_table_xarray = satellite_io.read_file(input_file_name)
+
+    satellite_table_xarray = satellite_utils.subset_wavelengths(
+        satellite_table_xarray=satellite_table_xarray,
+        wavelengths_to_keep_microns=low_res_wavelengths_microns,
+        for_high_res=False
+    )
+    satellite_table_xarray = satellite_utils.subset_grid(
+        satellite_table_xarray=satellite_table_xarray,
+        num_rows_to_keep=num_rows_low_res,
+        num_columns_to_keep=num_columns_low_res,
+        for_high_res=False
+    )
+
+    num_cyclone_objects = len(target_times_unix_sec)
+    num_lag_times = len(lag_times_minutes)
+
+    stx = satellite_table_xarray
+    num_rows = len(stx.coords[satellite_utils.LOW_RES_ROW_DIM].values)
+    num_columns = len(stx.coords[satellite_utils.LOW_RES_COLUMN_DIM].values)
+    num_wavelengths = len(
+        stx.coords[satellite_utils.LOW_RES_WAVELENGTH_DIM].values
+    )
+
+    these_dim = (
+        num_cyclone_objects, num_rows, num_columns, num_lag_times,
+        num_wavelengths
+    )
+    brightness_temp_matrix_kelvins = numpy.full(these_dim, numpy.nan)
+
+    if return_coords:
+        low_res_latitude_matrix_deg_n = numpy.full(
+            (num_cyclone_objects, num_rows, num_lag_times), numpy.nan
+        )
+        low_res_longitude_matrix_deg_e = numpy.full(
+            (num_cyclone_objects, num_columns, num_lag_times), numpy.nan
+        )
+    else:
+        low_res_latitude_matrix_deg_n = None
+        low_res_longitude_matrix_deg_e = None
+
+    grid_spacings_low_res_km = numpy.full(num_cyclone_objects, numpy.nan)
+    cyclone_center_latitudes_deg_n = numpy.full(num_cyclone_objects, numpy.nan)
+
+    lag_times_sec = MINUTES_TO_SECONDS * lag_times_minutes
+    cyclone_object_success_flags = numpy.full(
+        num_cyclone_objects, 0, dtype=bool
+    )
+
+    for i in range(num_cyclone_objects):
+        print((
+            'Finding satellite data for cyclone {0:s} and target time {1:s}...'
+        ).format(
+            cyclone_id_strings[i],
+            time_conversion.unix_sec_to_string(
+                target_times_unix_sec[i], TIME_FORMAT_FOR_LOG_MESSAGES
+            )
+        ))
+
+        these_desired_times_unix_sec = numpy.sort(
+            target_times_unix_sec[i] - lag_times_sec
+        )
+
+        good_indices = numpy.where(numpy.logical_and(
+            numpy.isin(
+                element=stx.coords[satellite_utils.TIME_DIM].values,
+                test_elements=these_desired_times_unix_sec
+            ),
+            stx[satellite_utils.CYCLONE_ID_KEY].values == cyclone_id_strings[i]
+        ))[0]
+
+        if len(good_indices) != num_lag_times:
+            these_desired_time_strings = [
+                time_conversion.unix_sec_to_string(
+                    t, TIME_FORMAT_FOR_LOG_MESSAGES
+                )
+                for t in these_desired_times_unix_sec
+            ]
+
+            these_found_time_strings = [
+                time_conversion.unix_sec_to_string(
+                    t, TIME_FORMAT_FOR_LOG_MESSAGES
+                )
+                for t in
+                stx.coords[satellite_utils.TIME_DIM].values[good_indices]
+            ]
+
+            warning_string = (
+                'POTENTIAL ERROR: Could not find all desired predictor times.  '
+                'Wanted:\n{0:s}\n\nFound:\n{1:s}'
+            ).format(
+                str(these_desired_time_strings),
+                str(these_found_time_strings)
+            )
+
+            warnings.warn(warning_string)
+            continue
+
+        cyclone_object_success_flags[i] = True
+
+        subindices = numpy.argsort(
+            stx.coords[satellite_utils.TIME_DIM].values[good_indices]
+        )
+        good_indices = good_indices[subindices]
+
+        # TODO(thunderhoser): With simplified data, shouldn't have to worry
+        # about all-NaN maps (already removed).
+        new_stx = stx.isel(indexers={satellite_utils.TIME_DIM: good_indices})
+        this_bt_matrix_kelvins = numpy.swapaxes(
+            new_stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values, 0, 1
+        )
+        brightness_temp_matrix_kelvins[i, ...] = numpy.swapaxes(
+            this_bt_matrix_kelvins, 1, 2
+        )
+
+        these_x_diffs_metres = numpy.diff(
+            new_stx[satellite_utils.X_COORD_LOW_RES_KEY].values[-1, :]
+        )
+        these_y_diffs_metres = numpy.diff(
+            new_stx[satellite_utils.Y_COORD_LOW_RES_KEY].values[-1, :]
+        )
+        grid_spacings_low_res_km[i] = METRES_TO_KM * numpy.mean(
+            numpy.concatenate((these_x_diffs_metres, these_y_diffs_metres))
+        )
+
+        cyclone_center_latitudes_deg_n[i] = numpy.median(
+            new_stx[satellite_utils.LATITUDE_LOW_RES_KEY].values[-1, :]
+        )
+
+        if return_coords:
+            low_res_latitude_matrix_deg_n[i, ...] = numpy.swapaxes(
+                new_stx[satellite_utils.LATITUDE_LOW_RES_KEY].values, 0, 1
+            )
+            low_res_longitude_matrix_deg_e[i, ...] = numpy.swapaxes(
+                new_stx[satellite_utils.LONGITUDE_LOW_RES_KEY].values, 0, 1
+            )
+
+    good_indices = numpy.where(cyclone_object_success_flags)[0]
+    cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
+    target_times_unix_sec = target_times_unix_sec[good_indices]
+    brightness_temp_matrix_kelvins = (
+        brightness_temp_matrix_kelvins[good_indices, ...]
+    )
+    grid_spacings_low_res_km = grid_spacings_low_res_km[good_indices]
+    cyclone_center_latitudes_deg_n = (
+        cyclone_center_latitudes_deg_n[good_indices]
+    )
+
+    assert not numpy.any(numpy.isnan(brightness_temp_matrix_kelvins))
+
+    if return_coords:
+        low_res_latitude_matrix_deg_n = low_res_latitude_matrix_deg_n[
+            good_indices, ...
+        ]
+        low_res_longitude_matrix_deg_e = low_res_longitude_matrix_deg_e[
+            good_indices, ...
+        ]
+
+    return {
+        BRIGHTNESS_TEMPS_KEY: brightness_temp_matrix_kelvins,
+        GRID_SPACINGS_KEY: grid_spacings_low_res_km,
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
+        CYCLONE_IDS_KEY: cyclone_id_strings,
+        TARGET_TIMES_KEY: target_times_unix_sec,
+        LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
+        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
+    }
 
 
 def _read_satellite_data_1cyclone(
@@ -317,6 +529,70 @@ def get_synoptic_target_times(all_target_times_unix_sec):
     ]
 
 
+def choose_random_cyclone_objects(
+        all_cyclone_id_strings, all_target_times_unix_sec, num_objects_desired):
+    """Chooses random cyclone objects from array.
+
+    A = number of objects available
+    T = number of objects chosen
+
+    :param all_cyclone_id_strings: length-A list with all cyclone IDs.
+    :param all_target_times_unix_sec: length-A numpy array with all target times.
+    :param num_objects_desired: Number of cyclone objects desired.
+    :return: chosen_cyclone_id_strings: length-T list of chosen cyclone IDs.
+    :return: chosen_target_times_unix_sec: length-T numpy array of chosen target
+        times.
+    :return: chosen_indices: length-T numpy array of corresponding indices.
+    """
+
+    error_checking.assert_is_string_list(all_cyclone_id_strings)
+    error_checking.assert_is_integer_numpy_array(all_target_times_unix_sec)
+
+    num_objects_available = len(all_cyclone_id_strings)
+    expected_dim = numpy.array([num_objects_available], dtype=int)
+    error_checking.assert_is_numpy_array(
+        all_target_times_unix_sec, exact_dimensions=expected_dim
+    )
+
+    error_checking.assert_is_integer(num_objects_desired)
+    error_checking.assert_is_greater(num_objects_desired, 0)
+
+    all_cyclone_id_strings = numpy.array(all_cyclone_id_strings)
+    unique_cyclone_id_strings = numpy.unique(all_cyclone_id_strings)
+    chosen_indices = numpy.array([], dtype=int)
+
+    for _ in range(10):
+        for i in range(len(unique_cyclone_id_strings)):
+            these_indices = numpy.where(
+                all_cyclone_id_strings == unique_cyclone_id_strings[i]
+            )[0]
+
+            these_indices = these_indices[
+                numpy.invert(numpy.isin(
+                    element=these_indices, test_elements=chosen_indices
+                ))
+            ]
+
+            if len(these_indices) == 0:
+                continue
+
+            these_indices = numpy.random.choice(
+                these_indices, size=1, replace=False
+            )
+            chosen_indices = numpy.concatenate((chosen_indices, these_indices))
+            if len(chosen_indices) == num_objects_desired:
+                break
+
+        if len(chosen_indices) == num_objects_desired:
+            break
+
+    return (
+        [all_cyclone_id_strings[k] for k in chosen_indices],
+        all_target_times_unix_sec[chosen_indices],
+        chosen_indices
+    )
+
+
 def choose_random_target_times(all_target_times_unix_sec, num_times_desired):
     """Chooses random target times from array.
 
@@ -360,6 +636,92 @@ def choose_random_target_times(all_target_times_unix_sec, num_times_desired):
     return all_target_times_unix_sec[chosen_indices], chosen_indices
 
 
+def get_times_and_scalar_preds_shuffled(
+        satellite_file_names, a_deck_file_name,
+        scalar_a_deck_field_names, remove_nontropical_systems):
+    """Returns cyclone objects and scalar predictors for each shuffled file.
+
+    One cyclone object = one tropical cyclone and one target time
+
+    S = number of shuffled files
+    F = number of scalar fields
+    O_i = number of cyclone objects for [i]th file
+
+    :param satellite_file_names: length-S list of paths to input files (readable
+        by `satellite_io.read_file`).
+    :param a_deck_file_name: See doc for
+        `get_target_times_and_scalar_predictors`.
+    :param scalar_a_deck_field_names: Same.
+    :param remove_nontropical_systems: Same.
+    :return: cyclone_id_strings_by_file: length-S list, where the [i]th
+        item is a list (length O_i) of cyclone IDs.
+    :return: target_times_by_file_unix_sec: length-S list, where the [i]th
+        item is a numpy array (length O_i) of target times.
+    :return: scalar_predictor_matrix_by_file: length-S list, where the [i]th
+        item is a numpy array (O_i x F) of scalar predictors.
+    """
+
+    # TODO(thunderhoser): Allow option to subset by year.
+    # TODO(thunderhoser): Write read_scalar_data_many_cyclones.
+    # TODO(thunderhoser): This method should include lag times, no?
+
+    error_checking.assert_is_string_list(satellite_file_names)
+
+    num_files = len(satellite_file_names)
+    cyclone_id_strings_by_file = [[]] * num_files
+    target_times_by_file_unix_sec = [numpy.array([], dtype=int)] * num_files
+
+    for i in range(num_files):
+        cyclone_id_strings_by_file[i] = xarray.open_zarr(
+            satellite_file_names[i]
+        )[satellite_utils.CYCLONE_ID_KEY].values
+
+        target_times_by_file_unix_sec[i] = xarray.open_zarr(
+            satellite_file_names[i]
+        ).coords[satellite_utils.TIME_DIM].values
+
+    if a_deck_file_name is None:
+        scalar_predictor_matrix_by_file = [None] * num_files
+
+        return (
+            cyclone_id_strings_by_file,
+            target_times_by_file_unix_sec,
+            scalar_predictor_matrix_by_file
+        )
+
+    scalar_predictor_matrix_by_file = [numpy.array([], dtype=float)] * num_files
+
+    for i in range(num_files):
+        scalar_predictor_matrix_by_file[i] = (
+            neural_net_utils.read_scalar_data_many_cyclones(
+                a_deck_file_name=a_deck_file_name,
+                field_names=scalar_a_deck_field_names,
+                remove_nontropical_systems=remove_nontropical_systems,
+                cyclone_id_strings=cyclone_id_strings_by_file[i],
+                target_times_unix_sec=target_times_by_file_unix_sec[i]
+            )
+        )
+
+        good_indices = numpy.all(
+            numpy.isfinite(scalar_predictor_matrix_by_file[i]), axis=1
+        )
+        cyclone_id_strings_by_file[i] = [
+            cyclone_id_strings_by_file[i][k] for k in good_indices
+        ]
+        target_times_by_file_unix_sec[i] = (
+            target_times_by_file_unix_sec[i][good_indices]
+        )
+        scalar_predictor_matrix_by_file[i] = (
+            scalar_predictor_matrix_by_file[i][good_indices, :]
+        )
+
+    return (
+        cyclone_id_strings_by_file,
+        target_times_by_file_unix_sec,
+        scalar_predictor_matrix_by_file
+    )
+
+
 def get_target_times_and_scalar_predictors(
         cyclone_id_strings, synoptic_times_only,
         satellite_file_names_by_cyclone, a_deck_file_name,
@@ -390,6 +752,8 @@ def get_target_times_and_scalar_predictors(
     :return: scalar_predictor_matrix_by_cyclone: length-C list, where the [i]th
         item is a numpy array (T_i x F) of scalar predictors.
     """
+
+    # TODO(thunderhoser): This method should include lag times, no?
 
     error_checking.assert_is_string_list(cyclone_id_strings)
     error_checking.assert_is_boolean(synoptic_times_only)
@@ -754,7 +1118,7 @@ def data_generator(option_dict):
 
                 this_scalar_predictor_matrix = (
                     scalar_predictor_matrix_by_cyclone[cyclone_index - 1][
-                    row_indices, :
+                        row_indices, :
                     ]
                 )
 
