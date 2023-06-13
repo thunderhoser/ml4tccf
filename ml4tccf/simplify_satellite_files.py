@@ -21,6 +21,7 @@ NUM_GRID_COLUMNS_TO_KEEP = 1080
 
 INPUT_DIR_ARG_NAME = 'input_dir_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
+SHUFFLED_FILE_NUMBER_ARG_NAME = 'shuffled_file_number'
 WAVELENGTHS_TO_KEEP_ARG_NAME = 'wavelengths_to_keep_microns'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -30,7 +31,13 @@ INPUT_DIR_HELP_STRING = (
     '`satellite_io.read_file`.'
 )
 CYCLONE_ID_HELP_STRING = (
-    'Will simplify satellite data for this cyclone (format "yyyyBBnn").'
+    'Will simplify satellite data for this cyclone (format "yyyyBBnn").  If '
+    'you want to simplify shuffled data instead, leave this argument alone.'
+)
+SHUFFLED_FILE_NUMBER_HELP_STRING = (
+    'Will simplify shuffled satellite data with this file number (integer).  '
+    'If you want to simplify organized data (one file per cyclone-day) '
+    'instead, leave this argument alone.'
 )
 WAVELENGTHS_TO_KEEP_HELP_STRING = (
     'List of wavelengths to keep (for infrared brightness temperature only).'
@@ -47,8 +54,12 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
+    '--' + CYCLONE_ID_ARG_NAME, type=str, required=False, default='',
     help=CYCLONE_ID_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SHUFFLED_FILE_NUMBER_ARG_NAME, type=int, required=False, default=-1,
+    help=SHUFFLED_FILE_NUMBER_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + WAVELENGTHS_TO_KEEP_ARG_NAME, type=float, nargs='+', required=True,
@@ -60,23 +71,31 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_dir_name, cyclone_id_string, wavelengths_to_keep_microns,
-         output_dir_name):
+def _run(input_dir_name, cyclone_id_string, shuffled_file_number,
+         wavelengths_to_keep_microns, output_dir_name):
     """Simplifies satellite files by removing most wavelengths and pixels.
 
     This is effectively the main method.
 
     :param input_dir_name: See documentation at top of file.
     :param cyclone_id_string: Same.
+    :param shuffled_file_number: Same.
     :param wavelengths_to_keep_microns: Same.
     :param output_dir_name: Same.
     """
 
-    input_file_names = satellite_io.find_files_one_cyclone(
-        directory_name=input_dir_name,
-        cyclone_id_string=cyclone_id_string,
-        raise_error_if_all_missing=True
-    )
+    if cyclone_id_string == '':
+        input_file_name = satellite_io.find_shuffled_file(
+            directory_name=input_dir_name, file_number=shuffled_file_number,
+            raise_error_if_missing=True
+        )
+        input_file_names = [input_file_name]
+    else:
+        input_file_names = satellite_io.find_files_one_cyclone(
+            directory_name=input_dir_name,
+            cyclone_id_string=cyclone_id_string,
+            raise_error_if_all_missing=True
+        )
 
     for this_input_file_name in input_file_names:
         print('Reading data from: "{0:s}"...'.format(this_input_file_name))
@@ -136,13 +155,20 @@ def _run(input_dir_name, cyclone_id_string, wavelengths_to_keep_microns,
             data_vars=main_data_dict, coords=metadata_dict
         )
 
-        this_output_file_name = satellite_io.find_file(
-            directory_name=output_dir_name,
-            cyclone_id_string=cyclone_id_string,
-            valid_date_string=
-            satellite_io.file_name_to_date(this_input_file_name),
-            raise_error_if_missing=False
-        )
+        if cyclone_id_string == '':
+            this_output_file_name = satellite_io.find_shuffled_file(
+                directory_name=output_dir_name,
+                file_number=shuffled_file_number,
+                raise_error_if_missing=False
+            )
+        else:
+            this_output_file_name = satellite_io.find_file(
+                directory_name=output_dir_name,
+                cyclone_id_string=cyclone_id_string,
+                valid_date_string=
+                satellite_io.file_name_to_date(this_input_file_name),
+                raise_error_if_missing=False
+            )
 
         print('Writing subset data to: "{0:s}"...\n\n'.format(
             this_output_file_name
@@ -162,6 +188,9 @@ if __name__ == '__main__':
     _run(
         input_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
+        shuffled_file_number=getattr(
+            INPUT_ARG_OBJECT, SHUFFLED_FILE_NUMBER_ARG_NAME
+        ),
         wavelengths_to_keep_microns=numpy.array(
             getattr(INPUT_ARG_OBJECT, WAVELENGTHS_TO_KEEP_ARG_NAME), dtype=float
         ),
