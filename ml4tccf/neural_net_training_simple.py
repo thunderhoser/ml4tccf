@@ -661,6 +661,11 @@ def get_times_and_scalar_preds_shuffled(
             scalar_predictor_matrix_by_file[i][good_indices, :]
         )
 
+        print('Number of remaining cyclone IDs and target times = {0:d} and {1:d}'.format(
+            len(cyclone_id_strings_by_file[i]),
+            len(target_times_by_file_unix_sec[i])
+        ))
+
     return (
         cyclone_id_strings_by_file,
         target_times_by_file_unix_sec,
