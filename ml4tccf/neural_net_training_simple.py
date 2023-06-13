@@ -624,6 +624,10 @@ def get_times_and_scalar_preds_shuffled(
             predictor_lag_times_sec=predictor_lag_times_sec
         )
 
+        print('Number of valid examples for {0:d}th file = {1:d}'.format(
+            i + 1, len(cyclone_id_strings_by_file[i])
+        ))
+
     if a_deck_file_name is None:
         scalar_predictor_matrix_by_file = [None] * num_files
 
