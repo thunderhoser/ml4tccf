@@ -679,7 +679,7 @@ def data_generator_shuffled(option_dict):
     option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
     option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
     option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
-    option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY] = int(1e10)
+    option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY] = option_dict[BATCH_SIZE_KEY]
     option_dict[SYNOPTIC_TIMES_ONLY_KEY] = False
 
     option_dict = nn_utils.check_generator_args(option_dict)
