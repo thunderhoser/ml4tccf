@@ -626,6 +626,9 @@ def get_times_and_scalar_preds_shuffled(
             len(target_times_by_file_unix_sec[i])
         ))
 
+        if len(cyclone_id_strings_by_file[i]) == 0:
+            continue
+
         (
             cyclone_id_strings_by_file[i], target_times_by_file_unix_sec[i]
         ) = nn_training_fancy.get_objects_with_desired_lag_times(
@@ -655,6 +658,10 @@ def get_times_and_scalar_preds_shuffled(
     scalar_predictor_matrix_by_file = [numpy.array([], dtype=float)] * num_files
 
     for i in range(num_files):
+        if len(cyclone_id_strings_by_file[i]) == 0:
+            scalar_predictor_matrix_by_file[i] = None
+            continue
+
         scalar_predictor_matrix_by_file[i] = nn_utils.read_scalar_data(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
@@ -662,8 +669,6 @@ def get_times_and_scalar_preds_shuffled(
             cyclone_id_strings=cyclone_id_strings_by_file[i],
             target_times_unix_sec=target_times_by_file_unix_sec[i]
         )
-
-        print(scalar_predictor_matrix_by_file[i])
 
         good_indices = numpy.where(numpy.all(
             numpy.isfinite(scalar_predictor_matrix_by_file[i]), axis=1
@@ -766,6 +771,10 @@ def data_generator_shuffled(option_dict):
         while num_examples_in_memory < num_examples_per_batch:
             if file_index == len(satellite_file_names):
                 file_index = 0
+
+            if len(cyclone_id_strings_by_file[file_index]) == 0:
+                file_index += 1
+                continue
 
             (
                 these_cyclone_id_strings, these_target_times_unix_sec, _
