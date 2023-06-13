@@ -202,9 +202,9 @@ def augment_data(
     N = number of columns in high-res grid
     n = number of columns in low-res grid = M/4
 
-    :param bidirectional_reflectance_matrix: E-by-M-by-N-by-L-by-W numpy array
+    :param bidirectional_reflectance_matrix: E-by-M-by-N-by-LW numpy array
         of reflectance values (unitless).  This may also be None.
-    :param brightness_temp_matrix_kelvins: E-by-m-by-n-by-L-by-w numpy array
+    :param brightness_temp_matrix_kelvins: E-by-m-by-n-by-Lw numpy array
         of brightness temperatures.
     :param num_translations_per_example: T in the above discussion.
     :param mean_translation_low_res_px: Mean translation distance (in units of
@@ -212,9 +212,9 @@ def augment_data(
     :param stdev_translation_low_res_px: Standard deviation of translation
         distance (in units of low-resolution pixels).
     :param sentinel_value: Sentinel value (used for padded pixels around edge).
-    :return: bidirectional_reflectance_matrix: ET-by-M-by-N-by-L-by-W numpy
+    :return: bidirectional_reflectance_matrix: ET-by-M-by-N-by-LW numpy
         array of reflectance values (unitless).  This may also be None.
-    :return: brightness_temp_matrix_kelvins: ET-by-m-by-n-by-L-by-w numpy array
+    :return: brightness_temp_matrix_kelvins: ET-by-m-by-n-by-Lw numpy array
         of brightness temperatures.
     :return: row_translations_low_res_px: length-(ET) numpy array of translation
         distances applied (in units of low-resolution pixels).
@@ -226,7 +226,7 @@ def augment_data(
         brightness_temp_matrix_kelvins
     )
     error_checking.assert_is_numpy_array(
-        brightness_temp_matrix_kelvins, num_dimensions=5
+        brightness_temp_matrix_kelvins, num_dimensions=4
     )
     error_checking.assert_is_integer(num_translations_per_example)
     error_checking.assert_is_geq(num_translations_per_example, 1)
@@ -237,16 +237,15 @@ def augment_data(
             bidirectional_reflectance_matrix
         )
         error_checking.assert_is_numpy_array(
-            bidirectional_reflectance_matrix, num_dimensions=5
+            bidirectional_reflectance_matrix, num_dimensions=4
         )
 
         num_examples = brightness_temp_matrix_kelvins.shape[0]
         num_rows_les_res = brightness_temp_matrix_kelvins.shape[1]
         num_columns_les_res = brightness_temp_matrix_kelvins.shape[2]
-        num_lag_times = brightness_temp_matrix_kelvins.shape[3]
         expected_dim = numpy.array([
             num_examples, 4 * num_rows_les_res, 4 * num_columns_les_res,
-            num_lag_times, bidirectional_reflectance_matrix.shape[-1]
+            bidirectional_reflectance_matrix.shape[-1]
         ], dtype=int)
 
         error_checking.assert_is_numpy_array(
@@ -335,7 +334,7 @@ def augment_data_specific_trans(
         brightness_temp_matrix_kelvins
     )
     error_checking.assert_is_numpy_array(
-        brightness_temp_matrix_kelvins, num_dimensions=5
+        brightness_temp_matrix_kelvins, num_dimensions=4
     )
     error_checking.assert_is_not_nan(sentinel_value)
 
@@ -357,16 +356,15 @@ def augment_data_specific_trans(
             bidirectional_reflectance_matrix
         )
         error_checking.assert_is_numpy_array(
-            bidirectional_reflectance_matrix, num_dimensions=5
+            bidirectional_reflectance_matrix, num_dimensions=4
         )
 
         num_examples = brightness_temp_matrix_kelvins.shape[0]
         num_rows_les_res = brightness_temp_matrix_kelvins.shape[1]
         num_columns_les_res = brightness_temp_matrix_kelvins.shape[2]
-        num_lag_times = brightness_temp_matrix_kelvins.shape[3]
         expected_dim = numpy.array([
             num_examples, 4 * num_rows_les_res, 4 * num_columns_les_res,
-            num_lag_times, bidirectional_reflectance_matrix.shape[-1]
+            bidirectional_reflectance_matrix.shape[-1]
         ], dtype=int)
 
         error_checking.assert_is_numpy_array(
