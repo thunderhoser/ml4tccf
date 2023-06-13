@@ -61,5 +61,5 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
 --validation_years 2022 \
 --num_epochs=1000 \
---num_training_batches_per_epoch=48 \
+--num_training_batches_per_epoch=24 \
 --num_validation_batches_per_epoch=12
