@@ -13,7 +13,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import file_system_utils
 import architecture_utils
-import neural_net
+import neural_net_utils
 import cnn_architecture
 import custom_losses_scalar
 import accum_grad_optimizer
@@ -131,7 +131,7 @@ def _run():
         filepath=output_file_name, overwrite=True, include_optimizer=True
     )
 
-    metafile_name = neural_net.find_metafile(
+    metafile_name = neural_net_utils.find_metafile(
         model_dir_name=os.path.split(output_file_name)[0],
         raise_error_if_missing=False
     )
@@ -143,7 +143,7 @@ def _run():
         optimizer_string
     )
 
-    neural_net._write_metafile(
+    neural_net_utils.write_metafile(
         pickle_file_name=metafile_name,
         num_epochs=100,
         num_training_batches_per_epoch=32,
@@ -157,7 +157,8 @@ def _run():
         early_stopping_patience_epochs=50,
         architecture_dict=option_dict,
         is_model_bnn=False,
-        use_cira_ir_data=False
+        data_type_string=neural_net_utils.RG_SIMPLE_DATA_TYPE_STRING,
+        train_with_shuffled_data=True
     )
 
 
