@@ -556,7 +556,7 @@ def read_scalar_data(
 
         a_deck_indices = numpy.where(numpy.logical_and(
             adt[a_deck_io.VALID_TIME_KEY].values ==
-            int(numpy.round(unique_id_predictor_time_matrix[i, 1])),
+            int(numpy.round(float(unique_id_predictor_time_matrix[i, 1]))),
             adt[a_deck_io.CYCLONE_ID_KEY].values ==
             unique_id_predictor_time_matrix[i, 0]
         ))[0]
