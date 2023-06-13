@@ -218,7 +218,7 @@ def augment_data(
         brightness_temp_matrix_kelvins
     )
     error_checking.assert_is_numpy_array(
-        brightness_temp_matrix_kelvins, num_dimensions=5
+        brightness_temp_matrix_kelvins, num_dimensions=4
     )
     error_checking.assert_is_integer(num_translations_per_example)
     error_checking.assert_is_geq(num_translations_per_example, 1)
@@ -229,16 +229,15 @@ def augment_data(
             bidirectional_reflectance_matrix
         )
         error_checking.assert_is_numpy_array(
-            bidirectional_reflectance_matrix, num_dimensions=5
+            bidirectional_reflectance_matrix, num_dimensions=4
         )
 
         num_examples = brightness_temp_matrix_kelvins.shape[0]
         num_rows_les_res = brightness_temp_matrix_kelvins.shape[1]
         num_columns_les_res = brightness_temp_matrix_kelvins.shape[2]
-        num_lag_times = brightness_temp_matrix_kelvins.shape[3]
         expected_dim = numpy.array([
             num_examples, 4 * num_rows_les_res, 4 * num_columns_les_res,
-            num_lag_times, bidirectional_reflectance_matrix.shape[-1]
+            bidirectional_reflectance_matrix.shape[-1]
         ], dtype=int)
 
         error_checking.assert_is_numpy_array(
@@ -327,7 +326,7 @@ def augment_data_specific_trans(
         brightness_temp_matrix_kelvins
     )
     error_checking.assert_is_numpy_array(
-        brightness_temp_matrix_kelvins, num_dimensions=5
+        brightness_temp_matrix_kelvins, num_dimensions=4
     )
     error_checking.assert_is_not_nan(sentinel_value)
 
@@ -349,16 +348,15 @@ def augment_data_specific_trans(
             bidirectional_reflectance_matrix
         )
         error_checking.assert_is_numpy_array(
-            bidirectional_reflectance_matrix, num_dimensions=5
+            bidirectional_reflectance_matrix, num_dimensions=4
         )
 
         num_examples = brightness_temp_matrix_kelvins.shape[0]
         num_rows_les_res = brightness_temp_matrix_kelvins.shape[1]
         num_columns_les_res = brightness_temp_matrix_kelvins.shape[2]
-        num_lag_times = brightness_temp_matrix_kelvins.shape[3]
         expected_dim = numpy.array([
             num_examples, 4 * num_rows_les_res, 4 * num_columns_les_res,
-            num_lag_times, bidirectional_reflectance_matrix.shape[-1]
+            bidirectional_reflectance_matrix.shape[-1]
         ], dtype=int)
 
         error_checking.assert_is_numpy_array(

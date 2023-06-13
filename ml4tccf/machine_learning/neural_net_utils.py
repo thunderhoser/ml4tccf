@@ -3,6 +3,7 @@
 import os
 import pickle
 import numpy
+import keras
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -545,7 +546,7 @@ def read_scalar_data(
     for i in range(unique_id_predictor_time_matrix.shape[0]):
         a_deck_indices = numpy.where(numpy.logical_and(
             adt[a_deck_io.VALID_TIME_KEY].values ==
-            unique_id_predictor_time_matrix[i, 1],
+            int(numpy.round(float(unique_id_predictor_time_matrix[i, 1]))),
             adt[a_deck_io.CYCLONE_ID_KEY].values ==
             unique_id_predictor_time_matrix[i, 0]
         ))[0]
