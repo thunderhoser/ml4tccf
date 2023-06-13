@@ -106,11 +106,17 @@ def _run(input_dir_name, cyclone_id_string, shuffled_file_number,
             wavelengths_to_keep_microns=wavelengths_to_keep_microns,
             for_high_res=False
         )
-        satellite_table_xarray = satellite_utils.subset_wavelengths(
-            satellite_table_xarray=satellite_table_xarray,
-            wavelengths_to_keep_microns=numpy.array([]),
-            for_high_res=True
-        )
+
+        if (
+                satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY in
+                satellite_table_xarray.variables
+        ):
+            satellite_table_xarray = satellite_utils.subset_wavelengths(
+                satellite_table_xarray=satellite_table_xarray,
+                wavelengths_to_keep_microns=numpy.array([]),
+                for_high_res=True
+            )
+
         satellite_table_xarray = satellite_utils.subset_grid(
             satellite_table_xarray=satellite_table_xarray,
             num_rows_to_keep=NUM_GRID_ROWS_TO_KEEP,
