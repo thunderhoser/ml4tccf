@@ -600,6 +600,11 @@ def get_times_and_scalar_preds_shuffled(
             satellite_file_names[i]
         ).coords[satellite_utils.TIME_DIM].values
 
+        print('FIRST number of remaining cyclone IDs and target times = {0:d} and {1:d}'.format(
+            len(cyclone_id_strings_by_file[i]),
+            len(target_times_by_file_unix_sec[i])
+        ))
+
         these_years = numpy.array([
             int(time_conversion.unix_sec_to_string(t, '%Y'))
             for t in target_times_by_file_unix_sec[i]
@@ -616,6 +621,11 @@ def get_times_and_scalar_preds_shuffled(
             good_indices
         ]
 
+        print('SECOND number of remaining cyclone IDs and target times = {0:d} and {1:d}'.format(
+            len(cyclone_id_strings_by_file[i]),
+            len(target_times_by_file_unix_sec[i])
+        ))
+
         (
             cyclone_id_strings_by_file[i], target_times_by_file_unix_sec[i]
         ) = nn_training_fancy.get_objects_with_desired_lag_times(
@@ -623,6 +633,11 @@ def get_times_and_scalar_preds_shuffled(
             target_times_unix_sec=target_times_by_file_unix_sec[i],
             predictor_lag_times_sec=predictor_lag_times_sec
         )
+
+        print('THIRD number of remaining cyclone IDs and target times = {0:d} and {1:d}'.format(
+            len(cyclone_id_strings_by_file[i]),
+            len(target_times_by_file_unix_sec[i])
+        ))
 
         print('Number of valid examples for {0:d}th file = {1:d}'.format(
             i + 1, len(cyclone_id_strings_by_file[i])
@@ -661,7 +676,7 @@ def get_times_and_scalar_preds_shuffled(
             scalar_predictor_matrix_by_file[i][good_indices, :]
         )
 
-        print('Number of remaining cyclone IDs and target times = {0:d} and {1:d}'.format(
+        print('FOURTH number of remaining cyclone IDs and target times = {0:d} and {1:d}'.format(
             len(cyclone_id_strings_by_file[i]),
             len(target_times_by_file_unix_sec[i])
         ))
