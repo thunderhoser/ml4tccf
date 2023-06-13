@@ -551,6 +551,10 @@ def read_scalar_data(
     adt = a_deck_table_xarray
 
     for i in range(unique_id_predictor_time_matrix.shape[0]):
+        print(unique_id_predictor_time_matrix[i, :])
+        print(adt[a_deck_io.CYCLONE_ID_KEY].values)
+        print('\n\n\n')
+
         a_deck_indices = numpy.where(numpy.logical_and(
             adt[a_deck_io.VALID_TIME_KEY].values ==
             unique_id_predictor_time_matrix[i, 1],
