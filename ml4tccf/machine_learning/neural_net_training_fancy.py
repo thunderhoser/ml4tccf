@@ -3,18 +3,98 @@
 import random
 import numpy
 import keras
+import xarray
+from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
+from ml4tccf.machine_learning import neural_net_utils as nn_utils
 from ml4tccf.machine_learning import data_augmentation
 
-TOLERANCE = 1e-6
+DATE_FORMAT = satellite_io.DATE_FORMAT
+TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
+
+METRES_TO_KM = 0.001
+MINUTES_TO_SECONDS = 60
+DAYS_TO_SECONDS = 86400
+
+SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
+
+BIDIRECTIONAL_REFLECTANCES_KEY = nn_utils.BIDIRECTIONAL_REFLECTANCES_KEY
+BRIGHTNESS_TEMPS_KEY = nn_utils.BRIGHTNESS_TEMPS_KEY
+GRID_SPACINGS_KEY = nn_utils.GRID_SPACINGS_KEY
+CENTER_LATITUDES_KEY = nn_utils.CENTER_LATITUDES_KEY
+TARGET_TIMES_KEY = nn_utils.TARGET_TIMES_KEY
+LOW_RES_LATITUDES_KEY = nn_utils.LOW_RES_LATITUDES_KEY
+LOW_RES_LONGITUDES_KEY = nn_utils.LOW_RES_LONGITUDES_KEY
+
+PREDICTOR_MATRICES_KEY = nn_utils.PREDICTOR_MATRICES_KEY
+TARGET_MATRIX_KEY = nn_utils.TARGET_MATRIX_KEY
+HIGH_RES_LATITUDES_KEY = nn_utils.HIGH_RES_LATITUDES_KEY
+HIGH_RES_LONGITUDES_KEY = nn_utils.HIGH_RES_LONGITUDES_KEY
+
+SATELLITE_DIRECTORY_KEY = nn_utils.SATELLITE_DIRECTORY_KEY
+YEARS_KEY = nn_utils.YEARS_KEY
+LAG_TIMES_KEY = nn_utils.LAG_TIMES_KEY
+HIGH_RES_WAVELENGTHS_KEY = nn_utils.HIGH_RES_WAVELENGTHS_KEY
+LOW_RES_WAVELENGTHS_KEY = nn_utils.LOW_RES_WAVELENGTHS_KEY
+BATCH_SIZE_KEY = nn_utils.BATCH_SIZE_KEY
+MAX_EXAMPLES_PER_CYCLONE_KEY = nn_utils.MAX_EXAMPLES_PER_CYCLONE_KEY
+NUM_GRID_ROWS_KEY = nn_utils.NUM_GRID_ROWS_KEY
+NUM_GRID_COLUMNS_KEY = nn_utils.NUM_GRID_COLUMNS_KEY
+LAG_TIME_TOLERANCE_KEY = nn_utils.LAG_TIME_TOLERANCE_KEY
+MAX_MISSING_LAG_TIMES_KEY = nn_utils.MAX_MISSING_LAG_TIMES_KEY
+MAX_INTERP_GAP_KEY = nn_utils.MAX_INTERP_GAP_KEY
+SENTINEL_VALUE_KEY = nn_utils.SENTINEL_VALUE_KEY
+DATA_AUG_NUM_TRANS_KEY = nn_utils.DATA_AUG_NUM_TRANS_KEY
+DATA_AUG_MEAN_TRANS_KEY = nn_utils.DATA_AUG_MEAN_TRANS_KEY
+DATA_AUG_STDEV_TRANS_KEY = nn_utils.DATA_AUG_STDEV_TRANS_KEY
+SYNOPTIC_TIMES_ONLY_KEY = nn_utils.SYNOPTIC_TIMES_ONLY_KEY
+A_DECK_FILE_KEY = nn_utils.A_DECK_FILE_KEY
+SCALAR_A_DECK_FIELDS_KEY = nn_utils.SCALAR_A_DECK_FIELDS_KEY
+REMOVE_NONTROPICAL_KEY = nn_utils.REMOVE_NONTROPICAL_KEY
+SEMANTIC_SEG_FLAG_KEY = nn_utils.SEMANTIC_SEG_FLAG_KEY
+TARGET_SMOOOTHER_STDEV_KEY = nn_utils.TARGET_SMOOOTHER_STDEV_KEY
 
 
-def _read_satellite_data_one_cyclone(
+def _date_in_time_period(date_string, start_time_unix_sec, end_time_unix_sec):
+    """Determines whether or not date is in time period.
+
+    :param date_string: Date (format "yyyy-mm-dd").
+    :param start_time_unix_sec: Start of time period.
+    :param end_time_unix_sec: End of time period.
+    :return: result_flag: Boolean flag.
+    """
+
+    start_date_string = time_conversion.unix_sec_to_string(
+        start_time_unix_sec, DATE_FORMAT
+    )
+    if start_date_string == date_string:
+        return True
+
+    end_date_string = time_conversion.unix_sec_to_string(
+        end_time_unix_sec, DATE_FORMAT
+    )
+    if end_date_string == date_string:
+        return True
+
+    date_start_time_unix_sec = time_conversion.string_to_unix_sec(
+        date_string, DATE_FORMAT
+    )
+    if start_time_unix_sec <= date_start_time_unix_sec <= end_time_unix_sec:
+        return True
+
+    date_end_time_unix_sec = date_start_time_unix_sec + DAYS_TO_SECONDS - 1
+    if start_time_unix_sec <= date_end_time_unix_sec <= end_time_unix_sec:
+        return True
+
+    return False
+
+
+def _read_satellite_data_1cyclone(
         input_file_names, lag_times_minutes, lag_time_tolerance_sec,
         max_num_missing_lag_times, max_interp_gap_sec,
         high_res_wavelengths_microns, low_res_wavelengths_microns,
@@ -30,9 +110,6 @@ def _read_satellite_data_one_cyclone(
     m = number of rows in low-res grid = M/4
     N = number of columns in high-res grid
     n = number of columns in low-res grid = M/4
-
-    If the argument `target_times_unix_sec` is empty, `num_target_times` and
-    `synoptic_times_only` will be used instead.
 
     :param input_file_names: 1-D list of paths to input files (will be read by
         `satellite_io.read_file`).
@@ -51,9 +128,7 @@ def _read_satellite_data_one_cyclone(
     :param num_columns_low_res: n in the above discussion.
     :param sentinel_value: NaN's will be replaced with this value.
     :param return_coords: Boolean flag.  If True, will return coordinates.
-    :param target_times_unix_sec: length-T numpy array of target times.  If this
-        argument is None, `num_target_times` and `synoptic_times_only` will be
-        used instead.
+    :param target_times_unix_sec: length-T numpy array of target times.
 
     :return: data_dict: Dictionary with the following keys.  If
         `return_coords == False`, the last 4 keys will be None.
@@ -79,8 +154,7 @@ def _read_satellite_data_one_cyclone(
 
     # TODO(thunderhoser): If I ever start using visible data, I will need to
     # choose target times during the day here.
-
-    desired_file_to_times_dict = _decide_files_to_read_one_cyclone(
+    desired_file_to_times_dict = decide_files_to_read_one_cyclone(
         satellite_file_names=input_file_names,
         target_times_unix_sec=target_times_unix_sec,
         lag_times_minutes=lag_times_minutes,
@@ -225,13 +299,13 @@ def _read_satellite_data_one_cyclone(
         )
         these_tolerances_sec[
             these_desired_times_unix_sec == target_times_unix_sec[i]
-            ] = 0
+        ] = 0
         these_max_gaps_sec = numpy.full(
             len(these_desired_times_unix_sec), max_interp_gap_sec
         )
         these_max_gaps_sec[
             these_desired_times_unix_sec == target_times_unix_sec[i]
-            ] = 0
+        ] = 0
 
         try:
             new_table_xarray = satellite_utils.subset_times(
@@ -345,8 +419,343 @@ def _read_satellite_data_one_cyclone(
     }
 
 
+def choose_random_target_times(all_target_times_unix_sec, num_times_desired):
+    """Chooses random target times from array.
+
+    T = number of times chosen
+
+    :param all_target_times_unix_sec: 1-D numpy array with all target times.
+    :param num_times_desired: Number of times desired.
+    :return: chosen_target_times_unix_sec: length-T numpy array of chosen target
+        times.
+    :return: chosen_indices: length-T numpy array of corresponding indices.
+    """
+
+    error_checking.assert_is_integer_numpy_array(all_target_times_unix_sec)
+    error_checking.assert_is_numpy_array(
+        all_target_times_unix_sec, num_dimensions=1
+    )
+    error_checking.assert_is_integer(num_times_desired)
+    error_checking.assert_is_greater(num_times_desired, 0)
+
+    all_target_dates_unix_sec = number_rounding.floor_to_nearest(
+        all_target_times_unix_sec, DAYS_TO_SECONDS
+    )
+    unique_target_dates_unix_sec = numpy.unique(all_target_dates_unix_sec)
+    chosen_indices = numpy.array([], dtype=int)
+
+    for i in range(len(unique_target_dates_unix_sec)):
+        these_indices = numpy.where(
+            all_target_dates_unix_sec == unique_target_dates_unix_sec[i]
+        )[0]
+
+        num_times_still_needed = num_times_desired - len(chosen_indices)
+        if len(these_indices) > num_times_still_needed:
+            these_indices = numpy.random.choice(
+                these_indices, size=num_times_still_needed, replace=False
+            )
+
+        chosen_indices = numpy.concatenate((chosen_indices, these_indices))
+        if len(chosen_indices) == num_times_desired:
+            break
+
+    return all_target_times_unix_sec[chosen_indices], chosen_indices
+
+
+def get_objects_with_desired_lag_times(
+        cyclone_id_strings, target_times_unix_sec, predictor_lag_times_sec):
+    """Finds cyclone objects for which the desired lag times are available.
+
+    T = original number of cyclone objects
+    t = number of cyclone objects for which desired lag times are available
+
+    :param cyclone_id_strings: length-T list of cyclone IDs.
+    :param target_times_unix_sec: length-T numpy array of target times.
+    :param predictor_lag_times_sec: 1-D numpy array of lag times for predictors.
+    :return: cyclone_id_strings: length-t list of cyclone IDs.
+    :return: target_times_unix_sec: length-t numpy array of target times.
+    """
+
+    # Check input args.
+    try:
+        error_checking.assert_is_string_list(cyclone_id_strings)
+    except:
+        error_checking.assert_is_numpy_array(
+            cyclone_id_strings, num_dimensions=1
+        )
+
+    num_objects = len(cyclone_id_strings)
+    expected_dim = numpy.array([num_objects], dtype=int)
+    error_checking.assert_is_integer_numpy_array(target_times_unix_sec)
+    error_checking.assert_is_numpy_array(
+        target_times_unix_sec, exact_dimensions=expected_dim
+    )
+
+    error_checking.assert_is_integer_numpy_array(predictor_lag_times_sec)
+    error_checking.assert_is_geq_numpy_array(predictor_lag_times_sec, 0)
+    error_checking.assert_is_numpy_array(
+        predictor_lag_times_sec, num_dimensions=1
+    )
+
+    # Do actual stuff.
+    cyclone_id_strings = numpy.array(cyclone_id_strings)
+    good_indices = numpy.array([], dtype=int)
+
+    for this_unique_id_string in numpy.unique(cyclone_id_strings):
+        this_cyclone_indices = numpy.where(
+            cyclone_id_strings == this_unique_id_string
+        )[0]
+
+        good_flags = numpy.array([
+            numpy.all(numpy.isin(
+                element=t - predictor_lag_times_sec,
+                test_elements=target_times_unix_sec[this_cyclone_indices]
+            ))
+            for t in target_times_unix_sec[this_cyclone_indices]
+        ], dtype=bool)
+
+        good_indices = numpy.concatenate((
+            good_indices, this_cyclone_indices[good_flags]
+        ))
+
+    good_indices = numpy.sort(good_indices)
+    return (
+        cyclone_id_strings[good_indices].tolist(),
+        target_times_unix_sec[good_indices]
+    )
+
+
+def decide_files_to_read_one_cyclone(
+        satellite_file_names, target_times_unix_sec,
+        lag_times_minutes, lag_time_tolerance_sec, max_interp_gap_sec):
+    """Decides which satellite files to read for one tropical cyclone.
+
+    :param satellite_file_names: 1-D list of paths to input files (will be read
+        by `satellite_io.read_file`).
+    :param target_times_unix_sec: 1-D numpy array of target times.
+    :param lag_times_minutes: 1-D numpy array of lag times for predictors.
+    :param lag_time_tolerance_sec: Tolerance for lag times (tolerance for target
+        time is always zero).
+    :param max_interp_gap_sec: Maximum gap (in seconds) over which to
+        interpolate for missing lag times.
+    :return: desired_file_to_times_dict: Dictionary, where each key is the path
+        to a desired file and the corresponding value is a length-2 list:
+        [start_times_unix_sec, end_times_unix_sec].  Each list item is a 1-D
+        numpy array; the two arrays have the same length; and they contain
+        start/end times to be read.
+    """
+
+    error_checking.assert_is_string_list(satellite_file_names)
+    error_checking.assert_is_integer_numpy_array(target_times_unix_sec)
+    error_checking.assert_is_numpy_array(
+        target_times_unix_sec, num_dimensions=1
+    )
+    error_checking.assert_is_integer_numpy_array(lag_times_minutes)
+    error_checking.assert_is_geq_numpy_array(lag_times_minutes, 0)
+    error_checking.assert_is_numpy_array(lag_times_minutes, num_dimensions=1)
+    error_checking.assert_is_integer(lag_time_tolerance_sec)
+    error_checking.assert_is_geq(lag_time_tolerance_sec, 0)
+    error_checking.assert_is_integer(max_interp_gap_sec)
+    error_checking.assert_is_geq(max_interp_gap_sec, 0)
+
+    lag_times_sec = MINUTES_TO_SECONDS * lag_times_minutes
+    num_target_times = len(target_times_unix_sec)
+
+    desired_start_times_unix_sec = numpy.full(num_target_times, -1, dtype=int)
+    desired_end_times_unix_sec = numpy.full(num_target_times, -2, dtype=int)
+
+    offset_sec = max([
+        lag_time_tolerance_sec, max_interp_gap_sec
+    ])
+
+    for i in range(num_target_times):
+        desired_start_times_unix_sec[i] = (
+            target_times_unix_sec[i] - numpy.max(lag_times_sec)
+        )
+        desired_end_times_unix_sec[i] = (
+            target_times_unix_sec[i] - numpy.min(lag_times_sec)
+        )
+
+        if desired_start_times_unix_sec[i] != target_times_unix_sec[i]:
+            desired_start_times_unix_sec[i] -= offset_sec
+        if desired_end_times_unix_sec[i] != target_times_unix_sec[i]:
+            desired_end_times_unix_sec[i] += offset_sec
+
+    satellite_file_date_strings = [
+        satellite_io.file_name_to_date(f) for f in satellite_file_names
+    ]
+    desired_file_to_times_dict = dict()
+
+    for j in range(len(satellite_file_names)):
+        for i in range(num_target_times):
+            if not _date_in_time_period(
+                    date_string=satellite_file_date_strings[j],
+                    start_time_unix_sec=desired_start_times_unix_sec[i],
+                    end_time_unix_sec=desired_end_times_unix_sec[i]
+            ):
+                continue
+
+            if satellite_file_names[j] not in desired_file_to_times_dict:
+                desired_file_to_times_dict[satellite_file_names[j]] = [
+                    desired_start_times_unix_sec[[i]],
+                    desired_end_times_unix_sec[[i]]
+                ]
+
+                continue
+
+            d = desired_file_to_times_dict
+
+            d[satellite_file_names[j]][0] = numpy.concatenate((
+                d[satellite_file_names[j]][0],
+                desired_start_times_unix_sec[[i]]
+            ))
+            d[satellite_file_names[j]][1] = numpy.concatenate((
+                d[satellite_file_names[j]][1],
+                desired_end_times_unix_sec[[i]]
+            ))
+
+            desired_file_to_times_dict = d
+
+    return desired_file_to_times_dict
+
+
+def get_synoptic_target_times(all_target_times_unix_sec):
+    """Reduces array of target times to synoptic times only.
+
+    :param all_target_times_unix_sec: 1-D numpy array with all target times.
+    :return: synoptic_target_times_unix_sec: 1-D numpy array with only synoptic
+        target times.
+    """
+
+    error_checking.assert_is_integer_numpy_array(all_target_times_unix_sec)
+    error_checking.assert_is_numpy_array(
+        all_target_times_unix_sec, num_dimensions=1
+    )
+
+    return all_target_times_unix_sec[
+        numpy.mod(all_target_times_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC) == 0
+    ]
+
+
+def get_target_times_and_scalar_predictors(
+        cyclone_id_strings, synoptic_times_only,
+        satellite_file_names_by_cyclone, a_deck_file_name,
+        scalar_a_deck_field_names, remove_nontropical_systems,
+        predictor_lag_times_sec):
+    """Returns target times and scalar predictors for each cyclone.
+
+    C = number of cyclones
+    F = number of scalar fields
+    T_i = number of target times for [i]th cyclone
+
+    :param cyclone_id_strings: length-C list of cyclone IDs.
+    :param synoptic_times_only: Boolean flag.  If True (False), only synoptic
+        times (all times) can be target times.
+    :param satellite_file_names_by_cyclone: length-C list, where each item is
+        a list of paths to satellite files (readable by
+        `satellite_io.read_file`).
+    :param a_deck_file_name: Path to A-deck file, containing scalar predictors
+        (readable by `a_deck_io.read_file`).  If you do not want scalar
+        predictors, make this None.
+    :param scalar_a_deck_field_names: length-F list of field names.  If
+        `a_deck_file_name` is None, make this None.
+    :param remove_nontropical_systems:
+        [used only if `a_deck_file_name` is not None]
+        Boolean flag.  If True, will return only target times corresponding to
+        tropical systems (no extratropical, subtropical, etc.).
+    :param predictor_lag_times_sec: 1-D numpy array of lag times for predictors.
+        Make this None if you do not want to consider predictor lag times.
+    :return: target_times_by_cyclone_unix_sec: length-C list, where the [i]th
+        item is a numpy array (length T_i) of target times.
+    :return: scalar_predictor_matrix_by_cyclone: length-C list, where the [i]th
+        item is a numpy array (T_i x F) of scalar predictors.
+    """
+
+    # Check input args.
+    error_checking.assert_is_string_list(cyclone_id_strings)
+    error_checking.assert_is_boolean(synoptic_times_only)
+    error_checking.assert_is_list(satellite_file_names_by_cyclone)
+
+    num_cyclones = len(cyclone_id_strings)
+    error_checking.assert_equals(
+        len(satellite_file_names_by_cyclone), num_cyclones
+    )
+    for i in range(num_cyclones):
+        error_checking.assert_is_string_list(satellite_file_names_by_cyclone[i])
+
+    if predictor_lag_times_sec is not None:
+        error_checking.assert_is_integer_numpy_array(predictor_lag_times_sec)
+        error_checking.assert_is_numpy_array(
+            predictor_lag_times_sec, num_dimensions=1
+        )
+        error_checking.assert_is_geq_numpy_array(predictor_lag_times_sec, 0)
+
+    # Do actual stuff.
+    num_cyclones = len(cyclone_id_strings)
+    target_times_by_cyclone_unix_sec = (
+        [numpy.array([], dtype=int)] * num_cyclones
+    )
+
+    for i in range(num_cyclones):
+        target_times_by_cyclone_unix_sec[i] = numpy.concatenate([
+            xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
+            for f in satellite_file_names_by_cyclone[i]
+        ])
+
+        if synoptic_times_only:
+            target_times_by_cyclone_unix_sec[i] = get_synoptic_target_times(
+                all_target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
+            )
+
+        if predictor_lag_times_sec is None:
+            continue
+
+        this_num_times = len(target_times_by_cyclone_unix_sec[i])
+
+        _, target_times_by_cyclone_unix_sec[i] = (
+            get_objects_with_desired_lag_times(
+                cyclone_id_strings=[cyclone_id_strings[i]] * this_num_times,
+                target_times_unix_sec=target_times_by_cyclone_unix_sec[i],
+                predictor_lag_times_sec=predictor_lag_times_sec
+            )
+        )
+
+    if a_deck_file_name is None:
+        scalar_predictor_matrix_by_cyclone = [None] * num_cyclones
+        return (
+            target_times_by_cyclone_unix_sec, scalar_predictor_matrix_by_cyclone
+        )
+
+    scalar_predictor_matrix_by_cyclone = (
+        [numpy.array([], dtype=float)] * num_cyclones
+    )
+
+    for i in range(num_cyclones):
+        this_num_times = len(target_times_by_cyclone_unix_sec[i])
+
+        scalar_predictor_matrix_by_cyclone[i] = nn_utils.read_scalar_data(
+            a_deck_file_name=a_deck_file_name,
+            field_names=scalar_a_deck_field_names,
+            remove_nontropical_systems=remove_nontropical_systems,
+            cyclone_id_strings=[cyclone_id_strings[i]] * this_num_times,
+            target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
+        )
+
+        good_indices = numpy.all(
+            numpy.isfinite(scalar_predictor_matrix_by_cyclone[i]), axis=1
+        )
+        target_times_by_cyclone_unix_sec[i] = (
+            target_times_by_cyclone_unix_sec[i][good_indices]
+        )
+        scalar_predictor_matrix_by_cyclone[i] = (
+            scalar_predictor_matrix_by_cyclone[i][good_indices, :]
+        )
+
+    return target_times_by_cyclone_unix_sec, scalar_predictor_matrix_by_cyclone
+
+
 def create_data(option_dict, cyclone_id_string, num_target_times):
-    """Creates input data for neural net (without being a generator).
+    """Creates, rather than generates, neural-net inputs.
 
     E = batch size = number of examples after data augmentation
     L = number of lag times for predictors
@@ -380,7 +789,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         longitudes (deg east).
     """
 
-    option_dict = _check_generator_args(option_dict)
+    option_dict = nn_utils.check_generator_args(option_dict)
     error_checking.assert_is_integer(num_target_times)
     error_checking.assert_is_greater(num_target_times, 0)
 
@@ -423,14 +832,14 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
 
     (
         all_target_times_unix_sec, all_scalar_predictor_matrix
-    ) = _get_target_times_and_scalar_predictors(
+    ) = get_target_times_and_scalar_predictors(
         cyclone_id_strings=[cyclone_id_string],
         synoptic_times_only=synoptic_times_only,
         satellite_file_names_by_cyclone=[satellite_file_names],
-        cira_ir_file_name_by_cyclone=None,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
-        remove_nontropical_systems=remove_nontropical_systems
+        remove_nontropical_systems=remove_nontropical_systems,
+        predictor_lag_times_sec=None
     )
 
     all_target_times_unix_sec = all_target_times_unix_sec[0]
@@ -440,13 +849,12 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         num_target_times + 2
     ])
 
-    chosen_target_times_unix_sec = _choose_random_target_times(
+    chosen_target_times_unix_sec = choose_random_target_times(
         all_target_times_unix_sec=all_target_times_unix_sec + 0,
-        num_times_desired=conservative_num_target_times,
-        for_cira_ir=False
+        num_times_desired=conservative_num_target_times
     )[0]
 
-    data_dict = _read_satellite_data_one_cyclone(
+    data_dict = _read_satellite_data_1cyclone(
         input_file_names=satellite_file_names,
         target_times_unix_sec=chosen_target_times_unix_sec,
         lag_times_minutes=lag_times_minutes,
@@ -512,12 +920,14 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
             data_dict[HIGH_RES_LONGITUDES_KEY][:num_target_times, ...]
         )
 
-    brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
+    brightness_temp_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
     )
     if bidirectional_reflectance_matrix is not None:
-        bidirectional_reflectance_matrix = combine_lag_times_and_wavelengths(
-            bidirectional_reflectance_matrix
+        bidirectional_reflectance_matrix = (
+            nn_utils.combine_lag_times_and_wavelengths(
+                bidirectional_reflectance_matrix
+            )
         )
 
     (
@@ -542,7 +952,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     )
 
     low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
-        _grid_coords_3d_to_4d(
+        nn_utils.grid_coords_3d_to_4d(
             latitude_matrix_deg_n=low_res_latitude_matrix_deg_n,
             longitude_matrix_deg_e=low_res_longitude_matrix_deg_e
         )
@@ -577,7 +987,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         )
 
         high_res_latitude_matrix_deg_n, high_res_longitude_matrix_deg_e = (
-            _grid_coords_3d_to_4d(
+            nn_utils.grid_coords_3d_to_4d(
                 latitude_matrix_deg_n=high_res_latitude_matrix_deg_n,
                 longitude_matrix_deg_e=high_res_longitude_matrix_deg_e
             )
@@ -641,7 +1051,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         predictor_matrices.append(scalar_predictor_matrix)
 
     if semantic_segmentation_flag:
-        target_matrix = _make_targets_for_semantic_seg(
+        target_matrix = nn_utils.make_targets_for_semantic_seg(
             row_translations_px=row_translations_low_res_px,
             column_translations_px=column_translations_low_res_px,
             grid_spacings_km=grid_spacings_km,
@@ -674,16 +1084,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
 def create_data_specific_trans(
         option_dict, cyclone_id_string, target_times_unix_sec,
         row_translations_low_res_px, column_translations_low_res_px):
-    """Creates NN-input data with specific (instead of random) translations.
+    """Creates data with specific (instead of random) translations.
 
     E = batch size = number of examples after data augmentation
-    L = number of lag times for predictors
-    W = number of high-res wavelengths
-    w = number of low-res wavelengths
-    M = number of rows in high-res grid
-    m = number of rows in low-res grid = M/4
-    N = number of columns in high-res grid
-    n = number of columns in low-res grid = M/4
 
     :param option_dict: See doc for `data_generator`.
     :param cyclone_id_string: Will create data for this cyclone.
@@ -699,7 +1102,7 @@ def create_data_specific_trans(
     """
 
     # Check input args.
-    option_dict = _check_generator_args(option_dict)
+    option_dict = nn_utils.check_generator_args(option_dict)
 
     error_checking.assert_is_integer_numpy_array(target_times_unix_sec)
     error_checking.assert_is_numpy_array(
@@ -761,7 +1164,7 @@ def create_data_specific_trans(
 
     unique_target_times_unix_sec = numpy.unique(target_times_unix_sec)
 
-    data_dict = _read_satellite_data_one_cyclone(
+    data_dict = _read_satellite_data_1cyclone(
         input_file_names=satellite_file_names,
         target_times_unix_sec=unique_target_times_unix_sec,
         lag_times_minutes=lag_times_minutes,
@@ -785,11 +1188,13 @@ def create_data_specific_trans(
     if a_deck_file_name is None:
         scalar_predictor_matrix = None
     else:
-        scalar_predictor_matrix = _read_scalar_data_one_cyclone(
+        this_num_times = len(data_dict[TARGET_TIMES_KEY])
+
+        scalar_predictor_matrix = nn_utils.read_scalar_data(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
             remove_nontropical_systems=remove_nontropical_systems,
-            cyclone_id_string=cyclone_id_string,
+            cyclone_id_strings=[cyclone_id_string] * this_num_times,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
         )
 
@@ -850,12 +1255,14 @@ def create_data_specific_trans(
             idxs, ...
         ]
 
-    brightness_temp_matrix_kelvins = combine_lag_times_and_wavelengths(
+    brightness_temp_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
     )
     if bidirectional_reflectance_matrix is not None:
-        bidirectional_reflectance_matrix = combine_lag_times_and_wavelengths(
-            bidirectional_reflectance_matrix
+        bidirectional_reflectance_matrix = (
+            nn_utils.combine_lag_times_and_wavelengths(
+                bidirectional_reflectance_matrix
+            )
         )
 
     (
@@ -878,7 +1285,7 @@ def create_data_specific_trans(
     )
 
     low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
-        _grid_coords_3d_to_4d(
+        nn_utils.grid_coords_3d_to_4d(
             latitude_matrix_deg_n=low_res_latitude_matrix_deg_n,
             longitude_matrix_deg_e=low_res_longitude_matrix_deg_e
         )
@@ -913,7 +1320,7 @@ def create_data_specific_trans(
         )
 
         high_res_latitude_matrix_deg_n, high_res_longitude_matrix_deg_e = (
-            _grid_coords_3d_to_4d(
+            nn_utils.grid_coords_3d_to_4d(
                 latitude_matrix_deg_n=high_res_latitude_matrix_deg_n,
                 longitude_matrix_deg_e=high_res_longitude_matrix_deg_e
             )
@@ -944,7 +1351,7 @@ def create_data_specific_trans(
         predictor_matrices.append(scalar_predictor_matrix)
 
     if semantic_segmentation_flag:
-        target_matrix = _make_targets_for_semantic_seg(
+        target_matrix = nn_utils.make_targets_for_semantic_seg(
             row_translations_px=row_translations_low_res_px,
             column_translations_px=column_translations_low_res_px,
             grid_spacings_km=grid_spacings_km,
@@ -972,9 +1379,6 @@ def create_data_specific_trans(
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
         LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
     }
-
-
-
 
 
 def data_generator(option_dict):
@@ -1011,7 +1415,7 @@ def data_generator(option_dict):
     option_dict["num_columns_low_res"]: Same but for columns.  This is n in the
         above definitions.
     option_dict["data_aug_num_translations"]: Number of translations for each
-        cyclone.  Total batch size will be
+        example.  Total batch size will be
         num_examples_per_batch * data_aug_num_translations.
     option_dict["data_aug_mean_translation_low_res_px"]: Mean translation
         distance (in units of low-resolution pixels) for data augmentation.
@@ -1024,18 +1428,25 @@ def data_generator(option_dict):
     option_dict["max_interp_gap_sec"]: Max gap (seconds) for interpolation to
         missing lag time.
     option_dict["sentinel_value"]: Sentinel value (will be used to replace NaN).
+    option_dict["synoptic_times_only"]: Boolean flag.  If True, only synoptic
+        times (0000 UTC, 0600 UTC, 1200 UTC, 1800 UTC) can be used as target
+        times.  If False, any time can be a target time.
     option_dict["scalar_a_deck_field_names"]: length-F list of scalar fields.
-    option_dict["a_deck_file_name"]: Path to A-deck file, from which scalar
-        fields will be read.
+    option_dict["remove_nontropical_systems"]: Boolean flag.  If True, only
+        tropical systems will be used for training.  If False, all systems
+        (including subtropical, post-tropical, etc.) will be used.
+    option_dict["a_deck_file_name"]: Path to A-deck file, which is needed if
+        `len(scalar_a_deck_field_names) > 0 or remove_nontropical_systems`.
+        If A-deck file is not needed, you can make this None.
 
     :return: predictor_matrices: If both high- and low-resolution data are
-        desired, this will be a list with the items
+        used, this will be a list with the items
         [bidirectional_reflectance_matrix, brightness_temp_matrix_kelvins].
 
-        If only low-res data are desired, this will be a list with one item,
+        If only low-res data are used, this will be a list with one item,
         [brightness_temp_matrix_kelvins].
 
-        If scalar data are also desired, append scalar_predictor_matrix to the
+        If scalar data are also used, append scalar_predictor_matrix to the
         above list.
 
         bidirectional_reflectance_matrix: E-by-M-by-N-by-(W * L) numpy array
@@ -1068,7 +1479,7 @@ def data_generator(option_dict):
         deg north.
     """
 
-    option_dict = _check_generator_args(option_dict)
+    option_dict = nn_utils.check_generator_args(option_dict)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     years = option_dict[YEARS_KEY]
@@ -1127,14 +1538,14 @@ def data_generator(option_dict):
 
     (
         target_times_by_cyclone_unix_sec, scalar_predictor_matrix_by_cyclone
-    ) = _get_target_times_and_scalar_predictors(
+    ) = get_target_times_and_scalar_predictors(
         cyclone_id_strings=cyclone_id_strings,
         synoptic_times_only=synoptic_times_only,
         satellite_file_names_by_cyclone=satellite_file_names_by_cyclone,
-        cira_ir_file_name_by_cyclone=None,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
-        remove_nontropical_systems=remove_nontropical_systems
+        remove_nontropical_systems=remove_nontropical_systems,
+        predictor_lag_times_sec=None
     )
 
     cyclone_index = 0
@@ -1156,18 +1567,17 @@ def data_generator(option_dict):
                 num_examples_per_batch - num_examples_in_memory
             ])
 
-            new_target_times_unix_sec = _choose_random_target_times(
+            new_target_times_unix_sec = choose_random_target_times(
                 all_target_times_unix_sec=
                 target_times_by_cyclone_unix_sec[cyclone_index] + 0,
-                num_times_desired=num_examples_to_read,
-                for_cira_ir=False
+                num_times_desired=num_examples_to_read
             )[0]
 
             if len(new_target_times_unix_sec) == 0:
                 cyclone_index += 1
                 continue
 
-            data_dict = _read_satellite_data_one_cyclone(
+            data_dict = _read_satellite_data_1cyclone(
                 input_file_names=satellite_file_names_by_cyclone[cyclone_index],
                 target_times_unix_sec=new_target_times_unix_sec,
                 lag_times_minutes=lag_times_minutes,
@@ -1207,21 +1617,23 @@ def data_generator(option_dict):
 
                 this_scalar_predictor_matrix = (
                     scalar_predictor_matrix_by_cyclone[cyclone_index - 1][
-                    row_indices, :
+                        row_indices, :
                     ]
                 )
 
-            this_bt_matrix_kelvins = combine_lag_times_and_wavelengths(
+            this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
                 this_bt_matrix_kelvins
             )
             if this_reflectance_matrix is not None:
-                this_reflectance_matrix = combine_lag_times_and_wavelengths(
-                    this_reflectance_matrix
+                this_reflectance_matrix = (
+                    nn_utils.combine_lag_times_and_wavelengths(
+                        this_reflectance_matrix
+                    )
                 )
 
             if brightness_temp_matrix_kelvins is None:
                 these_dim = (
-                        (num_examples_per_batch,) + this_bt_matrix_kelvins.shape[1:]
+                    (num_examples_per_batch,) + this_bt_matrix_kelvins.shape[1:]
                 )
                 brightness_temp_matrix_kelvins = numpy.full(
                     these_dim, numpy.nan
@@ -1234,8 +1646,8 @@ def data_generator(option_dict):
 
                 if this_reflectance_matrix is not None:
                     these_dim = (
-                            (num_examples_per_batch,) +
-                            this_reflectance_matrix.shape[1:]
+                        (num_examples_per_batch,) +
+                        this_reflectance_matrix.shape[1:]
                     )
                     bidirectional_reflectance_matrix = numpy.full(
                         these_dim, numpy.nan
@@ -1243,8 +1655,8 @@ def data_generator(option_dict):
 
                 if this_scalar_predictor_matrix is not None:
                     these_dim = (
-                            (num_examples_per_batch,) +
-                            this_scalar_predictor_matrix.shape[1:]
+                        (num_examples_per_batch,) +
+                        this_scalar_predictor_matrix.shape[1:]
                     )
                     scalar_predictor_matrix = numpy.full(these_dim, numpy.nan)
 
@@ -1260,7 +1672,7 @@ def data_generator(option_dict):
 
             if this_reflectance_matrix is not None:
                 bidirectional_reflectance_matrix[
-                first_index:last_index, ...
+                    first_index:last_index, ...
                 ] = this_reflectance_matrix
 
             if this_scalar_predictor_matrix is not None:
@@ -1320,7 +1732,7 @@ def data_generator(option_dict):
             predictor_matrices.append(scalar_predictor_matrix)
 
         if semantic_segmentation_flag:
-            target_matrix = _make_targets_for_semantic_seg(
+            target_matrix = nn_utils.make_targets_for_semantic_seg(
                 row_translations_px=row_translations_low_res_px,
                 column_translations_px=column_translations_low_res_px,
                 grid_spacings_km=grid_spacings_km,
@@ -1416,8 +1828,10 @@ def train_model(
 
         validation_option_dict[this_key] = training_option_dict[this_key]
 
-    training_option_dict = _check_generator_args(training_option_dict)
-    validation_option_dict = _check_generator_args(validation_option_dict)
+    training_option_dict = nn_utils.check_generator_args(training_option_dict)
+    validation_option_dict = nn_utils.check_generator_args(
+        validation_option_dict
+    )
 
     model_file_name = '{0:s}/model.h5'.format(output_dir_name)
 
@@ -1446,12 +1860,12 @@ def train_model(
     training_generator = data_generator(training_option_dict)
     validation_generator = data_generator(validation_option_dict)
 
-    metafile_name = find_metafile(
+    metafile_name = nn_utils.find_metafile(
         model_dir_name=output_dir_name, raise_error_if_missing=False
     )
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
 
-    _write_metafile(
+    nn_utils.write_metafile(
         pickle_file_name=metafile_name, num_epochs=num_epochs,
         num_training_batches_per_epoch=num_training_batches_per_epoch,
         training_option_dict=training_option_dict,

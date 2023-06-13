@@ -6,88 +6,53 @@ import numpy
 import keras
 import xarray
 from gewittergefahr.gg_utils import time_conversion
-from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
-from ml4tccf.machine_learning import neural_net_utils
+from ml4tccf.machine_learning import neural_net_utils as nn_utils
+from ml4tccf.machine_learning import \
+    neural_net_training_fancy as nn_training_fancy
 from ml4tccf.machine_learning import data_augmentation
 
-DATE_FORMAT = satellite_io.DATE_FORMAT
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
 METRES_TO_KM = 0.001
 MINUTES_TO_SECONDS = 60
-DAYS_TO_SECONDS = 86400
 
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
 
-BRIGHTNESS_TEMPS_KEY = neural_net_utils.BRIGHTNESS_TEMPS_KEY
-GRID_SPACINGS_KEY = neural_net_utils.GRID_SPACINGS_KEY
-CENTER_LATITUDES_KEY = neural_net_utils.CENTER_LATITUDES_KEY
-TARGET_TIMES_KEY = neural_net_utils.TARGET_TIMES_KEY
+BRIGHTNESS_TEMPS_KEY = nn_utils.BRIGHTNESS_TEMPS_KEY
+GRID_SPACINGS_KEY = nn_utils.GRID_SPACINGS_KEY
+CENTER_LATITUDES_KEY = nn_utils.CENTER_LATITUDES_KEY
+TARGET_TIMES_KEY = nn_utils.TARGET_TIMES_KEY
 CYCLONE_IDS_KEY = 'cyclone_id_strings'
-LOW_RES_LATITUDES_KEY = neural_net_utils.LOW_RES_LATITUDES_KEY
-LOW_RES_LONGITUDES_KEY = neural_net_utils.LOW_RES_LONGITUDES_KEY
+LOW_RES_LATITUDES_KEY = nn_utils.LOW_RES_LATITUDES_KEY
+LOW_RES_LONGITUDES_KEY = nn_utils.LOW_RES_LONGITUDES_KEY
 
-PREDICTOR_MATRICES_KEY = neural_net_utils.PREDICTOR_MATRICES_KEY
-TARGET_MATRIX_KEY = neural_net_utils.TARGET_MATRIX_KEY
-HIGH_RES_LATITUDES_KEY = neural_net_utils.HIGH_RES_LATITUDES_KEY
-HIGH_RES_LONGITUDES_KEY = neural_net_utils.HIGH_RES_LONGITUDES_KEY
+PREDICTOR_MATRICES_KEY = nn_utils.PREDICTOR_MATRICES_KEY
+TARGET_MATRIX_KEY = nn_utils.TARGET_MATRIX_KEY
+HIGH_RES_LATITUDES_KEY = nn_utils.HIGH_RES_LATITUDES_KEY
+HIGH_RES_LONGITUDES_KEY = nn_utils.HIGH_RES_LONGITUDES_KEY
 
-SATELLITE_DIRECTORY_KEY = neural_net_utils.SATELLITE_DIRECTORY_KEY
-YEARS_KEY = neural_net_utils.YEARS_KEY
-LAG_TIMES_KEY = neural_net_utils.LAG_TIMES_KEY
-LOW_RES_WAVELENGTHS_KEY = neural_net_utils.LOW_RES_WAVELENGTHS_KEY
-BATCH_SIZE_KEY = neural_net_utils.BATCH_SIZE_KEY
-MAX_EXAMPLES_PER_CYCLONE_KEY = neural_net_utils.MAX_EXAMPLES_PER_CYCLONE_KEY
-NUM_GRID_ROWS_KEY = neural_net_utils.NUM_GRID_ROWS_KEY
-NUM_GRID_COLUMNS_KEY = neural_net_utils.NUM_GRID_COLUMNS_KEY
-DATA_AUG_NUM_TRANS_KEY = neural_net_utils.DATA_AUG_NUM_TRANS_KEY
-DATA_AUG_MEAN_TRANS_KEY = neural_net_utils.DATA_AUG_MEAN_TRANS_KEY
-DATA_AUG_STDEV_TRANS_KEY = neural_net_utils.DATA_AUG_STDEV_TRANS_KEY
-SYNOPTIC_TIMES_ONLY_KEY = neural_net_utils.SYNOPTIC_TIMES_ONLY_KEY
-A_DECK_FILE_KEY = neural_net_utils.A_DECK_FILE_KEY
-SCALAR_A_DECK_FIELDS_KEY = neural_net_utils.SCALAR_A_DECK_FIELDS_KEY
-REMOVE_NONTROPICAL_KEY = neural_net_utils.REMOVE_NONTROPICAL_KEY
-SEMANTIC_SEG_FLAG_KEY = neural_net_utils.SEMANTIC_SEG_FLAG_KEY
-TARGET_SMOOOTHER_STDEV_KEY = neural_net_utils.TARGET_SMOOOTHER_STDEV_KEY
-
-
-def _date_in_time_period(date_string, start_time_unix_sec, end_time_unix_sec):
-    """Determines whether or not date is in time period.
-
-    :param date_string: Date (format "yyyy-mm-dd").
-    :param start_time_unix_sec: Start of time period.
-    :param end_time_unix_sec: End of time period.
-    :return: result_flag: Boolean flag.
-    """
-
-    start_date_string = time_conversion.unix_sec_to_string(
-        start_time_unix_sec, DATE_FORMAT
-    )
-    if start_date_string == date_string:
-        return True
-
-    end_date_string = time_conversion.unix_sec_to_string(
-        end_time_unix_sec, DATE_FORMAT
-    )
-    if end_date_string == date_string:
-        return True
-
-    date_start_time_unix_sec = time_conversion.string_to_unix_sec(
-        date_string, DATE_FORMAT
-    )
-    if start_time_unix_sec <= date_start_time_unix_sec <= end_time_unix_sec:
-        return True
-
-    date_end_time_unix_sec = date_start_time_unix_sec + DAYS_TO_SECONDS - 1
-    if start_time_unix_sec <= date_end_time_unix_sec <= end_time_unix_sec:
-        return True
-
-    return False
+SATELLITE_DIRECTORY_KEY = nn_utils.SATELLITE_DIRECTORY_KEY
+YEARS_KEY = nn_utils.YEARS_KEY
+LAG_TIMES_KEY = nn_utils.LAG_TIMES_KEY
+LOW_RES_WAVELENGTHS_KEY = nn_utils.LOW_RES_WAVELENGTHS_KEY
+BATCH_SIZE_KEY = nn_utils.BATCH_SIZE_KEY
+MAX_EXAMPLES_PER_CYCLONE_KEY = nn_utils.MAX_EXAMPLES_PER_CYCLONE_KEY
+NUM_GRID_ROWS_KEY = nn_utils.NUM_GRID_ROWS_KEY
+NUM_GRID_COLUMNS_KEY = nn_utils.NUM_GRID_COLUMNS_KEY
+DATA_AUG_NUM_TRANS_KEY = nn_utils.DATA_AUG_NUM_TRANS_KEY
+DATA_AUG_MEAN_TRANS_KEY = nn_utils.DATA_AUG_MEAN_TRANS_KEY
+DATA_AUG_STDEV_TRANS_KEY = nn_utils.DATA_AUG_STDEV_TRANS_KEY
+SYNOPTIC_TIMES_ONLY_KEY = nn_utils.SYNOPTIC_TIMES_ONLY_KEY
+A_DECK_FILE_KEY = nn_utils.A_DECK_FILE_KEY
+SCALAR_A_DECK_FIELDS_KEY = nn_utils.SCALAR_A_DECK_FIELDS_KEY
+REMOVE_NONTROPICAL_KEY = nn_utils.REMOVE_NONTROPICAL_KEY
+SEMANTIC_SEG_FLAG_KEY = nn_utils.SEMANTIC_SEG_FLAG_KEY
+TARGET_SMOOOTHER_STDEV_KEY = nn_utils.TARGET_SMOOOTHER_STDEV_KEY
 
 
 def _read_satellite_data_1shuffled_file(
@@ -339,11 +304,13 @@ def _read_satellite_data_1cyclone(
     """
 
     # TODO(thunderhoser): This could be simplified more.
-    desired_file_to_times_dict = decide_files_to_read_one_cyclone(
-        satellite_file_names=input_file_names,
-        target_times_unix_sec=target_times_unix_sec,
-        lag_times_minutes=lag_times_minutes,
-        lag_time_tolerance_sec=0, max_interp_gap_sec=0
+    desired_file_to_times_dict = (
+        nn_training_fancy.decide_files_to_read_one_cyclone(
+            satellite_file_names=input_file_names,
+            target_times_unix_sec=target_times_unix_sec,
+            lag_times_minutes=lag_times_minutes,
+            lag_time_tolerance_sec=0, max_interp_gap_sec=0
+        )
     )
 
     desired_file_names = list(desired_file_to_times_dict.keys())
@@ -511,24 +478,6 @@ def _read_satellite_data_1cyclone(
     }
 
 
-def get_synoptic_target_times(all_target_times_unix_sec):
-    """Reduces array of target times to synoptic times only.
-
-    :param all_target_times_unix_sec: 1-D numpy array with all target times.
-    :return: synoptic_target_times_unix_sec: 1-D numpy array with only synoptic
-        target times.
-    """
-
-    error_checking.assert_is_integer_numpy_array(all_target_times_unix_sec)
-    error_checking.assert_is_numpy_array(
-        all_target_times_unix_sec, num_dimensions=1
-    )
-
-    return all_target_times_unix_sec[
-        numpy.mod(all_target_times_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC) == 0
-    ]
-
-
 def choose_random_cyclone_objects(
         all_cyclone_id_strings, all_target_times_unix_sec, num_objects_desired):
     """Chooses random cyclone objects from array.
@@ -537,7 +486,8 @@ def choose_random_cyclone_objects(
     T = number of objects chosen
 
     :param all_cyclone_id_strings: length-A list with all cyclone IDs.
-    :param all_target_times_unix_sec: length-A numpy array with all target times.
+    :param all_target_times_unix_sec: length-A numpy array with all target
+        times.
     :param num_objects_desired: Number of cyclone objects desired.
     :return: chosen_cyclone_id_strings: length-T list of chosen cyclone IDs.
     :return: chosen_target_times_unix_sec: length-T numpy array of chosen target
@@ -593,52 +543,10 @@ def choose_random_cyclone_objects(
     )
 
 
-def choose_random_target_times(all_target_times_unix_sec, num_times_desired):
-    """Chooses random target times from array.
-
-    T = number of times chosen
-
-    :param all_target_times_unix_sec: 1-D numpy array with all target times.
-    :param num_times_desired: Number of times desired.
-    :return: chosen_target_times_unix_sec: length-T numpy array of chosen target
-        times.
-    :return: chosen_indices: length-T numpy array of corresponding indices.
-    """
-
-    error_checking.assert_is_integer_numpy_array(all_target_times_unix_sec)
-    error_checking.assert_is_numpy_array(
-        all_target_times_unix_sec, num_dimensions=1
-    )
-    error_checking.assert_is_integer(num_times_desired)
-    error_checking.assert_is_greater(num_times_desired, 0)
-
-    all_target_dates_unix_sec = number_rounding.floor_to_nearest(
-        all_target_times_unix_sec, DAYS_TO_SECONDS
-    )
-    unique_target_dates_unix_sec = numpy.unique(all_target_dates_unix_sec)
-    chosen_indices = numpy.array([], dtype=int)
-
-    for i in range(len(unique_target_dates_unix_sec)):
-        these_indices = numpy.where(
-            all_target_dates_unix_sec == unique_target_dates_unix_sec[i]
-        )[0]
-
-        num_times_still_needed = num_times_desired - len(chosen_indices)
-        if len(these_indices) > num_times_still_needed:
-            these_indices = numpy.random.choice(
-                these_indices, size=num_times_still_needed, replace=False
-            )
-
-        chosen_indices = numpy.concatenate((chosen_indices, these_indices))
-        if len(chosen_indices) == num_times_desired:
-            break
-
-    return all_target_times_unix_sec[chosen_indices], chosen_indices
-
-
 def get_times_and_scalar_preds_shuffled(
         satellite_file_names, a_deck_file_name,
-        scalar_a_deck_field_names, remove_nontropical_systems):
+        scalar_a_deck_field_names, remove_nontropical_systems, desired_years,
+        predictor_lag_times_sec):
     """Returns cyclone objects and scalar predictors for each shuffled file.
 
     One cyclone object = one tropical cyclone and one target time
@@ -653,6 +561,8 @@ def get_times_and_scalar_preds_shuffled(
         `get_target_times_and_scalar_predictors`.
     :param scalar_a_deck_field_names: Same.
     :param remove_nontropical_systems: Same.
+    :param desired_years: 1-D numpy array of desired years.
+    :param predictor_lag_times_sec: 1-D numpy array of lag times for predictors.
     :return: cyclone_id_strings_by_file: length-S list, where the [i]th
         item is a list (length O_i) of cyclone IDs.
     :return: target_times_by_file_unix_sec: length-S list, where the [i]th
@@ -661,11 +571,14 @@ def get_times_and_scalar_preds_shuffled(
         item is a numpy array (O_i x F) of scalar predictors.
     """
 
-    # TODO(thunderhoser): Allow option to subset by year.
-    # TODO(thunderhoser): Write read_scalar_data_many_cyclones.
-    # TODO(thunderhoser): This method should include lag times, no?
-
     error_checking.assert_is_string_list(satellite_file_names)
+    error_checking.assert_is_integer_numpy_array(desired_years)
+    error_checking.assert_is_numpy_array(desired_years, num_dimensions=1)
+    error_checking.assert_is_integer_numpy_array(predictor_lag_times_sec)
+    error_checking.assert_is_numpy_array(
+        predictor_lag_times_sec, num_dimensions=1
+    )
+    error_checking.assert_is_geq_numpy_array(predictor_lag_times_sec, 0)
 
     num_files = len(satellite_file_names)
     cyclone_id_strings_by_file = [[]] * num_files
@@ -680,6 +593,30 @@ def get_times_and_scalar_preds_shuffled(
             satellite_file_names[i]
         ).coords[satellite_utils.TIME_DIM].values
 
+        these_years = numpy.array([
+            int(time_conversion.unix_sec_to_string(t, '%Y'))
+            for t in target_times_by_file_unix_sec[i]
+        ], dtype=int)
+
+        good_indices = numpy.where(
+            numpy.isin(element=these_years, test_elements=desired_years)
+        )[0]
+
+        cyclone_id_strings_by_file[i] = cyclone_id_strings_by_file[i][
+            good_indices
+        ]
+        target_times_by_file_unix_sec[i] = target_times_by_file_unix_sec[i][
+            good_indices
+        ]
+
+        (
+            cyclone_id_strings_by_file[i], target_times_by_file_unix_sec[i]
+        ) = nn_training_fancy.get_objects_with_desired_lag_times(
+            cyclone_id_strings=cyclone_id_strings_by_file[i],
+            target_times_unix_sec=target_times_by_file_unix_sec[i],
+            predictor_lag_times_sec=predictor_lag_times_sec
+        )
+
     if a_deck_file_name is None:
         scalar_predictor_matrix_by_file = [None] * num_files
 
@@ -692,14 +629,12 @@ def get_times_and_scalar_preds_shuffled(
     scalar_predictor_matrix_by_file = [numpy.array([], dtype=float)] * num_files
 
     for i in range(num_files):
-        scalar_predictor_matrix_by_file[i] = (
-            neural_net_utils.read_scalar_data_many_cyclones(
-                a_deck_file_name=a_deck_file_name,
-                field_names=scalar_a_deck_field_names,
-                remove_nontropical_systems=remove_nontropical_systems,
-                cyclone_id_strings=cyclone_id_strings_by_file[i],
-                target_times_unix_sec=target_times_by_file_unix_sec[i]
-            )
+        scalar_predictor_matrix_by_file[i] = nn_utils.read_scalar_data(
+            a_deck_file_name=a_deck_file_name,
+            field_names=scalar_a_deck_field_names,
+            remove_nontropical_systems=remove_nontropical_systems,
+            cyclone_id_strings=cyclone_id_strings_by_file[i],
+            target_times_unix_sec=target_times_by_file_unix_sec[i]
         )
 
         good_indices = numpy.all(
@@ -722,192 +657,225 @@ def get_times_and_scalar_preds_shuffled(
     )
 
 
-def get_target_times_and_scalar_predictors(
-        cyclone_id_strings, synoptic_times_only,
-        satellite_file_names_by_cyclone, a_deck_file_name,
-        scalar_a_deck_field_names, remove_nontropical_systems):
-    """Returns target times and scalar predictors for each cyclone.
+def data_generator_shuffled(option_dict):
+    """Generates input data for neural net from shuffled files.
 
-    C = number of cyclones
-    F = number of scalar fields
-    T_i = number of target times for [i]th cyclone
-
-    :param cyclone_id_strings: length-C list of cyclone IDs.
-    :param synoptic_times_only: Boolean flag.  If True (False), only synoptic
-        times (all times) can be target times.
-    :param satellite_file_names_by_cyclone: length-C list, where each item is
-        a list of paths to satellite files (readable by
-        `satellite_io.read_file`).
-    :param a_deck_file_name: Path to A-deck file, containing scalar predictors
-        (readable by `a_deck_io.read_file`).  If you do not want scalar
-        predictors, make this None.
-    :param scalar_a_deck_field_names: length-F list of field names.  If
-        `a_deck_file_name` is None, make this None.
-    :param remove_nontropical_systems:
-        [used only if `a_deck_file_name` is not None]
-        Boolean flag.  If True, will return only target times corresponding to
-        tropical systems (no extratropical, subtropical, etc.).
-    :return: target_times_by_cyclone_unix_sec: length-C list, where the [i]th
-        item is a numpy array (length T_i) of target times.
-    :return: scalar_predictor_matrix_by_cyclone: length-C list, where the [i]th
-        item is a numpy array (T_i x F) of scalar predictors.
+    :param option_dict: See doc for `data_generator`.
+    :return: predictor_matrices: Same.
+    :return: target_matrix: Same.
     """
 
-    # TODO(thunderhoser): This method should include lag times, no?
+    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
+    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
+    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
+    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
+    option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
+    option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
+    option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
+    option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY] = int(1e10)
+    option_dict[SYNOPTIC_TIMES_ONLY_KEY] = False
 
-    error_checking.assert_is_string_list(cyclone_id_strings)
-    error_checking.assert_is_boolean(synoptic_times_only)
-    error_checking.assert_is_list(satellite_file_names_by_cyclone)
+    option_dict = nn_utils.check_generator_args(option_dict)
 
-    num_cyclones = len(cyclone_id_strings)
-    error_checking.assert_equals(
-        len(satellite_file_names_by_cyclone), num_cyclones
+    satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
+    years = option_dict[YEARS_KEY]
+    lag_times_minutes = option_dict[LAG_TIMES_KEY]
+    low_res_wavelengths_microns = option_dict[LOW_RES_WAVELENGTHS_KEY]
+    num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
+    num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
+    num_columns_low_res = option_dict[NUM_GRID_COLUMNS_KEY]
+    data_aug_num_translations = option_dict[DATA_AUG_NUM_TRANS_KEY]
+    data_aug_mean_translation_low_res_px = option_dict[DATA_AUG_MEAN_TRANS_KEY]
+    data_aug_stdev_translation_low_res_px = (
+        option_dict[DATA_AUG_STDEV_TRANS_KEY]
     )
-    for i in range(num_cyclones):
-        error_checking.assert_is_string_list(satellite_file_names_by_cyclone[i])
+    a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
 
-    num_cyclones = len(cyclone_id_strings)
-    target_times_by_cyclone_unix_sec = (
-        [numpy.array([], dtype=int)] * num_cyclones
+    orig_num_rows_low_res = num_rows_low_res + 0
+    orig_num_columns_low_res = num_columns_low_res + 0
+
+    num_extra_rowcols = 2 * int(numpy.ceil(
+        data_aug_mean_translation_low_res_px +
+        5 * data_aug_stdev_translation_low_res_px
+    ))
+    num_rows_low_res += num_extra_rowcols
+    num_columns_low_res += num_extra_rowcols
+
+    satellite_file_names = satellite_io.find_shuffled_files(
+        directory_name=satellite_dir_name, raise_error_if_all_missing=True
+    )
+    random.shuffle(satellite_file_names)
+
+    (
+        cyclone_id_strings_by_file,
+        target_times_by_file_unix_sec,
+        scalar_predictor_matrix_by_file
+    ) = get_times_and_scalar_preds_shuffled(
+        satellite_file_names=satellite_file_names,
+        a_deck_file_name=a_deck_file_name,
+        scalar_a_deck_field_names=scalar_a_deck_field_names,
+        remove_nontropical_systems=remove_nontropical_systems,
+        desired_years=years,
+        predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
 
-    for i in range(num_cyclones):
-        target_times_by_cyclone_unix_sec[i] = numpy.concatenate([
-            xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
-            for f in satellite_file_names_by_cyclone[i]
-        ])
+    file_index = 0
 
-        if synoptic_times_only:
-            target_times_by_cyclone_unix_sec[i] = get_synoptic_target_times(
-                all_target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
+    while True:
+        brightness_temp_matrix_kelvins = None
+        scalar_predictor_matrix = None
+        grid_spacings_km = None
+        cyclone_center_latitudes_deg_n = None
+        num_examples_in_memory = 0
+
+        while num_examples_in_memory < num_examples_per_batch:
+            if file_index == len(satellite_file_names):
+                file_index = 0
+
+            (
+                these_cyclone_id_strings, these_target_times_unix_sec, _
+            ) = choose_random_cyclone_objects(
+                all_cyclone_id_strings=cyclone_id_strings_by_file[file_index],
+                all_target_times_unix_sec=
+                target_times_by_file_unix_sec[file_index],
+                num_objects_desired=
+                num_examples_per_batch - num_examples_in_memory
             )
 
-    if a_deck_file_name is None:
-        scalar_predictor_matrix_by_cyclone = [None] * num_cyclones
-        return (
-            target_times_by_cyclone_unix_sec, scalar_predictor_matrix_by_cyclone
-        )
+            if len(these_cyclone_id_strings) == 0:
+                file_index += 1
+                continue
 
-    scalar_predictor_matrix_by_cyclone = (
-        [numpy.array([], dtype=float)] * num_cyclones
-    )
-
-    for i in range(num_cyclones):
-        scalar_predictor_matrix_by_cyclone[i] = (
-            neural_net_utils.read_scalar_data_one_cyclone(
-                a_deck_file_name=a_deck_file_name,
-                field_names=scalar_a_deck_field_names,
-                remove_nontropical_systems=remove_nontropical_systems,
-                cyclone_id_string=cyclone_id_strings[i],
-                target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
+            data_dict = _read_satellite_data_1shuffled_file(
+                input_file_name=satellite_file_names[file_index],
+                lag_times_minutes=lag_times_minutes,
+                low_res_wavelengths_microns=low_res_wavelengths_microns,
+                num_rows_low_res=num_rows_low_res,
+                num_columns_low_res=num_columns_low_res,
+                return_coords=False,
+                cyclone_id_strings=these_cyclone_id_strings,
+                target_times_unix_sec=these_target_times_unix_sec
             )
-        )
+            file_index += 1
 
-        good_indices = numpy.all(
-            numpy.isfinite(scalar_predictor_matrix_by_cyclone[i]), axis=1
-        )
-        target_times_by_cyclone_unix_sec[i] = (
-            target_times_by_cyclone_unix_sec[i][good_indices]
-        )
-        scalar_predictor_matrix_by_cyclone[i] = (
-            scalar_predictor_matrix_by_cyclone[i][good_indices, :]
-        )
-
-    return target_times_by_cyclone_unix_sec, scalar_predictor_matrix_by_cyclone
-
-
-def decide_files_to_read_one_cyclone(
-        satellite_file_names, target_times_unix_sec,
-        lag_times_minutes, lag_time_tolerance_sec, max_interp_gap_sec):
-    """Decides which satellite files to read for one tropical cyclone.
-
-    :param satellite_file_names: 1-D list of paths to input files (will be read
-        by `satellite_io.read_file`).
-    :param target_times_unix_sec: 1-D numpy array of target times.
-    :param lag_times_minutes: 1-D numpy array of lag times for predictors.
-    :param lag_time_tolerance_sec: Tolerance for lag times (tolerance for target
-        time is always zero).
-    :param max_interp_gap_sec: Maximum gap (in seconds) over which to
-        interpolate for missing lag times.
-    :return: desired_file_to_times_dict: Dictionary, where each key is the path
-        to a desired file and the corresponding value is a length-2 list:
-        [start_times_unix_sec, end_times_unix_sec].  Each list item is a 1-D
-        numpy array; the two arrays have the same length; and they contain
-        start/end times to be read.
-    """
-
-    error_checking.assert_is_string_list(satellite_file_names)
-    error_checking.assert_is_integer_numpy_array(target_times_unix_sec)
-    error_checking.assert_is_numpy_array(
-        target_times_unix_sec, num_dimensions=1
-    )
-    error_checking.assert_is_integer_numpy_array(lag_times_minutes)
-    error_checking.assert_is_geq_numpy_array(lag_times_minutes, 0)
-    error_checking.assert_is_numpy_array(lag_times_minutes, num_dimensions=1)
-    error_checking.assert_is_integer(lag_time_tolerance_sec)
-    error_checking.assert_is_geq(lag_time_tolerance_sec, 0)
-    error_checking.assert_is_integer(max_interp_gap_sec)
-    error_checking.assert_is_geq(max_interp_gap_sec, 0)
-
-    lag_times_sec = MINUTES_TO_SECONDS * lag_times_minutes
-    num_target_times = len(target_times_unix_sec)
-
-    desired_start_times_unix_sec = numpy.full(num_target_times, -1, dtype=int)
-    desired_end_times_unix_sec = numpy.full(num_target_times, -2, dtype=int)
-
-    offset_sec = max([
-        lag_time_tolerance_sec, max_interp_gap_sec
-    ])
-
-    for i in range(num_target_times):
-        desired_start_times_unix_sec[i] = (
-            target_times_unix_sec[i] - numpy.max(lag_times_sec)
-        )
-        desired_end_times_unix_sec[i] = (
-            target_times_unix_sec[i] - numpy.min(lag_times_sec)
-        )
-
-        if desired_start_times_unix_sec[i] != target_times_unix_sec[i]:
-            desired_start_times_unix_sec[i] -= offset_sec
-        if desired_end_times_unix_sec[i] != target_times_unix_sec[i]:
-            desired_end_times_unix_sec[i] += offset_sec
-
-    satellite_file_date_strings = [
-        satellite_io.file_name_to_date(f) for f in satellite_file_names
-    ]
-    desired_file_to_times_dict = dict()
-
-    for j in range(len(satellite_file_names)):
-        for i in range(num_target_times):
-            if not _date_in_time_period(
-                    date_string=satellite_file_date_strings[j],
-                    start_time_unix_sec=desired_start_times_unix_sec[i],
-                    end_time_unix_sec=desired_end_times_unix_sec[i]
+            if (
+                    data_dict is None
+                    or data_dict[BRIGHTNESS_TEMPS_KEY] is None
+                    or data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
             ):
                 continue
 
-            if satellite_file_names[j] not in desired_file_to_times_dict:
-                desired_file_to_times_dict[satellite_file_names[j]] = [
-                    desired_start_times_unix_sec[[i]],
-                    desired_end_times_unix_sec[[i]]
-                ]
+            this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+            these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
+            these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
 
-                continue
+            if a_deck_file_name is None:
+                this_scalar_predictor_matrix = None
+            else:
+                prev_idx = file_index - 1
 
-            d = desired_file_to_times_dict
+                row_indices = numpy.array([
+                    numpy.where(numpy.logical_and(
+                        numpy.array(cyclone_id_strings_by_file[prev_idx]) == c,
+                        target_times_by_file_unix_sec[prev_idx] == t
+                    ))[0][0]
+                    for c, t in zip(
+                        data_dict[CYCLONE_IDS_KEY], data_dict[TARGET_TIMES_KEY]
+                    )
+                ], dtype=int)
 
-            d[satellite_file_names[j]][0] = numpy.concatenate((
-                d[satellite_file_names[j]][0],
-                desired_start_times_unix_sec[[i]]
-            ))
-            d[satellite_file_names[j]][1] = numpy.concatenate((
-                d[satellite_file_names[j]][1],
-                desired_end_times_unix_sec[[i]]
-            ))
+                this_scalar_predictor_matrix = (
+                    scalar_predictor_matrix_by_file[prev_idx][row_indices, :]
+                )
 
-            desired_file_to_times_dict = d
+            this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
+                this_bt_matrix_kelvins
+            )
 
-    return desired_file_to_times_dict
+            if brightness_temp_matrix_kelvins is None:
+                these_dim = (
+                    (num_examples_per_batch,) + this_bt_matrix_kelvins.shape[1:]
+                )
+                brightness_temp_matrix_kelvins = numpy.full(
+                    these_dim, numpy.nan
+                )
+
+                grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
+                cyclone_center_latitudes_deg_n = numpy.full(
+                    num_examples_per_batch, numpy.nan
+                )
+
+                if this_scalar_predictor_matrix is not None:
+                    these_dim = (
+                        (num_examples_per_batch,) +
+                        this_scalar_predictor_matrix.shape[1:]
+                    )
+                    scalar_predictor_matrix = numpy.full(these_dim, numpy.nan)
+
+            first_index = num_examples_in_memory
+            last_index = first_index + this_bt_matrix_kelvins.shape[0]
+            brightness_temp_matrix_kelvins[first_index:last_index, ...] = (
+                this_bt_matrix_kelvins
+            )
+            grid_spacings_km[first_index:last_index] = these_grid_spacings_km
+            cyclone_center_latitudes_deg_n[first_index:last_index] = (
+                these_center_latitudes_deg_n
+            )
+
+            if this_scalar_predictor_matrix is not None:
+                scalar_predictor_matrix[first_index:last_index, ...] = (
+                    this_scalar_predictor_matrix
+                )
+
+            num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
+
+        (
+            _, brightness_temp_matrix_kelvins,
+            row_translations_low_res_px, column_translations_low_res_px
+        ) = data_augmentation.augment_data(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
+            num_translations_per_example=data_aug_num_translations,
+            mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
+            stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
+            sentinel_value=-10.
+        )
+
+        brightness_temp_matrix_kelvins = (
+            data_augmentation.subset_grid_after_data_aug(
+                data_matrix=brightness_temp_matrix_kelvins,
+                num_rows_to_keep=orig_num_rows_low_res,
+                num_columns_to_keep=orig_num_columns_low_res,
+                for_high_res=False
+            )
+        )
+
+        grid_spacings_km = numpy.repeat(
+            grid_spacings_km, repeats=data_aug_num_translations
+        )
+        cyclone_center_latitudes_deg_n = numpy.repeat(
+            cyclone_center_latitudes_deg_n, repeats=data_aug_num_translations
+        )
+        if scalar_predictor_matrix is not None:
+            scalar_predictor_matrix = numpy.repeat(
+                scalar_predictor_matrix, axis=0,
+                repeats=data_aug_num_translations
+            )
+
+        predictor_matrices = [brightness_temp_matrix_kelvins]
+        if scalar_predictor_matrix is not None:
+            predictor_matrices.append(scalar_predictor_matrix)
+
+        # TODO(thunderhoser): This could be simplified more.
+        target_matrix = numpy.transpose(numpy.vstack((
+            row_translations_low_res_px, column_translations_low_res_px,
+            grid_spacings_km, cyclone_center_latitudes_deg_n
+        )))
+
+        predictor_matrices = [p.astype('float16') for p in predictor_matrices]
+        yield predictor_matrices, target_matrix
 
 
 def data_generator(option_dict):
@@ -922,8 +890,8 @@ def data_generator(option_dict):
 
     :param option_dict: Dictionary with the following keys.
     option_dict["satellite_dir_name"]: Name of directory with satellite data.
-        Files therein will be found by `cira_ir_example_io.find_file` and read
-        by `cira_ir_example_io.read_file`.
+        Files therein will be found by `satellite_io.find_file` and read
+        by `satellite_io.read_file`.
     option_dict["years"]: 1-D numpy array of years.  Will generate data only for
         cyclones in these years.
     option_dict["lag_times_minutes"]: length-L numpy array of lag times for
@@ -987,15 +955,15 @@ def data_generator(option_dict):
         deg north.
     """
 
-    option_dict[neural_net_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
-    option_dict[neural_net_utils.LAG_TIME_TOLERANCE_KEY] = 0
-    option_dict[neural_net_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
-    option_dict[neural_net_utils.MAX_INTERP_GAP_KEY] = 0
-    option_dict[neural_net_utils.SENTINEL_VALUE_KEY] = -10.
-    option_dict[neural_net_utils.SEMANTIC_SEG_FLAG_KEY] = False
-    option_dict[neural_net_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
+    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
+    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
+    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
+    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
+    option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
+    option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
+    option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
 
-    option_dict = neural_net_utils.check_generator_args(option_dict)
+    option_dict = nn_utils.check_generator_args(option_dict)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     years = option_dict[YEARS_KEY]
@@ -1047,13 +1015,14 @@ def data_generator(option_dict):
 
     (
         target_times_by_cyclone_unix_sec, scalar_predictor_matrix_by_cyclone
-    ) = get_target_times_and_scalar_predictors(
+    ) = nn_training_fancy.get_target_times_and_scalar_predictors(
         cyclone_id_strings=cyclone_id_strings,
         synoptic_times_only=synoptic_times_only,
         satellite_file_names_by_cyclone=satellite_file_names_by_cyclone,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
-        remove_nontropical_systems=remove_nontropical_systems
+        remove_nontropical_systems=remove_nontropical_systems,
+        predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
 
     cyclone_index = 0
@@ -1074,11 +1043,13 @@ def data_generator(option_dict):
                 num_examples_per_batch - num_examples_in_memory
             ])
 
-            new_target_times_unix_sec = choose_random_target_times(
-                all_target_times_unix_sec=
-                target_times_by_cyclone_unix_sec[cyclone_index] + 0,
-                num_times_desired=num_examples_to_read
-            )[0]
+            new_target_times_unix_sec = (
+                nn_training_fancy.choose_random_target_times(
+                    all_target_times_unix_sec=
+                    target_times_by_cyclone_unix_sec[cyclone_index] + 0,
+                    num_times_desired=num_examples_to_read
+                )[0]
+            )
 
             if len(new_target_times_unix_sec) == 0:
                 cyclone_index += 1
@@ -1122,10 +1093,8 @@ def data_generator(option_dict):
                     ]
                 )
 
-            this_bt_matrix_kelvins = (
-                neural_net_utils.combine_lag_times_and_wavelengths(
-                    this_bt_matrix_kelvins
-                )
+            this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
+                this_bt_matrix_kelvins
             )
 
             if brightness_temp_matrix_kelvins is None:
@@ -1218,13 +1187,15 @@ def train_model(
         num_validation_batches_per_epoch, validation_option_dict,
         loss_function_string, optimizer_function_string,
         plateau_patience_epochs, plateau_learning_rate_multiplier,
-        early_stopping_patience_epochs, architecture_dict, is_model_bnn):
+        early_stopping_patience_epochs, architecture_dict, is_model_bnn,
+        use_shuffled_data):
     """Trains neural net.
 
     :param model_object: See doc for `neural_net_training_fancy.train_model`.
     :param output_dir_name: Same.
     :param num_epochs: Same.
     :param num_training_batches_per_epoch: Same.
+    :param training_option_dict: Same.
     :param num_validation_batches_per_epoch: Same.
     :param validation_option_dict: Same.
     :param loss_function_string: Same.
@@ -1234,6 +1205,9 @@ def train_model(
     :param early_stopping_patience_epochs: Same.
     :param architecture_dict: Same.
     :param is_model_bnn: Same.
+    :param use_shuffled_data: Boolean flag.  If True, will read training data
+        from shuffled input files, each containing multiple cyclones.  If False,
+        will read training data from input files with one cyclone-day each.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1253,6 +1227,7 @@ def train_model(
     error_checking.assert_is_integer(early_stopping_patience_epochs)
     error_checking.assert_is_geq(early_stopping_patience_epochs, 5)
     error_checking.assert_is_boolean(is_model_bnn)
+    error_checking.assert_is_boolean(use_shuffled_data)
 
     validation_keys_to_keep = [SATELLITE_DIRECTORY_KEY, YEARS_KEY]
     for this_key in list(training_option_dict.keys()):
@@ -1261,10 +1236,8 @@ def train_model(
 
         validation_option_dict[this_key] = training_option_dict[this_key]
 
-    training_option_dict = neural_net_utils.check_generator_args(
-        training_option_dict
-    )
-    validation_option_dict = neural_net_utils.check_generator_args(
+    training_option_dict = nn_utils.check_generator_args(training_option_dict)
+    validation_option_dict = nn_utils.check_generator_args(
         validation_option_dict
     )
 
@@ -1292,15 +1265,19 @@ def train_model(
         history_object, checkpoint_object, early_stopping_object, plateau_object
     ]
 
-    training_generator = data_generator(training_option_dict)
-    validation_generator = data_generator(validation_option_dict)
+    if use_shuffled_data:
+        training_generator = data_generator_shuffled(training_option_dict)
+        validation_generator = data_generator_shuffled(validation_option_dict)
+    else:
+        training_generator = data_generator(training_option_dict)
+        validation_generator = data_generator(validation_option_dict)
 
-    metafile_name = neural_net_utils.find_metafile(
+    metafile_name = nn_utils.find_metafile(
         model_dir_name=output_dir_name, raise_error_if_missing=False
     )
     print('Writing metadata to: "{0:s}"...'.format(metafile_name))
 
-    neural_net_utils.write_metafile(
+    nn_utils.write_metafile(
         pickle_file_name=metafile_name, num_epochs=num_epochs,
         num_training_batches_per_epoch=num_training_batches_per_epoch,
         training_option_dict=training_option_dict,
@@ -1349,24 +1326,22 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         TC-center latitudes (deg north).
     data_dict["high_res_latitude_matrix_deg_n"]: None.
     data_dict["high_res_longitude_matrix_deg_e"]: None.
-    data_dict["low_res_latitude_matrix_deg_n"]: numpy array of latitudes (deg
-        north).  If regular grids, this array has shape E x m x L.  If irregular
-        grids, this array has shape E x m x n x L.
-    data_dict["low_res_longitude_matrix_deg_e"]: numpy array of longitudes (deg
-        east).  If regular grids, this array has shape E x n x L.  If irregular
-        grids, this array has shape E x m x n x L.
+    data_dict["low_res_latitude_matrix_deg_n"]: E-by-m-by-L numpy array of
+        latitudes (deg north).
+    data_dict["low_res_longitude_matrix_deg_e"]: E-by-n-by-L numpy array of
+        longitudes (deg east).
     """
 
     error_checking.assert_is_integer(num_target_times)
     error_checking.assert_is_greater(num_target_times, 0)
 
-    option_dict[neural_net_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
-    option_dict[neural_net_utils.LAG_TIME_TOLERANCE_KEY] = 0
-    option_dict[neural_net_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
-    option_dict[neural_net_utils.MAX_INTERP_GAP_KEY] = 0
-    option_dict[neural_net_utils.SENTINEL_VALUE_KEY] = -10.
+    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
+    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
+    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
+    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
+    option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
 
-    option_dict = neural_net_utils.check_generator_args(option_dict)
+    option_dict = nn_utils.check_generator_args(option_dict)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     lag_times_minutes = option_dict[LAG_TIMES_KEY]
@@ -1402,13 +1377,14 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
 
     (
         all_target_times_unix_sec, all_scalar_predictor_matrix
-    ) = get_target_times_and_scalar_predictors(
+    ) = nn_training_fancy.get_target_times_and_scalar_predictors(
         cyclone_id_strings=[cyclone_id_string],
         synoptic_times_only=synoptic_times_only,
         satellite_file_names_by_cyclone=[satellite_file_names],
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
-        remove_nontropical_systems=remove_nontropical_systems
+        remove_nontropical_systems=remove_nontropical_systems,
+        predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
 
     all_target_times_unix_sec = all_target_times_unix_sec[0]
@@ -1418,10 +1394,12 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         num_target_times + 2
     ])
 
-    chosen_target_times_unix_sec = choose_random_target_times(
-        all_target_times_unix_sec=all_target_times_unix_sec + 0,
-        num_times_desired=conservative_num_target_times
-    )[0]
+    chosen_target_times_unix_sec = (
+        nn_training_fancy.choose_random_target_times(
+            all_target_times_unix_sec=all_target_times_unix_sec + 0,
+            num_times_desired=conservative_num_target_times
+        )[0]
+    )
 
     data_dict = _read_satellite_data_1cyclone(
         input_file_names=satellite_file_names,
@@ -1470,10 +1448,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         data_dict[LOW_RES_LONGITUDES_KEY][:num_target_times, ...]
     )
 
-    brightness_temp_matrix_kelvins = (
-        neural_net_utils.combine_lag_times_and_wavelengths(
-            brightness_temp_matrix_kelvins
-        )
+    brightness_temp_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
+        brightness_temp_matrix_kelvins
     )
 
     (
@@ -1498,7 +1474,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     )
 
     low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
-        neural_net_utils.grid_coords_3d_to_4d(
+        nn_utils.grid_coords_3d_to_4d(
             latitude_matrix_deg_n=low_res_latitude_matrix_deg_n,
             longitude_matrix_deg_e=low_res_longitude_matrix_deg_e
         )
@@ -1550,7 +1526,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         predictor_matrices.append(scalar_predictor_matrix)
 
     if semantic_segmentation_flag:
-        target_matrix = neural_net_utils.make_targets_for_semantic_seg(
+        target_matrix = nn_utils.make_targets_for_semantic_seg(
             row_translations_px=row_translations_low_res_px,
             column_translations_px=column_translations_low_res_px,
             grid_spacings_km=grid_spacings_km,
@@ -1627,16 +1603,16 @@ def create_data_specific_trans(
     #     0
     # )
 
-    option_dict[neural_net_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
-    option_dict[neural_net_utils.LAG_TIME_TOLERANCE_KEY] = 0
-    option_dict[neural_net_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
-    option_dict[neural_net_utils.MAX_INTERP_GAP_KEY] = 0
-    option_dict[neural_net_utils.SENTINEL_VALUE_KEY] = -10.
-    option_dict[neural_net_utils.DATA_AUG_NUM_TRANS_KEY] = 5
-    option_dict[neural_net_utils.DATA_AUG_MEAN_TRANS_KEY] = 10.
-    option_dict[neural_net_utils.DATA_AUG_STDEV_TRANS_KEY] = 10.
+    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
+    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
+    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
+    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
+    option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
+    option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 5
+    option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = 10.
+    option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = 10.
 
-    option_dict = neural_net_utils.check_generator_args(option_dict)
+    option_dict = nn_utils.check_generator_args(option_dict)
 
     # Do actual stuff.
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
@@ -1687,11 +1663,13 @@ def create_data_specific_trans(
     if a_deck_file_name is None:
         scalar_predictor_matrix = None
     else:
-        scalar_predictor_matrix = neural_net_utils.read_scalar_data_one_cyclone(
+        this_num_times = len(data_dict[TARGET_TIMES_KEY])
+
+        scalar_predictor_matrix = nn_utils.read_scalar_data(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
             remove_nontropical_systems=remove_nontropical_systems,
-            cyclone_id_string=cyclone_id_string,
+            cyclone_id_strings=[cyclone_id_string] * this_num_times,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
         )
 
@@ -1730,10 +1708,8 @@ def create_data_specific_trans(
     low_res_latitude_matrix_deg_n = low_res_latitude_matrix_deg_n[idxs, ...]
     low_res_longitude_matrix_deg_e = low_res_longitude_matrix_deg_e[idxs, ...]
 
-    brightness_temp_matrix_kelvins = (
-        neural_net_utils.combine_lag_times_and_wavelengths(
-            brightness_temp_matrix_kelvins
-        )
+    brightness_temp_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
+        brightness_temp_matrix_kelvins
     )
 
     (
@@ -1756,7 +1732,7 @@ def create_data_specific_trans(
     )
 
     low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
-        neural_net_utils.grid_coords_3d_to_4d(
+        nn_utils.grid_coords_3d_to_4d(
             latitude_matrix_deg_n=low_res_latitude_matrix_deg_n,
             longitude_matrix_deg_e=low_res_longitude_matrix_deg_e
         )
@@ -1785,7 +1761,7 @@ def create_data_specific_trans(
         predictor_matrices.append(scalar_predictor_matrix)
 
     if semantic_segmentation_flag:
-        target_matrix = neural_net_utils.make_targets_for_semantic_seg(
+        target_matrix = nn_utils.make_targets_for_semantic_seg(
             row_translations_px=row_translations_low_res_px,
             column_translations_px=column_translations_low_res_px,
             grid_spacings_km=grid_spacings_km,

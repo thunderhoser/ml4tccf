@@ -1,4 +1,4 @@
-"""Unit tests for neural_net_training_simple.py."""
+"""Unit tests for neural_net_training_fancy.py."""
 
 import unittest
 import numpy
@@ -6,7 +6,7 @@ from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import number_rounding
 from ml4tccf.io import satellite_io
 from ml4tccf.machine_learning import \
-    neural_net_training_simple as nn_training_simple
+    neural_net_training_fancy as nn_training_fancy
 
 TOLERANCE = 1e-6
 MINUTES_TO_SECONDS = 60
@@ -320,8 +320,8 @@ def _compare_file_to_times_dicts(first_dict, second_dict):
     return True
 
 
-class NeuralNetTrainingSimpleTests(unittest.TestCase):
-    """Each method is a unit test for neural_net_training_simple.py."""
+class NeuralNetTrainingFancyTests(unittest.TestCase):
+    """Each method is a unit test for neural_net_training_fancy.py."""
 
     def test_date_in_time_period_zeroth(self):
         """Ensures correct output from _date_in_time_period.
@@ -329,7 +329,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
         With zeroth set of options.
         """
 
-        this_flag = nn_training_simple._date_in_time_period(
+        this_flag = nn_training_fancy._date_in_time_period(
             date_string=ZEROTH_DATE_STRING,
             start_time_unix_sec=ZEROTH_START_TIME_UNIX_SEC,
             end_time_unix_sec=ZEROTH_END_TIME_UNIX_SEC
@@ -342,7 +342,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
         With first set of options.
         """
 
-        this_flag = nn_training_simple._date_in_time_period(
+        this_flag = nn_training_fancy._date_in_time_period(
             date_string=FIRST_DATE_STRING,
             start_time_unix_sec=FIRST_START_TIME_UNIX_SEC,
             end_time_unix_sec=FIRST_END_TIME_UNIX_SEC
@@ -355,7 +355,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
         With second set of options.
         """
 
-        this_flag = nn_training_simple._date_in_time_period(
+        this_flag = nn_training_fancy._date_in_time_period(
             date_string=SECOND_DATE_STRING,
             start_time_unix_sec=SECOND_START_TIME_UNIX_SEC,
             end_time_unix_sec=SECOND_END_TIME_UNIX_SEC
@@ -368,7 +368,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
         With third set of options.
         """
 
-        this_flag = nn_training_simple._date_in_time_period(
+        this_flag = nn_training_fancy._date_in_time_period(
             date_string=THIRD_DATE_STRING,
             start_time_unix_sec=THIRD_START_TIME_UNIX_SEC,
             end_time_unix_sec=THIRD_END_TIME_UNIX_SEC
@@ -381,7 +381,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
         With fourth set of options.
         """
 
-        this_flag = nn_training_simple._date_in_time_period(
+        this_flag = nn_training_fancy._date_in_time_period(
             date_string=FOURTH_DATE_STRING,
             start_time_unix_sec=FOURTH_START_TIME_UNIX_SEC,
             end_time_unix_sec=FOURTH_END_TIME_UNIX_SEC
@@ -394,7 +394,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
         With fifth set of options.
         """
 
-        this_flag = nn_training_simple._date_in_time_period(
+        this_flag = nn_training_fancy._date_in_time_period(
             date_string=FIFTH_DATE_STRING,
             start_time_unix_sec=FIFTH_START_TIME_UNIX_SEC,
             end_time_unix_sec=FIFTH_END_TIME_UNIX_SEC
@@ -407,7 +407,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
         With sixth set of options.
         """
 
-        this_flag = nn_training_simple._date_in_time_period(
+        this_flag = nn_training_fancy._date_in_time_period(
             date_string=SIXTH_DATE_STRING,
             start_time_unix_sec=SIXTH_START_TIME_UNIX_SEC,
             end_time_unix_sec=SIXTH_END_TIME_UNIX_SEC
@@ -420,7 +420,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
         With first set of options.
         """
 
-        this_dict = nn_training_simple.decide_files_to_read_one_cyclone(
+        this_dict = nn_training_fancy.decide_files_to_read_one_cyclone(
             satellite_file_names=SATELLITE_FILE_NAMES,
             target_times_unix_sec=TARGET_TIMES_UNIX_SEC,
             lag_times_minutes=FIRST_LAG_TIMES_MINUTES,
@@ -440,7 +440,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
         With second set of options.
         """
 
-        this_dict = nn_training_simple.decide_files_to_read_one_cyclone(
+        this_dict = nn_training_fancy.decide_files_to_read_one_cyclone(
             satellite_file_names=SATELLITE_FILE_NAMES,
             target_times_unix_sec=TARGET_TIMES_UNIX_SEC,
             lag_times_minutes=SECOND_LAG_TIMES_MINUTES,
@@ -457,7 +457,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
     def test_get_synoptic_target_times(self):
         """Ensures correct output from get_synoptic_target_times."""
 
-        these_times_unix_sec = nn_training_simple.get_synoptic_target_times(
+        these_times_unix_sec = nn_training_fancy.get_synoptic_target_times(
             all_target_times_unix_sec=ALL_TIMES_UNIX_SEC + 0
         )
         self.assertTrue(numpy.array_equal(
@@ -467,7 +467,7 @@ class NeuralNetTrainingSimpleTests(unittest.TestCase):
     def test_choose_random_target_times(self):
         """Ensures correct output from choose_random_target_times."""
 
-        chosen_times_unix_sec = nn_training_simple.choose_random_target_times(
+        chosen_times_unix_sec = nn_training_fancy.choose_random_target_times(
             all_target_times_unix_sec=RANDOM_TIMES_UNIX_SEC,
             num_times_desired=NUM_TIMES_TO_CHOOSE
         )[0]

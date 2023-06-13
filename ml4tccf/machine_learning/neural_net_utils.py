@@ -459,13 +459,15 @@ def get_high_res_data_from_predictors(predictor_matrices):
     raise ValueError(error_string)
 
 
-def read_scalar_data_one_cyclone(
+def read_scalar_data(
         a_deck_file_name, field_names, remove_nontropical_systems,
-        cyclone_id_string, target_times_unix_sec):
-    """Reads scalar data for one cyclone.
+        cyclone_id_strings, target_times_unix_sec):
+    """Reads scalar data for the given cyclone objects.
+
+    One cyclone object = one cyclone and one target time
 
     F = number of fields
-    T = number of target times
+    T = number of cyclone objects
 
     :param a_deck_file_name: Path to A-deck file.  Will be read by
         `a_deck_io.read_file`.
@@ -473,38 +475,52 @@ def read_scalar_data_one_cyclone(
         be in the constant list `VALID_SCALAR_FIELD_NAMES`.
     :param remove_nontropical_systems: Boolean flag.  If True, will return only
         NaN for non-tropical systems.
-    :param cyclone_id_string: Cyclone ID.
+    :param cyclone_id_strings: length-T list of cyclone IDs.
     :param target_times_unix_sec: length-T numpy array of target times.
     :return: scalar_predictor_matrix: T-by-F numpy array.
     """
 
+    # Check input args.
+    error_checking.assert_file_exists(a_deck_file_name)
+    error_checking.assert_is_string_list(field_names)
+    error_checking.assert_is_boolean(remove_nontropical_systems)
+    error_checking.assert_is_string_list(cyclone_id_strings)
+
+    num_cyclone_objects = len(cyclone_id_strings)
+    expected_dim = numpy.array([num_cyclone_objects], dtype=int)
+    error_checking.assert_is_integer_numpy_array(target_times_unix_sec)
+    error_checking.assert_is_numpy_array(
+        target_times_unix_sec, exact_dimensions=expected_dim
+    )
+
+    # Do actual stuff.
     print('Reading data from: "{0:s}"...'.format(a_deck_file_name))
     a_deck_table_xarray = a_deck_io.read_file(a_deck_file_name)
-
-    good_indices = numpy.where(
-        a_deck_table_xarray[a_deck_io.CYCLONE_ID_KEY].values ==
-        cyclone_id_string
-    )[0]
-    a_deck_table_xarray = a_deck_table_xarray.isel(
-        indexers={a_deck_io.STORM_OBJECT_DIM: good_indices}, drop=True
-    )
 
     predictor_times_unix_sec = number_rounding.floor_to_nearest(
         target_times_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC
     )
-    unique_predictor_times_unix_sec = numpy.unique(predictor_times_unix_sec)
-
-    num_predictor_times = len(predictor_times_unix_sec)
-    num_fields = len(field_names)
-    scalar_predictor_matrix = numpy.full(
-        (num_predictor_times, num_fields), numpy.nan
+    id_predictor_time_matrix = numpy.transpose(numpy.vstack((
+        numpy.array(cyclone_id_strings), predictor_times_unix_sec
+    )))
+    unique_id_predictor_time_matrix, orig_to_unique_indices = numpy.unique(
+        id_predictor_time_matrix, return_inverse=True, axis=0
     )
 
-    for i in range(len(unique_predictor_times_unix_sec)):
-        a_deck_indices = numpy.where(
-            a_deck_table_xarray[a_deck_io.VALID_TIME_KEY].values ==
-            unique_predictor_times_unix_sec[i]
-        )[0]
+    num_fields = len(field_names)
+    scalar_predictor_matrix = numpy.full(
+        (num_cyclone_objects, num_fields), numpy.nan
+    )
+    adt = a_deck_table_xarray
+
+    for i in range(unique_id_predictor_time_matrix.shape[0]):
+        a_deck_indices = numpy.where(numpy.logical_and(
+            adt[a_deck_io.VALID_TIME_KEY].values ==
+            unique_id_predictor_time_matrix[i, 1],
+            adt[a_deck_io.CYCLONE_ID_KEY].values ==
+            unique_id_predictor_time_matrix[i, 0]
+        ))[0]
+
         if len(a_deck_indices) == 0:
             continue
 
@@ -513,19 +529,14 @@ def read_scalar_data_one_cyclone(
 
         if remove_nontropical_systems:
             keep_this_time = (
-                a_deck_table_xarray[a_deck_io.STORM_TYPE_KEY].values[
-                    a_deck_index
-                ]
+                adt[a_deck_io.STORM_TYPE_KEY].values[a_deck_index]
                 in TROPICAL_SYSTEM_TYPE_STRINGS
             )
 
         if not keep_this_time:
             continue
 
-        matrix_row_indices = numpy.where(
-            predictor_times_unix_sec == unique_predictor_times_unix_sec[i]
-        )[0]
-
+        matrix_row_indices = numpy.where(orig_to_unique_indices == i)[0]
         for j in range(num_fields):
             scalar_predictor_matrix[matrix_row_indices, j] = (
                 a_deck_table_xarray[field_names[j]].values[a_deck_index]
