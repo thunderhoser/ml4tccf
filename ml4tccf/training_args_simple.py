@@ -18,6 +18,7 @@ SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
 A_DECK_FILE_ARG_NAME = 'a_deck_file_name'
 SCALAR_A_DECK_FIELDS_ARG_NAME = 'scalar_a_deck_field_names'
 REMOVE_NONTROPICAL_ARG_NAME = 'remove_nontropical_systems'
+USE_SHUFFLED_DATA_ARG_NAME = 'use_shuffled_data'
 
 # TIME_TOLERANCE_FOR_TRAINING_ARG_NAME = 'lag_time_tolerance_for_training_sec'
 # MAX_MISSING_TIMES_FOR_TRAINING_ARG_NAME = (
@@ -104,6 +105,10 @@ SCALAR_A_DECK_FIELDS_HELP_STRING = (
 REMOVE_NONTROPICAL_HELP_STRING = (
     'Boolean flag.  If 1 (0), will train with only tropical systems (all '
     'systems).'
+)
+USE_SHUFFLED_DATA_HELP_STRING = (
+    'Boolean flag.  If 1, with train with shuffled files.  If 0, will train '
+    'with organized files (one file per cyclone-day or per cyclone).'
 )
 
 # TIME_TOLERANCE_FOR_TRAINING_HELP_STRING = (
@@ -236,6 +241,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + REMOVE_NONTROPICAL_ARG_NAME, type=int, required=False, default=0,
         help=REMOVE_NONTROPICAL_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + USE_SHUFFLED_DATA_ARG_NAME, type=int, required=True,
+        help=USE_SHUFFLED_DATA_HELP_STRING
     )
 
     # parser_object.add_argument(

@@ -21,7 +21,8 @@ import prediction_io
 import misc_utils
 import scalar_prediction_utils
 import gridded_prediction_utils
-import neural_net
+import data_augmentation
+import neural_net_utils
 import plotting_utils
 
 METRES_TO_KM = 0.001
@@ -394,21 +395,23 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
         return
 
     model_file_name = pt.attrs[scalar_prediction_utils.MODEL_FILE_KEY]
-    model_metafile_name = neural_net.find_metafile(
+    model_metafile_name = neural_net_utils.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
     )
 
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
-    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
-    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    model_metadata_dict = neural_net_utils.read_metafile(model_metafile_name)
+    training_option_dict = model_metadata_dict[
+        neural_net_utils.TRAINING_OPTIONS_KEY
+    ]
 
     row_translations_px, column_translations_px = (
-        neural_net.get_translation_distances(
+        data_augmentation.get_translation_distances(
             mean_translation_px=
-            training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY],
+            training_option_dict[neural_net_utils.DATA_AUG_MEAN_TRANS_KEY],
             stdev_translation_px=
-            training_option_dict[neural_net.DATA_AUG_STDEV_TRANS_KEY],
+            training_option_dict[neural_net_utils.DATA_AUG_STDEV_TRANS_KEY],
             num_translations=SAMPLE_SIZE_FOR_DATA_AUG
         )
     )

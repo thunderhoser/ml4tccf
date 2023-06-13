@@ -20,7 +20,10 @@ import longitude_conversion as lng_conversion
 import file_system_utils
 import imagemagick_utils
 import border_io
-import neural_net
+import neural_net_utils as nn_utils
+import neural_net_training_simple as nn_training_simple
+import neural_net_training_fancy as nn_training_fancy
+import neural_net_training_cira_ir as nn_training_cira_ir
 import plotting_utils
 import satellite_plotting
 
@@ -58,7 +61,7 @@ PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
 INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
-USE_CIRA_IR_ARG_NAME = 'use_cira_ir_data'
+DATA_TYPE_ARG_NAME = 'data_type_string'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 NUM_TARGET_TIMES_ARG_NAME = 'num_target_times'
 NUM_GRID_ROWS_ARG_NAME = 'num_grid_rows_low_res'
@@ -75,12 +78,9 @@ INPUT_DIR_HELP_STRING = (
     'Name of input directory, containing satellite data.  Files therein will '
     'be found by `satellite_io.find_file` and read by `satellite_io.read_file`.'
 )
-USE_CIRA_IR_HELP_STRING = (
-    'Boolean flag.  If 0, will use Robert/Galina data.  If 1, will use CIRA IR '
-    'data, in which case files in the directory `{0:s}` will actually be found '
-    'by `ml4tc.io.example_io.find_file` and read by '
-    '`ml4tc.io.example_io.read_file`.'
-).format(INPUT_DIR_ARG_NAME)
+DATA_TYPE_HELP_STRING = (
+    'Data type.  Must be one of the following:\n{0:s}'
+).format(str(nn_utils.VALID_DATA_TYPE_STRINGS))
 
 CYCLONE_ID_HELP_STRING = (
     'Cyclone ID in format "yyyyBBnn".  Will plot data augmentation only for '
@@ -133,8 +133,8 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + USE_CIRA_IR_ARG_NAME, type=int, required=False, default=0,
-    help=USE_CIRA_IR_HELP_STRING
+    '--' + DATA_TYPE_ARG_NAME, type=str, required=True,
+    help=DATA_TYPE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
@@ -194,24 +194,24 @@ def _plot_data_one_example(
 
     P = number of points in border set
 
-    :param predictor_matrices: Same as output from `neural_net.create_data` but
-        without first axis.
-    :param target_values: Same as output from `neural_net.create_data` but
+    :param predictor_matrices: Same as output from `nn_training*.create_data`
+        but without first axis.
+    :param target_values: Same as output from `nn_training*.create_data` but
         without first axis.
     :param cyclone_id_string: Cyclone ID.
     :param target_time_unix_sec: Target time.
     :param low_res_wavelengths_microns: 1-D numpy array of wavelengths for low-
         resolution data.
-    :param low_res_latitudes_deg_n: Same as output from `neural_net.create_data`
-        but without first or last axis.
+    :param low_res_latitudes_deg_n: Same as output from
+        `nn_training*.create_data` but without first or last axis.
     :param low_res_longitudes_deg_e: Same as output from
-        `neural_net.create_data` but without first or last axis.
+        `nn_training*.create_data` but without first or last axis.
     :param high_res_wavelengths_microns: 1-D numpy array of wavelengths for
         high-resolution data.
     :param high_res_latitudes_deg_n: Same as output from
-        `neural_net.create_data` but without first or last axis.
+        `nn_training*.create_data` but without first or last axis.
     :param high_res_longitudes_deg_e: Same as output from
-        `neural_net.create_data` but without first or last axis.
+        `nn_training*.create_data` but without first or last axis.
     :param are_data_normalized: See documentation at top of file.
     :param border_latitudes_deg_n: length-P numpy array of latitudes
         (deg north).  If None, will plot without coords.
@@ -232,11 +232,11 @@ def _plot_data_one_example(
             low_res_longitudes_deg_e
         )
 
-    brightness_temp_matrix = neural_net.get_low_res_data_from_predictors(
+    brightness_temp_matrix = nn_utils.get_low_res_data_from_predictors(
         predictor_matrices
     )
     bidirectional_reflectance_matrix = (
-        neural_net.get_high_res_data_from_predictors(predictor_matrices)
+        nn_utils.get_high_res_data_from_predictors(predictor_matrices)
     )
 
     num_grid_rows_low_res = brightness_temp_matrix.shape[0]
@@ -532,7 +532,7 @@ def _plot_data_one_example(
     )
 
 
-def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
+def _run(satellite_dir_name, data_type_string, cyclone_id_string,
          num_target_times, num_grid_rows_low_res, num_grid_columns_low_res,
          low_res_wavelengths_microns, high_res_wavelengths_microns,
          num_translations, mean_translation_low_res_px,
@@ -542,7 +542,7 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     This is effectively the main method.
 
     :param satellite_dir_name: See documentation at top of file.
-    :param use_cira_ir_data: Same.
+    :param data_type_string: Same.
     :param cyclone_id_string: Same.
     :param num_target_times: Same.
     :param num_grid_rows_low_res: Same.
@@ -556,7 +556,7 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     :param output_dir_name: Same.
     """
 
-    if use_cira_ir_data:
+    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
         low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS
         high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS
 
@@ -578,33 +578,38 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
         high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_RG_MICRONS
 
     option_dict = {
-        neural_net.SATELLITE_DIRECTORY_KEY: satellite_dir_name,
-        neural_net.YEARS_KEY: numpy.array([2000], dtype=int),
-        neural_net.LAG_TIMES_KEY: LAG_TIMES_MINUTES,
-        neural_net.HIGH_RES_WAVELENGTHS_KEY: high_res_wavelengths_microns,
-        neural_net.LOW_RES_WAVELENGTHS_KEY: low_res_wavelengths_microns,
-        neural_net.BATCH_SIZE_KEY: 1,
-        neural_net.MAX_EXAMPLES_PER_CYCLONE_KEY: 1,
-        neural_net.NUM_GRID_ROWS_KEY: num_grid_rows_low_res,
-        neural_net.NUM_GRID_COLUMNS_KEY: num_grid_columns_low_res,
-        neural_net.DATA_AUG_NUM_TRANS_KEY: num_translations,
-        neural_net.DATA_AUG_MEAN_TRANS_KEY: mean_translation_low_res_px,
-        neural_net.DATA_AUG_STDEV_TRANS_KEY: stdev_translation_low_res_px,
-        neural_net.LAG_TIME_TOLERANCE_KEY: LAG_TIME_TOLERANCE_SEC,
-        neural_net.MAX_MISSING_LAG_TIMES_KEY: MAX_NUM_MISSING_LAG_TIMES,
-        neural_net.MAX_INTERP_GAP_KEY: MAX_INTERP_GAP_SEC,
-        neural_net.SENTINEL_VALUE_KEY: SENTINEL_VALUE,
-        neural_net.SEMANTIC_SEG_FLAG_KEY: False,
-        neural_net.TARGET_SMOOOTHER_STDEV_KEY: 1e-6
+        nn_utils.SATELLITE_DIRECTORY_KEY: satellite_dir_name,
+        nn_utils.YEARS_KEY: numpy.array([2000], dtype=int),
+        nn_utils.LAG_TIMES_KEY: LAG_TIMES_MINUTES,
+        nn_utils.HIGH_RES_WAVELENGTHS_KEY: high_res_wavelengths_microns,
+        nn_utils.LOW_RES_WAVELENGTHS_KEY: low_res_wavelengths_microns,
+        nn_utils.BATCH_SIZE_KEY: 1,
+        nn_utils.MAX_EXAMPLES_PER_CYCLONE_KEY: 1,
+        nn_utils.NUM_GRID_ROWS_KEY: num_grid_rows_low_res,
+        nn_utils.NUM_GRID_COLUMNS_KEY: num_grid_columns_low_res,
+        nn_utils.DATA_AUG_NUM_TRANS_KEY: num_translations,
+        nn_utils.DATA_AUG_MEAN_TRANS_KEY: mean_translation_low_res_px,
+        nn_utils.DATA_AUG_STDEV_TRANS_KEY: stdev_translation_low_res_px,
+        nn_utils.LAG_TIME_TOLERANCE_KEY: LAG_TIME_TOLERANCE_SEC,
+        nn_utils.MAX_MISSING_LAG_TIMES_KEY: MAX_NUM_MISSING_LAG_TIMES,
+        nn_utils.MAX_INTERP_GAP_KEY: MAX_INTERP_GAP_SEC,
+        nn_utils.SENTINEL_VALUE_KEY: SENTINEL_VALUE,
+        nn_utils.SEMANTIC_SEG_FLAG_KEY: False,
+        nn_utils.TARGET_SMOOOTHER_STDEV_KEY: 1e-6
     }
 
-    if use_cira_ir_data:
-        data_dict = neural_net.create_data_cira_ir(
+    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
+        data_dict = nn_training_cira_ir.create_data(
+            option_dict=option_dict, cyclone_id_string=cyclone_id_string,
+            num_target_times=num_target_times
+        )
+    elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
+        data_dict = nn_training_simple.create_data(
             option_dict=option_dict, cyclone_id_string=cyclone_id_string,
             num_target_times=num_target_times
         )
     else:
-        data_dict = neural_net.create_data(
+        data_dict = nn_training_fancy.create_data(
             option_dict=option_dict, cyclone_id_string=cyclone_id_string,
             num_target_times=num_target_times
         )
@@ -612,18 +617,18 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     if data_dict is None:
         return
 
-    predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
-    target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]
-    target_times_unix_sec = data_dict[neural_net.TARGET_TIMES_KEY]
-    low_res_latitude_matrix_deg_n = data_dict[neural_net.LOW_RES_LATITUDES_KEY]
+    predictor_matrices = data_dict[nn_utils.PREDICTOR_MATRICES_KEY]
+    target_matrix = data_dict[nn_utils.TARGET_MATRIX_KEY]
+    target_times_unix_sec = data_dict[nn_utils.TARGET_TIMES_KEY]
+    low_res_latitude_matrix_deg_n = data_dict[nn_utils.LOW_RES_LATITUDES_KEY]
     low_res_longitude_matrix_deg_e = (
-        data_dict[neural_net.LOW_RES_LONGITUDES_KEY]
+        data_dict[nn_utils.LOW_RES_LONGITUDES_KEY]
     )
     high_res_latitude_matrix_deg_n = (
-        data_dict[neural_net.HIGH_RES_LATITUDES_KEY]
+        data_dict[nn_utils.HIGH_RES_LATITUDES_KEY]
     )
     high_res_longitude_matrix_deg_e = (
-        data_dict[neural_net.HIGH_RES_LONGITUDES_KEY]
+        data_dict[nn_utils.HIGH_RES_LONGITUDES_KEY]
     )
 
     for k in range(len(predictor_matrices)):
@@ -678,7 +683,7 @@ if __name__ == '__main__':
 
     _run(
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
-        use_cira_ir_data=bool(getattr(INPUT_ARG_OBJECT, USE_CIRA_IR_ARG_NAME)),
+        data_type_string=getattr(INPUT_ARG_OBJECT, DATA_TYPE_ARG_NAME),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
         num_target_times=getattr(INPUT_ARG_OBJECT, NUM_TARGET_TIMES_ARG_NAME),
         num_grid_rows_low_res=getattr(INPUT_ARG_OBJECT, NUM_GRID_ROWS_ARG_NAME),

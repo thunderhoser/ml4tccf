@@ -17,7 +17,7 @@ import file_system_utils
 import error_checking
 import prediction_io
 import scalar_prediction_utils as prediction_utils
-import neural_net
+import neural_net_utils
 import angular_utils
 
 # TODO(thunderhoser): Maybe account for 0.1-deg discretization in error metrics?
@@ -1376,17 +1376,19 @@ def get_scores_all_variables(
     model_file_name = (
         mean_prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
     )
-    model_metafile_name = neural_net.find_metafile(
+    model_metafile_name = neural_net_utils.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
     )
 
-    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
-    training_option_dict = model_metadata_dict[neural_net.TRAINING_OPTIONS_KEY]
+    model_metadata_dict = neural_net_utils.read_metafile(model_metafile_name)
+    training_option_dict = model_metadata_dict[
+        neural_net_utils.TRAINING_OPTIONS_KEY
+    ]
 
     # TODO(thunderhoser): Need constant!
     climo_xy_offset_metres = numpy.mean(1000 * grid_spacings_km) * (
-        training_option_dict[neural_net.DATA_AUG_MEAN_TRANS_KEY]
+        training_option_dict[neural_net_utils.DATA_AUG_MEAN_TRANS_KEY]
     )
     climo_offset_distance_metres = numpy.sqrt(2 * (climo_xy_offset_metres ** 2))
 

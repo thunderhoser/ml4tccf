@@ -21,10 +21,10 @@ import scalar_prediction_io
 import extended_best_track_io as xbt_io
 import scalar_prediction_utils
 import extended_best_track_utils as xbt_utils
-import neural_net
+import neural_net_training_cira_ir as nn_training
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
-SYNOPTIC_TIME_TOLERANCE_SEC = neural_net.SYNOPTIC_TIME_TOLERANCE_SEC
+SYNOPTIC_TIME_TOLERANCE_SEC = nn_training.SYNOPTIC_TIME_TOLERANCE_SEC
 
 HOURS_TO_SECONDS = 3600
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'

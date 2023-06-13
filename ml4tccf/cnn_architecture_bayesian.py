@@ -16,7 +16,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import error_checking
 import architecture_utils
-import neural_net
+import neural_net_utils
 import cnn_architecture
 
 POINT_ESTIMATE_TYPE_STRING = 'point_estimate'
@@ -424,7 +424,7 @@ def create_model(option_dict):
     )
     model_object.compile(
         loss=loss_function, optimizer=optimizer_function,
-        metrics=neural_net.METRIC_FUNCTION_LIST_SCALAR
+        metrics=neural_net_utils.METRIC_FUNCTION_LIST_SCALAR
     )
     model_object.summary()
 

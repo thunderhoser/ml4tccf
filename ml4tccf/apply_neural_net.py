@@ -14,7 +14,10 @@ import error_checking
 import prediction_io
 import scalar_prediction_io
 import gridded_prediction_io
-import neural_net
+import neural_net_utils as nn_utils
+import neural_net_training_cira_ir as nn_training_cira_ir
+import neural_net_training_simple as nn_training_simple
+import neural_net_training_fancy as nn_training_fancy
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -30,7 +33,7 @@ NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 MODEL_FILE_HELP_STRING = (
-    'Path to trained model (will be read by `neural_net.read_model`).'
+    'Path to trained model (will be read by `nn_utils.read_model`).'
 )
 SATELLITE_DIR_HELP_STRING = (
     'Name of directory with satellite (predictor) data.  Files therein will be '
@@ -111,46 +114,54 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     error_checking.assert_is_geq(data_aug_num_translations, 1)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
-    model_object = neural_net.read_model(model_file_name)
-    model_metafile_name = neural_net.find_metafile(
+    model_object = nn_utils.read_model(model_file_name)
+    model_metafile_name = nn_utils.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
     )
 
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
-    model_metadata_dict = neural_net.read_metafile(model_metafile_name)
+    model_metadata_dict = nn_utils.read_metafile(model_metafile_name)
 
-    if not model_metadata_dict[neural_net.IS_MODEL_BNN_KEY]:
+    if not model_metadata_dict[nn_utils.IS_MODEL_BNN_KEY]:
         num_bnn_iterations = 1
 
     error_checking.assert_is_geq(num_bnn_iterations, 1)
 
     validation_option_dict = (
-        model_metadata_dict[neural_net.VALIDATION_OPTIONS_KEY]
+        model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
     )
-    validation_option_dict[neural_net.SATELLITE_DIRECTORY_KEY] = (
+    validation_option_dict[nn_utils.SATELLITE_DIRECTORY_KEY] = (
         satellite_dir_name
     )
-    validation_option_dict[neural_net.DATA_AUG_NUM_TRANS_KEY] = (
+    validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
         data_aug_num_translations
     )
 
     # TODO(thunderhoser): I might want to make this an input arg to the script.
-    validation_option_dict[neural_net.SYNOPTIC_TIMES_ONLY_KEY] = True
+    validation_option_dict[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = True
 
     # TODO(thunderhoser): With many target times and many translations, I might
     # get out-of-memory errors.  In this case, I will write a new version of
     # this script, which calls `create_data` once without data augmentation and
     # then augments each example many times.
 
-    if model_metadata_dict[neural_net.USE_CIRA_IR_KEY]:
-        data_dict = neural_net.create_data_cira_ir(
+    data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
+
+    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
+        data_dict = nn_training_cira_ir.create_data(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            num_target_times=LARGE_INTEGER
+        )
+    elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
+        data_dict = nn_training_simple.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
             num_target_times=LARGE_INTEGER
         )
     else:
-        data_dict = neural_net.create_data(
+        data_dict = nn_training_fancy.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
             num_target_times=LARGE_INTEGER
@@ -159,11 +170,11 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     if data_dict is None:
         return
 
-    predictor_matrices = data_dict[neural_net.PREDICTOR_MATRICES_KEY]
-    target_matrix = data_dict[neural_net.TARGET_MATRIX_KEY]
-    grid_spacings_km = data_dict[neural_net.GRID_SPACINGS_KEY]
-    cyclone_center_latitudes_deg_n = data_dict[neural_net.CENTER_LATITUDES_KEY]
-    target_times_unix_sec = data_dict[neural_net.TARGET_TIMES_KEY]
+    predictor_matrices = data_dict[nn_utils.PREDICTOR_MATRICES_KEY]
+    target_matrix = data_dict[nn_utils.TARGET_MATRIX_KEY]
+    grid_spacings_km = data_dict[nn_utils.GRID_SPACINGS_KEY]
+    cyclone_center_latitudes_deg_n = data_dict[nn_utils.CENTER_LATITUDES_KEY]
+    target_times_unix_sec = data_dict[nn_utils.TARGET_TIMES_KEY]
 
     if len(target_matrix.shape) == 4:
         target_matrix = target_matrix[..., 0]
@@ -173,7 +184,7 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     print(SEPARATOR_STRING)
 
     for k in range(num_bnn_iterations):
-        this_prediction_matrix = neural_net.apply_model(
+        this_prediction_matrix = nn_utils.apply_model(
             model_object=model_object, predictor_matrices=predictor_matrices,
             num_examples_per_batch=NUM_EXAMPLES_PER_BATCH, verbose=True
         )
@@ -204,7 +215,7 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
         )
         prediction_matrix = prediction_matrix[..., ensemble_indices]
 
-    if validation_option_dict[neural_net.SEMANTIC_SEG_FLAG_KEY]:
+    if validation_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY]:
         output_file_name = prediction_io.find_file(
             directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
             raise_error_if_missing=False
