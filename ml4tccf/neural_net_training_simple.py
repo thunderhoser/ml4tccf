@@ -663,9 +663,9 @@ def get_times_and_scalar_preds_shuffled(
             target_times_unix_sec=target_times_by_file_unix_sec[i]
         )
 
-        good_indices = numpy.all(
+        good_indices = numpy.where(numpy.all(
             numpy.isfinite(scalar_predictor_matrix_by_file[i]), axis=1
-        )
+        ))[0]
         cyclone_id_strings_by_file[i] = [
             cyclone_id_strings_by_file[i][k] for k in good_indices
         ]
@@ -1725,9 +1725,9 @@ def create_data_specific_trans(
         )
     else:
         scalar_predictor_matrix = scalar_predictor_matrix[idxs, ...]
-        good_time_indices = numpy.all(
+        good_time_indices = numpy.where(numpy.all(
             numpy.isfinite(scalar_predictor_matrix), axis=1
-        )
+        ))[0]
         scalar_predictor_matrix = scalar_predictor_matrix[
             good_time_indices, ...
         ]

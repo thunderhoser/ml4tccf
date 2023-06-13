@@ -193,9 +193,9 @@ def _get_target_times_and_scalar_predictors(
             )
         )
 
-        good_indices = numpy.all(
+        good_indices = numpy.where(numpy.all(
             numpy.isfinite(scalar_predictor_matrix_by_cyclone[i]), axis=1
-        )
+        ))[0]
         target_times_by_cyclone_unix_sec[i] = (
             target_times_by_cyclone_unix_sec[i][good_indices]
         )
@@ -1370,9 +1370,9 @@ def create_data_specific_trans(
         )
     else:
         scalar_predictor_matrix = scalar_predictor_matrix[idxs, ...]
-        good_time_indices = numpy.all(
+        good_time_indices = numpy.where(numpy.all(
             numpy.isfinite(scalar_predictor_matrix), axis=1
-        )
+        ))[0]
         scalar_predictor_matrix = scalar_predictor_matrix[
             good_time_indices, ...
         ]
