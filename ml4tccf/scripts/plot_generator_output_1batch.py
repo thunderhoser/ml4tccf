@@ -16,6 +16,8 @@ from ml4tccf.machine_learning import \
     neural_net_training_cira_ir as nn_training_cira_ir
 from ml4tccf.machine_learning import \
     neural_net_training_simple as nn_training_simple
+from ml4tccf.machine_learning import \
+    neural_net_training_fancy as nn_training_fancy
 from ml4tccf.scripts import plot_predictions
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
@@ -191,12 +193,18 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
     model_metadata_dict[nn_utils.TRAINING_OPTIONS_KEY] = training_option_dict
     print(SEPARATOR_STRING)
 
-    if model_metadata_dict[training_option_dict.USE_CIRA_IR_KEY]:
+    data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
+
+    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
         generator_handle = nn_training_cira_ir.data_generator(
             training_option_dict
         )
-    else:
+    elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
         generator_handle = nn_training_simple.data_generator(
+            training_option_dict
+        )
+    else:
+        generator_handle = nn_training_fancy.data_generator(
             training_option_dict
         )
 

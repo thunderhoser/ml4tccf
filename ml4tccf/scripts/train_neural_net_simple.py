@@ -18,7 +18,7 @@ def _run(template_file_name, output_dir_name,
          data_aug_mean_translation_low_res_px,
          data_aug_stdev_translation_low_res_px, synoptic_times_only,
          a_deck_file_name, scalar_a_deck_field_names,
-         remove_nontropical_systems,
+         remove_nontropical_systems, use_shuffled_data,
          satellite_dir_name_for_training, training_years,
          satellite_dir_name_for_validation, validation_years,
          num_epochs,
@@ -44,6 +44,7 @@ def _run(template_file_name, output_dir_name,
     :param a_deck_file_name: Same.
     :param scalar_a_deck_field_names: Same.
     :param remove_nontropical_systems: Same.
+    :param use_shuffled_data: Same.
     :param satellite_dir_name_for_training: Same.
     :param training_years: Same.
     :param satellite_dir_name_for_validation: Same.
@@ -84,7 +85,8 @@ def _run(template_file_name, output_dir_name,
         nn_utils.SYNOPTIC_TIMES_ONLY_KEY: synoptic_times_only,
         nn_utils.A_DECK_FILE_KEY: a_deck_file_name,
         nn_utils.SCALAR_A_DECK_FIELDS_KEY: scalar_a_deck_field_names,
-        nn_utils.REMOVE_NONTROPICAL_KEY: remove_nontropical_systems
+        nn_utils.REMOVE_NONTROPICAL_KEY: remove_nontropical_systems,
+        nn_utils.TRAIN_WITH_SHUFFLED_DATA_KEY: use_shuffled_data
     }
 
     validation_option_dict = {
@@ -124,7 +126,8 @@ def _run(template_file_name, output_dir_name,
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         architecture_dict=model_metadata_dict[nn_utils.ARCHITECTURE_KEY],
-        is_model_bnn=model_metadata_dict[nn_utils.IS_MODEL_BNN_KEY]
+        is_model_bnn=model_metadata_dict[nn_utils.IS_MODEL_BNN_KEY],
+        use_shuffled_data=use_shuffled_data
     )
 
 
@@ -180,6 +183,9 @@ if __name__ == '__main__':
         ),
         remove_nontropical_systems=bool(getattr(
             INPUT_ARG_OBJECT, training_args.REMOVE_NONTROPICAL_ARG_NAME
+        )),
+        use_shuffled_data=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.USE_SHUFFLED_DATA_ARG_NAME
         )),
         satellite_dir_name_for_training=getattr(
             INPUT_ARG_OBJECT, training_args.SATELLITE_DIR_FOR_TRAINING_ARG_NAME

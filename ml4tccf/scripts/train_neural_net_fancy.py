@@ -5,7 +5,7 @@ import argparse
 import numpy
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
 from ml4tccf.machine_learning import neural_net_training_fancy as nn_training
-from ml4tccf.scripts import training_args
+from ml4tccf.scripts import training_args_fancy as training_args
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)

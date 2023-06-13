@@ -12,6 +12,8 @@ from ml4tccf.machine_learning import \
     neural_net_training_cira_ir as nn_training_cira_ir
 from ml4tccf.machine_learning import \
     neural_net_training_simple as nn_training_simple
+from ml4tccf.machine_learning import \
+    neural_net_training_fancy as nn_training_fancy
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
@@ -140,14 +142,22 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     # this script, which calls `create_data` once without data augmentation and
     # then augments each example many times.
 
-    if model_metadata_dict[nn_utils.USE_CIRA_IR_KEY]:
+    data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
+
+    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
         data_dict = nn_training_cira_ir.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
             num_target_times=LARGE_INTEGER
         )
-    else:
+    elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
         data_dict = nn_training_simple.create_data(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            num_target_times=LARGE_INTEGER
+        )
+    else:
+        data_dict = nn_training_fancy.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
             num_target_times=LARGE_INTEGER

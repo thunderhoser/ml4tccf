@@ -959,7 +959,8 @@ def train_model(
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         architecture_dict=architecture_dict,
         is_model_bnn=is_model_bnn,
-        use_cira_ir_data=True
+        data_type_string=neural_net_utils.CIRA_IR_DATA_TYPE_STRING,
+        train_with_shuffled_data=False
     )
 
     model_object.fit_generator(

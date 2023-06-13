@@ -1290,7 +1290,8 @@ def train_model(
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         architecture_dict=architecture_dict,
         is_model_bnn=is_model_bnn,
-        use_cira_ir_data=False
+        data_type_string=nn_utils.RG_SIMPLE_DATA_TYPE_STRING,
+        train_with_shuffled_data=use_shuffled_data
     )
 
     model_object.fit_generator(

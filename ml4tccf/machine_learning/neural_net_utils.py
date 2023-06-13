@@ -19,6 +19,14 @@ from ml4tccf.outside_code import accum_grad_optimizer
 TOLERANCE = 1e-6
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
 
+CIRA_IR_DATA_TYPE_STRING = 'cira_ir'
+RG_FANCY_DATA_TYPE_STRING = 'robert_galina_fancy'
+RG_SIMPLE_DATA_TYPE_STRING = 'robert_galina_simple'
+VALID_DATA_TYPE_STRINGS = [
+    CIRA_IR_DATA_TYPE_STRING, RG_FANCY_DATA_TYPE_STRING,
+    RG_SIMPLE_DATA_TYPE_STRING
+]
+
 TROPICAL_SYSTEM_TYPE_STRINGS = [
     a_deck_io.TROPICAL_DEPRESSION_TYPE_STRING,
     a_deck_io.TROPICAL_STORM_TYPE_STRING,
@@ -91,14 +99,16 @@ PLATEAU_LR_MUTIPLIER_KEY = 'plateau_learning_rate_multiplier'
 EARLY_STOPPING_PATIENCE_KEY = 'early_stopping_patience_epochs'
 ARCHITECTURE_KEY = 'architecture_dict'
 IS_MODEL_BNN_KEY = 'is_model_bnn'
-USE_CIRA_IR_KEY = 'use_cira_ir_data'
+DATA_TYPE_KEY = 'data_type_string'
+TRAIN_WITH_SHUFFLED_DATA_KEY = 'train_with_shuffled_data'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY,
     LOSS_FUNCTION_KEY, OPTIMIZER_FUNCTION_KEY,
     PLATEAU_PATIENCE_KEY, PLATEAU_LR_MUTIPLIER_KEY, EARLY_STOPPING_PATIENCE_KEY,
-    ARCHITECTURE_KEY, IS_MODEL_BNN_KEY, USE_CIRA_IR_KEY
+    ARCHITECTURE_KEY, IS_MODEL_BNN_KEY,
+    DATA_TYPE_KEY, TRAIN_WITH_SHUFFLED_DATA_KEY
 ]
 
 METRIC_FUNCTION_LIST_SCALAR = [
@@ -236,6 +246,25 @@ METRIC_FUNCTION_DICT_GRIDDED.update({
     'mean_center_of_mass_distance_px':
         custom_metrics_gridded.mean_center_of_mass_distance_px
 })
+
+
+def check_data_type(data_type_string):
+    """Ensures valid data type.
+
+    :param data_type_string: Data type.
+    :raises: ValueError: if `data_type_string not in VALID_DATA_TYPE_STRINGS`.
+    """
+
+    error_checking.assert_is_string(data_type_string)
+    if data_type_string in VALID_DATA_TYPE_STRINGS:
+        return
+
+    error_string = (
+        'Data type "{0:s}" is not one of the valid data types (listed below):'
+        '\n{1:s}'
+    ).format(data_type_string, str(VALID_DATA_TYPE_STRINGS))
+
+    raise ValueError(error_string)
 
 
 def check_generator_args(option_dict):
@@ -761,7 +790,7 @@ def write_metafile(
         validation_option_dict, loss_function_string, optimizer_function_string,
         plateau_patience_epochs, plateau_learning_rate_multiplier,
         early_stopping_patience_epochs, architecture_dict, is_model_bnn,
-        use_cira_ir_data):
+        data_type_string, train_with_shuffled_data):
     """Writes metadata to Pickle file.
 
     :param pickle_file_name: Path to output file.
@@ -777,10 +806,13 @@ def write_metafile(
     :param early_stopping_patience_epochs: Same.
     :param architecture_dict: Same.
     :param is_model_bnn: Same.
-    :param use_cira_ir_data: Boolean flag.  If True, the model uses CIRA IR
-        data as predictors.  If False, the model uses Robert/Galina data as
-        predictors.
+    :param data_type_string: Data type (must be accepted by `check_data_type`).
+    :param train_with_shuffled_data: Boolean flag.  If True, the model is
+        trained with shuffled data files.  If False, the model is trained with
+        sorted files (one file per cyclone or per cyclone-day).
     """
+
+    check_data_type(data_type_string)
 
     metadata_dict = {
         NUM_EPOCHS_KEY: num_epochs,
@@ -795,7 +827,8 @@ def write_metafile(
         EARLY_STOPPING_PATIENCE_KEY: early_stopping_patience_epochs,
         ARCHITECTURE_KEY: architecture_dict,
         IS_MODEL_BNN_KEY: is_model_bnn,
-        USE_CIRA_IR_KEY: use_cira_ir_data
+        DATA_TYPE_KEY: data_type_string,
+        TRAIN_WITH_SHUFFLED_DATA_KEY: train_with_shuffled_data
     }
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=pickle_file_name)
@@ -823,9 +856,11 @@ def read_metafile(pickle_file_name):
     metadata_dict["early_stopping_patience_epochs"]: Same.
     metadata_dict["architecture_dict"]: Same.
     metadata_dict["is_model_bnn"]: Same.
-    metadata_dict["use_cira_ir_data"]: Boolean flag.  If True, the model uses
-        CIRA IR data as predictors.  If False, the model uses Robert/Galina data
-        as predictors.
+    metadata_dict["data_type_string"]: Data type (must be accepted by
+        `check_data_type`).
+    metadata_dict["train_with_shuffled_data"]: Boolean flag.  If True, the model
+        is trained with shuffled data files.  If False, the model is trained
+        with sorted files (one file per cyclone or per cyclone-day).
 
     :raises: ValueError: if any expected key is not found in dictionary.
     """
@@ -835,41 +870,6 @@ def read_metafile(pickle_file_name):
     pickle_file_handle = open(pickle_file_name, 'rb')
     metadata_dict = pickle.load(pickle_file_handle)
     pickle_file_handle.close()
-
-    if OPTIMIZER_FUNCTION_KEY not in metadata_dict:
-        metadata_dict[OPTIMIZER_FUNCTION_KEY] = 'keras.optimizers.Adam()'
-    if IS_MODEL_BNN_KEY not in metadata_dict:
-        metadata_dict[IS_MODEL_BNN_KEY] = False
-    if ARCHITECTURE_KEY not in metadata_dict:
-        metadata_dict[ARCHITECTURE_KEY] = None
-    if USE_CIRA_IR_KEY not in metadata_dict:
-        metadata_dict[USE_CIRA_IR_KEY] = True
-
-    training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
-    validation_option_dict = metadata_dict[VALIDATION_OPTIONS_KEY]
-
-    if training_option_dict is None:
-        training_option_dict = dict()
-        validation_option_dict = dict()
-
-    if SEMANTIC_SEG_FLAG_KEY not in training_option_dict:
-        training_option_dict[SEMANTIC_SEG_FLAG_KEY] = False
-        validation_option_dict[SEMANTIC_SEG_FLAG_KEY] = False
-
-    if TARGET_SMOOOTHER_STDEV_KEY not in training_option_dict:
-        training_option_dict[TARGET_SMOOOTHER_STDEV_KEY] = None
-        validation_option_dict[TARGET_SMOOOTHER_STDEV_KEY] = None
-
-    if SYNOPTIC_TIMES_ONLY_KEY not in training_option_dict:
-        training_option_dict[SYNOPTIC_TIMES_ONLY_KEY] = (
-            not metadata_dict[USE_CIRA_IR_KEY]
-        )
-        validation_option_dict[SYNOPTIC_TIMES_ONLY_KEY] = (
-            not metadata_dict[USE_CIRA_IR_KEY]
-        )
-
-    metadata_dict[TRAINING_OPTIONS_KEY] = training_option_dict
-    metadata_dict[VALIDATION_OPTIONS_KEY] = validation_option_dict
 
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:

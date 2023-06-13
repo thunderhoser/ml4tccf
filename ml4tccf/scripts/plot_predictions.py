@@ -24,6 +24,8 @@ from ml4tccf.machine_learning import \
     neural_net_training_cira_ir as nn_training_cira_ir
 from ml4tccf.machine_learning import \
     neural_net_training_simple as nn_training_simple
+from ml4tccf.machine_learning import \
+    neural_net_training_fancy as nn_training_fancy
 from ml4tccf.plotting import plotting_utils
 from ml4tccf.plotting import satellite_plotting
 
@@ -1039,7 +1041,9 @@ def _run(prediction_file_name, satellite_dir_name,
     )
 
     # Read predictor data.
-    if model_metadata_dict[nn_utils.USE_CIRA_IR_KEY]:
+    data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
+
+    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
         data_dict = nn_training_cira_ir.create_data_specific_trans(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
@@ -1047,8 +1051,16 @@ def _run(prediction_file_name, satellite_dir_name,
             row_translations_low_res_px=actual_row_offsets,
             column_translations_low_res_px=actual_column_offsets
         )
-    else:
+    elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
         data_dict = nn_training_simple.create_data_specific_trans(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            target_times_unix_sec=target_times_unix_sec,
+            row_translations_low_res_px=actual_row_offsets,
+            column_translations_low_res_px=actual_column_offsets
+        )
+    else:
+        data_dict = nn_training_fancy.create_data_specific_trans(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=target_times_unix_sec,

@@ -15,6 +15,8 @@ from gewittergefahr.plotting import imagemagick_utils
 from ml4tccf.io import border_io
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
 from ml4tccf.machine_learning import \
+    neural_net_training_simple as nn_training_simple
+from ml4tccf.machine_learning import \
     neural_net_training_fancy as nn_training_fancy
 from ml4tccf.machine_learning import \
     neural_net_training_cira_ir as nn_training_cira_ir
@@ -55,7 +57,7 @@ PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
 INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
-USE_CIRA_IR_ARG_NAME = 'use_cira_ir_data'
+DATA_TYPE_ARG_NAME = 'data_type_string'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 NUM_TARGET_TIMES_ARG_NAME = 'num_target_times'
 NUM_GRID_ROWS_ARG_NAME = 'num_grid_rows_low_res'
@@ -72,12 +74,9 @@ INPUT_DIR_HELP_STRING = (
     'Name of input directory, containing satellite data.  Files therein will '
     'be found by `satellite_io.find_file` and read by `satellite_io.read_file`.'
 )
-USE_CIRA_IR_HELP_STRING = (
-    'Boolean flag.  If 0, will use Robert/Galina data.  If 1, will use CIRA IR '
-    'data, in which case files in the directory `{0:s}` will actually be found '
-    'by `ml4tc.io.example_io.find_file` and read by '
-    '`ml4tc.io.example_io.read_file`.'
-).format(INPUT_DIR_ARG_NAME)
+DATA_TYPE_HELP_STRING = (
+    'Data type.  Must be one of the following:\n{0:s}'
+).format(str(nn_utils.VALID_DATA_TYPE_STRINGS))
 
 CYCLONE_ID_HELP_STRING = (
     'Cyclone ID in format "yyyyBBnn".  Will plot data augmentation only for '
@@ -130,8 +129,8 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + USE_CIRA_IR_ARG_NAME, type=int, required=False, default=0,
-    help=USE_CIRA_IR_HELP_STRING
+    '--' + DATA_TYPE_ARG_NAME, type=str, required=True,
+    help=DATA_TYPE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
@@ -529,7 +528,7 @@ def _plot_data_one_example(
     )
 
 
-def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
+def _run(satellite_dir_name, data_type_string, cyclone_id_string,
          num_target_times, num_grid_rows_low_res, num_grid_columns_low_res,
          low_res_wavelengths_microns, high_res_wavelengths_microns,
          num_translations, mean_translation_low_res_px,
@@ -539,7 +538,7 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     This is effectively the main method.
 
     :param satellite_dir_name: See documentation at top of file.
-    :param use_cira_ir_data: Same.
+    :param data_type_string: Same.
     :param cyclone_id_string: Same.
     :param num_target_times: Same.
     :param num_grid_rows_low_res: Same.
@@ -553,7 +552,7 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
     :param output_dir_name: Same.
     """
 
-    if use_cira_ir_data:
+    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
         low_res_wavelengths_microns = LOW_RES_WAVELENGTHS_CIRA_IR_MICRONS
         high_res_wavelengths_microns = HIGH_RES_WAVELENGTHS_CIRA_IR_MICRONS
 
@@ -595,8 +594,13 @@ def _run(satellite_dir_name, use_cira_ir_data, cyclone_id_string,
         nn_utils.TARGET_SMOOOTHER_STDEV_KEY: 1e-6
     }
 
-    if use_cira_ir_data:
+    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
         data_dict = nn_training_cira_ir.create_data(
+            option_dict=option_dict, cyclone_id_string=cyclone_id_string,
+            num_target_times=num_target_times
+        )
+    elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
+        data_dict = nn_training_simple.create_data(
             option_dict=option_dict, cyclone_id_string=cyclone_id_string,
             num_target_times=num_target_times
         )
@@ -675,7 +679,7 @@ if __name__ == '__main__':
 
     _run(
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
-        use_cira_ir_data=bool(getattr(INPUT_ARG_OBJECT, USE_CIRA_IR_ARG_NAME)),
+        data_type_string=getattr(INPUT_ARG_OBJECT, DATA_TYPE_ARG_NAME),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
         num_target_times=getattr(INPUT_ARG_OBJECT, NUM_TARGET_TIMES_ARG_NAME),
         num_grid_rows_low_res=getattr(INPUT_ARG_OBJECT, NUM_GRID_ROWS_ARG_NAME),
