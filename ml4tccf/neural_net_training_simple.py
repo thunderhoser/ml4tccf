@@ -663,6 +663,8 @@ def get_times_and_scalar_preds_shuffled(
             target_times_unix_sec=target_times_by_file_unix_sec[i]
         )
 
+        print(scalar_predictor_matrix_by_file[i])
+
         good_indices = numpy.where(numpy.all(
             numpy.isfinite(scalar_predictor_matrix_by_file[i]), axis=1
         ))[0]
