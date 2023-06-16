@@ -1,0 +1,44 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_error_heat_map"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --array=31
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_error_heat_map_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment05_apples-to-apples_rg_data"
+
+set FIRST_LAYER_CHANNEL_COUNTS=("08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24" "08" "08" "08" "08" "12" "12" "12" "12" "16" "16" "16" "16" "20" "20" "20" "20" "24" "24" "24" "24")
+set BATCHES_PER_UPDATE_COUNTS=("01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "01" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "02" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "03" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "04" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05" "05")
+set MAX_EXAMPLES_PER_CYCLONE_COUNTS=("1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4" "1" "2" "3" "4")
+
+set num_first_layer_channels=${FIRST_LAYER_CHANNEL_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_batches_per_update=${BATCHES_PER_UPDATE_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set max_examples_per_cyclone=${MAX_EXAMPLES_PER_CYCLONE_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-first-layer-channels=${num_first_layer_channels}_num-batches-per-update=${num_batches_per_update}_max-examples-per-cyclone=${max_examples_per_cyclone}"
+echo $model_dir_name
+
+python3 -u "${CODE_DIR_NAME}/plot_error_heat_map.py" \
+--input_prediction_file_pattern="${model_dir_name}/validation/predictions_*.nc" \
+--plot_orig_errors=1 \
+--output_dir_name="${model_dir_name}/validation/error_heat_map"
