@@ -34,6 +34,8 @@ set wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[85]}
 set model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}"
 echo $model_dir_name
 
+set CYCLONE_ID_STRINGS=("2022EP01" "2022EP02" "2022EP03" "2022EP04" "2022EP05" "2022EP06" "2022EP07" "2022EP08" "2022EP09" "2022EP10" "2022EP11" "2022EP12" "2022EP13" "2022EP14" "2022EP15" "2022EP16" "2022EP17" "2022EP18" "2022EP19")
+
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
 --input_model_file_name="${model_dir_name}/model.h5" \
 --input_satellite_dir_name="${VALIDATION_DIR_NAME}" \
