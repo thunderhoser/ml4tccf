@@ -83,6 +83,7 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
             prediction_tables_xarray
         )
     )
+    print(prediction_table_xarray)
 
     pt = prediction_table_xarray
     ensemble_size = (
