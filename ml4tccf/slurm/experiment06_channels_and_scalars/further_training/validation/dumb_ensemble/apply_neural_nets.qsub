@@ -40,7 +40,7 @@ echo $model_dir_name
 python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
 --input_model_file_name="${model_dir_name}/model.h5" \
 --input_satellite_dir_name="${VALIDATION_DIR_NAME}" \
---cyclone_id_string="${CYCLONE_ID_STRINGS[$i]}" \
+--cyclone_id_string="${cyclone_id_string}" \
 --num_bnn_iterations=1 \
 --max_ensemble_size=100 \
 --data_aug_num_translations=8 \
