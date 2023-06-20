@@ -84,3 +84,18 @@ def concat_over_examples(prediction_tables_xarray):
         prediction_tables_xarray, dim=EXAMPLE_DIM_KEY, data_vars='all',
         coords='minimal', compat='identical', join='exact'
     )
+
+
+def concat_over_ensemble_members(prediction_tables_xarray):
+    """Concatenates prediction data over many ensemble members.
+
+    :param prediction_tables_xarray: 1-D list of input tables, in format
+        returned by `prediction_io.read_file`.
+    :return: prediction_table_xarray: xarray table with all predictions.
+    :raises: ValueError: if models are not identical.
+    """
+
+    return xarray.concat(
+        prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY, data_vars='all',
+        coords='minimal', compat='identical', join='exact'
+    )
