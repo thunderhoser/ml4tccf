@@ -74,6 +74,7 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
         prediction_tables_xarray[i] = prediction_io.read_file(
             input_file_names[i]
         )
+        print(prediction_tables_xarray[i])
         model_file_names[i] = prediction_tables_xarray[i].attrs[
             scalar_prediction_utils.MODEL_FILE_KEY
         ]
