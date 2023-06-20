@@ -96,6 +96,6 @@ def concat_over_ensemble_members(prediction_tables_xarray):
     """
 
     return xarray.concat(
-        prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY, data_vars='all',
-        coords='minimal', compat='identical', join='exact'
+        prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
+        data_vars='minimal', coords='minimal', compat='identical', join='exact'
     )
