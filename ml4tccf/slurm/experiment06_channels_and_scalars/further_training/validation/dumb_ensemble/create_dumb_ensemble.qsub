@@ -39,7 +39,7 @@ while ($i <= ${#CYCLONE_ID_STRINGS})
     
     while ($j <= ${#BEST_MODEL_INDICES})
         set best_model_index=${BEST_MODEL_INDICES[$j]}
-        set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/wavelengths-microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$best_model_index]}/validation/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
+        set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/wavelengths-microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$best_model_index]}/validation/with_random_seed/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
         @ j = $j + 1
     end
     

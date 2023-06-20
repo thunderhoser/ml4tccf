@@ -1,0 +1,48 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="apply_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=30:00:00
+#SBATCH --array=1-76
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment06_channels_and_scalars/further_training"
+set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020/simplified_all_wavelengths"
+
+set WAVELENGTH_GROUP_STRINGS_MICRONS=("3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-6.185-6.950" "3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300")
+set CYCLONE_ID_STRINGS=("2022EP01" "2022EP01" "2022EP01" "2022EP01" "2022EP02" "2022EP02" "2022EP02" "2022EP02" "2022EP03" "2022EP03" "2022EP03" "2022EP03" "2022EP04" "2022EP04" "2022EP04" "2022EP04" "2022EP05" "2022EP05" "2022EP05" "2022EP05" "2022EP06" "2022EP06" "2022EP06" "2022EP06" "2022EP07" "2022EP07" "2022EP07" "2022EP07" "2022EP08" "2022EP08" "2022EP08" "2022EP08" "2022EP09" "2022EP09" "2022EP09" "2022EP09" "2022EP10" "2022EP10" "2022EP10" "2022EP10" "2022EP11" "2022EP11" "2022EP11" "2022EP11" "2022EP12" "2022EP12" "2022EP12" "2022EP12" "2022EP13" "2022EP13" "2022EP13" "2022EP13" "2022EP14" "2022EP14" "2022EP14" "2022EP14" "2022EP15" "2022EP15" "2022EP15" "2022EP15" "2022EP16" "2022EP16" "2022EP16" "2022EP16" "2022EP17" "2022EP17" "2022EP17" "2022EP17" "2022EP18" "2022EP18" "2022EP18" "2022EP18" "2022EP19" "2022EP19" "2022EP19" "2022EP19")
+
+set wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$SLURM_ARRAY_TASK_ID]}
+set cyclone_id_string=${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}"
+echo $model_dir_name
+
+python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+--input_model_file_name="${model_dir_name}/model.h5" \
+--input_satellite_dir_name="${VALIDATION_DIR_NAME}" \
+--cyclone_id_string="${CYCLONE_ID_STRINGS[$i]}" \
+--num_bnn_iterations=1 \
+--max_ensemble_size=100 \
+--data_aug_num_translations=8 \
+--random_seed=6695 \
+--output_dir_name="${model_dir_name}/validation/with_random_seed"
