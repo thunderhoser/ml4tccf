@@ -1376,6 +1376,9 @@ def get_scores_all_variables(
     model_file_name = (
         mean_prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
     )
+
+    # TODO(thunderhoser): This is a HACK to deal with ensembles.
+    model_file_name = model_file_name.split(' ')[0]
     model_metafile_name = neural_net_utils.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
