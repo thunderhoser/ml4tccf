@@ -1168,6 +1168,12 @@ def data_generator(option_dict):
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
 
+    use_extrap_based_forecasts = (
+        scalar_a_deck_field_names is not None
+        and a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY in scalar_a_deck_field_names
+        and a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY in scalar_a_deck_field_names
+    )
+
     cyclone_index = 0
 
     while True:
@@ -1204,7 +1210,7 @@ def data_generator(option_dict):
                 low_res_wavelengths_microns=low_res_wavelengths_microns,
                 num_rows_low_res=num_rows_low_res,
                 num_columns_low_res=num_columns_low_res,
-                return_coords=False,
+                return_coords=use_extrap_based_forecasts,
                 target_times_unix_sec=new_target_times_unix_sec
             )
             cyclone_index += 1
@@ -1235,6 +1241,16 @@ def data_generator(option_dict):
                         row_indices, :
                     ]
                 )
+
+                if use_extrap_based_forecasts:
+                    this_scalar_predictor_matrix = (
+                        _extrap_based_forecasts_to_rowcol(
+                            scalar_predictor_matrix=
+                            this_scalar_predictor_matrix,
+                            scalar_a_deck_field_names=scalar_a_deck_field_names,
+                            satellite_data_dict=data_dict
+                        )
+                    )
 
             this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
                 this_bt_matrix_kelvins
@@ -1308,6 +1324,23 @@ def data_generator(option_dict):
             scalar_predictor_matrix = numpy.repeat(
                 scalar_predictor_matrix, axis=0,
                 repeats=data_aug_num_translations
+            )
+
+        if use_extrap_based_forecasts:
+            row_index = scalar_a_deck_field_names.index(
+                a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY
+            )
+            column_index = scalar_a_deck_field_names.index(
+                a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY
+            )
+
+            scalar_predictor_matrix[:, row_index] = (
+                scalar_predictor_matrix[:, row_index] +
+                row_translations_low_res_px
+            )
+            scalar_predictor_matrix[:, column_index] = (
+                scalar_predictor_matrix[:, column_index] +
+                column_translations_low_res_px
             )
 
         predictor_matrices = [brightness_temp_matrix_kelvins]
@@ -1562,6 +1595,12 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     ):
         return None
 
+    use_extrap_based_forecasts = (
+        scalar_a_deck_field_names is not None
+        and a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY in scalar_a_deck_field_names
+        and a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY in scalar_a_deck_field_names
+    )
+
     if a_deck_file_name is None:
         scalar_predictor_matrix = None
     else:
@@ -1571,6 +1610,14 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         ], dtype=int)
 
         scalar_predictor_matrix = all_scalar_predictor_matrix[row_indices, :]
+
+        if use_extrap_based_forecasts:
+            scalar_predictor_matrix = _extrap_based_forecasts_to_rowcol(
+                scalar_predictor_matrix=scalar_predictor_matrix,
+                scalar_a_deck_field_names=scalar_a_deck_field_names,
+                satellite_data_dict=data_dict
+            )
+
         scalar_predictor_matrix = scalar_predictor_matrix[:num_target_times, :]
 
     brightness_temp_matrix_kelvins = (
@@ -1663,6 +1710,23 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         scalar_predictor_matrix = numpy.repeat(
             scalar_predictor_matrix, axis=0,
             repeats=data_aug_num_translations
+        )
+
+    if use_extrap_based_forecasts:
+        row_index = scalar_a_deck_field_names.index(
+            a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY
+        )
+        column_index = scalar_a_deck_field_names.index(
+            a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY
+        )
+
+        scalar_predictor_matrix[:, row_index] = (
+            scalar_predictor_matrix[:, row_index] +
+            row_translations_low_res_px
+        )
+        scalar_predictor_matrix[:, column_index] = (
+            scalar_predictor_matrix[:, column_index] +
+            column_translations_low_res_px
         )
 
     predictor_matrices = [brightness_temp_matrix_kelvins]
@@ -1804,6 +1868,12 @@ def create_data_specific_trans(
     ):
         return None
 
+    use_extrap_based_forecasts = (
+        scalar_a_deck_field_names is not None
+        and a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY in scalar_a_deck_field_names
+        and a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY in scalar_a_deck_field_names
+    )
+
     if a_deck_file_name is None:
         scalar_predictor_matrix = None
     else:
@@ -1851,6 +1921,32 @@ def create_data_specific_trans(
     target_times_unix_sec = target_times_unix_sec[idxs, ...]
     low_res_latitude_matrix_deg_n = low_res_latitude_matrix_deg_n[idxs, ...]
     low_res_longitude_matrix_deg_e = low_res_longitude_matrix_deg_e[idxs, ...]
+
+    if use_extrap_based_forecasts:
+        scalar_predictor_matrix = _extrap_based_forecasts_to_rowcol(
+            scalar_predictor_matrix=scalar_predictor_matrix,
+            scalar_a_deck_field_names=scalar_a_deck_field_names,
+            satellite_data_dict={
+                LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
+                LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
+            }
+        )
+
+        row_index = scalar_a_deck_field_names.index(
+            a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY
+        )
+        column_index = scalar_a_deck_field_names.index(
+            a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY
+        )
+
+        scalar_predictor_matrix[:, row_index] = (
+            scalar_predictor_matrix[:, row_index] +
+            row_translations_low_res_px
+        )
+        scalar_predictor_matrix[:, column_index] = (
+            scalar_predictor_matrix[:, column_index] +
+            column_translations_low_res_px
+        )
 
     brightness_temp_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
