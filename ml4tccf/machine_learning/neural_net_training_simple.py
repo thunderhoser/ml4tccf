@@ -5,9 +5,12 @@ import warnings
 import numpy
 import keras
 import xarray
+from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
+from ml4tccf.io import a_deck_io
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
@@ -263,6 +266,102 @@ def _read_satellite_data_1shuffled_file(
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
         LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
     }
+
+
+def _extrap_based_forecasts_to_rowcol(
+        scalar_predictor_matrix, scalar_a_deck_field_names,
+        satellite_data_dict):
+    """Converts extrapolation-based forecasts from lat-long to row-column space.
+
+    E = number of examples
+    F = number of fields
+
+    :param scalar_predictor_matrix: E-by-F numpy array of scalar predictors.
+    :param scalar_a_deck_field_names: length-F list with names of scalar
+        predictors.
+    :param satellite_data_dict: Dictionary returned by
+        `_read_satellite_data_1shuffled_file`, also containing data for E
+        examples.
+    :return: scalar_predictor_matrix: Same as input, but extrapolation-based
+        forecasts are now row-column offsets.
+    """
+
+    latitude_index = scalar_a_deck_field_names.index(
+        a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY
+    )
+    longitude_index = scalar_a_deck_field_names.index(
+        a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY
+    )
+
+    extrap_latitudes_deg_n = scalar_predictor_matrix[:, latitude_index]
+    extrap_longitudes_deg_e = scalar_predictor_matrix[:, longitude_index]
+    extrap_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+        extrap_longitudes_deg_e
+    )
+
+    grid_latitude_matrix_deg_n = (
+        satellite_data_dict[LOW_RES_LATITUDES_KEY][..., 0]
+    )
+    grid_longitude_matrix_deg_e = (
+        satellite_data_dict[LOW_RES_LONGITUDES_KEY][..., 0]
+    )
+
+    num_grid_rows = grid_latitude_matrix_deg_n.shape[1]
+    num_grid_columns = grid_longitude_matrix_deg_e.shape[1]
+    num_examples = len(extrap_latitudes_deg_n)
+    extrap_row_offsets_px = numpy.full(num_examples, numpy.nan)
+    extrap_column_offsets_px = numpy.full(num_examples, numpy.nan)
+
+    for i in range(num_examples):
+        this_grid_row_indices = numpy.linspace(
+            0, num_grid_rows - 1, num=num_grid_rows, dtype=float
+        )
+        this_grid_row_offsets_px = (
+            this_grid_row_indices - 0.5 * num_grid_rows + 0.5
+        )
+        interp_object = interp1d(
+            x=grid_latitude_matrix_deg_n[i, :], y=this_grid_row_offsets_px,
+            kind='linear', bounds_error=False, fill_value='extrapolate',
+            assume_sorted=True
+        )
+        extrap_row_offsets_px[i] = interp_object(extrap_latitudes_deg_n[i])
+
+        grid_longitude_matrix_deg_e[i, :] = (
+            lng_conversion.convert_lng_positive_in_west(
+                grid_longitude_matrix_deg_e[i, :]
+            )
+        )
+
+        if numpy.any(numpy.diff(grid_longitude_matrix_deg_e[i, :]) < 0):
+            grid_longitude_matrix_deg_e[i, :] = (
+                lng_conversion.convert_lng_negative_in_west(
+                    grid_longitude_matrix_deg_e[i, :]
+                )
+            )
+            extrap_longitudes_deg_e[i] = (
+                lng_conversion.convert_lng_negative_in_west(
+                    extrap_longitudes_deg_e[i]
+                )
+            )
+
+        assert not numpy.any(numpy.diff(grid_longitude_matrix_deg_e[i, :]) < 0)
+
+        this_grid_column_indices = numpy.linspace(
+            0, num_grid_columns - 1, num=num_grid_columns, dtype=float
+        )
+        this_grid_column_offsets_px = (
+            this_grid_column_indices - 0.5 * num_grid_columns + 0.5
+        )
+        interp_object = interp1d(
+            x=grid_longitude_matrix_deg_e[i, :], y=this_grid_column_offsets_px,
+            kind='linear', bounds_error=False, fill_value='extrapolate',
+            assume_sorted=True
+        )
+        extrap_column_offsets_px[i] = interp_object(extrap_longitudes_deg_e[i])
+
+    scalar_predictor_matrix[:, latitude_index] = extrap_row_offsets_px
+    scalar_predictor_matrix[:, longitude_index] = extrap_column_offsets_px
+    return scalar_predictor_matrix
 
 
 def _read_satellite_data_1cyclone(
@@ -728,6 +827,12 @@ def data_generator_shuffled(option_dict):
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
 
+    use_extrap_based_forecasts = (
+        scalar_a_deck_field_names is not None
+        and a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY in scalar_a_deck_field_names
+        and a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY in scalar_a_deck_field_names
+    )
+
     file_index = 0
 
     while True:
@@ -765,7 +870,7 @@ def data_generator_shuffled(option_dict):
                 low_res_wavelengths_microns=low_res_wavelengths_microns,
                 num_rows_low_res=num_rows_low_res,
                 num_columns_low_res=num_columns_low_res,
-                return_coords=False,
+                return_coords=use_extrap_based_forecasts,
                 cyclone_id_strings=these_cyclone_id_strings,
                 target_times_unix_sec=these_target_times_unix_sec
             )
@@ -800,6 +905,16 @@ def data_generator_shuffled(option_dict):
                 this_scalar_predictor_matrix = (
                     scalar_predictor_matrix_by_file[prev_idx][row_indices, :]
                 )
+
+                if use_extrap_based_forecasts:
+                    this_scalar_predictor_matrix = (
+                        _extrap_based_forecasts_to_rowcol(
+                            scalar_predictor_matrix=
+                            this_scalar_predictor_matrix,
+                            scalar_a_deck_field_names=scalar_a_deck_field_names,
+                            satellite_data_dict=data_dict
+                        )
+                    )
 
             this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
                 this_bt_matrix_kelvins
@@ -873,6 +988,23 @@ def data_generator_shuffled(option_dict):
             scalar_predictor_matrix = numpy.repeat(
                 scalar_predictor_matrix, axis=0,
                 repeats=data_aug_num_translations
+            )
+
+        if use_extrap_based_forecasts:
+            row_index = scalar_a_deck_field_names.index(
+                a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY
+            )
+            column_index = scalar_a_deck_field_names.index(
+                a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY
+            )
+
+            scalar_predictor_matrix[:, row_index] = (
+                scalar_predictor_matrix[:, row_index] +
+                row_translations_low_res_px
+            )
+            scalar_predictor_matrix[:, column_index] = (
+                scalar_predictor_matrix[:, column_index] +
+                column_translations_low_res_px
             )
 
         predictor_matrices = [brightness_temp_matrix_kelvins]
