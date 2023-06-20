@@ -1,5 +1,6 @@
 """Creates multi-model ensemble."""
 
+import copy
 import argparse
 import numpy
 from gewittergefahr.gg_utils import error_checking
@@ -8,6 +9,7 @@ from ml4tccf.io import scalar_prediction_io
 from ml4tccf.utils import scalar_prediction_utils
 
 TOLERANCE = 1e-6
+MODEL_FILE_KEY = scalar_prediction_utils.MODEL_FILE_KEY
 
 INPUT_FILES_ARG_NAME = 'input_prediction_file_names'
 MAX_ENSEMBLE_SIZE_ARG_NAME = 'max_total_ensemble_size'
@@ -66,9 +68,10 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
         prediction_tables_xarray[i] = prediction_io.read_file(
             input_file_names[i]
         )
-        model_file_names[i] = prediction_tables_xarray[i].attrs[
-            scalar_prediction_utils.MODEL_FILE_KEY
-        ]
+        model_file_names[i] = copy.deepcopy(
+            prediction_tables_xarray[i].attrs[MODEL_FILE_KEY]
+        )
+        prediction_tables_xarray[i].attrs[MODEL_FILE_KEY] = model_file_names[0]
 
     prediction_table_xarray = (
         scalar_prediction_utils.concat_over_ensemble_members(

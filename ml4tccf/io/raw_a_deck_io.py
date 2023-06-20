@@ -7,9 +7,12 @@ import os
 import glob
 import gzip
 import shutil
+import warnings
 import numpy
 import xarray
 from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import geodetic_utils
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import a_deck_io
 from ml4tccf.utils import misc_utils
@@ -23,6 +26,8 @@ from atcf import ABRead
 TOLERANCE = 1e-6
 GZIP_FILE_EXTENSION = '.gz'
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+HOURS_TO_SECONDS = 3600
 
 NO_RADIUS_STRINGS = ['NAN', '']
 CIRCLE_STRING = 'AAA'
@@ -414,6 +419,86 @@ def _read_wave_height_radii(atcf_table_pandas, row_indices):
     }
 
 
+def _create_extrap_forecasts(a_deck_table_xarray):
+    """Creates extrapolation-based forecasts for center position.
+
+    :param a_deck_table_xarray: xarray table in format produced by `read_file`.
+    :return: a_deck_table_xarray: Same but with extra variables.
+    """
+
+    adt = a_deck_table_xarray
+    lead_time_sec = 6 * HOURS_TO_SECONDS
+
+    num_cyclone_objects = len(adt[a_deck_io.CYCLONE_ID_KEY].values)
+    start_latitudes_deg = adt[a_deck_io.LATITUDE_KEY].values
+    start_longitudes_deg = adt[a_deck_io.LONGITUDE_KEY].values
+    storm_displacements_metres = numpy.full(num_cyclone_objects, numpy.nan)
+    storm_headings_deg = numpy.full(num_cyclone_objects, numpy.nan)
+
+    for i in range(num_cyclone_objects):
+        desired_indices = numpy.where(numpy.logical_and(
+            adt[a_deck_io.VALID_TIME_KEY].values ==
+            adt[a_deck_io.VALID_TIME_KEY].values[i] - lead_time_sec,
+            adt[a_deck_io.CYCLONE_ID_KEY].values ==
+            adt[a_deck_io.CYCLONE_ID_KEY].values[i]
+        ))[0]
+
+        if len(desired_indices) == 0:
+            continue
+
+        desired_idx = desired_indices[0]
+        storm_displacements_metres[i] = (
+            lead_time_sec * adt[a_deck_io.MOTION_SPEED_KEY].values[desired_idx]
+        )
+        storm_headings_deg[i] = (
+            adt[a_deck_io.MOTION_HEADING_KEY].values[desired_idx]
+        )
+
+    real_indices = numpy.where(
+        numpy.invert(numpy.isnan(storm_headings_deg))
+    )[0]
+
+    extrap_latitudes_deg_n = numpy.full(num_cyclone_objects, numpy.nan)
+    extrap_longitudes_deg_e = numpy.full(num_cyclone_objects, numpy.nan)
+
+    (
+        extrap_latitudes_deg_n[real_indices],
+        extrap_longitudes_deg_e[real_indices]
+    ) = geodetic_utils.start_points_and_displacements_to_endpoints(
+        start_latitudes_deg=start_latitudes_deg[real_indices],
+        start_longitudes_deg=start_longitudes_deg[real_indices],
+        scalar_displacements_metres=storm_displacements_metres[real_indices],
+        geodetic_bearings_deg=storm_headings_deg[real_indices]
+    )
+
+    extrap_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+        extrap_longitudes_deg_e, allow_nan=True
+    )
+
+    warning_string = (
+        'POTENTIAL ERROR (but probably not): Failed to create a persistence '
+        'forecast for {0:d} of {1:d} cyclone objects (probably because it was '
+        'the first time step in the cyclone).'
+    ).format(
+        numpy.sum(numpy.isnan(extrap_latitudes_deg_n)),
+        len(extrap_latitudes_deg_n)
+    )
+
+    warnings.warn(warning_string)
+
+    adt = adt.assign({
+        a_deck_io.EXTRAP_LATITUDE_KEY: (
+            adt[a_deck_io.LATITUDE_KEY].dims, extrap_latitudes_deg_n
+        ),
+        a_deck_io.EXTRAP_LONGITUDE_KEY: (
+            adt[a_deck_io.LONGITUDE_KEY].dims, extrap_longitudes_deg_e
+        )
+    })
+
+    a_deck_table_xarray = adt
+    return a_deck_table_xarray
+
+
 def find_file(directory_name, cyclone_id_string, raise_error_if_missing=True):
     """Finds ASCII file with A-deck data.
 
@@ -744,4 +829,7 @@ def read_file(ascii_file_name):
             (these_dim, wave_height_radius_matrix_nw_metres)
     })
 
-    return xarray.Dataset(data_vars=main_data_dict, coords=metadata_dict)
+    a_deck_table_xarray = xarray.Dataset(
+        data_vars=main_data_dict, coords=metadata_dict
+    )
+    return _create_extrap_forecasts(a_deck_table_xarray)
