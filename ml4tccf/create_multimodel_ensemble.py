@@ -122,7 +122,7 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
 
     cyclone_id_strings = pt[scalar_prediction_utils.CYCLONE_ID_KEY].values
     assert len(numpy.unique(cyclone_id_strings)) == 1
-    cyclone_id_string = cyclone_id_strings[0]
+    cyclone_id_string = cyclone_id_strings[0].decode('utf-8')
 
     print('Writing results to: "{0:s}"...'.format(output_file_name))
     scalar_prediction_io.write_file(
