@@ -1014,6 +1014,14 @@ def data_generator_shuffled(option_dict):
                 column_translations_low_res_px
             )
 
+            these_indices = numpy.array([row_index, column_index], dtype=int)
+            print((
+                'Extrapolation-based forecasts (in terms of row/column '
+                'offsets):\n{0:s}'
+            ).format(
+                str(scalar_predictor_matrix[:, these_indices])
+            ))
+
         predictor_matrices = [brightness_temp_matrix_kelvins]
         if scalar_predictor_matrix is not None:
             predictor_matrices.append(scalar_predictor_matrix)
