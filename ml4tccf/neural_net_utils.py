@@ -773,7 +773,7 @@ def find_metafile(model_dir_name, raise_error_if_missing=True):
     """
 
     # TODO(thunderhoser): HACK to deal with ensembles.
-    model_dir_name = model_dir_name.split(' ')[0]
+    model_dir_name = model_dir_name.split(' ')[-1]
     error_checking.assert_is_string(model_dir_name)
     error_checking.assert_is_boolean(raise_error_if_missing)
 
