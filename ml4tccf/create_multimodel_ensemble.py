@@ -100,12 +100,16 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
             scalar_prediction_utils.ENSEMBLE_MEMBER_DIM_KEY: desired_indices
         })
 
+    print(pt[scalar_prediction_utils.ACTUAL_ROW_OFFSET_KEY].values.shape)
+
     target_matrix = numpy.transpose(numpy.vstack((
         pt[scalar_prediction_utils.ACTUAL_ROW_OFFSET_KEY].values,
         pt[scalar_prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values,
         pt[scalar_prediction_utils.GRID_SPACING_KEY].values,
         pt[scalar_prediction_utils.ACTUAL_CENTER_LATITUDE_KEY].values
     )))
+    print(target_matrix.shape)
+
     prediction_matrix = numpy.stack((
         pt[scalar_prediction_utils.PREDICTED_ROW_OFFSET_KEY].values,
         pt[scalar_prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
