@@ -161,6 +161,12 @@ def _run(input_file_name, training_years, output_file_name):
         a_deck_io.STORM_TYPE_KEY: (
             these_dim, adt[a_deck_io.STORM_TYPE_KEY].values
         ),
+        a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY: (
+            these_dim, adt[a_deck_io.EXTRAP_LATITUDE_KEY].values
+        ),
+        a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY: (
+            these_dim, adt[a_deck_io.EXTRAP_LONGITUDE_KEY].values
+        ),
         a_deck_io.ABSOLUTE_LATITUDE_KEY: (
             these_dim, norm_absolute_latitudes
         ),
