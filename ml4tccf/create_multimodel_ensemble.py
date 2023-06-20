@@ -115,7 +115,7 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
     dummy_model_file_name = ' '.join(model_file_names)
 
     cyclone_id_strings = pt[scalar_prediction_utils.CYCLONE_ID_KEY].values
-    assert len(set(cyclone_id_strings)) == 1
+    assert len(numpy.unique(cyclone_id_strings)) == 1
     cyclone_id_string = cyclone_id_strings[0]
 
     print('Writing results to: "{0:s}"...'.format(output_file_name))
