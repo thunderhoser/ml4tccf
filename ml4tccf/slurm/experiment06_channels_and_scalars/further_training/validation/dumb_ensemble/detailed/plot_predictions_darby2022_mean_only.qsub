@@ -40,6 +40,7 @@ while ($i <= ${#CYCLONE_ID_STRINGS})
     --plot_one_lag_time=1 \
     --convert_points_to_line_contours=0 \
     --plot_mean_point_prediction=1 \
+    --point_prediction_opacity=1 \
     --output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/validation/predictions_${CYCLONE_ID_STRINGS[$i]}/mean_only"
 
     @ i = $i + 1
