@@ -39,6 +39,7 @@ while ($i <= ${#CYCLONE_ID_STRINGS})
     --are_data_normalized=1 \
     --use_prob_contours=1 \
     --prob_contour_smoothing_radius_px=1 \
+    --plot_one_lag_time=1 \
     --output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/validation/predictions_${CYCLONE_ID_STRINGS[$i]}_contours"
 
     @ i = $i + 1
