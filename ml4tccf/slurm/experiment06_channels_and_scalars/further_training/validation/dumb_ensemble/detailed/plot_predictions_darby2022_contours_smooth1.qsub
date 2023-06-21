@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_predictions_darby2022_contours"
+#SBATCH --job-name="plot_predictions_darby2022_contours_smooth1"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -17,7 +17,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_predictions_darby2022_contours_%A.out
+#SBATCH --output=plot_predictions_darby2022_contours_smooth1_%A.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -37,10 +37,10 @@ while ($i <= ${#CYCLONE_ID_STRINGS})
     --input_prediction_file_name="${prediction_file_name}" \
     --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
     --are_data_normalized=1 \
-    --use_prob_contours=1 \
-    --prob_contour_smoothing_radius_px=1 \
     --plot_one_lag_time=1 \
-    --output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/validation/predictions_${CYCLONE_ID_STRINGS[$i]}_contours"
+    --convert_points_to_line_contours=1 \
+    --line_contour_smoothing_radius_px=1 \
+    --output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/validation/predictions_${CYCLONE_ID_STRINGS[$i]}/contours_smooth1"
 
     @ i = $i + 1
 end
