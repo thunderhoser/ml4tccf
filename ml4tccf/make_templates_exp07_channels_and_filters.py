@@ -15,7 +15,7 @@ import file_system_utils
 import architecture_utils
 import neural_net_utils
 import cnn_architecture
-import custom_losses_scalar
+import custom_metrics_scalar
 import accum_grad_optimizer
 
 OUTPUT_DIR_NAME = (
@@ -27,7 +27,7 @@ NUM_SCALAR_PREDICTORS = 9
 NUM_CONV_BLOCKS = 7
 ENSEMBLE_SIZE = 50
 NUM_DENSE_LAYERS = 4
-LOSS_FUNCTION_STRING = 'custom_losses_scalar.weird_crps_kilometres2'
+LOSS_FUNCTION_STRING = 'custom_metrics_scalar.crps_kilometres'
 
 DEFAULT_OPTION_DICT = {
     # cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
@@ -54,7 +54,7 @@ DEFAULT_OPTION_DICT = {
     cnn_architecture.USE_BATCH_NORM_KEY: True,
     cnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     cnn_architecture.LOSS_FUNCTION_KEY:
-        custom_losses_scalar.weird_crps_kilometres2,
+        custom_metrics_scalar.crps_kilometres,
     # cnn_architecture.OPTIMIZER_FUNCTION_KEY:
     #     accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
     #         orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5,
