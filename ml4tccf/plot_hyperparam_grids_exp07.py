@@ -248,6 +248,7 @@ def _read_metrics_one_model(model_dir_name):
         numpy.nanmean(et[scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY].values)
     )
 
+    print(et.coords[scalar_evaluation.TARGET_FIELD_NAMES].values)
     target_field_names = (
         et.coords[scalar_evaluation.TARGET_FIELD_NAMES].values.tolist()
     )
