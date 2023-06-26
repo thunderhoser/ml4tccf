@@ -248,9 +248,8 @@ def _read_metrics_one_model(model_dir_name):
         numpy.nanmean(et[scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY].values)
     )
 
-    print(et.coords[scalar_evaluation.TARGET_FIELD_NAMES].values)
     target_field_names = (
-        et.coords[scalar_evaluation.TARGET_FIELD_NAMES].values.tolist()
+        et.coords[scalar_evaluation.TARGET_FIELD_DIM].values.tolist()
     )
     xy_indices = numpy.array([
         target_field_names.index(scalar_evaluation.X_OFFSET_NAME),
@@ -273,7 +272,7 @@ def _read_metrics_one_model(model_dir_name):
     sst = this_ss_table_xarray
 
     target_field_names = (
-        sst.coords[scalar_evaluation.TARGET_FIELD_NAMES].values.tolist()
+        sst.coords[scalar_evaluation.TARGET_FIELD_DIM].values.tolist()
     )
     xy_indices = numpy.array([
         target_field_names.index(scalar_evaluation.X_OFFSET_NAME),
@@ -294,7 +293,7 @@ def _read_metrics_one_model(model_dir_name):
     pitt = this_pit_table_xarray
 
     target_field_names = (
-        pitt.coords[scalar_evaluation.TARGET_FIELD_NAMES].values.tolist()
+        pitt.coords[scalar_evaluation.TARGET_FIELD_DIM].values.tolist()
     )
     xy_indices = numpy.array([
         target_field_names.index(scalar_evaluation.X_OFFSET_NAME),
@@ -312,7 +311,7 @@ def _read_metrics_one_model(model_dir_name):
     dtt = this_dt_table_xarray
 
     target_field_names = (
-        dtt.coords[scalar_evaluation.TARGET_FIELD_NAMES].values.tolist()
+        dtt.coords[scalar_evaluation.TARGET_FIELD_DIM].values.tolist()
     )
     xy_indices = numpy.array([
         target_field_names.index(scalar_evaluation.X_OFFSET_NAME),
