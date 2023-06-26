@@ -279,13 +279,11 @@ def _read_metrics_one_model(model_dir_name):
         target_field_names.index(ss_utils.Y_OFFSET_NAME)
     ], dtype=int)
 
-    print(sst)
-
     metric_dict[SPREAD_SKILL_RELIABILITY_NAME] = METRES_TO_KM * numpy.mean(
-        sst[ss_utils.SPREAD_SKILL_RELIABILITY_KEY].values[xy_indices]
+        sst[ss_utils.XY_SSREL_KEY].values[xy_indices]
     )
     metric_dict[SPREAD_SKILL_RATIO_NAME] = numpy.mean(
-        sst[ss_utils.SPREAD_SKILL_RATIO_KEY].values[xy_indices]
+        sst[ss_utils.XY_SSRAT_KEY].values[xy_indices]
     )
 
     this_file_name = '{0:s}/pit_histograms.nc'.format(validation_dir_name)
@@ -303,7 +301,7 @@ def _read_metrics_one_model(model_dir_name):
     ], dtype=int)
 
     metric_dict[PIT_DEVIATION_NAME] = numpy.mean(
-        pitt[pit_utils.PITD_KEY].values[xy_indices]
+        pitt[pit_utils.PIT_DEVIATION_KEY].values[xy_indices]
     )
 
     this_file_name = '{0:s}/discard_test.nc'.format(validation_dir_name)
