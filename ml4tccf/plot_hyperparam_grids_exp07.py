@@ -272,12 +272,14 @@ def _read_metrics_one_model(model_dir_name):
     sst = this_ss_table_xarray
 
     target_field_names = (
-        sst.coords[scalar_evaluation.TARGET_FIELD_DIM].values.tolist()
+        sst.coords[ss_utils.TARGET_FIELD_DIM].values.tolist()
     )
     xy_indices = numpy.array([
-        target_field_names.index(scalar_evaluation.X_OFFSET_NAME),
-        target_field_names.index(scalar_evaluation.Y_OFFSET_NAME)
+        target_field_names.index(ss_utils.X_OFFSET_NAME),
+        target_field_names.index(ss_utils.Y_OFFSET_NAME)
     ], dtype=int)
+
+    print(sst)
 
     metric_dict[SPREAD_SKILL_RELIABILITY_NAME] = METRES_TO_KM * numpy.mean(
         sst[ss_utils.SPREAD_SKILL_RELIABILITY_KEY].values[xy_indices]
@@ -293,11 +295,11 @@ def _read_metrics_one_model(model_dir_name):
     pitt = this_pit_table_xarray
 
     target_field_names = (
-        pitt.coords[scalar_evaluation.TARGET_FIELD_DIM].values.tolist()
+        pitt.coords[pit_utils.TARGET_FIELD_DIM].values.tolist()
     )
     xy_indices = numpy.array([
-        target_field_names.index(scalar_evaluation.X_OFFSET_NAME),
-        target_field_names.index(scalar_evaluation.Y_OFFSET_NAME)
+        target_field_names.index(pit_utils.X_OFFSET_NAME),
+        target_field_names.index(pit_utils.Y_OFFSET_NAME)
     ], dtype=int)
 
     metric_dict[PIT_DEVIATION_NAME] = numpy.mean(
@@ -311,11 +313,11 @@ def _read_metrics_one_model(model_dir_name):
     dtt = this_dt_table_xarray
 
     target_field_names = (
-        dtt.coords[scalar_evaluation.TARGET_FIELD_DIM].values.tolist()
+        dtt.coords[dt_utils.TARGET_FIELD_DIM].values.tolist()
     )
     xy_indices = numpy.array([
-        target_field_names.index(scalar_evaluation.X_OFFSET_NAME),
-        target_field_names.index(scalar_evaluation.Y_OFFSET_NAME)
+        target_field_names.index(dt_utils.X_OFFSET_NAME),
+        target_field_names.index(dt_utils.Y_OFFSET_NAME)
     ], dtype=int)
 
     metric_dict[MONO_FRACTION_NAME] = numpy.mean(
