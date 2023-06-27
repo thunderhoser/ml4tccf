@@ -391,7 +391,7 @@ def _print_ranking_all_metrics(metric_matrix, main_metric_name):
             'other UQ-based ranks (SSREL, SSRAT, PITD, MF) = '
             '{9:.1f}, {10:.1f}, {11:.1f}, {12:.1f}'
         ).format(
-            WAVELENGTH_GROUP_STRINGS_AXIS1[i].replace('/', ', '),
+            WAVELENGTH_GROUP_STRINGS_AXIS1[i].replace('-', ', '),
             BATCHES_PER_EPOCH_COUNTS_AXIS2[j],
             BATCHES_PER_UPDATE_COUNTS_AXIS2[j],
             SPECTRAL_COMPLEXITIES_AXIS3[k],
@@ -449,7 +449,7 @@ def _print_ranking_one_metric(metric_matrix, metric_index):
         ).format(
             m + 1, METRIC_NAMES_FANCY[metric_index],
             metric_matrix[i, j, k, metric_index], METRIC_UNITS[metric_index],
-            WAVELENGTH_GROUP_STRINGS_AXIS1[i].replace('/', ', '),
+            WAVELENGTH_GROUP_STRINGS_AXIS1[i].replace('-', ', '),
             BATCHES_PER_EPOCH_COUNTS_AXIS2[j],
             BATCHES_PER_UPDATE_COUNTS_AXIS2[j],
             SPECTRAL_COMPLEXITIES_AXIS3[k]
