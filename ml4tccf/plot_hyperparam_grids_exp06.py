@@ -1,10 +1,11 @@
-"""Plots error metrics as a function of hyperparams for Experiment 7."""
+"""Plots error metrics as a function of hyperparams for Experiment 6."""
 
 import os
 import sys
 import argparse
 import numpy
 from scipy.stats import rankdata
+from itertools import combinations
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.colors
@@ -24,17 +25,22 @@ import spread_skill_utils as ss_utils
 import discard_test_utils as dt_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
-
 METRES_TO_KM = 0.001
 
-WAVELENGTH_GROUP_STRINGS_AXIS1 = [
-    '8.500-9.610-12.300', '3.900-7.340-13.300', '3.900-6.185-6.950',
-    '6.950-10.350-11.200',
-    '3.900-6.185-6.950-7.340-8.500-9.610-10.350-11.200-12.300-13.300'
-]
-BATCHES_PER_EPOCH_COUNTS_AXIS2 = numpy.array([24, 24, 36, 36], dtype=int)
-BATCHES_PER_UPDATE_COUNTS_AXIS2 = numpy.array([1, 2, 1, 2], dtype=int)
-SPECTRAL_COMPLEXITIES_AXIS3 = numpy.array([16, 24, 32, 40], dtype=int)
+UNIQUE_WAVELENGTHS_MICRONS = numpy.array([
+    3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
+])
+COMBINATION_OBJECT = combinations(UNIQUE_WAVELENGTHS_MICRONS, 3)
+WAVELENGTH_GROUP_STRINGS_MICRONS = []
+
+for this_array in list(COMBINATION_OBJECT):
+    this_string = '{0:.1f}, {1:.1f},\n{2:.1f}'.format(
+        this_array[0], this_array[1], this_array[2]
+    )
+    WAVELENGTH_GROUP_STRINGS_MICRONS.append(this_string)
+
+NUM_GRID_ROWS = 10
+NUM_GRID_COLUMNS = 12
 
 MEAN_DISTANCE_NAME = 'mean_distance_km'
 MEDIAN_DISTANCE_NAME = 'median_distance_km'
@@ -202,7 +208,7 @@ def _plot_scores_2d(
         colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object,
         orientation_string='vertical', extend_min=False, extend_max=False,
-        font_size=FONT_SIZE, fraction_of_axis_length=1.
+        font_size=FONT_SIZE, fraction_of_axis_length=0.6
     )
 
     tick_values = colour_bar_object.get_ticks()
@@ -457,7 +463,7 @@ def _print_ranking_one_metric(metric_matrix, metric_index):
 
 
 def _run(experiment_dir_name):
-    """Plots error metrics as a function of hyperparams for Experiment 7.
+    """Plots error metrics as a function of hyperparams for Experiment 6.
 
     This is effectively the main method.
 
@@ -470,7 +476,7 @@ def _run(experiment_dir_name):
     num_metrics = len(METRIC_NAMES)
 
     y_tick_labels = [
-        g.replace('-', ', ') for g in WAVELENGTH_GROUP_STRINGS_AXIS1
+        g.replace('/', ', ') for g in WAVELENGTH_GROUP_STRINGS_AXIS1
     ]
     y_tick_labels = ['All' if len(l) > 30 else l for l in y_tick_labels]
     x_tick_labels = [
