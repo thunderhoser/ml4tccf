@@ -27,13 +27,18 @@ UNIQUE_WAVELENGTHS_MICRONS = numpy.array([
     3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
 ])
 COMBINATION_OBJECT = combinations(UNIQUE_WAVELENGTHS_MICRONS, 3)
+
 WAVELENGTH_GROUP_STRINGS_MICRONS = []
+WAVELENGTH_GROUP_STRINGS_MICRONS_NICE = []
 
 for this_array in list(COMBINATION_OBJECT):
+    this_string = '-'.join(['{0:.3f}'.format(w) for w in this_array])
+    WAVELENGTH_GROUP_STRINGS_MICRONS.append(this_string)
+
     this_string = '{0:.1f}, {1:.1f},\n{2:.1f}'.format(
         this_array[0], this_array[1], this_array[2]
     )
-    WAVELENGTH_GROUP_STRINGS_MICRONS.append(this_string)
+    WAVELENGTH_GROUP_STRINGS_MICRONS_NICE.append(this_string)
 
 NUM_GRID_ROWS = 10
 NUM_GRID_COLUMNS = 12
