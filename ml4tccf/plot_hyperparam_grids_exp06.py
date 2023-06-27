@@ -35,9 +35,7 @@ for this_array in list(COMBINATION_OBJECT):
     this_string = '-'.join(['{0:.3f}'.format(w) for w in this_array])
     WAVELENGTH_GROUP_STRINGS_MICRONS.append(this_string)
 
-    this_string = '{0:.1f}, {1:.1f},\n{2:.1f}'.format(
-        this_array[0], this_array[1], this_array[2]
-    )
+    this_string = ',\n'.join(['{0:.3f}'.format(w) for w in this_array])
     WAVELENGTH_GROUP_STRINGS_MICRONS_NICE.append(this_string)
 
 NUM_GRID_ROWS = 10
@@ -66,7 +64,7 @@ WHITE_COLOUR = numpy.full(3, 1.)
 BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
-SELECTED_MARKER_SIZE_GRID_CELLS = 0.175
+SELECTED_MARKER_SIZE_GRID_CELLS = 0.1
 SELECTED_MARKER_INDEX = 0
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
@@ -367,7 +365,8 @@ def _run(experiment_dir_name):
                 )
                 axes_object.text(
                     j, i, WAVELENGTH_GROUP_STRINGS_MICRONS_NICE[linear_index],
-                    color=marker_colour, fontsize=20,
+                    color=numpy.array([228, 26, 28], dtype=float) / 255,
+                    fontsize=12,
                     horizontalalignment='center', verticalalignment='center'
                 )
 
