@@ -360,6 +360,17 @@ def _run(experiment_dir_name):
             y_tick_labels=[' '] * NUM_GRID_ROWS
         )
 
+        for i in range(NUM_GRID_ROWS):
+            for j in range(NUM_GRID_COLUMNS):
+                linear_index = numpy.ravel_multi_index(
+                    (i, j), (NUM_GRID_ROWS, NUM_GRID_COLUMNS)
+                )
+                axes_object.text(
+                    j, i, WAVELENGTH_GROUP_STRINGS_MICRONS_NICE[linear_index],
+                    color=marker_colour, fontsize=20,
+                    horizontalalignment='center', verticalalignment='center'
+                )
+
         best_indices = numpy.unravel_index(
             best_linear_index, (NUM_GRID_ROWS, NUM_GRID_COLUMNS)
         )
@@ -371,7 +382,7 @@ def _run(experiment_dir_name):
             figure_object.get_size_inches()[0] * figure_object.dpi
         )
         marker_size_px = figure_width_px * (
-            BEST_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
+            BEST_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[1]
         )
 
         axes_object.plot(
