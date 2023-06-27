@@ -58,10 +58,12 @@ METRIC_NAMES_FANCY = [
 ]
 METRIC_UNITS = ['km', 'km', 'km', r'km$^2$']
 
+WAVELENGTH_LABEL_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
+WAVELENGTH_LABEL_FONT_SIZE = 12
+
 BEST_MARKER_TYPE = '*'
-BEST_MARKER_SIZE_GRID_CELLS = 0.175
+BEST_MARKER_SIZE_GRID_CELLS = 0.1
 WHITE_COLOUR = numpy.full(3, 1.)
-BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
 SELECTED_MARKER_SIZE_GRID_CELLS = 0.1
@@ -287,6 +289,8 @@ def _print_ranking_one_metric(metric_matrix, metric_index):
             WAVELENGTH_GROUP_STRINGS_MICRONS[i].replace('-', ', ')
         ))
 
+    return i_sort_indices
+
 
 def _run(experiment_dir_name):
     """Plots error metrics as a function of hyperparams for Experiment 6.
@@ -315,8 +319,18 @@ def _run(experiment_dir_name):
 
     print(SEPARATOR_STRING)
 
+    sort_indices = None
+
     for m in range(num_metrics):
-        _print_ranking_one_metric(metric_matrix=metric_matrix, metric_index=m)
+        if METRIC_NAMES[m] == MEAN_DISTANCE_NAME:
+            sort_indices = _print_ranking_one_metric(
+                metric_matrix=metric_matrix, metric_index=m
+            )
+        else:
+            _print_ranking_one_metric(
+                metric_matrix=metric_matrix, metric_index=m
+            )
+
         print(SEPARATOR_STRING)
 
     _print_ranking_all_metrics(
@@ -345,12 +359,13 @@ def _run(experiment_dir_name):
         )
         colour_map_object = MAIN_COLOUR_MAP_OBJECT
 
-        best_linear_index = numpy.nanargmin(metric_matrix[:, m])
+        this_metric_matrix = metric_matrix[sort_indices, m]
+        best_linear_index = numpy.nanargmin(this_metric_matrix)
         marker_colour = WHITE_COLOUR
 
         figure_object, axes_object = _plot_scores_2d(
             score_matrix=numpy.reshape(
-                metric_matrix[:, m], (NUM_GRID_ROWS, NUM_GRID_COLUMNS)
+                this_metric_matrix, (NUM_GRID_ROWS, NUM_GRID_COLUMNS)
             ),
             colour_map_object=colour_map_object,
             colour_norm_object=colour_norm_object,
@@ -363,10 +378,12 @@ def _run(experiment_dir_name):
                 linear_index = numpy.ravel_multi_index(
                     (i, j), (NUM_GRID_ROWS, NUM_GRID_COLUMNS)
                 )
+                linear_index = sort_indices[linear_index]
+
                 axes_object.text(
                     j, i, WAVELENGTH_GROUP_STRINGS_MICRONS_NICE[linear_index],
-                    color=numpy.array([228, 26, 28], dtype=float) / 255,
-                    fontsize=12,
+                    color=WAVELENGTH_LABEL_COLOUR,
+                    fontsize=WAVELENGTH_LABEL_FONT_SIZE,
                     horizontalalignment='center', verticalalignment='center'
                 )
 
