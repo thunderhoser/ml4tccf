@@ -583,12 +583,12 @@ def _plot_data_one_example(
 
         convert_points_to_line_contours = False
     elif convert_points_to_line_contours:
-        print(center_column_index_low_res + prediction_matrix[1, k])
-        print(center_row_index_low_res + prediction_matrix[0, k])
+        print(center_column_index_low_res + prediction_matrix[1, 0])
+        print(center_row_index_low_res + prediction_matrix[0, 0])
         print(
             low_res_latitude_interp_object(
-                center_column_index_low_res + prediction_matrix[1, k],
-                center_row_index_low_res + prediction_matrix[0, k]
+                center_column_index_low_res + prediction_matrix[1, 0],
+                center_row_index_low_res + prediction_matrix[0, 0]
             )
         )
 
