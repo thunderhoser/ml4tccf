@@ -391,7 +391,7 @@ def _plot_data_one_channel(
         markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
         markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
         markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-        transform=coord_transform_object, zorder=1e12
+        transform=coord_transform_object, zorder=3e12
     )
 
     axes_object.plot(
@@ -400,7 +400,7 @@ def _plot_data_one_channel(
         markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
         markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
         markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
-        transform=axes_object.transAxes, zorder=1e10
+        transform=axes_object.transAxes, zorder=2e12
     )
 
     if plot_line_contours:
