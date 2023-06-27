@@ -583,30 +583,36 @@ def _plot_data_one_example(
 
         convert_points_to_line_contours = False
     elif convert_points_to_line_contours:
-        print(center_column_index_low_res + prediction_matrix[1, 0])
-        print(center_row_index_low_res + prediction_matrix[0, 0])
-        print(
-            low_res_latitude_interp_object(
-                center_column_index_low_res + prediction_matrix[1, 0],
-                center_row_index_low_res + prediction_matrix[0, 0]
-            )
-        )
+        if regular_grids:
+            point_latitudes_deg_n = numpy.array([
+                low_res_latitude_interp_object(
+                    center_row_index_low_res + prediction_matrix[0, k]
+                )[0]
+                for k in range(ensemble_size)
+            ])
 
-        point_latitudes_deg_n = numpy.array([
-            low_res_latitude_interp_object(
-                center_column_index_low_res + prediction_matrix[1, k],
-                center_row_index_low_res + prediction_matrix[0, k]
-            )[0]
-            for k in range(ensemble_size)
-        ])
+            point_longitudes_deg_e = numpy.array([
+                low_res_longitude_interp_object(
+                    center_column_index_low_res + prediction_matrix[1, k]
+                )[0]
+                for k in range(ensemble_size)
+            ])
+        else:
+            point_latitudes_deg_n = numpy.array([
+                low_res_latitude_interp_object(
+                    center_column_index_low_res + prediction_matrix[1, k],
+                    center_row_index_low_res + prediction_matrix[0, k]
+                )[0]
+                for k in range(ensemble_size)
+            ])
 
-        point_longitudes_deg_e = numpy.array([
-            low_res_longitude_interp_object(
-                center_column_index_low_res + prediction_matrix[1, k],
-                center_row_index_low_res + prediction_matrix[0, k]
-            )[0]
-            for k in range(ensemble_size)
-        ])
+            point_longitudes_deg_e = numpy.array([
+                low_res_longitude_interp_object(
+                    center_column_index_low_res + prediction_matrix[1, k],
+                    center_row_index_low_res + prediction_matrix[0, k]
+                )[0]
+                for k in range(ensemble_size)
+            ])
 
         probability_matrix = misc_utils.latlng_points_to_probability_grid(
             point_latitudes_deg_n=point_latitudes_deg_n,
