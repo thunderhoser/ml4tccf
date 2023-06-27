@@ -197,6 +197,9 @@ def _run(input_file_name, training_years, output_file_name):
     a_deck_table_xarray = xarray.Dataset(
         data_vars=main_data_dict, coords=metadata_dict, attrs=attribute_dict
     )
+    a_deck_table_xarray = a_deck_io.storm_types_to_1hot_encoding(
+        a_deck_table_xarray
+    )
 
     print('Writing normalized data to: "{0:s}"...'.format(output_file_name))
     a_deck_io.write_file(
