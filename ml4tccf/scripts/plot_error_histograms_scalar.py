@@ -130,6 +130,13 @@ def _plot_x_error_histogram(
     :param output_dir_name: See documentation at top of file.
     """
 
+    print('Bias for x-distance = {0:.1f} km'.format(
+        numpy.mean(predicted_x_offsets_km - actual_x_offsets_km)
+    ))
+    print('MAE for x-distance = {0:.1f} km'.format(
+        numpy.mean(numpy.absolute(predicted_x_offsets_km - actual_x_offsets_km))
+    ))
+
     bin_counts = histograms.create_histogram(
         input_values=predicted_x_offsets_km - actual_x_offsets_km,
         num_bins=num_xy_error_bins,
@@ -194,6 +201,13 @@ def _plot_y_error_histogram(
     :param plotting_orig_error: Same.
     :param output_dir_name: Same.
     """
+
+    print('Bias for y-distance = {0:.1f} km'.format(
+        numpy.mean(predicted_y_offsets_km - actual_y_offsets_km)
+    ))
+    print('MAE for y-distance = {0:.1f} km'.format(
+        numpy.mean(numpy.absolute(predicted_y_offsets_km - actual_y_offsets_km))
+    ))
 
     bin_counts = histograms.create_histogram(
         input_values=predicted_y_offsets_km - actual_y_offsets_km,
@@ -272,6 +286,10 @@ def _plot_euclidean_error_histogram(
         (predicted_y_offsets_km - actual_y_offsets_km) ** 2 +
         (predicted_x_offsets_km - actual_x_offsets_km) ** 2
     )
+
+    print('Mean Euclidean error = {0:.1f} km'.format(
+        numpy.mean(euclidean_errors_km)
+    ))
 
     bin_counts = histograms.create_histogram(
         input_values=euclidean_errors_km,
@@ -354,6 +372,13 @@ def _plot_direction_error_histogram(
         target_angles_deg=actual_offset_angles_deg[real_indices],
         predicted_angles_deg=predicted_offset_angles_deg[real_indices]
     )
+
+    print('Bias for angle = {0:.1f} deg'.format(
+        numpy.mean(angular_diffs_deg)
+    ))
+    print('MAE for angle = {0:.1f} deg'.format(
+        numpy.mean(numpy.absolute(angular_diffs_deg))
+    ))
 
     bin_counts = histograms.create_histogram(
         input_values=angular_diffs_deg,
