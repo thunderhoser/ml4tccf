@@ -140,6 +140,11 @@ def _plot_x_error_histogram(
     print('Bias for x-distance = {0:.1f} km'.format(
         numpy.mean(predicted_x_offsets_km - actual_x_offsets_km)
     ))
+    print('Min/max/quartiles of x-distance error (km):\n{0:s}'.format(
+        str(numpy.percentile(
+            predicted_x_offsets_km - actual_x_offsets_km, [0, 25, 50, 75, 100]
+        ))
+    ))
     print('MAE for x-distance = {0:.1f} km'.format(
         numpy.mean(numpy.absolute(predicted_x_offsets_km - actual_x_offsets_km))
     ))
@@ -211,6 +216,11 @@ def _plot_y_error_histogram(
 
     print('Bias for y-distance = {0:.1f} km'.format(
         numpy.mean(predicted_y_offsets_km - actual_y_offsets_km)
+    ))
+    print('Min/max/quartiles of y-distance error (km):\n{0:s}'.format(
+        str(numpy.percentile(
+            predicted_y_offsets_km - actual_y_offsets_km, [0, 25, 50, 75, 100]
+        ))
     ))
     print('MAE for y-distance = {0:.1f} km'.format(
         numpy.mean(numpy.absolute(predicted_y_offsets_km - actual_y_offsets_km))
@@ -297,6 +307,11 @@ def _plot_euclidean_error_histogram(
     print('Mean Euclidean error = {0:.1f} km'.format(
         numpy.mean(euclidean_errors_km)
     ))
+    print('Min/max/quartiles of Euclidean error (km):\n{0:s}'.format(
+        str(numpy.percentile(
+            euclidean_errors_km, [0, 25, 50, 75, 100]
+        ))
+    ))
 
     bin_counts = histograms.create_histogram(
         input_values=euclidean_errors_km,
@@ -382,6 +397,11 @@ def _plot_direction_error_histogram(
 
     print('Bias for angle = {0:.1f} deg'.format(
         numpy.mean(angular_diffs_deg)
+    ))
+    print('Min/max/quartiles of angle error (deg):\n{0:s}'.format(
+        str(numpy.percentile(
+            angular_diffs_deg, [0, 25, 50, 75, 100]
+        ))
     ))
     print('MAE for angle = {0:.1f} deg'.format(
         numpy.mean(numpy.absolute(angular_diffs_deg))
