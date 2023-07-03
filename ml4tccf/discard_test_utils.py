@@ -38,6 +38,7 @@ MEAN_MEAN_PREDICTION_KEY = 'mean_mean_prediction'
 MEAN_TARGET_KEY = 'mean_target_value'
 
 MODEL_FILE_KEY = 'model_file_name'
+ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
 PREDICTION_FILES_KEY = 'prediction_file_names'
 
 
@@ -148,6 +149,9 @@ def run_discard_test(prediction_file_names, discard_fractions):
     )
     result_table_xarray.attrs[MODEL_FILE_KEY] = (
         prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
+    )
+    result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = (
+        prediction_table_xarray.attrs[prediction_utils.ISOTONIC_MODEL_FILE_KEY]
     )
     result_table_xarray.attrs[PREDICTION_FILES_KEY] = ' '.join([
         '{0:s}'.format(f) for f in prediction_file_names
@@ -292,4 +296,8 @@ def read_results(netcdf_file_name):
         xarray table should make values self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    result_table_xarray = xarray.open_dataset(netcdf_file_name)
+    if ISOTONIC_MODEL_FILE_KEY not in result_table_xarray.attrs:
+        result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = None
+
+    return result_table_xarray

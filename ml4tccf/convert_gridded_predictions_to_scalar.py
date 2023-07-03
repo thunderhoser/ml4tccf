@@ -109,7 +109,8 @@ def _run(input_file_name, output_dir_name):
         cyclone_id_string=cyclone_id_string,
         target_times_unix_sec=
         gpt[gridded_prediction_utils.TARGET_TIME_KEY].values,
-        model_file_name=gpt.attrs[gridded_prediction_utils.MODEL_FILE_KEY]
+        model_file_name=gpt.attrs[gridded_prediction_utils.MODEL_FILE_KEY],
+        isotonic_model_file_name=None
     )
 
 

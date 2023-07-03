@@ -80,6 +80,7 @@ OFFSET_DIST_MEAN_MEAN_PRED_DIST_KEY = (
 OFFSET_DIST_MEAN_TARGET_DIST_KEY = 'offset_dist_mean_target_dist_metres'
 
 MODEL_FILE_KEY = 'model_file_name'
+ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
 PREDICTION_FILES_KEY = 'prediction_file_names'
 
 
@@ -726,6 +727,9 @@ def get_results_all_vars(
     result_table_xarray.attrs[MODEL_FILE_KEY] = (
         prediction_table_xarray.attrs[prediction_utils.MODEL_FILE_KEY]
     )
+    result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = (
+        prediction_table_xarray.attrs[prediction_utils.ISOTONIC_MODEL_FILE_KEY]
+    )
     result_table_xarray.attrs[PREDICTION_FILES_KEY] = ' '.join([
         '{0:s}'.format(f) for f in prediction_file_names
     ])
@@ -943,4 +947,8 @@ def read_results(netcdf_file_name):
         xarray table should make values self-explanatory.
     """
 
-    return xarray.open_dataset(netcdf_file_name)
+    result_table_xarray = xarray.open_dataset(netcdf_file_name)
+    if ISOTONIC_MODEL_FILE_KEY not in result_table_xarray.attrs:
+        result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = None
+
+    return result_table_xarray

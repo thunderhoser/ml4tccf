@@ -261,7 +261,8 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
             prediction_matrix=prediction_matrix,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=target_times_unix_sec,
-            model_file_name=model_file_name
+            model_file_name=model_file_name,
+            isotonic_model_file_name=None
         )
 
 
