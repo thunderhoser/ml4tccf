@@ -387,7 +387,7 @@ def _plot_data_one_channel(
         markerfacecolor=ACTUAL_CENTER_MARKER_COLOUR,
         markeredgecolor=ACTUAL_CENTER_MARKER_EDGE_COLOUR,
         markeredgewidth=ACTUAL_CENTER_MARKER_EDGE_WIDTH,
-        transform=coord_transform_object, zorder=1e12
+        transform=coord_transform_object, zorder=3e12
     )
 
     axes_object.plot(
@@ -396,7 +396,7 @@ def _plot_data_one_channel(
         markerfacecolor=IMAGE_CENTER_MARKER_COLOUR,
         markeredgecolor=IMAGE_CENTER_MARKER_EDGE_COLOUR,
         markeredgewidth=IMAGE_CENTER_MARKER_EDGE_WIDTH,
-        transform=axes_object.transAxes, zorder=1e10
+        transform=axes_object.transAxes, zorder=2e12
     )
 
     if plot_line_contours:
@@ -579,21 +579,36 @@ def _plot_data_one_example(
 
         convert_points_to_line_contours = False
     elif convert_points_to_line_contours:
-        point_latitudes_deg_n = numpy.array([
-            low_res_latitude_interp_object(
-                center_column_index_low_res + prediction_matrix[1, k],
-                center_row_index_low_res + prediction_matrix[0, k]
-            )[0]
-            for k in range(ensemble_size)
-        ])
+        if regular_grids:
+            point_latitudes_deg_n = numpy.array([
+                low_res_latitude_interp_object(
+                    center_row_index_low_res + prediction_matrix[0, k]
+                )
+                for k in range(ensemble_size)
+            ])
 
-        point_longitudes_deg_e = numpy.array([
-            low_res_longitude_interp_object(
-                center_column_index_low_res + prediction_matrix[1, k],
-                center_row_index_low_res + prediction_matrix[0, k]
-            )[0]
-            for k in range(ensemble_size)
-        ])
+            point_longitudes_deg_e = numpy.array([
+                low_res_longitude_interp_object(
+                    center_column_index_low_res + prediction_matrix[1, k]
+                )
+                for k in range(ensemble_size)
+            ])
+        else:
+            point_latitudes_deg_n = numpy.array([
+                low_res_latitude_interp_object(
+                    center_column_index_low_res + prediction_matrix[1, k],
+                    center_row_index_low_res + prediction_matrix[0, k]
+                )
+                for k in range(ensemble_size)
+            ])
+
+            point_longitudes_deg_e = numpy.array([
+                low_res_longitude_interp_object(
+                    center_column_index_low_res + prediction_matrix[1, k],
+                    center_row_index_low_res + prediction_matrix[0, k]
+                )
+                for k in range(ensemble_size)
+            ])
 
         probability_matrix = misc_utils.latlng_points_to_probability_grid(
             point_latitudes_deg_n=point_latitudes_deg_n,
@@ -670,11 +685,11 @@ def _plot_data_one_example(
         actual_center_y_coord = low_res_latitude_interp_object(
             center_column_index_low_res + scalar_target_values[1],
             center_row_index_low_res + scalar_target_values[0]
-        )[0]
+        )
         actual_center_x_coord = low_res_longitude_interp_object(
             center_column_index_low_res + scalar_target_values[1],
             center_row_index_low_res + scalar_target_values[0]
-        )[0]
+        )
         coord_transform_string = 'transData'
 
     if plot_line_contours or plot_filled_contours:

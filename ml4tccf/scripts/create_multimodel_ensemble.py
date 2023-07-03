@@ -10,6 +10,7 @@ from ml4tccf.utils import scalar_prediction_utils
 
 TOLERANCE = 1e-6
 MODEL_FILE_KEY = scalar_prediction_utils.MODEL_FILE_KEY
+ISOTONIC_MODEL_FILE_KEY = scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY
 
 INPUT_FILES_ARG_NAME = 'input_prediction_file_names'
 MAX_ENSEMBLE_SIZE_ARG_NAME = 'max_total_ensemble_size'
@@ -62,16 +63,25 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
     num_models = len(input_file_names)
     prediction_tables_xarray = [None] * num_models
     model_file_names = [''] * num_models
+    isotonic_model_file_names = [''] * num_models
 
     for i in range(num_models):
         print('Reading data from: "{0:s}"...'.format(input_file_names[i]))
         prediction_tables_xarray[i] = prediction_io.read_file(
             input_file_names[i]
         )
+
         model_file_names[i] = copy.deepcopy(
             prediction_tables_xarray[i].attrs[MODEL_FILE_KEY]
         )
         prediction_tables_xarray[i].attrs[MODEL_FILE_KEY] = model_file_names[0]
+
+        isotonic_model_file_names[i] = copy.deepcopy(
+            prediction_tables_xarray[i].attrs[ISOTONIC_MODEL_FILE_KEY]
+        )
+        prediction_tables_xarray[i].attrs[ISOTONIC_MODEL_FILE_KEY] = (
+            isotonic_model_file_names[0]
+        )
 
     prediction_table_xarray = (
         scalar_prediction_utils.concat_over_ensemble_members(
@@ -109,6 +119,11 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
     target_times_unix_sec = pt[scalar_prediction_utils.TARGET_TIME_KEY].values
     dummy_model_file_name = ' '.join(model_file_names)
 
+    if all([m is None for m in isotonic_model_file_names]):
+        dummy_iso_model_file_name = None
+    else:
+        dummy_iso_model_file_name = ' '.join(isotonic_model_file_names)
+
     cyclone_id_strings = pt[scalar_prediction_utils.CYCLONE_ID_KEY].values
     assert len(numpy.unique(cyclone_id_strings)) == 1
     cyclone_id_string = cyclone_id_strings[0].decode('utf-8')
@@ -120,7 +135,8 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
         prediction_matrix=prediction_matrix,
         cyclone_id_string=cyclone_id_string,
         target_times_unix_sec=target_times_unix_sec,
-        model_file_name=dummy_model_file_name
+        model_file_name=dummy_model_file_name,
+        isotonic_model_file_name=dummy_iso_model_file_name
     )
 
 

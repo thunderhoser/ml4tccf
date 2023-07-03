@@ -5,6 +5,7 @@ import numpy
 import xarray
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import misc_utils
+from ml4tccf.utils import scalar_prediction_utils
 from ml4tccf.utils import gridded_prediction_utils
 
 
@@ -68,12 +69,17 @@ def read_file(netcdf_file_name):
     """
 
     prediction_table_xarray = xarray.open_dataset(netcdf_file_name)
-
     pt = prediction_table_xarray
+
     if gridded_prediction_utils.PREDICTION_MATRIX_KEY in pt:
         pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY] = numpy.minimum(
             pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY], 1.
         )
-    prediction_table_xarray = pt
+    else:
+        if scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY not in pt.attrs:
+            pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] = None
+        elif pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] == '':
+            pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] = None
 
+    prediction_table_xarray = pt
     return prediction_table_xarray

@@ -10,7 +10,7 @@ from ml4tccf.utils import scalar_prediction_utils as prediction_utils
 
 def write_file(
         netcdf_file_name, target_matrix, prediction_matrix, cyclone_id_string,
-        target_times_unix_sec, model_file_name):
+        target_times_unix_sec, model_file_name, isotonic_model_file_name):
     """Writes predictions to NetCDF file.
 
     E = number of examples
@@ -30,6 +30,9 @@ def write_file(
     :param target_times_unix_sec: length-E numpy array of target times.
     :param model_file_name: Path to trained model (readable by
         `neural_net.read_model`).
+    :param isotonic_model_file_name: Path to isotonic-regression model used for
+        bias correction (readable by `isotonic_regression.read_file`).  If bias
+        correction was not used, make this None.
     """
 
     # Check input args.
@@ -58,6 +61,9 @@ def write_file(
     )
 
     error_checking.assert_is_string(model_file_name)
+    if isotonic_model_file_name is None:
+        isotonic_model_file_name = ''
+    error_checking.assert_is_string(isotonic_model_file_name)
 
     # Do actual stuff.
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
@@ -68,6 +74,9 @@ def write_file(
     num_cyclone_id_chars = len(cyclone_id_string)
 
     dataset_object.setncattr(prediction_utils.MODEL_FILE_KEY, model_file_name)
+    dataset_object.setncattr(
+        prediction_utils.ISOTONIC_MODEL_FILE_KEY, isotonic_model_file_name
+    )
     dataset_object.createDimension(
         prediction_utils.EXAMPLE_DIM_KEY, num_examples
     )
