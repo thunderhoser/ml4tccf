@@ -283,6 +283,9 @@ def write_results(result_table_xarray, netcdf_file_name):
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
 
+    if result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] is None:
+        result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = ''
+
     result_table_xarray.to_netcdf(
         path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
     )
@@ -297,7 +300,10 @@ def read_results(netcdf_file_name):
     """
 
     result_table_xarray = xarray.open_dataset(netcdf_file_name)
+
     if ISOTONIC_MODEL_FILE_KEY not in result_table_xarray.attrs:
+        result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = None
+    if result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] == '':
         result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = None
 
     return result_table_xarray

@@ -1496,7 +1496,10 @@ def read_file(netcdf_file_name):
     result_table_xarray.attrs[PREDICTION_FILES_KEY] = (
         result_table_xarray.attrs[PREDICTION_FILES_KEY].split()
     )
+
     if ISOTONIC_MODEL_FILE_KEY not in result_table_xarray.attrs:
+        result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = None
+    if result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] == '':
         result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = None
 
     return result_table_xarray
@@ -1512,9 +1515,12 @@ def write_file(result_table_xarray, netcdf_file_name):
     """
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+
     result_table_xarray.attrs[PREDICTION_FILES_KEY] = ' '.join(
         result_table_xarray.attrs[PREDICTION_FILES_KEY]
     )
+    if result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] is None:
+        result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = ''
 
     result_table_xarray.to_netcdf(
         path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
