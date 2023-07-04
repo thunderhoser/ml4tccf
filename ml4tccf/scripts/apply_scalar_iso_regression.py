@@ -107,8 +107,7 @@ def _run(input_prediction_file_name, model_file_name,
         target_times_unix_sec=
         pt[scalar_prediction_utils.TARGET_TIME_KEY].values,
         model_file_name=pt.attrs[scalar_prediction_utils.MODEL_FILE_KEY],
-        isotonic_model_file_name=
-        pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY]
+        isotonic_model_file_name=model_file_name
     )
 
 
