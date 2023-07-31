@@ -83,6 +83,21 @@ def _run(input_file_name, training_years, output_file_name):
         )
     )
 
+    real_subindices = numpy.where(numpy.invert(numpy.isnan(
+        adt[a_deck_io.EXTRAP_LATITUDE_KEY].values[training_row_indices]
+    )))[0]
+
+    norm_abs_extrap_latitudes = normalization._normalize_one_variable(
+        actual_values_new=numpy.absolute(
+            adt[a_deck_io.EXTRAP_LATITUDE_KEY].values
+        ),
+        actual_values_training=numpy.absolute(
+            adt[a_deck_io.EXTRAP_LATITUDE_KEY].values[
+                training_row_indices[real_subindices]
+            ]
+        )
+    )
+
     orig_longitude_sines = numpy.sin(
         DEGREES_TO_RADIANS * adt[a_deck_io.LONGITUDE_KEY].values
     )
@@ -161,6 +176,9 @@ def _run(input_file_name, training_years, output_file_name):
         ),
         a_deck_io.ABSOLUTE_LATITUDE_KEY: (
             these_dim, norm_absolute_latitudes
+        ),
+        a_deck_io.ABSOLUTE_EXTRAP_LATITUDE_KEY: (
+            these_dim, norm_abs_extrap_latitudes
         ),
         a_deck_io.LONGITUDE_COSINE_KEY: (
             these_dim, norm_longitude_cosines
