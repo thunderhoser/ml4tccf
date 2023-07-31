@@ -65,6 +65,7 @@ WAVE_HEIGHT_RADIUS_SW_QUADRANT_KEY = 'wave_height_radius_sw_quadrant_metres'
 WAVE_HEIGHT_RADIUS_SE_QUADRANT_KEY = 'wave_height_radius_se_quadrant_metres'
 
 ABSOLUTE_LATITUDE_KEY = 'absolute_latitude_deg_n'
+ABSOLUTE_EXTRAP_LATITUDE_KEY = 'absolute_extrap_latitude_deg_n'
 LONGITUDE_COSINE_KEY = 'longitude_cosine'
 LONGITUDE_SINE_KEY = 'longitude_sine'
 EASTWARD_MOTION_KEY = 'eastward_motion_m_s01'
