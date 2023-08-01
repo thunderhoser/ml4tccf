@@ -1,5 +1,6 @@
 """Plots evaluation metrics as a function of TC intensity."""
 
+import os
 import argparse
 import numpy
 import matplotlib
@@ -167,7 +168,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
     # Do actual stuff.
     eval_table_by_wind = (
-        [xarray.Dataset()] * len(max_wind_based_eval_file_names)
+        [None] * len(max_wind_based_eval_file_names)
     )
     num_bootstrap_reps = -1
 
@@ -175,6 +176,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         print('Reading data from: "{0:s}"...'.format(
             max_wind_based_eval_file_names[i]
         ))
+
+        if not os.path.isfile(max_wind_based_eval_file_names[i]):
+            continue
 
         try:
             eval_table_by_wind[i] = scalar_evaluation.read_file(
@@ -191,9 +195,11 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
         etbw = eval_table_by_wind
 
-        num_bootstrap_reps = len(
-            etbw[0].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
-        )
+        if num_bootstrap_reps == -1:
+            num_bootstrap_reps = len(
+                etbw[i].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
+            )
+
         this_num_bootstrap_reps = len(
             etbw[i].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
         )
@@ -248,6 +254,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
                 for j in range(num_latitude_bins):
                     for i in range(num_wind_bins):
+                        if etbwll[i][j] is None:
+                            continue
+
                         k = numpy.where(
                             etbwll[i][j].coords[
                                 scalar_evaluation.TARGET_FIELD_DIM
@@ -314,6 +323,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
             for j in range(num_latitude_bins):
                 for i in range(num_wind_bins):
+                    if etbwll[i][j] is None:
+                        continue
+
                     metric_matrix[j, i, :] = etbwll[i][j][metric_name].values[:]
 
             if split_into_2d_bins:
@@ -364,7 +376,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         return
 
     eval_table_by_pressure = (
-        [xarray.Dataset()] * len(min_pressure_based_eval_file_names)
+        [None] * len(min_pressure_based_eval_file_names)
     )
     num_bootstrap_reps = -1
 
@@ -372,15 +384,21 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         print('Reading data from: "{0:s}"...'.format(
             min_pressure_based_eval_file_names[i]
         ))
+
+        if not os.path.isfile(min_pressure_based_eval_file_names[i]):
+            continue
+
         eval_table_by_pressure[i] = scalar_evaluation.read_file(
             min_pressure_based_eval_file_names[i]
         )
 
         etbp = eval_table_by_pressure
 
-        num_bootstrap_reps = len(
-            etbp[0].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
-        )
+        if num_bootstrap_reps == -1:
+            num_bootstrap_reps = len(
+                etbp[0].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
+            )
+
         this_num_bootstrap_reps = len(
             etbp[i].coords[scalar_evaluation.BOOTSTRAP_REP_DIM].values
         )
@@ -422,6 +440,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
             for j in range(num_latitude_bins):
                 for i in range(num_pressure_bins):
+                    if etbpll[i][j] is None:
+                        continue
+
                     k = numpy.where(
                         etbpll[i][j].coords[
                             scalar_evaluation.TARGET_FIELD_DIM
@@ -485,6 +506,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
         for j in range(num_latitude_bins):
             for i in range(num_pressure_bins):
+                if etbpll[i][j] is None:
+                    continue
+
                 metric_matrix[j, i, :] = etbpll[i][j][metric_name].values[:]
 
         if split_into_2d_bins:
