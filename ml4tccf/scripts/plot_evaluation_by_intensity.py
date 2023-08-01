@@ -6,7 +6,6 @@ import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
-import xarray
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import scalar_evaluation
