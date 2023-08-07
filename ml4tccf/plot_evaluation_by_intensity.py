@@ -253,6 +253,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
         for metric_name in scalar_eval_plotting.BASIC_METRIC_NAMES:
             for target_field_name in scalar_eval_plotting.BASIC_TARGET_FIELD_NAMES:
+                print((num_latitude_bins, num_wind_bins, num_bootstrap_reps))
                 metric_matrix = numpy.full(
                     (num_latitude_bins, num_wind_bins, num_bootstrap_reps),
                     numpy.nan
