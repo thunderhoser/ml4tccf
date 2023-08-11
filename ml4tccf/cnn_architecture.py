@@ -185,7 +185,7 @@ def check_input_args(option_dict):
         option_dict[NUM_NEURONS_KEY], num_dimensions=1
     )
     error_checking.assert_is_integer_numpy_array(option_dict[NUM_NEURONS_KEY])
-    error_checking.assert_is_geq_numpy_array(option_dict[NUM_NEURONS_KEY], 2)
+    # error_checking.assert_is_geq_numpy_array(option_dict[NUM_NEURONS_KEY], 2)
 
     num_dense_layers = len(option_dict[NUM_NEURONS_KEY])
     error_checking.assert_is_numpy_array(
