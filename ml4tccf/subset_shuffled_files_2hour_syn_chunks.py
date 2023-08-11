@@ -186,7 +186,10 @@ def _run(input_dir_name, first_input_file_num, last_input_file_num,
                     )
                 )
 
-        num_chunks_in_output_table += 1
+        this_num_chunks = int(numpy.round(
+            float(len(good_time_indices)) / (len(NONZERO_LAG_TIMES_SEC) + 1)
+        ))
+        num_chunks_in_output_table += this_num_chunks
         if (
                 num_chunks_in_output_table < num_chunks_per_output_file
                 and not i == num_input_files - 1
