@@ -117,7 +117,7 @@ def _run():
 
             output_file_name = (
                 '{0:s}/num-first-layer-filters={1:02d}_'
-                'num-batches-per-update={3:d}/model.h5'
+                'num-batches-per-update={2:d}/model.h5'
             ).format(
                 OUTPUT_DIR_NAME,
                 FIRST_LAYER_FILTER_COUNTS[i],
