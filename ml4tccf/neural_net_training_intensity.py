@@ -28,7 +28,6 @@ TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
 MINUTES_TO_SECONDS = 60
 HOURS_TO_SECONDS = 3600
-SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
 
 A_DECK_FIELD_NAMES_FOR_CENTER_FIXING_ONLY = [
     a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY,
@@ -89,7 +88,7 @@ def data_generator_shuffled(option_dict, ebtrk_file_name,
     option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
     option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
     option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY] = option_dict[BATCH_SIZE_KEY]
-    option_dict[SYNOPTIC_TIMES_ONLY_KEY] = False
+    option_dict[SYNOPTIC_TIMES_ONLY_KEY] = True
 
     option_dict = nn_utils.check_generator_args(option_dict)
 
@@ -254,12 +253,11 @@ def data_generator_shuffled(option_dict, ebtrk_file_name,
                 continue
 
             this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+            prev_idx = file_index - 1
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
             else:
-                prev_idx = file_index - 1
-
                 row_indices = numpy.array([
                     numpy.where(numpy.logical_and(
                         numpy.array(cyclone_id_strings_by_file[prev_idx]) == c,
@@ -286,8 +284,8 @@ def data_generator_shuffled(option_dict, ebtrk_file_name,
 
             row_indices = numpy.array([
                 numpy.where(numpy.logical_and(
-                    numpy.array(cyclone_id_strings_by_file[file_index]) == c,
-                    target_times_by_file_unix_sec[file_index] == t
+                    numpy.array(cyclone_id_strings_by_file[prev_idx]) == c,
+                    target_times_by_file_unix_sec[prev_idx] == t
                 ))[0][0]
                 for c, t in zip(
                     data_dict[CYCLONE_IDS_KEY], data_dict[TARGET_TIMES_KEY]
@@ -295,7 +293,7 @@ def data_generator_shuffled(option_dict, ebtrk_file_name,
             ], dtype=int)
 
             these_target_intensities_m_s01 = (
-                intensities_by_file_m_s01[file_index][row_indices]
+                intensities_by_file_m_s01[prev_idx][row_indices]
             )
 
             this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
@@ -610,6 +608,7 @@ def create_data(option_dict, ebtrk_file_name, center_fixing_model_object,
     option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
     option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
     option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
+    option_dict[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = True
 
     option_dict = nn_utils.check_generator_args(option_dict)
 
@@ -623,7 +622,6 @@ def create_data(option_dict, ebtrk_file_name, center_fixing_model_object,
     data_aug_stdev_translation_low_res_px = (
         option_dict[DATA_AUG_STDEV_TRANS_KEY]
     )
-    synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
@@ -647,7 +645,7 @@ def create_data(option_dict, ebtrk_file_name, center_fixing_model_object,
         all_target_times_unix_sec, all_scalar_predictor_matrix
     ) = nn_training_fancy.get_target_times_and_scalar_predictors(
         cyclone_id_strings=[cyclone_id_string],
-        synoptic_times_only=synoptic_times_only,
+        synoptic_times_only=True,
         satellite_file_names_by_cyclone=[satellite_file_names],
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
