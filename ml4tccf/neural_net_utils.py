@@ -1034,7 +1034,13 @@ def read_model(hdf5_file_name):
                         )
                     )
 
-            model_object = cnn_architecture.create_model(architecture_dict)
+            # TODO(thunderhoser): HACK
+            try:
+                model_object = cnn_architecture.create_model(architecture_dict)
+            except:
+                model_object = cnn_architecture.create_intensity_model(
+                    architecture_dict
+                )
 
     model_object.load_weights(hdf5_file_name)
     return model_object
