@@ -28,6 +28,7 @@ TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
 MINUTES_TO_SECONDS = 60
 HOURS_TO_SECONDS = 3600
+METRES_PER_SECOND_TO_KT = 3.6 / 1.852
 
 A_DECK_FIELD_NAMES_FOR_CENTER_FIXING_ONLY = [
     a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY,
@@ -193,6 +194,22 @@ def data_generator_shuffled(option_dict, ebtrk_file_name,
         target_times_by_file_unix_sec[i] = (
             target_times_by_file_unix_sec[i][good_indices_this_file]
         )
+
+        for j in range(len(cyclone_id_strings_by_file[i])):
+            print('{0:s} at {1:s} ... intensity = {2:.0f} kt'.format(
+                cyclone_id_strings_by_file[i][j],
+                time_conversion.unix_sec_to_string(
+                    target_times_by_file_unix_sec[i][j],
+                    TIME_FORMAT_FOR_LOG_MESSAGES
+                ),
+                METRES_PER_SECOND_TO_KT * intensities_by_file_m_s01[i][j]
+            ))
+
+        print('scalar_predictor_matrix_by_file:')
+        print(scalar_predictor_matrix_by_file)
+        print(scalar_predictor_matrix_by_file[i])
+        print('\n\n\n')
+
         scalar_predictor_matrix_by_file[i] = (
             scalar_predictor_matrix_by_file[i][good_indices_this_file, ...]
         )
