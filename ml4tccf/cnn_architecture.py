@@ -677,8 +677,7 @@ def create_intensity_model(option_dict):
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
-        loss=loss_function, optimizer=optimizer_function,
-        metrics=neural_net_utils.METRIC_FUNCTION_LIST_SCALAR
+        loss=loss_function, optimizer=optimizer_function, metrics=[]
     )
     model_object.summary()
 
