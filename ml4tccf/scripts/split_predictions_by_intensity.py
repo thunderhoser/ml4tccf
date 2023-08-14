@@ -415,34 +415,52 @@ def _run(input_prediction_file_pattern, xbt_file_name,
     )
     prediction_min_pressures_mb = PASCALS_TO_MB * prediction_min_pressures_pa
 
-    for i in range(len(max_wind_cutoffs_kt) - 1):
-        for j in range(len(tc_center_latitude_cutoffs_deg_n) - 1):
-            intensity_flags = numpy.logical_and(
-                prediction_max_winds_kt >= max_wind_cutoffs_kt[i],
-                prediction_max_winds_kt <= max_wind_cutoffs_kt[i + 1]
-            )
-            latitude_flags = numpy.logical_and(
-                prediction_latitudes_deg_n >=
-                tc_center_latitude_cutoffs_deg_n[j],
-                prediction_latitudes_deg_n <=
-                tc_center_latitude_cutoffs_deg_n[j + 1]
-            )
+    for i in range(len(max_wind_cutoffs_kt)):
+        for j in range(len(tc_center_latitude_cutoffs_deg_n)):
+            if i == len(max_wind_cutoffs_kt) - 1:
+                intensity_flags = numpy.full(num_examples, True, dtype=bool)
+            else:
+                intensity_flags = numpy.logical_and(
+                    prediction_max_winds_kt >= max_wind_cutoffs_kt[i],
+                    prediction_max_winds_kt < max_wind_cutoffs_kt[i + 1]
+                )
+
+            if j == len(tc_center_latitude_cutoffs_deg_n) - 1:
+                latitude_flags = numpy.full(num_examples, True, dtype=bool)
+            else:
+                latitude_flags = numpy.logical_and(
+                    prediction_latitudes_deg_n >=
+                    tc_center_latitude_cutoffs_deg_n[j],
+                    prediction_latitudes_deg_n <
+                    tc_center_latitude_cutoffs_deg_n[j + 1]
+                )
+
             these_indices = numpy.where(numpy.logical_and(
                 intensity_flags, latitude_flags
             ))[0]
 
-            this_output_dir_name = '{0:s}/max_wind_kt={1:.1f}-{2:.1f}'.format(
-                top_output_prediction_dir_name,
-                max_wind_cutoffs_kt[i], max_wind_cutoffs_kt[i + 1]
-            )
+            if i == len(max_wind_cutoffs_kt) - 1:
+                this_output_dir_name = '{0:s}/max_wind_kt=all'.format(
+                    top_output_prediction_dir_name
+                )
+            else:
+                this_output_dir_name = (
+                    '{0:s}/max_wind_kt={1:.1f}-{2:.1f}'
+                ).format(
+                    top_output_prediction_dir_name,
+                    max_wind_cutoffs_kt[i], max_wind_cutoffs_kt[i + 1]
+                )
 
             if split_into_2d_bins:
-                this_output_dir_name += (
-                    '_tc_center_latitude_deg_n={0:.1f}-{1:.1f}'
-                ).format(
-                    tc_center_latitude_cutoffs_deg_n[j],
-                    tc_center_latitude_cutoffs_deg_n[j + 1]
-                )
+                if j == len(tc_center_latitude_cutoffs_deg_n) - 1:
+                    this_output_dir_name += '_tc_center_latitude_deg_n=all'
+                else:
+                    this_output_dir_name += (
+                        '_tc_center_latitude_deg_n={0:.1f}-{1:.1f}'
+                    ).format(
+                        tc_center_latitude_cutoffs_deg_n[j],
+                        tc_center_latitude_cutoffs_deg_n[j + 1]
+                    )
 
             file_system_utils.mkdir_recursive_if_necessary(
                 directory_name=this_output_dir_name
@@ -459,36 +477,52 @@ def _run(input_prediction_file_pattern, xbt_file_name,
                 output_dir_name_1cat=this_output_dir_name
             )
 
-    for i in range(len(min_pressure_cutoffs_mb) - 1):
-        for j in range(len(tc_center_latitude_cutoffs_deg_n) - 1):
-            intensity_flags = numpy.logical_and(
-                prediction_min_pressures_mb >= min_pressure_cutoffs_mb[i],
-                prediction_min_pressures_mb <= min_pressure_cutoffs_mb[i + 1]
-            )
-            latitude_flags = numpy.logical_and(
-                prediction_latitudes_deg_n >=
-                tc_center_latitude_cutoffs_deg_n[j],
-                prediction_latitudes_deg_n <=
-                tc_center_latitude_cutoffs_deg_n[j + 1]
-            )
+    for i in range(len(min_pressure_cutoffs_mb)):
+        for j in range(len(tc_center_latitude_cutoffs_deg_n)):
+            if i == len(min_pressure_cutoffs_mb) - 1:
+                intensity_flags = numpy.full(num_examples, True, dtype=bool)
+            else:
+                intensity_flags = numpy.logical_and(
+                    prediction_min_pressures_mb >= min_pressure_cutoffs_mb[i],
+                    prediction_min_pressures_mb < min_pressure_cutoffs_mb[i + 1]
+                )
+
+            if j == len(tc_center_latitude_cutoffs_deg_n) - 1:
+                latitude_flags = numpy.full(num_examples, True, dtype=bool)
+            else:
+                latitude_flags = numpy.logical_and(
+                    prediction_latitudes_deg_n >=
+                    tc_center_latitude_cutoffs_deg_n[j],
+                    prediction_latitudes_deg_n <
+                    tc_center_latitude_cutoffs_deg_n[j + 1]
+                )
+
             these_indices = numpy.where(numpy.logical_and(
                 intensity_flags, latitude_flags
             ))[0]
 
-            this_output_dir_name = (
-                '{0:s}/min_pressure_mb={1:.1f}-{2:.1f}'
-            ).format(
-                top_output_prediction_dir_name,
-                min_pressure_cutoffs_mb[i], min_pressure_cutoffs_mb[i + 1]
-            )
+            if i == len(max_wind_cutoffs_kt) - 1:
+                this_output_dir_name = '{0:s}/min_pressure_mb=all'.format(
+                    top_output_prediction_dir_name
+                )
+            else:
+                this_output_dir_name = (
+                    '{0:s}/min_pressure_mb={1:.1f}-{2:.1f}'
+                ).format(
+                    top_output_prediction_dir_name,
+                    min_pressure_cutoffs_mb[i], min_pressure_cutoffs_mb[i + 1]
+                )
 
             if split_into_2d_bins:
-                this_output_dir_name += (
-                    '_tc_center_latitude_deg_n={0:.1f}-{1:.1f}'
-                ).format(
-                    tc_center_latitude_cutoffs_deg_n[j],
-                    tc_center_latitude_cutoffs_deg_n[j + 1]
-                )
+                if j == len(tc_center_latitude_cutoffs_deg_n) - 1:
+                    this_output_dir_name += '_tc_center_latitude_deg_n=all'
+                else:
+                    this_output_dir_name += (
+                        '_tc_center_latitude_deg_n={0:.1f}-{1:.1f}'
+                    ).format(
+                        tc_center_latitude_cutoffs_deg_n[j],
+                        tc_center_latitude_cutoffs_deg_n[j + 1]
+                    )
 
             file_system_utils.mkdir_recursive_if_necessary(
                 directory_name=this_output_dir_name
