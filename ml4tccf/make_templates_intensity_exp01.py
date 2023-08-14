@@ -15,7 +15,6 @@ import file_system_utils
 import architecture_utils
 import neural_net_utils
 import cnn_architecture
-import custom_losses_scalar
 import accum_grad_optimizer
 
 OUTPUT_DIR_NAME = (
