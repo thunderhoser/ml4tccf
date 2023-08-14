@@ -111,12 +111,21 @@ def _run(template_file_name, center_fixing_model_file_name, output_dir_name,
     print('Reading model template from: "{0:s}"...'.format(template_file_name))
     model_object = nn_utils.read_model(hdf5_file_name=template_file_name)
 
-    print('Reading center-fixing model from: "{0:s}"...'.format(
-        center_fixing_model_file_name
-    ))
-    center_fixing_model_object = nn_utils.read_model(
-        hdf5_file_name=center_fixing_model_file_name
-    )
+    # TODO(thunderhoser): This is a HACKY way to switch between training with
+    # and without data augmentation.  But then again, all of the intensity-
+    # estimation code in this library is a hacky afterthought.
+    if data_aug_num_translations == 0:
+        center_fixing_model_file_name = ''
+
+    if center_fixing_model_file_name == '':
+        center_fixing_model_object = None
+    else:
+        print('Reading center-fixing model from: "{0:s}"...'.format(
+            center_fixing_model_file_name
+        ))
+        center_fixing_model_object = nn_utils.read_model(
+            hdf5_file_name=center_fixing_model_file_name
+        )
 
     model_metafile_name = nn_utils.find_metafile(
         model_dir_name=os.path.split(template_file_name)[0],
@@ -130,27 +139,49 @@ def _run(template_file_name, center_fixing_model_file_name, output_dir_name,
         ]
     )
 
-    nn_training.train_model(
-        model_object=model_object,
-        center_fixing_model_object=center_fixing_model_object,
-        ebtrk_file_name_for_training=ebtrk_file_name_for_training,
-        ebtrk_file_name_for_validation=ebtrk_file_name_for_validation,
-        output_dir_name=output_dir_name,
-        num_epochs=num_epochs,
-        num_training_batches_per_epoch=num_training_batches_per_epoch,
-        training_option_dict=training_option_dict,
-        num_validation_batches_per_epoch=num_validation_batches_per_epoch,
-        validation_option_dict=validation_option_dict,
-        loss_function_string=model_metadata_dict[nn_utils.LOSS_FUNCTION_KEY],
-        optimizer_function_string=
-        model_metadata_dict[nn_utils.OPTIMIZER_FUNCTION_KEY],
-        plateau_patience_epochs=plateau_patience_epochs,
-        plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
-        early_stopping_patience_epochs=early_stopping_patience_epochs,
-        architecture_dict=model_metadata_dict[nn_utils.ARCHITECTURE_KEY],
-        is_model_bnn=model_metadata_dict[nn_utils.IS_MODEL_BNN_KEY],
-        use_shuffled_data=True
-    )
+    if data_aug_num_translations == 0:
+        nn_training.train_model_no_trans(
+            model_object=model_object,
+            ebtrk_file_name_for_training=ebtrk_file_name_for_training,
+            ebtrk_file_name_for_validation=ebtrk_file_name_for_validation,
+            output_dir_name=output_dir_name,
+            num_epochs=num_epochs,
+            num_training_batches_per_epoch=num_training_batches_per_epoch,
+            training_option_dict=training_option_dict,
+            num_validation_batches_per_epoch=num_validation_batches_per_epoch,
+            validation_option_dict=validation_option_dict,
+            loss_function_string=model_metadata_dict[nn_utils.LOSS_FUNCTION_KEY],
+            optimizer_function_string=
+            model_metadata_dict[nn_utils.OPTIMIZER_FUNCTION_KEY],
+            plateau_patience_epochs=plateau_patience_epochs,
+            plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
+            early_stopping_patience_epochs=early_stopping_patience_epochs,
+            architecture_dict=model_metadata_dict[nn_utils.ARCHITECTURE_KEY],
+            is_model_bnn=model_metadata_dict[nn_utils.IS_MODEL_BNN_KEY],
+            use_shuffled_data=True
+        )
+    else:
+        nn_training.train_model(
+            model_object=model_object,
+            center_fixing_model_object=center_fixing_model_object,
+            ebtrk_file_name_for_training=ebtrk_file_name_for_training,
+            ebtrk_file_name_for_validation=ebtrk_file_name_for_validation,
+            output_dir_name=output_dir_name,
+            num_epochs=num_epochs,
+            num_training_batches_per_epoch=num_training_batches_per_epoch,
+            training_option_dict=training_option_dict,
+            num_validation_batches_per_epoch=num_validation_batches_per_epoch,
+            validation_option_dict=validation_option_dict,
+            loss_function_string=model_metadata_dict[nn_utils.LOSS_FUNCTION_KEY],
+            optimizer_function_string=
+            model_metadata_dict[nn_utils.OPTIMIZER_FUNCTION_KEY],
+            plateau_patience_epochs=plateau_patience_epochs,
+            plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
+            early_stopping_patience_epochs=early_stopping_patience_epochs,
+            architecture_dict=model_metadata_dict[nn_utils.ARCHITECTURE_KEY],
+            is_model_bnn=model_metadata_dict[nn_utils.IS_MODEL_BNN_KEY],
+            use_shuffled_data=True
+        )
 
 
 if __name__ == '__main__':
