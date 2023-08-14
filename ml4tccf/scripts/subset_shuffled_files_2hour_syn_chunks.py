@@ -124,8 +124,8 @@ def _run(input_dir_name, first_input_file_num, last_input_file_num,
             valid_times_unix_sec, DAYS_TO_SECONDS
         )
         synoptic_time_indices = numpy.where(numpy.isin(
-            element=SYNOPTIC_TIMES_SEC_INTO_DAY,
-            test_elements=valid_times_sec_into_day
+            element=valid_times_sec_into_day,
+            test_elements=SYNOPTIC_TIMES_SEC_INTO_DAY
         ))[0]
         print('Synoptic times in file:\n{0:s}'.format(
             str([valid_time_strings[k] for k in synoptic_time_indices])
@@ -162,23 +162,30 @@ def _run(input_dir_name, first_input_file_num, last_input_file_num,
             str([valid_time_strings[k] for k in good_time_indices])
         ))
 
-        if output_satellite_table_xarray is None:
-            output_satellite_table_xarray = copy.deepcopy(
-                this_satellite_table_xarray
-            )
-        else:
-            output_satellite_table_xarray = satellite_utils.concat_over_time(
-                satellite_tables_xarray=[
-                    output_satellite_table_xarray, this_satellite_table_xarray
-                ],
-                allow_different_cyclones=True
-            )
+        if len(good_time_indices) > 0:
+            if output_satellite_table_xarray is None:
+                output_satellite_table_xarray = copy.deepcopy(
+                    this_satellite_table_xarray
+                )
+            else:
+                output_satellite_table_xarray = (
+                    satellite_utils.concat_over_time(
+                        satellite_tables_xarray=[
+                            output_satellite_table_xarray,
+                            this_satellite_table_xarray
+                        ],
+                        allow_different_cyclones=True
+                    )
+                )
 
         num_chunks_in_output_table += 1
         if (
                 num_chunks_in_output_table < num_chunks_per_output_file
                 and not i == num_input_files - 1
         ):
+            continue
+
+        if output_satellite_table_xarray is None:
             continue
 
         main_data_dict = {}
