@@ -156,7 +156,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
     if num_wind_bins > 0:
         expected_dim = numpy.array(
-            [num_latitude_bins * num_wind_bins], dtype=int
+            [(num_latitude_bins + 1) * (num_wind_bins + 1)], dtype=int
         )
         error_checking.assert_is_numpy_array(
             numpy.array(max_wind_based_eval_file_names),
@@ -165,7 +165,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
     if num_pressure_bins > 0:
         expected_dim = numpy.array(
-            [num_latitude_bins * num_pressure_bins], dtype=int
+            [(num_latitude_bins + 1) * (num_pressure_bins + 1)], dtype=int
         )
         error_checking.assert_is_numpy_array(
             numpy.array(min_pressure_based_eval_file_names),
@@ -212,12 +212,12 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
     eval_table_by_wind_listlist = [
-        [None] * num_latitude_bins for _ in range(num_wind_bins)
+        [None] * (num_latitude_bins + 1) for _ in range(num_wind_bins + 1)
     ]
     k = -1
 
-    for i in range(num_wind_bins):
-        for j in range(num_latitude_bins):
+    for i in range(num_wind_bins + 1):
+        for j in range(num_latitude_bins + 1):
             k += 1
             eval_table_by_wind_listlist[i][j] = eval_table_by_wind[k]
 
@@ -236,6 +236,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
     latitude_description_strings[-1] = '>= {0:.1f}'.format(
         tc_center_latitude_cutoffs_deg_n[-2]
     )
+    latitude_description_strings.append('All')
 
     if num_wind_bins > 0:
         wind_description_strings = [
@@ -248,18 +249,19 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         wind_description_strings[-1] = '>= {0:.1f}'.format(
             max_wind_cutoffs_kt[-2]
         )
+        wind_description_strings.append('All')
 
         etbwll = eval_table_by_wind_listlist
 
         for metric_name in scalar_eval_plotting.BASIC_METRIC_NAMES:
             for target_field_name in scalar_eval_plotting.BASIC_TARGET_FIELD_NAMES:
-                metric_matrix = numpy.full(
-                    (num_latitude_bins, num_wind_bins, num_bootstrap_reps),
-                    numpy.nan
+                these_dim = (
+                    num_latitude_bins + 1, num_wind_bins + 1, num_bootstrap_reps
                 )
+                metric_matrix = numpy.full(these_dim, numpy.nan)
 
-                for j in range(num_latitude_bins):
-                    for i in range(num_wind_bins):
+                for j in range(num_latitude_bins + 1):
+                    for i in range(num_wind_bins + 1):
                         if etbwll[i][j] is None:
                             continue
 
@@ -282,10 +284,10 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                             target_field_name=target_field_name,
                             y_category_description_strings=
                             latitude_description_strings,
-                            y_label_string=r'TC-center latitude ($^{\circ}$N)',
+                            y_label_string=r'TC latitude ($^{\circ}$N)',
                             x_category_description_strings=
                             wind_description_strings,
-                            x_label_string='Max sustained wind (kt)',
+                            x_label_string='TC intensity (kt)',
                             colour_map_name=(
                                 BIAS_COLOUR_MAP_NAME
                                 if metric_name == scalar_evaluation.BIAS_KEY
@@ -303,7 +305,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                             target_field_name=target_field_name,
                             category_description_strings=
                             wind_description_strings,
-                            x_label_string='Max sustained wind (kt)',
+                            x_label_string='TC intensity (kt)',
                             confidence_level=confidence_level
                         )[0]
                     )
@@ -322,47 +324,42 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 pyplot.close(figure_object)
 
         for metric_name in scalar_eval_plotting.ADVANCED_METRIC_NAMES:
-            metric_matrix = numpy.full(
-                (num_latitude_bins, num_wind_bins, num_bootstrap_reps),
-                numpy.nan
+            these_dim = (
+                num_latitude_bins + 1, num_wind_bins + 1, num_bootstrap_reps
             )
+            metric_matrix = numpy.full(these_dim, numpy.nan)
 
-            for j in range(num_latitude_bins):
-                for i in range(num_wind_bins):
+            for j in range(num_latitude_bins + 1):
+                for i in range(num_wind_bins + 1):
                     if etbwll[i][j] is None:
                         continue
 
                     metric_matrix[j, i, :] = etbwll[i][j][metric_name].values[:]
 
             if split_into_2d_bins:
-                figure_object = (
-                    scalar_eval_plotting.plot_metric_by_2categories(
-                        metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
-                        metric_name=metric_name,
-                        target_field_name=
-                        scalar_evaluation.OFFSET_DISTANCE_NAME,
-                        y_category_description_strings=
-                        latitude_description_strings,
-                        y_label_string=r'TC-center latitude ($^{\circ}$N)',
-                        x_category_description_strings=
-                        wind_description_strings,
-                        x_label_string='Max sustained wind (kt)',
-                        colour_map_name=(
-                            BIAS_COLOUR_MAP_NAME
-                            if metric_name == scalar_evaluation.BIAS_KEY
-                            else MAIN_COLOUR_MAP_NAME
-                        ),
-                        min_colour_percentile=MIN_COLOUR_PERCENTILE,
-                        max_colour_percentile=MAX_COLOUR_PERCENTILE
-                    )[0]
-                )
+                figure_object = scalar_eval_plotting.plot_metric_by_2categories(
+                    metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
+                    metric_name=metric_name,
+                    target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
+                    y_category_description_strings=latitude_description_strings,
+                    y_label_string=r'TC latitude ($^{\circ}$N)',
+                    x_category_description_strings=wind_description_strings,
+                    x_label_string='TC intensity (kt)',
+                    colour_map_name=(
+                        BIAS_COLOUR_MAP_NAME
+                        if metric_name == scalar_evaluation.BIAS_KEY
+                        else MAIN_COLOUR_MAP_NAME
+                    ),
+                    min_colour_percentile=MIN_COLOUR_PERCENTILE,
+                    max_colour_percentile=MAX_COLOUR_PERCENTILE
+                )[0]
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
                     metric_matrix=metric_matrix[0, ...],
                     metric_name=metric_name,
                     target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
                     category_description_strings=wind_description_strings,
-                    x_label_string='Max sustained wind (kt)',
+                    x_label_string='TC intensity (kt)',
                     confidence_level=confidence_level
                 )[0]
 
@@ -386,7 +383,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
     )
     num_bootstrap_reps = -1
 
-    for i in range(num_pressure_bins):
+    for i in range(len(eval_table_by_pressure)):
         print('Reading data from: "{0:s}"...'.format(
             min_pressure_based_eval_file_names[i]
         ))
@@ -411,12 +408,12 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         assert num_bootstrap_reps == this_num_bootstrap_reps
 
     eval_table_by_pressure_listlist = [
-        [None] * num_latitude_bins for _ in range(num_pressure_bins)
+        [None] * (num_latitude_bins + 1) for _ in range(num_pressure_bins + 1)
     ]
     k = -1
 
-    for i in range(num_pressure_bins):
-        for j in range(num_latitude_bins):
+    for i in range(num_pressure_bins + 1):
+        for j in range(num_latitude_bins + 1):
             k += 1
             eval_table_by_pressure_listlist[i][j] = eval_table_by_pressure[k]
 
@@ -434,18 +431,19 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
     pressure_description_strings[-1] = '>= {0:.1f}'.format(
         min_pressure_cutoffs_mb[-2]
     )
+    pressure_description_strings.append('All')
 
     etbpll = eval_table_by_pressure_listlist
 
     for metric_name in scalar_eval_plotting.BASIC_METRIC_NAMES:
         for target_field_name in scalar_eval_plotting.BASIC_TARGET_FIELD_NAMES:
-            metric_matrix = numpy.full(
-                (num_latitude_bins, num_pressure_bins, num_bootstrap_reps),
-                numpy.nan
+            these_dim = (
+                num_latitude_bins + 1, num_pressure_bins + 1, num_bootstrap_reps
             )
+            metric_matrix = numpy.full(these_dim, numpy.nan)
 
-            for j in range(num_latitude_bins):
-                for i in range(num_pressure_bins):
+            for j in range(num_latitude_bins + 1):
+                for i in range(num_pressure_bins + 1):
                     if etbpll[i][j] is None:
                         continue
 
@@ -461,33 +459,29 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     )
 
             if split_into_2d_bins:
-                figure_object = (
-                    scalar_eval_plotting.plot_metric_by_2categories(
-                        metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
-                        metric_name=metric_name,
-                        target_field_name=target_field_name,
-                        y_category_description_strings=
-                        latitude_description_strings,
-                        y_label_string=r'TC-center latitude ($^{\circ}$N)',
-                        x_category_description_strings=
-                        pressure_description_strings,
-                        x_label_string='Minimum central pressure (mb)',
-                        colour_map_name=(
-                            BIAS_COLOUR_MAP_NAME
-                            if metric_name == scalar_evaluation.BIAS_KEY
-                            else MAIN_COLOUR_MAP_NAME
-                        ),
-                        min_colour_percentile=MIN_COLOUR_PERCENTILE,
-                        max_colour_percentile=MAX_COLOUR_PERCENTILE
-                    )[0]
-                )
+                figure_object = scalar_eval_plotting.plot_metric_by_2categories(
+                    metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
+                    metric_name=metric_name,
+                    target_field_name=target_field_name,
+                    y_category_description_strings=latitude_description_strings,
+                    y_label_string=r'TC latitude ($^{\circ}$N)',
+                    x_category_description_strings=pressure_description_strings,
+                    x_label_string='TC pressure (mb)',
+                    colour_map_name=(
+                        BIAS_COLOUR_MAP_NAME
+                        if metric_name == scalar_evaluation.BIAS_KEY
+                        else MAIN_COLOUR_MAP_NAME
+                    ),
+                    min_colour_percentile=MIN_COLOUR_PERCENTILE,
+                    max_colour_percentile=MAX_COLOUR_PERCENTILE
+                )[0]
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
                     metric_matrix=metric_matrix[0, ...],
                     metric_name=metric_name,
                     target_field_name=target_field_name,
                     category_description_strings=pressure_description_strings,
-                    x_label_string='Minimum central pressure (mb)',
+                    x_label_string='TC pressure (mb)',
                     confidence_level=confidence_level
                 )[0]
 
@@ -505,47 +499,42 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             pyplot.close(figure_object)
 
     for metric_name in scalar_eval_plotting.ADVANCED_METRIC_NAMES:
-        metric_matrix = numpy.full(
-            (num_latitude_bins, num_pressure_bins, num_bootstrap_reps),
-            numpy.nan
+        these_dim = (
+            num_latitude_bins + 1, num_pressure_bins + 1, num_bootstrap_reps
         )
+        metric_matrix = numpy.full(these_dim, numpy.nan)
 
-        for j in range(num_latitude_bins):
-            for i in range(num_pressure_bins):
+        for j in range(num_latitude_bins + 1):
+            for i in range(num_pressure_bins + 1):
                 if etbpll[i][j] is None:
                     continue
 
                 metric_matrix[j, i, :] = etbpll[i][j][metric_name].values[:]
 
         if split_into_2d_bins:
-            figure_object = (
-                scalar_eval_plotting.plot_metric_by_2categories(
-                    metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
-                    metric_name=metric_name,
-                    target_field_name=
-                    scalar_evaluation.OFFSET_DISTANCE_NAME,
-                    y_category_description_strings=
-                    latitude_description_strings,
-                    y_label_string=r'TC-center latitude ($^{\circ}$N)',
-                    x_category_description_strings=
-                    pressure_description_strings,
-                    x_label_string='Minimum central pressure (mb)',
-                    colour_map_name=(
-                        BIAS_COLOUR_MAP_NAME
-                        if metric_name == scalar_evaluation.BIAS_KEY
-                        else MAIN_COLOUR_MAP_NAME
-                    ),
-                    min_colour_percentile=MIN_COLOUR_PERCENTILE,
-                    max_colour_percentile=MAX_COLOUR_PERCENTILE
-                )[0]
-            )
+            figure_object = scalar_eval_plotting.plot_metric_by_2categories(
+                metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
+                metric_name=metric_name,
+                target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
+                y_category_description_strings=latitude_description_strings,
+                y_label_string=r'TC latitude ($^{\circ}$N)',
+                x_category_description_strings=pressure_description_strings,
+                x_label_string='TC pressure (mb)',
+                colour_map_name=(
+                    BIAS_COLOUR_MAP_NAME
+                    if metric_name == scalar_evaluation.BIAS_KEY
+                    else MAIN_COLOUR_MAP_NAME
+                ),
+                min_colour_percentile=MIN_COLOUR_PERCENTILE,
+                max_colour_percentile=MAX_COLOUR_PERCENTILE
+            )[0]
         else:
             figure_object = scalar_eval_plotting.plot_metric_by_category(
                 metric_matrix=metric_matrix[0, ...],
                 metric_name=metric_name,
                 target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
                 category_description_strings=pressure_description_strings,
-                x_label_string='Minimum central pressure (mb)',
+                x_label_string='TC pressure (mb)',
                 confidence_level=confidence_level
             )[0]
 
