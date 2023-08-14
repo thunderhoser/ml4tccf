@@ -25,7 +25,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment07_channels_and_filters/further_training/further_training"
-set EXTENDED_BEST_TRACK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/fake_extended_best_track_2022_AL-EP.nc"
+set EXTENDED_BEST_TRACK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/extended_best_track_data_including2022.nc"
 
 python3 -u "${CODE_DIR_NAME}/split_predictions_by_intensity.py" \
 --input_prediction_file_pattern="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/all_data/predictions_*.nc" \
