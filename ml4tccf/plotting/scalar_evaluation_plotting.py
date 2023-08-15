@@ -309,7 +309,7 @@ def plot_metric_by_2categories(
         y_category_description_strings, y_label_string,
         x_category_description_strings, x_label_string,
         colour_map_name, min_colour_percentile, max_colour_percentile,
-        label_format_string=None, label_font_size=20):
+        label_format_string=None, label_font_size=30):
     """Plots one evaluation metric across 2 categories (stratified evaluation).
 
     M = number of categories along y-axis
@@ -457,7 +457,8 @@ def plot_metric_by_2categories(
 
                 axes_object.text(
                     j, i, this_string, color=this_colour,
-                    fontsize=label_font_size, fontweight='bold'
+                    fontsize=label_font_size, fontweight='bold',
+                    verticalalignment='center', horizontalalignment='center'
                 )
 
     title_string = '{0:s}{1:s}\n{2:s}'.format(
