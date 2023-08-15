@@ -308,7 +308,8 @@ def plot_metric_by_2categories(
         metric_matrix, metric_name, target_field_name,
         y_category_description_strings, y_label_string,
         x_category_description_strings, x_label_string,
-        colour_map_name, min_colour_percentile, max_colour_percentile):
+        colour_map_name, min_colour_percentile, max_colour_percentile,
+        label_format_string=None, label_font_size=20):
     """Plots one evaluation metric across 2 categories (stratified evaluation).
 
     M = number of categories along y-axis
@@ -329,6 +330,9 @@ def plot_metric_by_2categories(
         `matplotlib.pyplot.get_cmap`).
     :param min_colour_percentile: Determines minimum value in colour scheme.
     :param max_colour_percentile: Determines max value in colour scheme.
+    :param label_format_string: Format string for text label in each grid cell.
+        Make this None if you do not want text labels.
+    :param label_font_size: Font size for text labels.
     :return: figure_object: Figure handle (instance of
         `matplotlib.figure.Figure`).
     :return: axes_object: Axes handle (instance of
@@ -421,6 +425,40 @@ def plot_metric_by_2categories(
     axes_object.set_yticks(y_coords)
     axes_object.set_yticklabels(y_category_description_strings)
     axes_object.set_ylabel(y_label_string)
+
+    if label_format_string is not None:
+        if metric_name == scalar_evaluation.BIAS_KEY:
+            median_colour_value = 0.5 * max_colour_value
+        else:
+            median_colour_value = 0.5 * (min_colour_value + max_colour_value)
+
+        for i in range(num_grid_rows):
+            for j in range(num_grid_columns):
+                if numpy.isnan(metric_matrix_to_plot[i, j]):
+                    continue
+
+                this_string = label_format_string.format(
+                    metric_matrix_to_plot[i, j]
+                )
+
+                if metric_name == scalar_evaluation.BIAS_KEY:
+                    if (
+                            numpy.absolute(metric_matrix_to_plot[i, j]) >
+                            median_colour_value
+                    ):
+                        this_colour = numpy.full(3, 1.)
+                    else:
+                        this_colour = numpy.full(3, 0.)
+                else:
+                    if metric_matrix_to_plot[i, j] > median_colour_value:
+                        this_colour = numpy.full(3, 0.)
+                    else:
+                        this_colour = numpy.full(3, 1.)
+
+                axes_object.text(
+                    j, i, this_string, color=this_colour,
+                    fontsize=label_font_size, fontweight='bold'
+                )
 
     title_string = '{0:s}{1:s}\n{2:s}'.format(
         METRIC_TO_FANCY_NAME[metric_name][0].upper(),

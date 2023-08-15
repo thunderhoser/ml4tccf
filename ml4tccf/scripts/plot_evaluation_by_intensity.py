@@ -270,6 +270,12 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         )
 
                 if split_into_2d_bins:
+                    label_format_string = (
+                        '{0:.1f}'
+                        if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
+                        else '{0:.2f}'
+                    )
+
                     figure_object = (
                         scalar_eval_plotting.plot_metric_by_2categories(
                             metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
@@ -287,7 +293,8 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                                 else MAIN_COLOUR_MAP_NAME
                             ),
                             min_colour_percentile=MIN_COLOUR_PERCENTILE,
-                            max_colour_percentile=MAX_COLOUR_PERCENTILE
+                            max_colour_percentile=MAX_COLOUR_PERCENTILE,
+                            label_format_string=label_format_string
                         )[0]
                     )
                 else:
@@ -330,6 +337,11 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     metric_matrix[j, i, :] = etbwll[i][j][metric_name].values[:]
 
             if split_into_2d_bins:
+                label_format_string = (
+                    '{0:.1f}' if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
+                    else '{0:.2f}'
+                )
+
                 figure_object = scalar_eval_plotting.plot_metric_by_2categories(
                     metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                     metric_name=metric_name,
@@ -344,7 +356,8 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         else MAIN_COLOUR_MAP_NAME
                     ),
                     min_colour_percentile=MIN_COLOUR_PERCENTILE,
-                    max_colour_percentile=MAX_COLOUR_PERCENTILE
+                    max_colour_percentile=MAX_COLOUR_PERCENTILE,
+                    label_format_string=label_format_string
                 )[0]
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
@@ -452,6 +465,11 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     )
 
             if split_into_2d_bins:
+                label_format_string = (
+                    '{0:.1f}' if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
+                    else '{0:.2f}'
+                )
+
                 figure_object = scalar_eval_plotting.plot_metric_by_2categories(
                     metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                     metric_name=metric_name,
@@ -466,7 +484,8 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         else MAIN_COLOUR_MAP_NAME
                     ),
                     min_colour_percentile=MIN_COLOUR_PERCENTILE,
-                    max_colour_percentile=MAX_COLOUR_PERCENTILE
+                    max_colour_percentile=MAX_COLOUR_PERCENTILE,
+                    label_format_string=label_format_string
                 )[0]
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
@@ -505,6 +524,11 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 metric_matrix[j, i, :] = etbpll[i][j][metric_name].values[:]
 
         if split_into_2d_bins:
+            label_format_string = (
+                '{0:.1f}' if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
+                else '{0:.2f}'
+            )
+
             figure_object = scalar_eval_plotting.plot_metric_by_2categories(
                 metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                 metric_name=metric_name,
@@ -519,7 +543,8 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     else MAIN_COLOUR_MAP_NAME
                 ),
                 min_colour_percentile=MIN_COLOUR_PERCENTILE,
-                max_colour_percentile=MAX_COLOUR_PERCENTILE
+                max_colour_percentile=MAX_COLOUR_PERCENTILE,
+                label_format_string=label_format_string
             )[0]
         else:
             figure_object = scalar_eval_plotting.plot_metric_by_category(

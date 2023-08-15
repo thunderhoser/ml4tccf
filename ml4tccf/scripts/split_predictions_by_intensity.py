@@ -110,6 +110,10 @@ def _write_scalar_predictions_1category(prediction_table_1cat_xarray,
         ].values
     ])
 
+    print('Number of examples for output directory "{0:s}" = {1:d}'.format(
+        output_dir_name_1cat, len(all_cyclone_id_strings)
+    ))
+
     unique_cyclone_id_strings = numpy.unique(all_cyclone_id_strings)
 
     for cyclone_id_string in unique_cyclone_id_strings:
@@ -140,7 +144,10 @@ def _write_scalar_predictions_1category(prediction_table_1cat_xarray,
             pt1cyc[scalar_prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
         ), axis=-2)
 
-        print('Writing data to: "{0:s}"...'.format(output_file_name))
+        print('Writing {0:d} examples to: "{1:s}"...'.format(
+            len(pt1cyc[scalar_prediction_utils.ACTUAL_ROW_OFFSET_KEY].values),
+            output_file_name
+        ))
         scalar_prediction_io.write_file(
             netcdf_file_name=output_file_name,
             target_matrix=target_matrix,
