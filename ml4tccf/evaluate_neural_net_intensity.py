@@ -69,7 +69,7 @@ def _run(prediction_file_pattern, output_dir_name):
 
         target_intensities_m_s01 = numpy.concatenate((
             target_intensities_m_s01,
-            tptx[nn_training.TARGET_INTENSITIES_KEY].values
+            tptx[nn_training.TARGET_INTENSITY_KEY].values
         ))
         predicted_intensities_m_s01 = numpy.concatenate((
             predicted_intensities_m_s01,
