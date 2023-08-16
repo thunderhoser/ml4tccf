@@ -4,11 +4,21 @@ import glob
 import argparse
 import numpy
 import xarray
+import matplotlib
+matplotlib.use('agg')
+from matplotlib import pyplot
+from ml4tccf.utils import scalar_evaluation
 from ml4tccf.machine_learning import \
     neural_net_training_intensity as nn_training
+from ml4tccf.plotting import scalar_evaluation_plotting as scalar_eval_plotting
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
 METRES_PER_SECOND_TO_KT = 3.6 / 1.852
+
+FIGURE_WIDTH_INCHES = 15
+FIGURE_HEIGHT_INCHES = 15
+FIGURE_RESOLUTION_DPI = 300
 
 INPUT_FILE_PATTERN_ARG_NAME = 'input_prediction_file_pattern'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
@@ -62,7 +72,7 @@ def _run(prediction_file_pattern, output_dir_name):
 
         target_intensities_m_s01 = numpy.concatenate((
             target_intensities_m_s01,
-            tptx[nn_training.TARGET_INTENSITIES_KEY].values
+            tptx[nn_training.TARGET_INTENSITY_KEY].values
         ))
         predicted_intensities_m_s01 = numpy.concatenate((
             predicted_intensities_m_s01,
@@ -75,6 +85,33 @@ def _run(prediction_file_pattern, output_dir_name):
     predicted_intensities_kt = (
         METRES_PER_SECOND_TO_KT * predicted_intensities_m_s01
     )
+    (
+        mean_predictions_kt, mean_observations_kt, example_counts
+    ) = scalar_evaluation._get_reliability_curve_one_variable(
+        target_values=target_intensities_kt,
+        predicted_values=predicted_intensities_kt,
+        is_var_direction=False,
+        num_bins=31, min_bin_edge=30., max_bin_edge=180., invert=False
+    )
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+    scalar_eval_plotting.plot_attributes_diagram(
+        figure_object=figure_object,
+        axes_object=axes_object,
+        mean_predictions=mean_predictions_kt,
+        mean_observations=mean_observations_kt,
+        mean_value_in_training=46.5832769126608,
+        min_value_to_plot=30., max_value_to_plot=180.
+    )
+
+    reliability_kt2 = scalar_evaluation._get_reliability(
+        binned_mean_predictions=mean_predictions_kt,
+        binned_mean_observations=mean_observations_kt,
+        binned_example_counts=example_counts,
+        is_var_direction=False
+    )
 
     mean_absolute_error_kt = numpy.mean(
         numpy.absolute(predicted_intensities_kt - target_intensities_kt)
@@ -86,12 +123,23 @@ def _run(prediction_file_pattern, output_dir_name):
         numpy.mean((predicted_intensities_kt - target_intensities_kt) ** 2)
     )
 
-    print((
-        'Mean absolute error = {0:.2f} kt ... mean signed error = {1:.2f} kt '
-        '... RMSE = {2:.2f} kt'
+    title_string = (
+        'MAE = {0:.2f} kt; bias = {1:.2f} kt ; RMSE = {2:.2f} kt;\n'
+        'reliability = {3:.2f} kt'
     ).format(
-        mean_absolute_error_kt, mean_signed_error_kt, rmse_kt
-    ))
+        mean_absolute_error_kt, mean_signed_error_kt, rmse_kt, reliability_kt2
+    )
+    title_string += r'$^{2}$'
+
+    axes_object.set_title(title_string)
+    figure_file_name = '{0:s}/attributes_diagram.jpg'.format(output_dir_name)
+
+    print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
+    figure_object.savefig(
+        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
 
 
 if __name__ == '__main__':
