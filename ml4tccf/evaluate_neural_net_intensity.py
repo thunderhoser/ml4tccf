@@ -97,6 +97,7 @@ def _run(prediction_file_pattern, output_dir_name):
     predicted_intensities_kt = (
         METRES_PER_SECOND_TO_KT * predicted_intensities_m_s01
     )
+
     (
         mean_predictions_kt, mean_observations_kt, example_counts
     ) = scalar_evaluation._get_reliability_curve_one_variable(
@@ -104,6 +105,15 @@ def _run(prediction_file_pattern, output_dir_name):
         predicted_values=predicted_intensities_kt,
         is_var_direction=False,
         num_bins=30, min_bin_edge=30., max_bin_edge=180., invert=False
+    )
+
+    (
+        _, inv_mean_observations_kt, inv_example_counts
+    ) = scalar_evaluation._get_reliability_curve_one_variable(
+        target_values=target_intensities_kt,
+        predicted_values=predicted_intensities_kt,
+        is_var_direction=False,
+        num_bins=30, min_bin_edge=30., max_bin_edge=180., invert=True
     )
 
     figure_object, axes_object = pyplot.subplots(
@@ -116,6 +126,20 @@ def _run(prediction_file_pattern, output_dir_name):
         mean_observations=mean_observations_kt,
         mean_value_in_training=46.5832769126608,
         min_value_to_plot=30., max_value_to_plot=180.
+    )
+    scalar_eval_plotting.plot_inset_histogram(
+        figure_object=figure_object,
+        bin_centers=mean_predictions_kt,
+        bin_counts=example_counts,
+        has_predictions=True,
+        bar_colour=scalar_eval_plotting.RELIABILITY_LINE_COLOUR
+    )
+    scalar_eval_plotting.plot_inset_histogram(
+        figure_object=figure_object,
+        bin_centers=mean_predictions_kt,
+        bin_counts=inv_example_counts,
+        has_predictions=False,
+        bar_colour=scalar_eval_plotting.RELIABILITY_LINE_COLOUR
     )
 
     reliability_kt2 = scalar_evaluation._get_reliability(
