@@ -129,14 +129,14 @@ def _run(prediction_file_pattern, output_dir_name):
     )
     scalar_eval_plotting.plot_inset_histogram(
         figure_object=figure_object,
-        bin_centers=mean_predictions_kt,
+        bin_centers=inv_mean_observations_kt,
         bin_counts=example_counts,
         has_predictions=True,
         bar_colour=scalar_eval_plotting.RELIABILITY_LINE_COLOUR
     )
     scalar_eval_plotting.plot_inset_histogram(
         figure_object=figure_object,
-        bin_centers=mean_predictions_kt,
+        bin_centers=inv_mean_observations_kt,
         bin_counts=inv_example_counts,
         has_predictions=False,
         bar_colour=scalar_eval_plotting.RELIABILITY_LINE_COLOUR
