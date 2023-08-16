@@ -1628,9 +1628,9 @@ def apply_model(
             ))
 
         predicted_intensities_m_s01[first_index:last_index] = (
-            model_object.predict_on_batch(
+            numpy.squeeze(model_object.predict_on_batch(
                 [a[first_index:last_index, ...] for a in predictor_matrices]
-            )
+            ))
         )
 
     if verbose:
