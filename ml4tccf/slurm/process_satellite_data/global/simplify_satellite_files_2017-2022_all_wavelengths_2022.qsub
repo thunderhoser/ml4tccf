@@ -1,0 +1,37 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="simplify_satellite_files_2017-2022_all_wavelengths_2022"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=24:00:00
+#SBATCH --array=1-19
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=simplify_satellite_files_2017-2022_all_wavelengths_2022_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020"
+set OUTPUT_DIR_NAME="${INPUT_DIR_NAME}/simplified_all_wavelengths"
+
+set CYCLONE_ID_STRINGS=("2022EP01" "2022EP02" "2022EP03" "2022EP04" "2022EP05" "2022EP06" "2022EP07" "2022EP08" "2022EP09" "2022EP10" "2022EP11" "2022EP12" "2022EP13" "2022EP14" "2022EP15" "2022EP16" "2022EP17" "2022EP18" "2022EP19")
+
+python3 -u "${CODE_DIR_NAME}/simplify_satellite_files.py" \
+--input_dir_name="${INPUT_DIR_NAME}" \
+--cyclone_id_string="${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--wavelengths_to_keep_microns 3.9 6.185 6.95 7.34 8.5 9.61 10.35 11.2 12.3 13.3 \
+--output_dir_name="${OUTPUT_DIR_NAME}"
