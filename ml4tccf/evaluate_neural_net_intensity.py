@@ -98,7 +98,7 @@ def _run(prediction_file_pattern, output_dir_name):
         target_values=target_intensities_kt,
         predicted_values=predicted_intensities_kt,
         is_var_direction=False,
-        num_bins=31, min_bin_edge=30., max_bin_edge=180., invert=False
+        num_bins=30, min_bin_edge=30., max_bin_edge=180., invert=False
     )
 
     figure_object, axes_object = pyplot.subplots(
