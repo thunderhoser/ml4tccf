@@ -15,6 +15,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import file_system_utils
 import scalar_evaluation
 import neural_net_training_intensity as nn_training
 import scalar_evaluation_plotting as scalar_eval_plotting
@@ -57,6 +58,10 @@ def _run(prediction_file_pattern, output_dir_name):
     :param output_dir_name: Same.
     :raises: ValueError: if no prediction files could be found.
     """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
 
     prediction_file_names = glob.glob(prediction_file_pattern)
     if len(prediction_file_names) == 0:
@@ -137,6 +142,7 @@ def _run(prediction_file_pattern, output_dir_name):
         mean_absolute_error_kt, mean_signed_error_kt, rmse_kt, reliability_kt2
     )
     title_string += r'$^{2}$'
+    print(title_string)
 
     axes_object.set_title(title_string)
     figure_file_name = '{0:s}/attributes_diagram.jpg'.format(output_dir_name)
