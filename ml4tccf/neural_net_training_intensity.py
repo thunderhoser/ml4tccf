@@ -6,6 +6,7 @@ import random
 import warnings
 import numpy
 import keras
+import netCDF4
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -18,11 +19,20 @@ import error_checking
 import a_deck_io
 import satellite_io
 import extended_best_track_io as ebtrk_io
+import misc_utils
 import extended_best_track_utils as ebtrk_utils
 import neural_net_utils as nn_utils
 import neural_net_training_fancy as nn_training_fancy
 import neural_net_training_simple as nn_training_simple
 import data_augmentation
+
+MODEL_FILE_KEY = 'model_file_name'
+EXAMPLE_DIM_KEY = 'example'
+CYCLONE_ID_CHAR_DIM_KEY = 'cyclone_id_char'
+PREDICTED_INTENSITY_KEY = 'predicted_intensity_m_s01'
+TARGET_INTENSITY_KEY = 'target_intensity_m_s01'
+TARGET_TIME_KEY = 'target_time_unix_sec'
+CYCLONE_ID_KEY = 'cyclone_id_string'
 
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
@@ -1572,3 +1582,140 @@ def create_data_no_trans(
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
         LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
     }
+
+
+def apply_model(
+        model_object, predictor_matrices, num_examples_per_batch, verbose=True):
+    """Applies trained neural net -- inference time!
+
+    E = number of examples
+
+    :param model_object: Trained neural net (instance of `keras.models.Model` or
+        `keras.models.Sequential`).
+    :param predictor_matrices: See output doc for `data_generator_shuffled`.
+    :param num_examples_per_batch: Batch size.
+    :param verbose: Boolean flag.  If True, will print progress messages.
+    :return: predicted_intensities_m_s01: length-E numpy array of predictions.
+    """
+
+    # Check input args.
+    for this_matrix in predictor_matrices:
+        error_checking.assert_is_numpy_array_without_nan(this_matrix)
+
+    error_checking.assert_is_integer(num_examples_per_batch)
+    error_checking.assert_is_geq(num_examples_per_batch, 1)
+    num_examples = predictor_matrices[0].shape[0]
+    num_examples_per_batch = min([num_examples_per_batch, num_examples])
+
+    error_checking.assert_is_boolean(verbose)
+
+    # Do actual stuff.
+    predicted_intensities_m_s01 = numpy.full(num_examples, numpy.nan)
+
+    for i in range(0, num_examples, num_examples_per_batch):
+        first_index = i
+        last_index = min([i + num_examples_per_batch, num_examples])
+
+        if verbose:
+            print('Applying model to examples {0:d}-{1:d} of {2:d}...'.format(
+                first_index + 1, last_index, num_examples
+            ))
+
+        predicted_intensities_m_s01[first_index:last_index] = (
+            model_object.predict_on_batch(
+                [a[first_index:last_index, ...] for a in predictor_matrices]
+            )
+        )
+
+    if verbose:
+        print('Have applied model to all {0:d} examples!'.format(num_examples))
+
+    return predicted_intensities_m_s01
+
+
+def write_prediction_file(
+        netcdf_file_name, target_intensities_m_s01, predicted_intensities_m_s01,
+        cyclone_id_string, target_times_unix_sec, model_file_name):
+    """Writes predictions to NetCDF file.
+
+    E = number of examples
+
+    :param netcdf_file_name: Path to output file.
+    :param target_intensities_m_s01: length-E numpy array of true intensities.
+    :param predicted_intensities_m_s01: length-E numpy array of predicted
+        intensities.
+    :param cyclone_id_string: Cyclone ID.
+    :param target_times_unix_sec: length-E numpy array of target times.
+    :param model_file_name: Path to trained model (readable by
+        `neural_net_utils.read_model`).
+    """
+
+    # Check input args.
+    error_checking.assert_is_numpy_array(
+        target_intensities_m_s01, num_dimensions=1
+    )
+    error_checking.assert_is_greater_numpy_array(target_intensities_m_s01, 0.)
+
+    num_examples = len(target_intensities_m_s01)
+    error_checking.assert_is_numpy_array(
+        predicted_intensities_m_s01,
+        exact_dimensions=numpy.array([num_examples], dtype=int)
+    )
+    error_checking.assert_is_geq_numpy_array(predicted_intensities_m_s01, 0.)
+
+    _ = misc_utils.parse_cyclone_id(cyclone_id_string)
+
+    error_checking.assert_is_integer_numpy_array(target_times_unix_sec)
+    error_checking.assert_is_numpy_array(
+        target_times_unix_sec,
+        exact_dimensions=numpy.array([num_examples], dtype=int)
+    )
+
+    error_checking.assert_is_string(model_file_name)
+
+    # Do actual stuff.
+    file_system_utils.mkdir_recursive_if_necessary(file_name=netcdf_file_name)
+    dataset_object = netCDF4.Dataset(
+        netcdf_file_name, 'w', format='NETCDF3_64BIT_OFFSET'
+    )
+
+    num_cyclone_id_chars = len(cyclone_id_string)
+
+    dataset_object.setncattr(MODEL_FILE_KEY, model_file_name)
+    dataset_object.createDimension(EXAMPLE_DIM_KEY, num_examples)
+    dataset_object.createDimension(
+        CYCLONE_ID_CHAR_DIM_KEY, num_cyclone_id_chars
+    )
+
+    dataset_object.createVariable(
+        PREDICTED_INTENSITY_KEY, datatype=numpy.float32,
+        dimensions=EXAMPLE_DIM_KEY
+    )
+    dataset_object.variables[PREDICTED_INTENSITY_KEY][:] = (
+        predicted_intensities_m_s01
+    )
+
+    dataset_object.createVariable(
+        TARGET_INTENSITY_KEY, datatype=numpy.float32, dimensions=EXAMPLE_DIM_KEY
+    )
+    dataset_object.variables[TARGET_INTENSITY_KEY][:] = target_intensities_m_s01
+
+    dataset_object.createVariable(
+        TARGET_TIME_KEY, datatype=numpy.int32, dimensions=EXAMPLE_DIM_KEY
+    )
+    dataset_object.variables[TARGET_TIME_KEY][:] = target_times_unix_sec
+
+    this_string_format = 'S{0:d}'.format(num_cyclone_id_chars)
+    cyclone_ids_char_array = netCDF4.stringtochar(numpy.array(
+        [cyclone_id_string] * num_examples, dtype=this_string_format
+    ))
+
+    dataset_object.createVariable(
+        CYCLONE_ID_KEY, datatype='S1',
+        dimensions=(EXAMPLE_DIM_KEY, CYCLONE_ID_CHAR_DIM_KEY)
+    )
+    dataset_object.variables[CYCLONE_ID_KEY][:] = numpy.array(
+        cyclone_ids_char_array
+    )
+
+    dataset_object.close()
