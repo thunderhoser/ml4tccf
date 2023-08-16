@@ -1138,6 +1138,9 @@ def create_data(option_dict, ebtrk_file_name, center_fixing_model_object,
 
         warnings.warn(warning_string)
 
+    all_target_intensities_m_s01 = numpy.array(
+        all_target_intensities_m_s01, dtype=int
+    )
     good_indices = numpy.array(good_indices, dtype=int)
     all_target_times_unix_sec = all_target_times_unix_sec[good_indices]
     all_scalar_predictor_matrix = all_scalar_predictor_matrix[good_indices, :]
@@ -1484,6 +1487,9 @@ def create_data_no_trans(
 
         warnings.warn(warning_string)
 
+    all_target_intensities_m_s01 = numpy.array(
+        all_target_intensities_m_s01, dtype=int
+    )
     good_indices = numpy.array(good_indices, dtype=int)
     all_target_times_unix_sec = all_target_times_unix_sec[good_indices]
     all_scalar_predictor_matrix = all_scalar_predictor_matrix[good_indices, :]
