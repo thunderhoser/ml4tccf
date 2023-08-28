@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="get_normalization_params_2017-2020"
+#SBATCH --job-name="get_normalization_params"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -17,7 +17,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=get_normalization_params_2017-2020_%A.out
+#SBATCH --output=get_normalization_params_%A.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -27,8 +27,8 @@ set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone
 
 python3 -u "${CODE_DIR_NAME}/get_normalization_params.py" \
 --input_satellite_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed" \
---years 2017 2018 2019 2020 \
+--years 2017 2018 2019 2020 2022 \
 --num_satellite_files=200 \
 --num_values_per_high_res_channel=200000 \
 --num_values_per_low_res_channel=100000 \
---output_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalization_params_2017-2020.zarr"
+--output_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalization_params_2017-2020_and_2022.zarr"

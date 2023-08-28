@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="subset_shuffled_normalized_satellite_files"
+#SBATCH --job-name="subset_satellite_files"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -12,26 +12,26 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=30:00:00
-#SBATCH --array=1-6
+#SBATCH --array=1-3
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=subset_shuffled_normalized_satellite_files_%A_%a.out
+#SBATCH --output=subset_satellite_files_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set WORKING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020/shuffled_6hour_chunks"
+set WORKING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022/shuffled_6hour_chunks"
 
-set INPUT_DIR_NAMES=("${WORKING_DIR_NAME}/training_2017-2021/simplified_all_wavelengths" "${WORKING_DIR_NAME}/training_2017-2021/simplified_all_wavelengths" "${WORKING_DIR_NAME}/validation_2022/simplified_all_wavelengths")
-set FIRST_INPUT_FILE_NUMS=(0 10000 0)
-set LAST_INPUT_FILE_NUMS=(298 10290 91)
-set FIRST_OUTPUT_FILE_NUMS=(0 10000 0)
-set OUTPUT_DIR_NAMES=("${WORKING_DIR_NAME}/training_2017-2021/simplified_all_wavelengths/synoptic_subset" "${WORKING_DIR_NAME}/training_2017-2021/simplified_all_wavelengths/synoptic_subset" "${WORKING_DIR_NAME}/validation_2022/simplified_all_wavelengths/synoptic_subset")
+set INPUT_DIR_NAMES=("${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths" "${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths" "${WORKING_DIR_NAME}/validation_2021/simplified_all_wavelengths")
+# set FIRST_INPUT_FILE_NUMS=(0 10000 0)
+# set LAST_INPUT_FILE_NUMS=(298 10290 91)
+# set FIRST_OUTPUT_FILE_NUMS=(0 10000 0)
+set OUTPUT_DIR_NAMES=("${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths/synoptic_subset" "${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths/synoptic_subset" "${WORKING_DIR_NAME}/validation_2021/simplified_all_wavelengths/synoptic_subset")
 
 python3 -u "${CODE_DIR_NAME}/subset_shuffled_files_2hour_syn_chunks.py" \
 --input_satellite_dir_name="${INPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}" \
