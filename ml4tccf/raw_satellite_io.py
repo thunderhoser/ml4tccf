@@ -30,15 +30,15 @@ TIME_REGEX = (
     'T[0-2][0-9]-[0-5][0-9]-[0-5][0-9]'
 )
 
-LOW_RES_CHANNEL_KEYS = [
+LOW_RES_CHANNEL_KEYS_ATL_EAST_PAC = [
     'C07', 'C08', 'C09', 'C10', 'C11', 'C12', 'C13', 'C14', 'C15', 'C16'
 ]
-HIGH_RES_CHANNEL_KEYS = ['C02']
+HIGH_RES_CHANNEL_KEYS_ATL_EAST_PAC = ['C02']
 
-# LOW_RES_CHANNEL_KEYS = [
-#     'B07', 'B08', 'B09', 'B10', 'B11', 'B12', 'B13', 'B14', 'B15', 'B16'
-# ]
-# HIGH_RES_CHANNEL_KEYS = ['B03']
+LOW_RES_CHANNEL_KEYS_WEST_PAC = [
+    'B07', 'B08', 'B09', 'B10', 'B11', 'B12', 'B13', 'B14', 'B15', 'B16'
+]
+HIGH_RES_CHANNEL_KEYS_WEST_PAC = ['B03']
 
 X_COORD_KEY = 'x'
 Y_COORD_KEY = 'y'
@@ -319,10 +319,16 @@ def read_file(satellite_file_name, is_high_res):
     assert numpy.all(numpy.diff(longitudes_deg_e) > 0)
 
     # Do actual stuff.
-    if is_high_res:
-        channel_keys = HIGH_RES_CHANNEL_KEYS
+    if 'EP' in cyclone_id_string or 'AL' in cyclone_id_string:
+        if is_high_res:
+            channel_keys = HIGH_RES_CHANNEL_KEYS_ATL_EAST_PAC
+        else:
+            channel_keys = LOW_RES_CHANNEL_KEYS_ATL_EAST_PAC
     else:
-        channel_keys = LOW_RES_CHANNEL_KEYS
+        if is_high_res:
+            channel_keys = HIGH_RES_CHANNEL_KEYS_WEST_PAC
+        else:
+            channel_keys = LOW_RES_CHANNEL_KEYS_WEST_PAC
 
     num_rows = len(latitudes_deg_n)
     num_columns = len(longitudes_deg_e)
