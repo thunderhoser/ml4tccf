@@ -3,6 +3,9 @@
 import os
 import sys
 import glob
+import gzip
+import shutil
+import tempfile
 import numpy
 import xarray
 import pyproj
@@ -261,7 +264,20 @@ def read_file(satellite_file_name, is_high_res):
     # Error-checking.
     error_checking.assert_is_boolean(is_high_res)
 
-    orig_satellite_table_xarray = xarray.open_dataset(satellite_file_name)
+    if satellite_file_name.endswith('.gz'):
+        gzip_file_handle = gzip.open(satellite_file_name, 'rb')
+        temporary_netcdf_file_handle = tempfile.NamedTemporaryFile(delete=False)
+        shutil.copyfileobj(gzip_file_handle, temporary_netcdf_file_handle)
+        gzip_file_handle.close()
+        temporary_netcdf_file_handle.close()
+
+        orig_satellite_table_xarray = xarray.open_dataset(
+            temporary_netcdf_file_handle.name
+        )
+        os.unlink(temporary_netcdf_file_handle.name)
+    else:
+        orig_satellite_table_xarray = xarray.open_dataset(satellite_file_name)
+
     cyclone_id_string = _cyclone_id_orig_to_new(
         orig_satellite_table_xarray.attrs[CYCLONE_ID_KEY]
     )
