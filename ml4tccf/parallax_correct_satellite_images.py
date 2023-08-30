@@ -187,6 +187,12 @@ def _parallax_correct_high_res_one_time(
     stx = satellite_table_xarray
     i = time_index
 
+    bidirectional_reflectance_matrix = (
+        stx[satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY].values[i, ...]
+    )
+    if numpy.all(numpy.isnan(bidirectional_reflectance_matrix)):
+        return bidirectional_reflectance_matrix
+
     cyclone_id_string = stx[satellite_utils.CYCLONE_ID_KEY].values[0]
     satellite_longitude_deg_e, satellite_altitude_m_agl = (
         _cyclone_id_to_satellite_metadata(cyclone_id_string)
@@ -221,6 +227,12 @@ def _parallax_correct_high_res_one_time(
     if numpy.absolute(
             corrected_center_longitude_deg_e - center_longitude_deg_e
     ) > 1:
+        print((
+            'Original and corrected center longitude = {0:.4f}, {1:.4f} deg E'
+        ).format(
+            center_longitude_deg_e, corrected_center_longitude_deg_e
+        ))
+
         center_longitude_deg_e = lng_conversion.convert_lng_negative_in_west(
             center_longitude_deg_e
         )
@@ -230,9 +242,11 @@ def _parallax_correct_high_res_one_time(
             )
         )
 
-    assert numpy.absolute(
-        corrected_center_longitude_deg_e - center_longitude_deg_e
-    ) < 1
+        print((
+            'Original and corrected center longitude = {0:.4f}, {1:.4f} deg E'
+        ).format(
+            center_longitude_deg_e, corrected_center_longitude_deg_e
+        ))
 
     print((
         'Parallax correction for {0:.3f}-micron data at {1:d}th time = '
@@ -244,6 +258,10 @@ def _parallax_correct_high_res_one_time(
         corrected_center_latitude_deg_n - center_latitude_deg_n,
         corrected_center_longitude_deg_e - center_longitude_deg_e
     ))
+
+    assert numpy.absolute(
+        corrected_center_longitude_deg_e - center_longitude_deg_e
+    ) < 1
 
     corrected_latitudes_deg_n = (
         stx[satellite_utils.LATITUDE_HIGH_RES_KEY].values[i, :] +
@@ -258,9 +276,6 @@ def _parallax_correct_high_res_one_time(
     #     corrected_latitudes_deg_n, allow_nan=False
     # )
 
-    bidirectional_reflectance_matrix = (
-        stx[satellite_utils.BIDIRECTIONAL_REFLECTANCE_KEY].values[i, ...]
-    )
     num_channels = bidirectional_reflectance_matrix.shape[-1]
 
     for k in range(num_channels):
