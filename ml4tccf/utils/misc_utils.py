@@ -7,6 +7,7 @@ import warnings
 import tempfile
 import numpy
 from pyproj import Proj
+from scipy.interpolate import interp1d
 from scipy.ndimage import center_of_mass, distance_transform_edt
 from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
@@ -40,6 +41,13 @@ VALID_BASIN_ID_STRINGS = [
     NORTHWEST_PACIFIC_ID_STRING, NORTH_INDIAN_ID_STRING,
     SOUTHERN_HEMISPHERE_ID_STRING
 ]
+
+# The following values come from Anderson et al. (1986).
+TROPICAL_STD_ATMO_TEMPS_KELVINS = numpy.array([
+    299.7, 293.7, 287.7, 283.7, 277.0, 270.3, 263.6, 257.0, 250.3, 243.6, 237.0,
+    230.1, 223.6, 217.0, 210.3, 203.7, 197.0, 194.8
+])
+TROPICAL_STD_ATMO_HEIGHTS_M_ASL = numpy.linspace(0, 17000, num=18, dtype=float)
 
 
 def check_basin_id(basin_id_string):
@@ -740,3 +748,28 @@ def geodetic_to_standard_angles(geodetic_angles_deg):
 
     error_checking.assert_is_numpy_array_without_nan(geodetic_angles_deg)
     return numpy.mod((450. - geodetic_angles_deg), 360.)
+
+
+def brightness_temp_to_cloud_top_height(brightness_temps_kelvins):
+    """Converts brightness temperature to cloud-top height.
+
+    WARNING: This method assumes a tropical standard atmosphere and surface
+    elevation of 0 metres above sea level.
+
+    :param brightness_temps_kelvins: numpy array of brightness temperatures.
+    :return: cloud_top_heights_m_agl: numpy array of cloud-top heights (metres
+        above ground level), with same shape as input array.
+    """
+
+    error_checking.assert_is_numpy_array_without_nan(brightness_temps_kelvins)
+
+    interp_object = interp1d(
+        x=TROPICAL_STD_ATMO_TEMPS_KELVINS[::-1],
+        y=TROPICAL_STD_ATMO_HEIGHTS_M_ASL[::-1],
+        kind='linear', assume_sorted=True,
+        bounds_error=False, fill_value='extrapolate'
+    )
+
+    cloud_top_heights_m_agl = interp_object(brightness_temps_kelvins)
+    cloud_top_heights_m_agl = numpy.maximum(cloud_top_heights_m_agl, 0.)
+    return cloud_top_heights_m_agl
