@@ -150,7 +150,10 @@ def _find_grid_center_one_time(satellite_table_xarray, time_index):
     return center_latitude_deg_n, center_longitude_deg_e
 
 
-def _parallax_correct_high_res_one_time(satellite_table_xarray, time_index):
+def _parallax_correct_high_res_one_time(
+        satellite_table_xarray, time_index,
+        latitude_shift_testing_only_deg=None,
+        longitude_shift_testing_only_deg=None):
     """Parallax-corrects high-resolution (visible) data for one time step.
 
     M = number of rows in high-resolution grid
@@ -161,9 +164,20 @@ def _parallax_correct_high_res_one_time(satellite_table_xarray, time_index):
         `satellite_io.read_file`, i.e., for a single file.
     :param time_index: Will parallax-correct data for the [i]th time step, where
         i == `time_index`.
+    :param latitude_shift_testing_only_deg: Leave this alone.
+    :param longitude_shift_testing_only_deg: Leave this alone.
     :return: bidirectional_reflectance_matrix: M-by-N-by-C numpy array of
         parallax-corrected data for the given time step.
     """
+
+    test_mode = not (
+        latitude_shift_testing_only_deg is None
+        or longitude_shift_testing_only_deg is None
+    )
+
+    if test_mode:
+        error_checking.assert_is_real_number(latitude_shift_testing_only_deg)
+        error_checking.assert_is_real_number(longitude_shift_testing_only_deg)
 
     center_latitude_deg_n, center_longitude_deg_e = _find_grid_center_one_time(
         satellite_table_xarray=satellite_table_xarray,
@@ -178,14 +192,22 @@ def _parallax_correct_high_res_one_time(satellite_table_xarray, time_index):
         _cyclone_id_to_satellite_metadata(cyclone_id_string)
     )
 
-    (
-        corrected_center_longitude_deg_e, corrected_center_latitude_deg_n
-    ) = parallax.get_parallax_corrected_lonlats(
-        sat_lon=satellite_longitude_deg_e, sat_lat=0.,
-        sat_alt=satellite_altitude_m_agl,
-        lon=center_longitude_deg_e, lat=center_latitude_deg_n,
-        height=DUMMY_CLOUD_TOP_HEIGHT_FOR_VISIBLE_M_AGL
-    )
+    if test_mode:
+        corrected_center_latitude_deg_n = (
+            center_latitude_deg_n + latitude_shift_testing_only_deg
+        )
+        corrected_center_longitude_deg_e = (
+            center_longitude_deg_e + longitude_shift_testing_only_deg
+        )
+    else:
+        (
+            corrected_center_longitude_deg_e, corrected_center_latitude_deg_n
+        ) = parallax.get_parallax_corrected_lonlats(
+            sat_lon=satellite_longitude_deg_e, sat_lat=0.,
+            sat_alt=satellite_altitude_m_agl,
+            lon=center_longitude_deg_e, lat=center_latitude_deg_n,
+            height=DUMMY_CLOUD_TOP_HEIGHT_FOR_VISIBLE_M_AGL
+        )
 
     center_longitude_deg_e = lng_conversion.convert_lng_positive_in_west(
         center_longitude_deg_e
