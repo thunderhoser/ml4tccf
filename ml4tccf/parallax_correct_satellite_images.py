@@ -226,7 +226,7 @@ def _parallax_correct_high_res_one_time(
 
     if numpy.absolute(
             corrected_center_longitude_deg_e - center_longitude_deg_e
-    ) > 1:
+    ) > 5:
         print((
             'Original and corrected center longitude = {0:.4f}, {1:.4f} deg E'
         ).format(
@@ -261,7 +261,7 @@ def _parallax_correct_high_res_one_time(
 
     assert numpy.absolute(
         corrected_center_longitude_deg_e - center_longitude_deg_e
-    ) < 1
+    ) < 5
 
     corrected_latitudes_deg_n = (
         stx[satellite_utils.LATITUDE_HIGH_RES_KEY].values[i, :] +
@@ -427,7 +427,7 @@ def _parallax_correct_low_res_one_time(satellite_table_xarray, time_index,
 
         if numpy.absolute(
                 corrected_center_longitude_deg_e - center_longitude_deg_e
-        ) > 1:
+        ) > 5:
             center_longitude_deg_e = (
                 lng_conversion.convert_lng_negative_in_west(
                     center_longitude_deg_e
@@ -442,7 +442,7 @@ def _parallax_correct_low_res_one_time(satellite_table_xarray, time_index,
 
         assert numpy.absolute(
             corrected_center_longitude_deg_e - center_longitude_deg_e
-        ) < 1
+        ) < 5
 
         print((
             'Parallax correction for {0:.3f}-micron data at {1:d}th time = '
