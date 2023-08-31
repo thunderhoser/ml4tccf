@@ -25,7 +25,7 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022"
+set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/parallax_corrected/normalized_params_from_2017-2020_and_2022"
 
 set YEAR_SETS=("2017 2018 2019" "2020 2022" "2021")
 set OUTPUT_DIR_NAMES=("${INPUT_DIR_NAME}/shuffled_6hour_chunks/training_2017-2020_and_2022" "${INPUT_DIR_NAME}/shuffled_6hour_chunks/training_2017-2020_and_2022" "${INPUT_DIR_NAM}/shuffled_6hour_chunks/validation_2021")
