@@ -343,8 +343,10 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
             )
         else:
             print(output_satellite_table_xarray)
+            print(output_satellite_table_xarray.coords[satellite_utils.LOW_RES_WAVELENGTH_DIM].values)
             print('\n\n\n\n\n')
             print(this_satellite_table_xarray)
+            print(this_satellite_table_xarray.coords[satellite_utils.LOW_RES_WAVELENGTH_DIM].values)
 
             output_satellite_table_xarray = satellite_utils.concat_over_time(
                 satellite_tables_xarray=[
