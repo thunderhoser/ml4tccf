@@ -342,6 +342,10 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
                 this_satellite_table_xarray
             )
         else:
+            print(output_satellite_table_xarray)
+            print('\n\n\n\n\n')
+            print(this_satellite_table_xarray)
+
             output_satellite_table_xarray = satellite_utils.concat_over_time(
                 satellite_tables_xarray=[
                     output_satellite_table_xarray, this_satellite_table_xarray
