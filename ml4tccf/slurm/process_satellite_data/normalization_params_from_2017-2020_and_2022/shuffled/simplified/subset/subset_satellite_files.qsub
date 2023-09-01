@@ -29,7 +29,7 @@ set WORKING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project
 
 set INPUT_DIR_NAMES=("${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths" "${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths" "${WORKING_DIR_NAME}/validation_2021/simplified_all_wavelengths")
 set FIRST_INPUT_FILE_NUMS=(0 10000 0)
-set LAST_INPUT_FILE_NUMS=(637 10340 235)
+set LAST_INPUT_FILE_NUMS=(650 10340 235)
 set FIRST_OUTPUT_FILE_NUMS=(0 10000 0)
 set OUTPUT_DIR_NAMES=("${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths/synoptic_subset" "${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths/synoptic_subset" "${WORKING_DIR_NAME}/validation_2021/simplified_all_wavelengths/synoptic_subset")
 
