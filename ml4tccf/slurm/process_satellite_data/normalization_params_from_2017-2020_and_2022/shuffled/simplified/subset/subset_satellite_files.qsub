@@ -25,12 +25,12 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set WORKING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022/shuffled_6hour_chunks"
+set WORKING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/parallax_corrected/normalized_params_from_2017-2020_and_2022/shuffled_6hour_chunks"
 
 set INPUT_DIR_NAMES=("${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths" "${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths" "${WORKING_DIR_NAME}/validation_2021/simplified_all_wavelengths")
-# set FIRST_INPUT_FILE_NUMS=(0 10000 0)
-# set LAST_INPUT_FILE_NUMS=(298 10290 91)
-# set FIRST_OUTPUT_FILE_NUMS=(0 10000 0)
+set FIRST_INPUT_FILE_NUMS=(0 10000 0)
+set LAST_INPUT_FILE_NUMS=(637 10340 235)
+set FIRST_OUTPUT_FILE_NUMS=(0 10000 0)
 set OUTPUT_DIR_NAMES=("${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths/synoptic_subset" "${WORKING_DIR_NAME}/training_2017-2020_and_2022/simplified_all_wavelengths/synoptic_subset" "${WORKING_DIR_NAME}/validation_2021/simplified_all_wavelengths/synoptic_subset")
 
 python3 -u "${CODE_DIR_NAME}/subset_shuffled_files_2hour_syn_chunks.py" \
