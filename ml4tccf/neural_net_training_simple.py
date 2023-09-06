@@ -419,6 +419,9 @@ def _read_satellite_data_1cyclone(
         )
     )
 
+    print(desired_file_to_times_dict)
+    print('\n\n\n\n\n')
+
     desired_file_names = list(desired_file_to_times_dict.keys())
     num_files = len(desired_file_names)
     orig_satellite_tables_xarray = [None] * num_files
