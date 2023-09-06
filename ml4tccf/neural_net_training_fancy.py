@@ -596,6 +596,15 @@ def decide_files_to_read_one_cyclone(
 
     for j in range(len(satellite_file_names)):
         for i in range(num_target_times):
+            print(time_conversion.unix_sec_to_string(
+                desired_start_times_unix_sec[i], TIME_FORMAT_FOR_LOG_MESSAGES
+            ))
+            print(time_conversion.unix_sec_to_string(
+                desired_end_times_unix_sec[i], TIME_FORMAT_FOR_LOG_MESSAGES
+            ))
+            print(satellite_file_date_strings[j])
+            print('\n\n\n')
+
             if not _date_in_time_period(
                     date_string=satellite_file_date_strings[j],
                     start_time_unix_sec=desired_start_times_unix_sec[i],

@@ -410,9 +410,6 @@ def _read_satellite_data_1cyclone(
     """
 
     # TODO(thunderhoser): This could be simplified more.
-    print(input_file_names)
-    print('\n\n\n\n')
-
     desired_file_to_times_dict = (
         nn_training_fancy.decide_files_to_read_one_cyclone(
             satellite_file_names=input_file_names,
