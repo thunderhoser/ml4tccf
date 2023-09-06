@@ -439,12 +439,16 @@ def _read_satellite_data_1cyclone(
                 desired_file_to_times_dict[desired_file_names[i]][1]
             )
         )
+        print(orig_satellite_tables_xarray[i])
+        print('\n\n\n\n')
 
         orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
             satellite_table_xarray=orig_satellite_tables_xarray[i],
             wavelengths_to_keep_microns=low_res_wavelengths_microns,
             for_high_res=False
         )
+        print(orig_satellite_tables_xarray[i])
+        print('\n\n\n\n')
 
         orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
             satellite_table_xarray=orig_satellite_tables_xarray[i],
@@ -452,6 +456,8 @@ def _read_satellite_data_1cyclone(
             num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )
+        print(orig_satellite_tables_xarray[i])
+        print('\n\n\n\n')
 
     satellite_table_xarray = satellite_utils.concat_over_time(
         orig_satellite_tables_xarray
