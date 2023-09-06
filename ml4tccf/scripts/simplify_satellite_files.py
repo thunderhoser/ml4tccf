@@ -7,9 +7,17 @@ from ml4tccf.io import satellite_io
 from ml4tccf.utils import satellite_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+TOLERANCE = 1e-6
 
 NUM_GRID_ROWS_TO_KEEP = 760
 NUM_GRID_COLUMNS_TO_KEEP = 1080
+
+GOES_WAVELENGTHS_METRES = 1e-6 * numpy.array([
+    3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
+])
+HIMAWARI_WAVELENGTHS_METRES = 1e-6 * numpy.array([
+    3.9, 6.200, 6.90, 7.30, 8.6, 9.60, 10.40, 11.2, 12.4, 13.3
+])
 
 INPUT_DIR_ARG_NAME = 'input_dir_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
@@ -92,7 +100,18 @@ def _run(input_dir_name, cyclone_id_string, shuffled_file_number,
     for this_input_file_name in input_file_names:
         print('Reading data from: "{0:s}"...'.format(this_input_file_name))
         satellite_table_xarray = satellite_io.read_file(this_input_file_name)
+        tst = satellite_table_xarray
 
+        if numpy.allclose(
+                tst.coords[satellite_utils.LOW_RES_WAVELENGTH_DIM].values,
+                HIMAWARI_WAVELENGTHS_METRES,
+                atol=TOLERANCE
+        ):
+            tst = tst.assign_coords({
+                satellite_utils.LOW_RES_WAVELENGTH_DIM: GOES_WAVELENGTHS_METRES
+            })
+
+        satellite_table_xarray = tst
         satellite_table_xarray = satellite_utils.subset_wavelengths(
             satellite_table_xarray=satellite_table_xarray,
             wavelengths_to_keep_microns=wavelengths_to_keep_microns,

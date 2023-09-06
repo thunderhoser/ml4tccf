@@ -13,12 +13,20 @@ from ml4tccf.io import satellite_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
 
+TOLERANCE = 1e-6
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M%S'
 
 INPUT_TIME_INTERVAL_MINUTES = 30
 DAYS_TO_MINUTES = 1440
 DAYS_TO_SECONDS = 86400
 MINUTES_TO_SECONDS = 60
+
+GOES_WAVELENGTHS_METRES = 1e-6 * numpy.array([
+    3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
+])
+HIMAWARI_WAVELENGTHS_METRES = 1e-6 * numpy.array([
+    3.9, 6.200, 6.90, 7.30, 8.6, 9.60, 10.40, 11.2, 12.4, 13.3
+])
 
 INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
 NUM_CHUNKS_PER_INPUT_ARG_NAME = 'num_chunks_per_input_file'
@@ -328,6 +336,17 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
         print('There are {0:d} time steps left in the chunk.'.format(
             len(tst.coords[satellite_utils.TIME_DIM].values)
         ))
+
+        if numpy.allclose(
+                tst.coords[satellite_utils.LOW_RES_WAVELENGTH_DIM].values,
+                HIMAWARI_WAVELENGTHS_METRES,
+                atol=TOLERANCE
+        ):
+            tst = tst.assign_coords({
+                satellite_utils.LOW_RES_WAVELENGTH_DIM: GOES_WAVELENGTHS_METRES
+            })
+
+        this_satellite_table_xarray = tst
 
         if output_satellite_table_xarray is None:
             output_satellite_table_xarray = copy.deepcopy(
