@@ -18,8 +18,8 @@ def _run(template_file_name, output_dir_name,
          data_aug_mean_translation_low_res_px,
          data_aug_stdev_translation_low_res_px, synoptic_times_only,
          a_deck_file_name, scalar_a_deck_field_names,
-         remove_nontropical_systems, use_shuffled_data,
-         satellite_dir_name_for_training, training_years,
+         remove_nontropical_systems, use_xy_coords_as_predictors,
+         use_shuffled_data, satellite_dir_name_for_training, training_years,
          satellite_dir_name_for_validation, validation_years,
          num_epochs,
          num_training_batches_per_epoch, num_validation_batches_per_epoch,
@@ -44,6 +44,7 @@ def _run(template_file_name, output_dir_name,
     :param a_deck_file_name: Same.
     :param scalar_a_deck_field_names: Same.
     :param remove_nontropical_systems: Same.
+    :param use_xy_coords_as_predictors: Same.
     :param use_shuffled_data: Same.
     :param satellite_dir_name_for_training: Same.
     :param training_years: Same.
@@ -86,6 +87,7 @@ def _run(template_file_name, output_dir_name,
         nn_utils.A_DECK_FILE_KEY: a_deck_file_name,
         nn_utils.SCALAR_A_DECK_FIELDS_KEY: scalar_a_deck_field_names,
         nn_utils.REMOVE_NONTROPICAL_KEY: remove_nontropical_systems,
+        nn_utils.USE_XY_COORDS_KEY: use_xy_coords_as_predictors,
         nn_utils.TRAIN_WITH_SHUFFLED_DATA_KEY: use_shuffled_data
     }
 
@@ -183,6 +185,9 @@ if __name__ == '__main__':
         ),
         remove_nontropical_systems=bool(getattr(
             INPUT_ARG_OBJECT, training_args.REMOVE_NONTROPICAL_ARG_NAME
+        )),
+        use_xy_coords_as_predictors=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.USE_XY_COORDS_ARG_NAME
         )),
         use_shuffled_data=bool(getattr(
             INPUT_ARG_OBJECT, training_args.USE_SHUFFLED_DATA_ARG_NAME

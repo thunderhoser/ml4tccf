@@ -16,6 +16,9 @@ from gewittergefahr.gg_utils import error_checking
 
 TOLERANCE = 1e-6
 
+DEGREES_LAT_TO_METRES = 60 * 1852.
+MAX_XY_COORD_METRES = 60 * DEGREES_LAT_TO_METRES
+
 GZIP_FILE_EXTENSION = '.gz'
 TIME_FORMAT = '%Y %m %d %H %M %S'
 ERROR_STRING = (
@@ -48,6 +51,28 @@ TROPICAL_STD_ATMO_TEMPS_KELVINS = numpy.array([
     230.1, 223.6, 217.0, 210.3, 203.7, 197.0, 194.8
 ])
 TROPICAL_STD_ATMO_HEIGHTS_M_ASL = numpy.linspace(0, 17000, num=18, dtype=float)
+
+
+def _cyclone_id_to_satellite_metadata(cyclone_id_string):
+    """Returns satellite metadata for the given cyclone.
+
+    :param cyclone_id_string: Cyclone ID.
+    :return: satellite_longitude_deg_e: Longitude (deg east) of satellite
+        subpoint.
+    :return: satellite_altitude_m_agl: Satellite altitude (metres above ground
+        level).
+    """
+
+    basin_id_string = parse_cyclone_id(cyclone_id_string)[1]
+
+    if basin_id_string == NORTH_ATLANTIC_ID_STRING:
+        return -75.2, 35786650.
+
+    if basin_id_string == NORTHWEST_PACIFIC_ID_STRING:
+        return 140.7, 35793000.
+
+    if basin_id_string == NORTHEAST_PACIFIC_ID_STRING:
+        return -137.2, 35794900.
 
 
 def check_basin_id(basin_id_string):
@@ -773,3 +798,100 @@ def brightness_temp_to_cloud_top_height(brightness_temps_kelvins):
     cloud_top_heights_m_agl = interp_object(brightness_temps_kelvins)
     cloud_top_heights_m_agl = numpy.maximum(cloud_top_heights_m_agl, 0.)
     return cloud_top_heights_m_agl
+
+
+def get_xy_grid_one_tc_object(
+        cyclone_id_string, grid_latitudes_deg_n, grid_longitudes_deg_e,
+        normalize_to_minmax, test_mode=False):
+    """Creates grid of x-coords, and grid of y-coords, for one TC object.
+
+    This method exactly replicates xy-coords in the original data files from
+    Robert and Galina.
+
+    x = zonal distance from nadir
+    y = meridional distance from nadir
+
+    M = number of rows in grid
+    N = number of columns in grid
+
+    :param cyclone_id_string: Cyclone ID.
+    :param grid_latitudes_deg_n: length-M numpy array of latitudes (deg north).
+    :param grid_longitudes_deg_e: length-N numpy array of longitudes (deg east).
+    :param normalize_to_minmax: Boolean flag.  If True, will normalize each
+        coordinates (x and y) to range from 0...1.
+    :param test_mode: Leave this alone.
+    :return: grid_x_coords_metres: length-M numpy array of x-coordinates (zonal
+        distances from nadir).
+    :return: grid_y_coords_metres: length-N numpy array of y-coordinates
+        (meridional distances from nadir).
+    """
+
+    # Check input args.
+    error_checking.assert_is_numpy_array(grid_latitudes_deg_n, num_dimensions=1)
+    error_checking.assert_is_valid_lat_numpy_array(
+        grid_latitudes_deg_n, allow_nan=False
+    )
+    error_checking.assert_is_greater_numpy_array(
+        numpy.diff(grid_latitudes_deg_n), 0.
+    )
+
+    num_rows = len(grid_latitudes_deg_n)
+    half_num_rows_float = 0.5 * num_rows
+    half_num_rows = int(numpy.round(half_num_rows_float))
+    assert numpy.isclose(half_num_rows, half_num_rows_float, atol=TOLERANCE)
+
+    error_checking.assert_is_numpy_array(
+        grid_longitudes_deg_e, num_dimensions=1
+    )
+    error_checking.assert_is_valid_lng_numpy_array(
+        grid_longitudes_deg_e, positive_in_west_flag=False,
+        negative_in_west_flag=False, allow_nan=False
+    )
+
+    error_checking.assert_is_boolean(normalize_to_minmax)
+    error_checking.assert_is_boolean(test_mode)
+
+    # Do actual stuff.
+    i_start = half_num_rows - 1
+    i_end = half_num_rows + 1
+    cyclone_center_latitude_deg_n = numpy.mean(
+        grid_latitudes_deg_n[i_start:i_end]
+    )
+
+    if test_mode:
+        satellite_subpoint_longitude_deg_e = 0.
+    else:
+        satellite_subpoint_longitude_deg_e = _cyclone_id_to_satellite_metadata(
+            cyclone_id_string
+        )[0]
+
+    projection_string = (
+        '+proj=eqc +no_defs +R=6371228 +k=1 +units=m '
+        '+lat_ts={0:.4f} +lat_0=0.0 +lon_0={1:.4f}'
+    ).format(
+        cyclone_center_latitude_deg_n, satellite_subpoint_longitude_deg_e
+    )
+
+    projection_object = Proj(projection_string)
+
+    fake_grid_latitudes_deg_n = numpy.full(
+        len(grid_longitudes_deg_e), cyclone_center_latitude_deg_n
+    )
+    grid_x_coords_metres = projection_object(
+        grid_longitudes_deg_e, fake_grid_latitudes_deg_n, inverse=False
+    )[0]
+
+    fake_grid_longitudes_deg_e = numpy.full(
+        len(grid_latitudes_deg_n), satellite_subpoint_longitude_deg_e
+    )
+    grid_y_coords_metres = projection_object(
+        fake_grid_longitudes_deg_e, grid_latitudes_deg_n, inverse=False
+    )[1]
+
+    if not normalize_to_minmax:
+        return grid_x_coords_metres, grid_y_coords_metres
+
+    return (
+        grid_x_coords_metres / MAX_XY_COORD_METRES,
+        grid_y_coords_metres / MAX_XY_COORD_METRES
+    )

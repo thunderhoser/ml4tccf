@@ -5,6 +5,7 @@ import numpy
 from ml4tccf.utils import misc_utils
 
 TOLERANCE = 1e-6
+XY_COORD_TOLERANCE_METRES = 1e-3
 
 # The following constants are used to test target_matrix_to_centroid and
 # prediction_matrix_to_centroid.
@@ -120,6 +121,26 @@ SIXTH_MATRIX = SIXTH_MATRIX / numpy.sum(SIXTH_MATRIX)
 # SIXTH_COLUMN_OFFSET_FOR_TARGETS = None
 SIXTH_ROW_OFFSET_FOR_PREDICTIONS = 0.
 SIXTH_COLUMN_OFFSET_FOR_PREDICTIONS = 0.
+
+# The following constants are used to test get_xy_grid_one_tc_object.
+CYCLONE_ID_STRING = '2021WP08'
+GRID_LATITUDES_DEG_N = numpy.array([
+    13.0449640, 13.0269785, 13.0089920, 12.9910070, 12.9730215, 12.9550350
+])
+GRID_LONGITUDES_DEG_E = numpy.array([
+    109.672424, 109.690890, 109.709340, 109.727800, 109.746260, 109.764720
+])
+GRID_X_COORDS_METRES = numpy.array([
+    11882884.89092344, 11884884.89092344, 11886884.89092344, 11888884.89092344,
+    11890884.89092344, 11892884.89092344
+])
+GRID_Y_COORDS_METRES = numpy.array([
+    1450585.77793829, 1448585.77793829, 1446585.77793829, 1444585.77793829,
+    1442585.77793829, 1440585.77793829
+])
+
+GRID_LATITUDES_DEG_N = GRID_LATITUDES_DEG_N[::-1]
+GRID_Y_COORDS_METRES = GRID_Y_COORDS_METRES[::-1]
 
 
 class MiscUtilsTests(unittest.TestCase):
@@ -244,6 +265,27 @@ class MiscUtilsTests(unittest.TestCase):
         ))
         self.assertTrue(numpy.isclose(
             this_column_offset, SIXTH_COLUMN_OFFSET_FOR_PREDICTIONS
+        ))
+
+    def test_get_xy_grid_one_tc_object(self):
+        """Ensures correct output from get_xy_grid_one_tc_object."""
+
+        these_x_coords_metres, these_y_coords_metres = (
+            misc_utils.get_xy_grid_one_tc_object(
+                cyclone_id_string=CYCLONE_ID_STRING,
+                grid_latitudes_deg_n=GRID_LATITUDES_DEG_N,
+                grid_longitudes_deg_e=GRID_LONGITUDES_DEG_E,
+                normalize_to_minmax=False, test_mode=True
+            )
+        )
+
+        self.assertTrue(numpy.allclose(
+            these_x_coords_metres, GRID_X_COORDS_METRES,
+            atol=XY_COORD_TOLERANCE_METRES
+        ))
+        self.assertTrue(numpy.allclose(
+            these_y_coords_metres, GRID_Y_COORDS_METRES,
+            atol=XY_COORD_TOLERANCE_METRES
         ))
 
 
