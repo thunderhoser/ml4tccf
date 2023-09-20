@@ -78,6 +78,7 @@ SYNOPTIC_TIMES_ONLY_KEY = 'synoptic_times_only'
 A_DECK_FILE_KEY = 'a_deck_file_name'
 SCALAR_A_DECK_FIELDS_KEY = 'scalar_a_deck_field_names'
 REMOVE_NONTROPICAL_KEY = 'remove_nontropical_systems'
+USE_XY_COORDS_KEY = 'use_xy_coords_as_predictors'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
     HIGH_RES_WAVELENGTHS_KEY: None,
@@ -349,6 +350,7 @@ def check_generator_args(option_dict):
     error_checking.assert_is_integer(option_dict[MAX_INTERP_GAP_KEY])
     error_checking.assert_is_geq(option_dict[MAX_INTERP_GAP_KEY], 0)
     error_checking.assert_is_not_nan(option_dict[SENTINEL_VALUE_KEY])
+    error_checking.assert_is_boolean(option_dict[USE_XY_COORDS_KEY])
     error_checking.assert_is_boolean(option_dict[SEMANTIC_SEG_FLAG_KEY])
     error_checking.assert_is_boolean(option_dict[SYNOPTIC_TIMES_ONLY_KEY])
 
@@ -884,6 +886,16 @@ def read_metafile(pickle_file_name):
     missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
     if len(missing_keys) == 0:
         return metadata_dict
+
+    training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
+    validation_option_dict = metadata_dict[VALIDATION_OPTIONS_KEY]
+
+    if USE_XY_COORDS_KEY not in training_option_dict:
+        training_option_dict[USE_XY_COORDS_KEY] = False
+        validation_option_dict[USE_XY_COORDS_KEY] = False
+
+    metadata_dict[TRAINING_OPTIONS_KEY] = training_option_dict
+    metadata_dict[VALIDATION_OPTIONS_KEY] = validation_option_dict
 
     error_string = (
         '\n{0:s}\nKeys listed above were expected, but not found, in file '

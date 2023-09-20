@@ -3,7 +3,6 @@
 TEMPLATE_FILE_ARG_NAME = 'input_template_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_model_dir_name'
 LAG_TIMES_ARG_NAME = 'lag_times_minutes'
-# HIGH_RES_WAVELENGTHS_ARG_NAME = 'high_res_wavelengths_microns'
 LOW_RES_WAVELENGTHS_ARG_NAME = 'low_res_wavelengths_microns'
 BATCH_SIZE_ARG_NAME = 'num_examples_per_batch'
 MAX_EXAMPLES_PER_CYCLONE_ARG_NAME = 'max_examples_per_cyclone'
@@ -12,27 +11,15 @@ NUM_GRID_COLUMNS_ARG_NAME = 'num_columns_low_res'
 DATA_AUG_NUM_TRANS_ARG_NAME = 'data_aug_num_translations'
 DATA_AUG_MEAN_TRANS_ARG_NAME = 'data_aug_mean_translation_low_res_px'
 DATA_AUG_STDEV_TRANS_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
-# SENTINEL_VALUE_ARG_NAME = 'sentinel_value'
-# TARGET_SMOOTHER_STDEV_ARG_NAME = 'target_smoother_stdev_km'
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
 A_DECK_FILE_ARG_NAME = 'a_deck_file_name'
 SCALAR_A_DECK_FIELDS_ARG_NAME = 'scalar_a_deck_field_names'
 REMOVE_NONTROPICAL_ARG_NAME = 'remove_nontropical_systems'
+USE_XY_COORDS_ARG_NAME = 'use_xy_coords_as_predictors'
 USE_SHUFFLED_DATA_ARG_NAME = 'use_shuffled_data'
 
-# TIME_TOLERANCE_FOR_TRAINING_ARG_NAME = 'lag_time_tolerance_for_training_sec'
-# MAX_MISSING_TIMES_FOR_TRAINING_ARG_NAME = (
-#     'max_num_missing_lag_times_for_training'
-# )
-# MAX_INTERP_GAP_FOR_TRAINING_ARG_NAME = 'max_interp_gap_for_training_sec'
 SATELLITE_DIR_FOR_TRAINING_ARG_NAME = 'satellite_dir_name_for_training'
 TRAINING_YEARS_ARG_NAME = 'training_years'
-
-# TIME_TOLERANCE_FOR_VALIDATION_ARG_NAME = 'lag_time_tolerance_for_validation_sec'
-# MAX_MISSING_TIMES_FOR_VALIDATION_ARG_NAME = (
-#     'max_num_missing_lag_times_for_validation'
-# )
-# MAX_INTERP_GAP_FOR_VALIDATION_ARG_NAME = 'max_interp_gap_for_validation_sec'
 SATELLITE_DIR_FOR_VALIDATION_ARG_NAME = 'satellite_dir_name_for_validation'
 VALIDATION_YEARS_ARG_NAME = 'validation_years'
 
@@ -52,9 +39,6 @@ OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Trained model will be saved here.'
 )
 LAG_TIMES_HELP_STRING = 'List of lag times for predictors (satellite images).'
-# HIGH_RES_WAVELENGTHS_HELP_STRING = (
-#     'List of wavelengths for high-resolution (visible) satellite data.'
-# )
 LOW_RES_WAVELENGTHS_HELP_STRING = (
     'List of wavelengths for low-resolution (infrared) satellite data.'
 )
@@ -83,11 +67,6 @@ DATA_AUG_STDEV_TRANS_HELP_STRING = (
     'Standard deviation of translation distance (in units of low-resolution '
     'pixels) for data augmentation.'
 )
-# SENTINEL_VALUE_HELP_STRING = 'Sentinel value (will be used to replace NaN).'
-# TARGET_SMOOTHER_STDEV_HELP_STRING = (
-#     '[used only if model does gridded prediction, not scalar prediction] '
-#     'Standard-deviation distance for Gaussian smoothing of target field.'
-# )
 SYNOPTIC_TIMES_ONLY_HELP_STRING = (
     '[used only if model is trained with Robert/Galina data] Boolean flag.  If '
     '1, only synoptic times can be target times.  If 0, any time can be a '
@@ -106,37 +85,20 @@ REMOVE_NONTROPICAL_HELP_STRING = (
     'Boolean flag.  If 1 (0), will train with only tropical systems (all '
     'systems).'
 )
+USE_XY_COORDS_HELP_STRING = (
+    'Boolean flag.  If 1, will use xy-coordinates (zonal and meridional '
+    'distance from nadir) as predictors.'
+)
 USE_SHUFFLED_DATA_HELP_STRING = (
     'Boolean flag.  If 1, with train with shuffled files.  If 0, will train '
     'with organized files (one file per cyclone-day or per cyclone).'
 )
 
-# TIME_TOLERANCE_FOR_TRAINING_HELP_STRING = (
-#     'Tolerance for lag times in training data.'
-# )
-# MAX_MISSING_TIMES_FOR_TRAINING_HELP_STRING = (
-#     'Max number of missing lag times for a given training example.'
-# )
-# MAX_INTERP_GAP_FOR_TRAINING_HELP_STRING = (
-#     'Max gap (seconds) for interpolation to missing lag time in a training '
-#     'example.'
-# )
 SATELLITE_DIR_FOR_TRAINING_HELP_STRING = (
     'Name of directory with training data.  Files therein will be found by '
     '`satellite_io.find_file` and read by `satellite_io.read_file`.'
 )
 TRAINING_YEARS_HELP_STRING = 'List of training years'
-
-# TIME_TOLERANCE_FOR_VALIDATION_HELP_STRING = (
-#     'Tolerance for lag times in validation data.'
-# )
-# MAX_MISSING_TIMES_FOR_VALIDATION_HELP_STRING = (
-#     'Max number of missing lag times for a given validation example.'
-# )
-# MAX_INTERP_GAP_FOR_VALIDATION_HELP_STRING = (
-#     'Max gap (seconds) for interpolation to missing lag time in a validation '
-#     'example.'
-# )
 SATELLITE_DIR_FOR_VALIDATION_HELP_STRING = (
     'Name of directory with validation data.  Files therein will be found by '
     '`satellite_io.find_file` and read by `satellite_io.read_file`.'
@@ -182,10 +144,6 @@ def add_input_args(parser_object):
         '--' + LAG_TIMES_ARG_NAME, type=int, nargs='+', required=True,
         help=LAG_TIMES_HELP_STRING
     )
-    # parser_object.add_argument(
-    #     '--' + HIGH_RES_WAVELENGTHS_ARG_NAME, type=float, nargs='+',
-    #     required=False, default=[], help=HIGH_RES_WAVELENGTHS_HELP_STRING
-    # )
     parser_object.add_argument(
         '--' + LOW_RES_WAVELENGTHS_ARG_NAME, type=float, nargs='+',
         required=True, help=LOW_RES_WAVELENGTHS_HELP_STRING
@@ -218,14 +176,6 @@ def add_input_args(parser_object):
         '--' + DATA_AUG_STDEV_TRANS_ARG_NAME, type=float, required=False,
         default=7.5, help=DATA_AUG_STDEV_TRANS_HELP_STRING
     )
-    # parser_object.add_argument(
-    #     '--' + SENTINEL_VALUE_ARG_NAME, type=float, required=False,
-    #     default=-10, help=SENTINEL_VALUE_HELP_STRING
-    # )
-    # parser_object.add_argument(
-    #     '--' + TARGET_SMOOTHER_STDEV_ARG_NAME, type=float, required=False,
-    #     default=1e-6, help=TARGET_SMOOTHER_STDEV_HELP_STRING
-    # )
     parser_object.add_argument(
         '--' + SYNOPTIC_TIMES_ONLY_ARG_NAME, type=int, required=False,
         default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
@@ -243,23 +193,14 @@ def add_input_args(parser_object):
         help=REMOVE_NONTROPICAL_HELP_STRING
     )
     parser_object.add_argument(
+        '--' + USE_XY_COORDS_ARG_NAME, type=int, required=True,
+        help=USE_XY_COORDS_HELP_STRING
+    )
+    parser_object.add_argument(
         '--' + USE_SHUFFLED_DATA_ARG_NAME, type=int, required=True,
         help=USE_SHUFFLED_DATA_HELP_STRING
     )
 
-    # parser_object.add_argument(
-    #     '--' + TIME_TOLERANCE_FOR_TRAINING_ARG_NAME, type=int, required=False,
-    #     default=900, help=TIME_TOLERANCE_FOR_TRAINING_HELP_STRING
-    # )
-    # parser_object.add_argument(
-    #     '--' + MAX_MISSING_TIMES_FOR_TRAINING_ARG_NAME, type=int,
-    #     required=False, default=1,
-    #     help=MAX_MISSING_TIMES_FOR_TRAINING_HELP_STRING
-    # )
-    # parser_object.add_argument(
-    #     '--' + MAX_INTERP_GAP_FOR_TRAINING_ARG_NAME, type=int, required=False,
-    #     default=3600, help=MAX_INTERP_GAP_FOR_TRAINING_HELP_STRING
-    # )
     parser_object.add_argument(
         '--' + SATELLITE_DIR_FOR_TRAINING_ARG_NAME, type=str, required=True,
         help=SATELLITE_DIR_FOR_TRAINING_HELP_STRING
@@ -268,20 +209,6 @@ def add_input_args(parser_object):
         '--' + TRAINING_YEARS_ARG_NAME, type=int, nargs='+', required=True,
         help=TRAINING_YEARS_HELP_STRING
     )
-
-    # parser_object.add_argument(
-    #     '--' + TIME_TOLERANCE_FOR_VALIDATION_ARG_NAME, type=int, required=False,
-    #     default=900, help=TIME_TOLERANCE_FOR_VALIDATION_HELP_STRING
-    # )
-    # parser_object.add_argument(
-    #     '--' + MAX_MISSING_TIMES_FOR_VALIDATION_ARG_NAME, type=int,
-    #     required=False, default=1,
-    #     help=MAX_MISSING_TIMES_FOR_VALIDATION_HELP_STRING
-    # )
-    # parser_object.add_argument(
-    #     '--' + MAX_INTERP_GAP_FOR_VALIDATION_ARG_NAME, type=int, required=False,
-    #     default=3600, help=MAX_INTERP_GAP_FOR_VALIDATION_HELP_STRING
-    # )
     parser_object.add_argument(
         '--' + SATELLITE_DIR_FOR_VALIDATION_ARG_NAME, type=str, required=True,
         help=SATELLITE_DIR_FOR_VALIDATION_HELP_STRING

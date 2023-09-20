@@ -14,6 +14,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import grids
 import time_conversion
 import longitude_conversion as lng_conversion
 import file_system_utils
@@ -40,6 +41,7 @@ TARGET_TIMES_KEY = nn_utils.TARGET_TIMES_KEY
 CYCLONE_IDS_KEY = 'cyclone_id_strings'
 LOW_RES_LATITUDES_KEY = nn_utils.LOW_RES_LATITUDES_KEY
 LOW_RES_LONGITUDES_KEY = nn_utils.LOW_RES_LONGITUDES_KEY
+NORMALIZED_XY_COORDS_KEY = 'normalized_xy_coord_matrix'
 
 PREDICTOR_MATRICES_KEY = nn_utils.PREDICTOR_MATRICES_KEY
 TARGET_MATRIX_KEY = nn_utils.TARGET_MATRIX_KEY
@@ -61,13 +63,14 @@ SYNOPTIC_TIMES_ONLY_KEY = nn_utils.SYNOPTIC_TIMES_ONLY_KEY
 A_DECK_FILE_KEY = nn_utils.A_DECK_FILE_KEY
 SCALAR_A_DECK_FIELDS_KEY = nn_utils.SCALAR_A_DECK_FIELDS_KEY
 REMOVE_NONTROPICAL_KEY = nn_utils.REMOVE_NONTROPICAL_KEY
+USE_XY_COORDS_KEY = nn_utils.USE_XY_COORDS_KEY
 SEMANTIC_SEG_FLAG_KEY = nn_utils.SEMANTIC_SEG_FLAG_KEY
 TARGET_SMOOOTHER_STDEV_KEY = nn_utils.TARGET_SMOOOTHER_STDEV_KEY
 
 
 def _read_satellite_data_1shuffled_file(
         input_file_name, lag_times_minutes, low_res_wavelengths_microns,
-        num_rows_low_res, num_columns_low_res, return_coords,
+        num_rows_low_res, num_columns_low_res, return_coords, return_xy_coords,
         cyclone_id_strings, target_times_unix_sec):
     """Reads satellite data from one shuffled file.
 
@@ -85,11 +88,16 @@ def _read_satellite_data_1shuffled_file(
     :param num_rows_low_res: m in the above discussion.
     :param num_columns_low_res: n in the above discussion.
     :param return_coords: Boolean flag.  If True, will return coordinates.
+    :param return_xy_coords: Boolean flag.  If True, will return xy-coordinates
+        for use as predictors.
     :param cyclone_id_strings: length-T list of cyclone IDs.
     :param target_times_unix_sec: length-T numpy array of target times.
 
     :return: data_dict: Dictionary with the following keys.  If
-        `return_coords == False`, the last 2 keys will be None.
+        `return_coords == False`, then keys "low_res_latitude_matrix_deg_n" and
+        "low_res_longitude_matrix_deg_e" will be None.  If
+        `return_xy_coords == False`, then key "normalized_xy_coord_matrix" will
+        be None.
 
     data_dict["brightness_temp_matrix_kelvins"]: T-by-m-by-n-by-L-by-w numpy
         array of brightness temperatures.
@@ -103,6 +111,8 @@ def _read_satellite_data_1shuffled_file(
         latitudes (deg north).
     data_dict["low_res_longitude_matrix_deg_e"]: T-by-n-by-L numpy array of
         longitudes (deg east).
+    data_dict["normalized_xy_coord_matrix"]: T-by-m-by-n-by-L-by-2 numpy
+        array of normalized xy-coordinates.
     """
 
     print('Reading data from: "{0:s}"...'.format(input_file_name))
@@ -146,6 +156,14 @@ def _read_satellite_data_1shuffled_file(
     else:
         low_res_latitude_matrix_deg_n = None
         low_res_longitude_matrix_deg_e = None
+
+    if return_xy_coords:
+        these_dim = (
+            num_cyclone_objects, num_rows, num_columns, num_lag_times, 2
+        )
+        normalized_xy_coord_matrix = numpy.full(these_dim, numpy.nan)
+    else:
+        normalized_xy_coord_matrix = None
 
     grid_spacings_low_res_km = numpy.full(num_cyclone_objects, numpy.nan)
     cyclone_center_latitudes_deg_n = numpy.full(num_cyclone_objects, numpy.nan)
@@ -243,6 +261,27 @@ def _read_satellite_data_1shuffled_file(
                 new_stx[satellite_utils.LONGITUDE_LOW_RES_KEY].values, 0, 1
             )
 
+        if return_xy_coords:
+            for j in range(num_lag_times):
+                these_x_coords, these_y_coords = (
+                    misc_utils.get_xy_grid_one_tc_object(
+                        cyclone_id_string=cyclone_id_strings[i],
+                        grid_latitudes_deg_n=
+                        new_stx[satellite_utils.LATITUDE_LOW_RES_KEY].values[j, :],
+                        grid_longitudes_deg_e=
+                        new_stx[satellite_utils.LONGITUDE_LOW_RES_KEY].values[j, :],
+                        normalize_to_minmax=True
+                    )
+                )
+
+                (
+                    normalized_xy_coord_matrix[i, ..., j, 0],
+                    normalized_xy_coord_matrix[i, ..., j, 1]
+                ) = grids.xy_vectors_to_matrices(
+                    x_unique_metres=these_x_coords,
+                    y_unique_metres=these_y_coords
+                )
+
     good_indices = numpy.where(cyclone_object_success_flags)[0]
     cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
     target_times_unix_sec = target_times_unix_sec[good_indices]
@@ -264,6 +303,11 @@ def _read_satellite_data_1shuffled_file(
             good_indices, ...
         ]
 
+    if return_xy_coords:
+        normalized_xy_coord_matrix = normalized_xy_coord_matrix[
+            good_indices, ...
+        ]
+
     return {
         BRIGHTNESS_TEMPS_KEY: brightness_temp_matrix_kelvins,
         GRID_SPACINGS_KEY: grid_spacings_low_res_km,
@@ -271,7 +315,8 @@ def _read_satellite_data_1shuffled_file(
         CYCLONE_IDS_KEY: cyclone_id_strings,
         TARGET_TIMES_KEY: target_times_unix_sec,
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
-        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
+        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e,
+        NORMALIZED_XY_COORDS_KEY: normalized_xy_coord_matrix
     }
 
 
@@ -373,7 +418,7 @@ def _extrap_based_forecasts_to_rowcol(
 
 def _read_satellite_data_1cyclone(
         input_file_names, lag_times_minutes, low_res_wavelengths_microns,
-        num_rows_low_res, num_columns_low_res, return_coords,
+        num_rows_low_res, num_columns_low_res, return_coords, return_xy_coords,
         target_times_unix_sec):
     """Reads satellite data for one cyclone.
 
@@ -391,10 +436,15 @@ def _read_satellite_data_1cyclone(
     :param num_rows_low_res: m in the above discussion.
     :param num_columns_low_res: n in the above discussion.
     :param return_coords: Boolean flag.  If True, will return coordinates.
+    :param return_xy_coords: Boolean flag.  If True, will return xy-coordinates
+        for use as predictors.
     :param target_times_unix_sec: length-T numpy array of target times.
 
     :return: data_dict: Dictionary with the following keys.  If
-        `return_coords == False`, the last 2 keys will be None.
+        `return_coords == False`, then keys "low_res_latitude_matrix_deg_n" and
+        "low_res_longitude_matrix_deg_e" will be None.  If
+        `return_xy_coords == False`, then key "normalized_xy_coord_matrix" will
+        be None.
 
     data_dict["brightness_temp_matrix_kelvins"]: T-by-m-by-n-by-L-by-w numpy
         array of brightness temperatures.
@@ -407,6 +457,8 @@ def _read_satellite_data_1cyclone(
         latitudes (deg north).
     data_dict["low_res_longitude_matrix_deg_e"]: T-by-n-by-L numpy array of
         longitudes (deg east).
+    data_dict["normalized_xy_coord_matrix"]: T-by-m-by-n-by-L-by-2 numpy
+        array of normalized xy-coordinates.
     """
 
     # TODO(thunderhoser): This could be simplified more.
@@ -439,16 +491,12 @@ def _read_satellite_data_1cyclone(
                 desired_file_to_times_dict[desired_file_names[i]][1]
             )
         )
-        print(orig_satellite_tables_xarray[i])
-        print('\n\n\n\n')
 
         orig_satellite_tables_xarray[i] = satellite_utils.subset_wavelengths(
             satellite_table_xarray=orig_satellite_tables_xarray[i],
             wavelengths_to_keep_microns=low_res_wavelengths_microns,
             for_high_res=False
         )
-        print(orig_satellite_tables_xarray[i])
-        print('\n\n\n\n')
 
         orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
             satellite_table_xarray=orig_satellite_tables_xarray[i],
@@ -456,8 +504,6 @@ def _read_satellite_data_1cyclone(
             num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )
-        print(orig_satellite_tables_xarray[i])
-        print('\n\n\n\n')
 
     satellite_table_xarray = satellite_utils.concat_over_time(
         orig_satellite_tables_xarray
@@ -493,6 +539,14 @@ def _read_satellite_data_1cyclone(
     else:
         low_res_latitude_matrix_deg_n = None
         low_res_longitude_matrix_deg_e = None
+
+    if return_xy_coords:
+        these_dim = (
+            num_target_times, this_num_rows, this_num_columns, num_lag_times, 2
+        )
+        normalized_xy_coord_matrix = numpy.full(these_dim, numpy.nan)
+    else:
+        normalized_xy_coord_matrix = None
 
     grid_spacings_low_res_km = numpy.full(num_target_times, numpy.nan)
     cyclone_center_latitudes_deg_n = numpy.full(num_target_times, numpy.nan)
@@ -560,6 +614,28 @@ def _read_satellite_data_1cyclone(
                 t[satellite_utils.LONGITUDE_LOW_RES_KEY].values, 0, 1
             )
 
+        if return_xy_coords:
+            for j in range(num_lag_times):
+                these_x_coords, these_y_coords = (
+                    misc_utils.get_xy_grid_one_tc_object(
+                        cyclone_id_string=
+                        t[satellite_utils.CYCLONE_ID_KEY].values[j],
+                        grid_latitudes_deg_n=
+                        t[satellite_utils.LATITUDE_LOW_RES_KEY].values[j, :],
+                        grid_longitudes_deg_e=
+                        t[satellite_utils.LONGITUDE_LOW_RES_KEY].values[j, :],
+                        normalize_to_minmax=True
+                    )
+                )
+
+                (
+                    normalized_xy_coord_matrix[i, ..., j, 0],
+                    normalized_xy_coord_matrix[i, ..., j, 1]
+                ) = grids.xy_vectors_to_matrices(
+                    x_unique_metres=these_x_coords,
+                    y_unique_metres=these_y_coords
+                )
+
     good_indices = numpy.where(target_time_success_flags)[0]
     target_times_unix_sec = target_times_unix_sec[good_indices]
     brightness_temp_matrix_kelvins = (
@@ -580,13 +656,19 @@ def _read_satellite_data_1cyclone(
             good_indices, ...
         ]
 
+    if return_xy_coords:
+        normalized_xy_coord_matrix = normalized_xy_coord_matrix[
+            good_indices, ...
+        ]
+
     return {
         BRIGHTNESS_TEMPS_KEY: brightness_temp_matrix_kelvins,
         GRID_SPACINGS_KEY: grid_spacings_low_res_km,
         CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
         TARGET_TIMES_KEY: target_times_unix_sec,
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
-        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
+        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e,
+        NORMALIZED_XY_COORDS_KEY: normalized_xy_coord_matrix
     }
 
 
@@ -811,6 +893,7 @@ def data_generator_shuffled(option_dict):
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
+    use_xy_coords_as_predictors = option_dict[USE_XY_COORDS_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -849,7 +932,7 @@ def data_generator_shuffled(option_dict):
     file_index = 0
 
     while True:
-        brightness_temp_matrix_kelvins = None
+        vector_predictor_matrix = None
         scalar_predictor_matrix = None
         grid_spacings_km = None
         cyclone_center_latitudes_deg_n = None
@@ -885,7 +968,8 @@ def data_generator_shuffled(option_dict):
                 num_columns_low_res=num_columns_low_res,
                 return_coords=use_extrap_based_forecasts,
                 cyclone_id_strings=these_cyclone_id_strings,
-                target_times_unix_sec=these_target_times_unix_sec
+                target_times_unix_sec=these_target_times_unix_sec,
+                return_xy_coords=use_xy_coords_as_predictors
             )
             file_index += 1
 
@@ -897,6 +981,7 @@ def data_generator_shuffled(option_dict):
                 continue
 
             this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+            this_xy_coord_matrix = data_dict[NORMALIZED_XY_COORDS_KEY]
             these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
             these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
 
@@ -933,13 +1018,25 @@ def data_generator_shuffled(option_dict):
                 this_bt_matrix_kelvins
             )
 
-            if brightness_temp_matrix_kelvins is None:
+            if use_xy_coords_as_predictors:
+                this_xy_coord_matrix = (
+                    nn_utils.combine_lag_times_and_wavelengths(
+                        this_xy_coord_matrix
+                    )
+                )
+
+                this_vector_predictor_matrix = numpy.concatenate(
+                    (this_bt_matrix_kelvins, this_xy_coord_matrix), axis=-1
+                )
+            else:
+                this_vector_predictor_matrix = this_bt_matrix_kelvins
+
+            if vector_predictor_matrix is None:
                 these_dim = (
-                    (num_examples_per_batch,) + this_bt_matrix_kelvins.shape[1:]
+                    (num_examples_per_batch,) +
+                    this_vector_predictor_matrix.shape[1:]
                 )
-                brightness_temp_matrix_kelvins = numpy.full(
-                    these_dim, numpy.nan
-                )
+                vector_predictor_matrix = numpy.full(these_dim, numpy.nan)
 
                 grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
                 cyclone_center_latitudes_deg_n = numpy.full(
@@ -954,9 +1051,9 @@ def data_generator_shuffled(option_dict):
                     scalar_predictor_matrix = numpy.full(these_dim, numpy.nan)
 
             first_index = num_examples_in_memory
-            last_index = first_index + this_bt_matrix_kelvins.shape[0]
-            brightness_temp_matrix_kelvins[first_index:last_index, ...] = (
-                this_bt_matrix_kelvins
+            last_index = first_index + this_vector_predictor_matrix.shape[0]
+            vector_predictor_matrix[first_index:last_index, ...] = (
+                this_vector_predictor_matrix
             )
             grid_spacings_km[first_index:last_index] = these_grid_spacings_km
             cyclone_center_latitudes_deg_n[first_index:last_index] = (
@@ -968,27 +1065,25 @@ def data_generator_shuffled(option_dict):
                     this_scalar_predictor_matrix
                 )
 
-            num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
+            num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
         (
-            _, brightness_temp_matrix_kelvins,
+            _, vector_predictor_matrix,
             row_translations_low_res_px, column_translations_low_res_px
         ) = data_augmentation.augment_data(
             bidirectional_reflectance_matrix=None,
-            brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
+            brightness_temp_matrix_kelvins=vector_predictor_matrix,
             num_translations_per_example=data_aug_num_translations,
             mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=-10.
         )
 
-        brightness_temp_matrix_kelvins = (
-            data_augmentation.subset_grid_after_data_aug(
-                data_matrix=brightness_temp_matrix_kelvins,
-                num_rows_to_keep=orig_num_rows_low_res,
-                num_columns_to_keep=orig_num_columns_low_res,
-                for_high_res=False
-            )
+        vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
+            data_matrix=vector_predictor_matrix,
+            num_rows_to_keep=orig_num_rows_low_res,
+            num_columns_to_keep=orig_num_columns_low_res,
+            for_high_res=False
         )
 
         grid_spacings_km = numpy.repeat(
@@ -1020,15 +1115,7 @@ def data_generator_shuffled(option_dict):
                 column_translations_low_res_px
             )
 
-            these_indices = numpy.array([row_index, column_index], dtype=int)
-            print((
-                'Extrapolation-based forecasts (in terms of row/column '
-                'offsets):\n{0:s}'
-            ).format(
-                str(scalar_predictor_matrix[:, these_indices])
-            ))
-
-        predictor_matrices = [brightness_temp_matrix_kelvins]
+        predictor_matrices = [vector_predictor_matrix]
         if scalar_predictor_matrix is not None:
             predictor_matrices.append(scalar_predictor_matrix)
 
@@ -1084,16 +1171,20 @@ def data_generator(option_dict):
     option_dict["remove_nontropical_systems"]: Boolean flag.  If True, only
         tropical systems will be used for training.  If False, all systems
         (including subtropical, post-tropical, etc.) will be used.
+    option_dict["use_xy_coords_as_predictors"]: Boolean flag.
     option_dict["a_deck_file_name"]: Path to A-deck file, which is needed if
         `len(scalar_a_deck_field_names) > 0 or remove_nontropical_systems`.
         If A-deck file is not needed, you can make this None.
 
     :return: predictor_matrices: If predictors include scalars, this will be a
-        list with [brightness_temp_matrix_kelvins, scalar_predictor_matrix].
+        list with [vector_predictor_matrix, scalar_predictor_matrix].
         Otherwise, this will be a list with only the first item.
 
-        brightness_temp_matrix_kelvins: E-by-m-by-n-by-(w * L) numpy array of
-            brightness temperatures.
+        vector_predictor_matrix: If `use_xy_coords_as_predictors == False`, this
+            is a E-by-m-by-n-by-(w * L) numpy array of brightness temperatures.
+            If `use_xy_coords_as_predictors == True`, this
+            is a E-by-m-by-n-by-([w + 2] * L) numpy array with both brightness
+            temperatures and xy-coords.
 
         scalar_predictor_matrix: E-by-F numpy array of scalar predictors.
 
@@ -1146,6 +1237,7 @@ def data_generator(option_dict):
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
+    use_xy_coords_as_predictors = option_dict[USE_XY_COORDS_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -1198,7 +1290,7 @@ def data_generator(option_dict):
     cyclone_index = 0
 
     while True:
-        brightness_temp_matrix_kelvins = None
+        vector_predictor_matrix = None
         scalar_predictor_matrix = None
         grid_spacings_km = None
         cyclone_center_latitudes_deg_n = None
@@ -1232,7 +1324,8 @@ def data_generator(option_dict):
                 num_rows_low_res=num_rows_low_res,
                 num_columns_low_res=num_columns_low_res,
                 return_coords=use_extrap_based_forecasts,
-                target_times_unix_sec=new_target_times_unix_sec
+                target_times_unix_sec=new_target_times_unix_sec,
+                return_xy_coords=use_xy_coords_as_predictors
             )
             cyclone_index += 1
 
@@ -1244,6 +1337,7 @@ def data_generator(option_dict):
                 continue
 
             this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+            this_xy_coord_matrix = data_dict[NORMALIZED_XY_COORDS_KEY]
             these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
             these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
 
@@ -1276,14 +1370,25 @@ def data_generator(option_dict):
             this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
                 this_bt_matrix_kelvins
             )
+            if use_xy_coords_as_predictors:
+                this_xy_coord_matrix = (
+                    nn_utils.combine_lag_times_and_wavelengths(
+                        this_xy_coord_matrix
+                    )
+                )
 
-            if brightness_temp_matrix_kelvins is None:
+                this_vector_predictor_matrix = numpy.concatenate(
+                    (this_bt_matrix_kelvins, this_xy_coord_matrix), axis=-1
+                )
+            else:
+                this_vector_predictor_matrix = this_bt_matrix_kelvins
+
+            if vector_predictor_matrix is None:
                 these_dim = (
-                    (num_examples_per_batch,) + this_bt_matrix_kelvins.shape[1:]
+                    (num_examples_per_batch,) +
+                    this_vector_predictor_matrix.shape[1:]
                 )
-                brightness_temp_matrix_kelvins = numpy.full(
-                    these_dim, numpy.nan
-                )
+                vector_predictor_matrix = numpy.full(these_dim, numpy.nan)
 
                 grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
                 cyclone_center_latitudes_deg_n = numpy.full(
@@ -1298,9 +1403,9 @@ def data_generator(option_dict):
                     scalar_predictor_matrix = numpy.full(these_dim, numpy.nan)
 
             first_index = num_examples_in_memory
-            last_index = first_index + this_bt_matrix_kelvins.shape[0]
-            brightness_temp_matrix_kelvins[first_index:last_index, ...] = (
-                this_bt_matrix_kelvins
+            last_index = first_index + this_vector_predictor_matrix.shape[0]
+            vector_predictor_matrix[first_index:last_index, ...] = (
+                this_vector_predictor_matrix
             )
             grid_spacings_km[first_index:last_index] = these_grid_spacings_km
             cyclone_center_latitudes_deg_n[first_index:last_index] = (
@@ -1312,27 +1417,25 @@ def data_generator(option_dict):
                     this_scalar_predictor_matrix
                 )
 
-            num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
+            num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
         (
-            _, brightness_temp_matrix_kelvins,
+            _, vector_predictor_matrix,
             row_translations_low_res_px, column_translations_low_res_px
         ) = data_augmentation.augment_data(
             bidirectional_reflectance_matrix=None,
-            brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
+            brightness_temp_matrix_kelvins=vector_predictor_matrix,
             num_translations_per_example=data_aug_num_translations,
             mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=-10.
         )
 
-        brightness_temp_matrix_kelvins = (
-            data_augmentation.subset_grid_after_data_aug(
-                data_matrix=brightness_temp_matrix_kelvins,
-                num_rows_to_keep=orig_num_rows_low_res,
-                num_columns_to_keep=orig_num_columns_low_res,
-                for_high_res=False
-            )
+        vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
+            data_matrix=vector_predictor_matrix,
+            num_rows_to_keep=orig_num_rows_low_res,
+            num_columns_to_keep=orig_num_columns_low_res,
+            for_high_res=False
         )
 
         grid_spacings_km = numpy.repeat(
@@ -1364,7 +1467,7 @@ def data_generator(option_dict):
                 column_translations_low_res_px
             )
 
-        predictor_matrices = [brightness_temp_matrix_kelvins]
+        predictor_matrices = [vector_predictor_matrix]
         if scalar_predictor_matrix is not None:
             predictor_matrices.append(scalar_predictor_matrix)
 
@@ -1557,6 +1660,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
+    use_xy_coords_as_predictors = option_dict[USE_XY_COORDS_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -1606,7 +1710,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         low_res_wavelengths_microns=low_res_wavelengths_microns,
         num_rows_low_res=num_rows_low_res,
         num_columns_low_res=num_columns_low_res,
-        return_coords=True
+        return_coords=True,
+        return_xy_coords=use_xy_coords_as_predictors
     )
 
     if (
@@ -1644,6 +1749,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     brightness_temp_matrix_kelvins = (
         data_dict[BRIGHTNESS_TEMPS_KEY][:num_target_times, ...]
     )
+    xy_coord_matrix = (
+        data_dict[NORMALIZED_XY_COORDS_KEY][:num_target_times, ...]
+    )
     grid_spacings_km = (
         data_dict[GRID_SPACINGS_KEY][:num_target_times, ...]
     )
@@ -1663,26 +1771,33 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     brightness_temp_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
     )
+    if use_xy_coords_as_predictors:
+        xy_coord_matrix = nn_utils.combine_lag_times_and_wavelengths(
+            xy_coord_matrix
+        )
+        vector_predictor_matrix = numpy.concatenate(
+            (brightness_temp_matrix_kelvins, xy_coord_matrix), axis=-1
+        )
+    else:
+        vector_predictor_matrix = brightness_temp_matrix_kelvins
 
     (
-        _, brightness_temp_matrix_kelvins,
+        _, vector_predictor_matrix,
         row_translations_low_res_px, column_translations_low_res_px
     ) = data_augmentation.augment_data(
         bidirectional_reflectance_matrix=None,
-        brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
+        brightness_temp_matrix_kelvins=vector_predictor_matrix,
         num_translations_per_example=data_aug_num_translations,
         mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
         stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
         sentinel_value=-10.
     )
 
-    brightness_temp_matrix_kelvins = (
-        data_augmentation.subset_grid_after_data_aug(
-            data_matrix=brightness_temp_matrix_kelvins,
-            num_rows_to_keep=orig_num_rows_low_res,
-            num_columns_to_keep=orig_num_columns_low_res,
-            for_high_res=False
-        )
+    vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
+        data_matrix=vector_predictor_matrix,
+        num_rows_to_keep=orig_num_rows_low_res,
+        num_columns_to_keep=orig_num_columns_low_res,
+        for_high_res=False
     )
 
     low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
@@ -1750,7 +1865,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
             column_translations_low_res_px
         )
 
-    predictor_matrices = [brightness_temp_matrix_kelvins]
+    predictor_matrices = [vector_predictor_matrix]
     if scalar_predictor_matrix is not None:
         predictor_matrices.append(scalar_predictor_matrix)
 
@@ -1854,6 +1969,7 @@ def create_data_specific_trans(
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
+    use_xy_coords_as_predictors = option_dict[USE_XY_COORDS_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -1879,7 +1995,8 @@ def create_data_specific_trans(
         low_res_wavelengths_microns=low_res_wavelengths_microns,
         num_rows_low_res=num_rows_low_res,
         num_columns_low_res=num_columns_low_res,
-        return_coords=True
+        return_coords=True,
+        return_xy_coords=use_xy_coords_as_predictors
     )
 
     if (
@@ -1917,6 +2034,7 @@ def create_data_specific_trans(
     idxs = reconstruction_indices
 
     brightness_temp_matrix_kelvins = dd[BRIGHTNESS_TEMPS_KEY][idxs, ...]
+    xy_coord_matrix = dd[NORMALIZED_XY_COORDS_KEY][idxs, ...]
     grid_spacings_km = dd[GRID_SPACINGS_KEY][idxs, ...]
     cyclone_center_latitudes_deg_n = dd[CENTER_LATITUDES_KEY][idxs, ...]
     low_res_latitude_matrix_deg_n = dd[LOW_RES_LATITUDES_KEY][idxs, ...]
@@ -1937,6 +2055,7 @@ def create_data_specific_trans(
 
     idxs = good_time_indices
     brightness_temp_matrix_kelvins = brightness_temp_matrix_kelvins[idxs, ...]
+    xy_coord_matrix = xy_coord_matrix[idxs, ...]
     grid_spacings_km = grid_spacings_km[idxs, ...]
     cyclone_center_latitudes_deg_n = cyclone_center_latitudes_deg_n[idxs, ...]
     target_times_unix_sec = target_times_unix_sec[idxs, ...]
@@ -1972,24 +2091,29 @@ def create_data_specific_trans(
     brightness_temp_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
     )
+    if use_xy_coords_as_predictors:
+        xy_coord_matrix = nn_utils.combine_lag_times_and_wavelengths(
+            xy_coord_matrix
+        )
+        vector_predictor_matrix = numpy.concatenate(
+            (brightness_temp_matrix_kelvins, xy_coord_matrix), axis=-1
+        )
+    else:
+        vector_predictor_matrix = brightness_temp_matrix_kelvins
 
-    (
-        _, brightness_temp_matrix_kelvins
-    ) = data_augmentation.augment_data_specific_trans(
+    _, vector_predictor_matrix = data_augmentation.augment_data_specific_trans(
         bidirectional_reflectance_matrix=None,
-        brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
+        brightness_temp_matrix_kelvins=vector_predictor_matrix,
         row_translations_low_res_px=row_translations_low_res_px,
         column_translations_low_res_px=column_translations_low_res_px,
         sentinel_value=-10.
     )
 
-    brightness_temp_matrix_kelvins = (
-        data_augmentation.subset_grid_after_data_aug(
-            data_matrix=brightness_temp_matrix_kelvins,
-            num_rows_to_keep=orig_num_rows_low_res,
-            num_columns_to_keep=orig_num_columns_low_res,
-            for_high_res=False
-        )
+    vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
+        data_matrix=vector_predictor_matrix,
+        num_rows_to_keep=orig_num_rows_low_res,
+        num_columns_to_keep=orig_num_columns_low_res,
+        for_high_res=False
     )
 
     low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
@@ -2017,7 +2141,7 @@ def create_data_specific_trans(
         )[:, 0, :, :]
     )
 
-    predictor_matrices = [brightness_temp_matrix_kelvins]
+    predictor_matrices = [vector_predictor_matrix]
     if scalar_predictor_matrix is not None:
         predictor_matrices.append(scalar_predictor_matrix)
 

@@ -209,8 +209,17 @@ def read_file(ascii_file_name):
     )
 
     # Convert longitude to deg E, positive in western hemisphere.
-    center_longitudes_deg_e = -1 * xbt_table_pandas[CENTER_LONGITUDE_KEY].values
-    center_longitudes_deg_e[center_longitudes_deg_e < -180.] += 360.
+    center_longitudes_deg_e = xbt_table_pandas[CENTER_LONGITUDE_KEY].values
+    pathless_file_name = os.path.split(ascii_file_name)[1]
+
+    if (
+            'EBTRK_AL' in pathless_file_name or
+            'EBTRK_CP' in pathless_file_name or
+            'EBTRK_EP' in pathless_file_name
+    ):
+        center_longitudes_deg_e = -1 * center_longitudes_deg_e
+        center_longitudes_deg_e[center_longitudes_deg_e <= -180] += 360
+
     center_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
         longitudes_deg=center_longitudes_deg_e, allow_nan=False
     )
