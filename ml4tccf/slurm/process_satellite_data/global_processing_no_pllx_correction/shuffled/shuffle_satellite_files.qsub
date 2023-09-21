@@ -1,0 +1,41 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="shuffle_satellite_files"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=30:00:00
+#SBATCH --array=1-3
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=shuffle_satellite_files_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022"
+
+set YEAR_SETS=("2017 2018 2019" "2020 2022" "2021")
+set OUTPUT_DIR_NAMES=("${INPUT_DIR_NAME}/shuffled_6hour_chunks/training_2017-2020_and_2022" "${INPUT_DIR_NAME}/shuffled_6hour_chunks/training_2017-2020_and_2022" "${INPUT_DIR_NAME}/shuffled_6hour_chunks/validation_2021")
+set FIRST_OUTPUT_FILE_NUMS=(0 10000 0)
+
+python3 -u "${CODE_DIR_NAME}/shuffle_satellite_files.py" \
+--input_satellite_dir_name="${INPUT_DIR_NAME}" \
+--num_chunks_per_input_file=4 \
+--num_chunks_per_output_file=8 \
+--output_time_interval_minutes=30 \
+--years ${YEAR_SETS[$SLURM_ARRAY_TASK_ID]} \
+--first_output_file_num=${FIRST_OUTPUT_FILE_NUMS[$SLURM_ARRAY_TASK_ID]} \
+--output_satellite_dir_name="${OUTPUT_DIR_NAMES[$SLURM_ARRAY_TASK_ID]}"
