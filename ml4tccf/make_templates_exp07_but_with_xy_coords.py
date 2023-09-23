@@ -91,7 +91,7 @@ def _run():
                     dense_neuron_counts
                 ) = architecture_utils.get_dense_layer_dimensions(
                     num_input_units=
-                    NUM_SCALAR_PREDICTORS + 28 * num_channels_by_conv_layer[-1],
+                    NUM_SCALAR_PREDICTORS + 16 * num_channels_by_conv_layer[-1],
                     num_classes=2,
                     num_dense_layers=NUM_DENSE_LAYERS,
                     for_classification=False
