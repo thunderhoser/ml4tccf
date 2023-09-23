@@ -23,7 +23,7 @@ OUTPUT_DIR_NAME = (
     'experiment07_but_with_xy_coords/templates'
 )
 
-NUM_SCALAR_PREDICTORS = 9
+NUM_SCALAR_PREDICTORS = 5
 NUM_CONV_BLOCKS = 6
 ENSEMBLE_SIZE = 50
 NUM_DENSE_LAYERS = 4
