@@ -838,10 +838,6 @@ def get_times_and_scalar_preds_shuffled(
             target_times_unix_sec=target_times_by_file_unix_sec[i]
         )
 
-        print(cyclone_id_strings_by_file[i])
-        print(scalar_predictor_matrix_by_file[i])
-        print('\n\n\n')
-
         good_indices = numpy.where(numpy.all(
             numpy.isfinite(scalar_predictor_matrix_by_file[i]), axis=1
         ))[0]
@@ -1071,6 +1067,7 @@ def data_generator_shuffled(option_dict):
 
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
+        print(vector_predictor_matrix.shape)
         (
             _, vector_predictor_matrix,
             row_translations_low_res_px, column_translations_low_res_px
@@ -1082,6 +1079,7 @@ def data_generator_shuffled(option_dict):
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=-10.
         )
+        print(vector_predictor_matrix.shape)
 
         vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
             data_matrix=vector_predictor_matrix,
