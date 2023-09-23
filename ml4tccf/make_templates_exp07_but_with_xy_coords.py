@@ -80,7 +80,7 @@ def _run():
 
                 num_input_channels = 3 * (3 + 2 * int(USE_XY_FLAGS[j]))
                 input_dimensions = numpy.array(
-                    [580, 900, num_input_channels], dtype=int
+                    [300, 300, num_input_channels], dtype=int
                 )
 
                 num_channels_by_conv_layer = numpy.linspace(
