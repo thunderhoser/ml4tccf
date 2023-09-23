@@ -40,8 +40,8 @@ set wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$SLURM_AR
 set num_batches_per_epoch=${BATCHES_PER_EPOCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set use_xy_flag=${USE_XY_FLAGS[$SLURM_ARRAY_TASK_ID]}
 
-set template_file_name="${TEMPLATE_DIR_NAME}/num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-update=${num_batches_per_update}/model.h5"
-set output_dir_name="${TOP_OUTPUT_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-update=${num_batches_per_update}"
+set template_file_name="${TEMPLATE_DIR_NAME}/num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-update=1/model.h5"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-epoch=${num_batches_per_epoch}"
 echo $output_dir_name
 
 set wavelength_group_string_microns="$wavelength_group_string_microns:gas/-/ /"
