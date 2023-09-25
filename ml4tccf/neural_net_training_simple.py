@@ -1751,9 +1751,6 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     brightness_temp_matrix_kelvins = (
         data_dict[BRIGHTNESS_TEMPS_KEY][:num_target_times, ...]
     )
-    xy_coord_matrix = (
-        data_dict[NORMALIZED_XY_COORDS_KEY][:num_target_times, ...]
-    )
     grid_spacings_km = (
         data_dict[GRID_SPACINGS_KEY][:num_target_times, ...]
     )
@@ -1774,6 +1771,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         brightness_temp_matrix_kelvins
     )
     if use_xy_coords_as_predictors:
+        xy_coord_matrix = (
+            data_dict[NORMALIZED_XY_COORDS_KEY][:num_target_times, ...]
+        )
         xy_coord_matrix = nn_utils.combine_lag_times_and_wavelengths(
             xy_coord_matrix
         )
@@ -2036,11 +2036,14 @@ def create_data_specific_trans(
     idxs = reconstruction_indices
 
     brightness_temp_matrix_kelvins = dd[BRIGHTNESS_TEMPS_KEY][idxs, ...]
-    xy_coord_matrix = dd[NORMALIZED_XY_COORDS_KEY][idxs, ...]
     grid_spacings_km = dd[GRID_SPACINGS_KEY][idxs, ...]
     cyclone_center_latitudes_deg_n = dd[CENTER_LATITUDES_KEY][idxs, ...]
     low_res_latitude_matrix_deg_n = dd[LOW_RES_LATITUDES_KEY][idxs, ...]
     low_res_longitude_matrix_deg_e = dd[LOW_RES_LONGITUDES_KEY][idxs, ...]
+    if use_xy_coords_as_predictors:
+        xy_coord_matrix = dd[NORMALIZED_XY_COORDS_KEY][idxs, ...]
+    else:
+        xy_coord_matrix = None
 
     if scalar_predictor_matrix is None:
         good_time_indices = numpy.linspace(
@@ -2057,12 +2060,13 @@ def create_data_specific_trans(
 
     idxs = good_time_indices
     brightness_temp_matrix_kelvins = brightness_temp_matrix_kelvins[idxs, ...]
-    xy_coord_matrix = xy_coord_matrix[idxs, ...]
     grid_spacings_km = grid_spacings_km[idxs, ...]
     cyclone_center_latitudes_deg_n = cyclone_center_latitudes_deg_n[idxs, ...]
     target_times_unix_sec = target_times_unix_sec[idxs, ...]
     low_res_latitude_matrix_deg_n = low_res_latitude_matrix_deg_n[idxs, ...]
     low_res_longitude_matrix_deg_e = low_res_longitude_matrix_deg_e[idxs, ...]
+    if use_xy_coords_as_predictors:
+        xy_coord_matrix = xy_coord_matrix[idxs, ...]
 
     if use_extrap_based_forecasts:
         scalar_predictor_matrix = _extrap_based_forecasts_to_rowcol(
