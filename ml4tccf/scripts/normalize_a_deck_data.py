@@ -120,15 +120,29 @@ def _run(input_file_name, training_years, output_file_name):
         adt[a_deck_io.INTENSITY_KEY].values[training_row_indices]
     )
 
+    real_subindices = numpy.where(numpy.invert(numpy.isnan(
+        adt[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values[training_row_indices]
+    )))[0]
+
     norm_central_pressures = normalization._normalize_one_variable(
         actual_values_new=adt[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values,
-        actual_values_training=
-        adt[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values[training_row_indices]
+        actual_values_training=adt[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values[
+            training_row_indices[real_subindices]
+        ]
     )
 
-    orig_motion_headings_standard_deg = misc_utils.geodetic_to_standard_angles(
-        adt[a_deck_io.MOTION_HEADING_KEY].values
+    orig_motion_headings_standard_deg = numpy.full(
+        len(adt[a_deck_io.MOTION_HEADING_KEY].values), numpy.nan
     )
+    real_indices = numpy.where(numpy.invert(numpy.isnan(
+        orig_motion_headings_standard_deg
+    )))[0]
+    orig_motion_headings_standard_deg[real_indices] = (
+        misc_utils.geodetic_to_standard_angles(
+            adt[a_deck_io.MOTION_HEADING_KEY].values[real_indices]
+        )
+    )
+
     orig_eastward_motions_m_s01 = (
         adt[a_deck_io.MOTION_SPEED_KEY].values *
         numpy.cos(DEGREES_TO_RADIANS * orig_motion_headings_standard_deg)
@@ -138,14 +152,25 @@ def _run(input_file_name, training_years, output_file_name):
         numpy.sin(DEGREES_TO_RADIANS * orig_motion_headings_standard_deg)
     )
 
+    real_subindices = numpy.where(numpy.invert(numpy.isnan(
+        orig_eastward_motions_m_s01[training_row_indices]
+    )))[0]
+
     norm_eastward_motions_m_s01 = normalization._normalize_one_variable(
         actual_values_new=orig_eastward_motions_m_s01,
-        actual_values_training=orig_eastward_motions_m_s01[training_row_indices]
+        actual_values_training=orig_eastward_motions_m_s01[
+            training_row_indices[real_subindices]
+        ]
     )
+
+    real_subindices = numpy.where(numpy.invert(numpy.isnan(
+        orig_northward_motions_m_s01[training_row_indices]
+    )))[0]
+
     norm_northward_motions_m_s01 = normalization._normalize_one_variable(
         actual_values_new=orig_northward_motions_m_s01,
         actual_values_training=
-        orig_northward_motions_m_s01[training_row_indices]
+        orig_northward_motions_m_s01[training_row_indices[real_subindices]]
     )
 
     num_storm_objects = len(norm_northward_motions_m_s01)

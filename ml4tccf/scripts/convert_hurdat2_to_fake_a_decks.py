@@ -57,6 +57,31 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
+def _convert_storm_types(ebtrk_storm_type_strings):
+    """Converts storm types from EBTRK format to A-deck format.
+
+    E = number of TC objects
+
+    :param ebtrk_storm_type_strings: length-E list of storm types.
+    :return: a_deck_storm_type_strings: length-E list of storm types in new
+        format.
+    """
+
+    renaming_dict = {
+        'DB': a_deck_io.TROPICAL_DISTURBANCE_TYPE_STRING,
+        'LO': a_deck_io.LOW_TYPE_STRING,
+        'HU': a_deck_io.TROPICAL_HURRICANE_TYPE_STRING,
+        'TD': a_deck_io.TROPICAL_DEPRESSION_TYPE_STRING,
+        'TS': a_deck_io.TROPICAL_STORM_TYPE_STRING,
+        'EX': a_deck_io.EXTRATROPICAL_TYPE_STRING,
+        'SD': a_deck_io.SUBTROPICAL_DEPRESSION_TYPE_STRING,
+        'SS': a_deck_io.SUBTROPICAL_STORM_TYPE_STRING,
+        'WV': a_deck_io.WAVE_TYPE_STRING
+    }
+
+    return [renaming_dict[s] for s in ebtrk_storm_type_strings]
+
+
 def _read_hurdat2_file(hurdat2_file_name, start_year, end_year):
     """Reads data from HURDAT2 file.
 
@@ -223,6 +248,8 @@ def _read_hurdat2_file(hurdat2_file_name, start_year, end_year):
         a_deck_io.WIND_THRESHOLD_DIM: wind_threshold_indices,
         a_deck_io.WAVE_HEIGHT_THRESHOLD_DIM: wave_height_threshold_indices
     }
+
+    storm_type_strings = _convert_storm_types(storm_type_strings)
 
     these_dim = (a_deck_io.STORM_OBJECT_DIM,)
     main_data_dict = {

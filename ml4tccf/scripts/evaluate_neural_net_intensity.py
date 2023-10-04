@@ -7,6 +7,7 @@ import xarray
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
+from gewittergefahr.gg_utils import file_system_utils
 from ml4tccf.utils import scalar_evaluation
 from ml4tccf.machine_learning import \
     neural_net_training_intensity as nn_training
@@ -51,6 +52,10 @@ def _run(prediction_file_pattern, output_dir_name):
     :raises: ValueError: if no prediction files could be found.
     """
 
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
     prediction_file_names = glob.glob(prediction_file_pattern)
     if len(prediction_file_names) == 0:
         error_string = (
@@ -85,13 +90,23 @@ def _run(prediction_file_pattern, output_dir_name):
     predicted_intensities_kt = (
         METRES_PER_SECOND_TO_KT * predicted_intensities_m_s01
     )
+
     (
         mean_predictions_kt, mean_observations_kt, example_counts
     ) = scalar_evaluation._get_reliability_curve_one_variable(
         target_values=target_intensities_kt,
         predicted_values=predicted_intensities_kt,
         is_var_direction=False,
-        num_bins=31, min_bin_edge=30., max_bin_edge=180., invert=False
+        num_bins=30, min_bin_edge=30., max_bin_edge=180., invert=False
+    )
+
+    (
+        _, inv_mean_observations_kt, inv_example_counts
+    ) = scalar_evaluation._get_reliability_curve_one_variable(
+        target_values=target_intensities_kt,
+        predicted_values=predicted_intensities_kt,
+        is_var_direction=False,
+        num_bins=30, min_bin_edge=30., max_bin_edge=180., invert=True
     )
 
     figure_object, axes_object = pyplot.subplots(
@@ -104,6 +119,20 @@ def _run(prediction_file_pattern, output_dir_name):
         mean_observations=mean_observations_kt,
         mean_value_in_training=46.5832769126608,
         min_value_to_plot=30., max_value_to_plot=180.
+    )
+    scalar_eval_plotting.plot_inset_histogram(
+        figure_object=figure_object,
+        bin_centers=inv_mean_observations_kt,
+        bin_counts=example_counts,
+        has_predictions=True,
+        bar_colour=scalar_eval_plotting.RELIABILITY_LINE_COLOUR
+    )
+    scalar_eval_plotting.plot_inset_histogram(
+        figure_object=figure_object,
+        bin_centers=inv_mean_observations_kt,
+        bin_counts=inv_example_counts,
+        has_predictions=False,
+        bar_colour=scalar_eval_plotting.RELIABILITY_LINE_COLOUR
     )
 
     reliability_kt2 = scalar_evaluation._get_reliability(
@@ -130,6 +159,7 @@ def _run(prediction_file_pattern, output_dir_name):
         mean_absolute_error_kt, mean_signed_error_kt, rmse_kt, reliability_kt2
     )
     title_string += r'$^{2}$'
+    print(title_string)
 
     axes_object.set_title(title_string)
     figure_file_name = '{0:s}/attributes_diagram.jpg'.format(output_dir_name)

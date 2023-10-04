@@ -325,7 +325,7 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
                 )
             else:
                 this_output_dir_name = (
-                    '{0:s}/x={1:.0f}_{2:.0f}km'
+                    '{0:s}/x={1:+04.0f}_{2:+04.0f}km'
                 ).format(
                     top_output_prediction_dir_name,
                     METRES_TO_KM * x_coord_cutoffs_metres[i],
@@ -336,7 +336,7 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
                 this_output_dir_name += '_y=all'
             else:
                 this_output_dir_name += (
-                    '_y={0:.0f}-{1:.0f}'
+                    '_y={0:+04.0f}_{1:+04.0f}km'
                 ).format(
                     METRES_TO_KM * y_coord_cutoffs_metres[j],
                     METRES_TO_KM * y_coord_cutoffs_metres[j + 1]
