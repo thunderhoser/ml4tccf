@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_evaluation_by_latlng.qsub"
+#SBATCH --job-name="plot_evaluation_by_latlng"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -18,7 +18,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_evaluation_by_latlng.qsub_%A_%a.out
+#SBATCH --output=plot_evaluation_by_latlng_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -40,7 +40,7 @@ set use_xy_flag=${USE_XY_FLAGS[$SLURM_ARRAY_TASK_ID]}
 set model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-epoch=${num_batches_per_epoch}"
 echo $model_dir_name
 
-python3 -u "${CODE_DIR_NAME}/plot_evaluation_by_latlng.qsub.py" \
+python3 -u "${CODE_DIR_NAME}/plot_evaluation_by_latlng.py" \
 --input_evaluation_dir_name="${model_dir_name}/validation_by_latlng" \
 --latitude_spacing_deg=10 \
 --longitude_spacing_deg=10 \
