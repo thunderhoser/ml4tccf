@@ -7,6 +7,7 @@ import numpy
 from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from ml4tccf.io import prediction_io
 from ml4tccf.io import extended_best_track_io as ebtrk_io
@@ -75,19 +76,25 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_prediction_file_pattern, ebtrk_file_name,
-         latitude_spacing_deg, longitude_spacing_deg,
-         top_output_prediction_dir_name):
-    """Splits predictions by lat-long coordinates.
+def get_grid_coords(latitude_spacing_deg, longitude_spacing_deg):
+    """Returns grid coordinates.
 
-    This is effectively the main method.
+    All longitudes returned by this method are negative in the western
+    hemisphere.
 
-    :param input_prediction_file_pattern: See documentation at top of file.
-    :param ebtrk_file_name: Same.
-    :param latitude_spacing_deg: Same.
+    M = number of rows in grid
+    N = number of columns in grid
+
+    :param latitude_spacing_deg: See documentation at top of file.
     :param longitude_spacing_deg: Same.
-    :param top_output_prediction_dir_name: Same.
-    :raises: ValueError: if no prediction files could be found.
+    :return: grid_latitudes_deg_n: length-M numpy array of latitudes (deg
+        north).
+    :return: grid_longitudes_deg_e: length-N numpy array of longitudes (deg
+        east).
+    :return: grid_edge_latitudes_deg_n: length-(M + 1) numpy array of latitudes
+        (deg north).
+    :return: grid_edge_longitudes_deg_e: length-(N + 1) numpy array of
+        longitudes (deg east).
     """
 
     latitude_spacing_deg = number_rounding.round_to_nearest(
@@ -105,20 +112,62 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
         max_longitude_deg_e=MAX_LONGITUDE_DEG_E - longitude_spacing_deg,
         longitude_spacing_deg=longitude_spacing_deg
     )
-
     grid_longitudes_deg_e += longitude_spacing_deg / 2
+
+    grid_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        grid_longitudes_deg_e
+    )
+    grid_longitudes_deg_e = numpy.sort(grid_longitudes_deg_e)
+
+    grid_edge_longitudes_deg_e = (
+        grid_longitudes_deg_e + numpy.diff(grid_longitudes_deg_e[:2])[0] / 2
+    )
+    grid_edge_longitudes_deg_e = numpy.concatenate((
+        grid_edge_longitudes_deg_e[[0]] -
+        numpy.diff(grid_edge_longitudes_deg_e[:2]),
+        grid_edge_longitudes_deg_e
+    ))
+
+    grid_edge_latitudes_deg_n = (
+        grid_latitudes_deg_n + numpy.diff(grid_latitudes_deg_n[:2])[0] / 2
+    )
+    grid_edge_latitudes_deg_n = numpy.concatenate((
+        grid_edge_latitudes_deg_n[[0]] -
+        numpy.diff(grid_edge_latitudes_deg_n[:2]),
+        grid_edge_latitudes_deg_n
+    ))
+
+    return (
+        grid_latitudes_deg_n, grid_longitudes_deg_e,
+        grid_edge_latitudes_deg_n, grid_edge_longitudes_deg_e
+    )
+
+
+def _run(input_prediction_file_pattern, ebtrk_file_name,
+         latitude_spacing_deg, longitude_spacing_deg,
+         top_output_prediction_dir_name):
+    """Splits predictions by lat-long coordinates.
+
+    This is effectively the main method.
+
+    :param input_prediction_file_pattern: See documentation at top of file.
+    :param ebtrk_file_name: Same.
+    :param latitude_spacing_deg: Same.
+    :param longitude_spacing_deg: Same.
+    :param top_output_prediction_dir_name: Same.
+    :raises: ValueError: if no prediction files could be found.
+    """
+
+    (
+        grid_latitudes_deg_n, grid_longitudes_deg_e,
+        grid_edge_latitudes_deg_n, grid_edge_longitudes_deg_e
+    ) = get_grid_coords(
+        latitude_spacing_deg=latitude_spacing_deg,
+        longitude_spacing_deg=longitude_spacing_deg
+    )
+
     num_grid_rows = len(grid_latitudes_deg_n)
     num_grid_columns = len(grid_longitudes_deg_e)
-
-    grid_edge_latitudes_deg, grid_edge_longitudes_deg = (
-        grids.get_latlng_grid_cell_edges(
-            min_latitude_deg=grid_latitudes_deg_n[0],
-            min_longitude_deg=grid_longitudes_deg_e[0],
-            lat_spacing_deg=numpy.diff(grid_latitudes_deg_n[:2])[0],
-            lng_spacing_deg=numpy.diff(grid_longitudes_deg_e[:2])[0],
-            num_rows=num_grid_rows, num_columns=num_grid_columns
-        )
-    )
 
     input_prediction_file_names = glob.glob(input_prediction_file_pattern)
     if len(input_prediction_file_names) == 0:
@@ -248,13 +297,17 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
     ))
     print(SEPARATOR_STRING)
 
+    prediction_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        prediction_longitudes_deg_e
+    )
+
     for i in range(num_grid_rows):
         for j in range(num_grid_columns):
             these_indices = grids.find_events_in_grid_cell(
                 event_x_coords_metres=prediction_longitudes_deg_e,
                 event_y_coords_metres=prediction_latitudes_deg_n,
-                grid_edge_x_coords_metres=grid_edge_longitudes_deg,
-                grid_edge_y_coords_metres=grid_edge_latitudes_deg,
+                grid_edge_x_coords_metres=grid_edge_longitudes_deg_e,
+                grid_edge_y_coords_metres=grid_edge_latitudes_deg_n,
                 row_index=i, column_index=j, verbose=False
             )
 
@@ -263,10 +316,10 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
                 'longitude-deg-e={3:+06.1f}_{4:+06.1f}'
             ).format(
                 top_output_prediction_dir_name,
-                grid_edge_latitudes_deg[i],
-                grid_edge_latitudes_deg[i + 1],
-                grid_edge_longitudes_deg[j],
-                grid_edge_longitudes_deg[j + 1]
+                grid_edge_latitudes_deg_n[i],
+                grid_edge_latitudes_deg_n[i + 1],
+                grid_edge_longitudes_deg_e[j],
+                grid_edge_longitudes_deg_e[j + 1]
             )
 
             file_system_utils.mkdir_recursive_if_necessary(

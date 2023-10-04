@@ -6,6 +6,7 @@ matplotlib.use('agg')
 import matplotlib.colors
 import matplotlib.patches
 from matplotlib import pyplot
+from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
 from ml4tccf.utils import misc_utils
@@ -301,6 +302,179 @@ def _plot_attr_diagram_background(
     axes_object.plot(
         climo_y_coords, climo_x_coords, color=CLIMO_LINE_COLOUR,
         linestyle='dashed', linewidth=CLIMO_LINE_WIDTH
+    )
+
+
+def plot_metric_by_latlng(
+        axes_object, metric_matrix, metric_name, target_field_name,
+        grid_edge_latitudes_deg_n, grid_edge_longitudes_deg_e,
+        colour_map_name, min_colour_percentile, max_colour_percentile,
+        label_format_string=None, label_font_size=30):
+    """Plots one metric as a function of lat-long.
+
+    M = number of rows in grid
+    N = number of columns in grid
+
+    :param axes_object: Will plot on this set of axes (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    :param metric_matrix: M-by-N numpy array of metric values.
+    :param metric_name: Name of error metric.
+    :param target_field_name: Name of target variable.
+    :param grid_edge_latitudes_deg_n: length-(M + 1) numpy array of latitudes
+        (deg north).
+    :param grid_edge_longitudes_deg_e: length-(N + 1) numpy array of longitudes
+        (deg east).
+    :param colour_map_name: Name of colour scheme (must be accepted by
+        `matplotlib.pyplot.get_cmap`).
+    :param min_colour_percentile: Determines minimum value in colour scheme.
+    :param max_colour_percentile: Determines max value in colour scheme.
+    :param label_format_string: Format string for text label in each grid cell.
+        Make this None if you do not want text labels.
+    :param label_font_size: Font size for text labels.
+    """
+
+    # Check input args.
+    error_checking.assert_is_valid_lat_numpy_array(grid_edge_latitudes_deg_n)
+    error_checking.assert_is_greater_numpy_array(
+        numpy.diff(grid_edge_latitudes_deg_n), 0.
+    )
+
+    error_checking.assert_is_valid_lng_numpy_array(
+        grid_edge_longitudes_deg_e, negative_in_west_flag=True
+    )
+    error_checking.assert_is_greater_numpy_array(
+        numpy.diff(grid_edge_longitudes_deg_e), 0.
+    )
+
+    error_checking.assert_is_numpy_array(metric_matrix, num_dimensions=2)
+    num_grid_rows = metric_matrix.shape[0]
+    num_grid_columns = metric_matrix.shape[1]
+
+    error_checking.assert_is_numpy_array(
+        grid_edge_latitudes_deg_n,
+        exact_dimensions=numpy.array([num_grid_rows + 1], dtype=int)
+    )
+    error_checking.assert_is_numpy_array(
+        grid_edge_longitudes_deg_e,
+        exact_dimensions=numpy.array([num_grid_columns + 1], dtype=int)
+    )
+
+    error_checking.assert_is_geq(min_colour_percentile, 0.)
+    error_checking.assert_is_leq(min_colour_percentile, 5.)
+    error_checking.assert_is_geq(max_colour_percentile, 95.)
+    error_checking.assert_is_leq(max_colour_percentile, 100.)
+
+    colour_map_object = pyplot.get_cmap(colour_map_name)
+
+    # Convert to display units.
+    conv_ratio = (
+        TARGET_FIELD_TO_CONV_RATIO[target_field_name] **
+        METRIC_TO_UNIT_EXPONENT[metric_name]
+    )
+    metric_matrix_to_plot = metric_matrix * conv_ratio
+
+    if METRIC_TO_UNIT_EXPONENT[metric_name] == 2:
+        metric_matrix_to_plot = numpy.sqrt(metric_matrix_to_plot)
+
+    if numpy.all(numpy.isnan(metric_matrix_to_plot)):
+        min_colour_value = 0.
+        max_colour_value = 1.
+    else:
+        if metric_name == scalar_evaluation.BIAS_KEY:
+            max_colour_value = numpy.nanpercentile(
+                numpy.absolute(metric_matrix_to_plot), max_colour_percentile
+            )
+            max_colour_value = max([max_colour_value, TOLERANCE])
+            min_colour_value = -1 * max_colour_value
+        else:
+            min_colour_value = numpy.nanpercentile(
+                metric_matrix_to_plot, min_colour_percentile
+            )
+            max_colour_value = numpy.nanpercentile(
+                metric_matrix_to_plot, max_colour_percentile
+            )
+            max_colour_value = max([
+                max_colour_value, min_colour_value + TOLERANCE
+            ])
+
+    metric_matrix_to_plot = grids.latlng_field_grid_points_to_edges(
+        field_matrix=metric_matrix_to_plot,
+        min_latitude_deg=1., min_longitude_deg=1.,
+        lat_spacing_deg=1e-6, lng_spacing_deg=1e-6
+    )[0]
+
+    # Do actual plotting.
+    metric_matrix_to_plot = numpy.ma.masked_where(
+        numpy.isnan(metric_matrix_to_plot), metric_matrix_to_plot
+    )
+    colour_norm_object = pyplot.Normalize(
+        vmin=min_colour_value, vmax=max_colour_value
+    )
+    axes_object.pcolormesh(
+        grid_edge_longitudes_deg_e, grid_edge_latitudes_deg_n,
+        metric_matrix_to_plot,
+        cmap=colour_map_object, norm=colour_norm_object,
+        vmin=min_colour_value, vmax=max_colour_value, shading='flat',
+        edgecolors='None', zorder=-1e11
+    )
+
+    if label_format_string is not None:
+        if metric_name == scalar_evaluation.BIAS_KEY:
+            median_colour_value = 0.5 * max_colour_value
+        else:
+            median_colour_value = 0.5 * (min_colour_value + max_colour_value)
+
+        for i in range(num_grid_rows):
+            for j in range(num_grid_columns):
+                if numpy.isnan(metric_matrix_to_plot[i, j]):
+                    continue
+
+                this_string = label_format_string.format(
+                    metric_matrix_to_plot[i, j]
+                )
+
+                if metric_name == scalar_evaluation.BIAS_KEY:
+                    if (
+                            numpy.absolute(metric_matrix_to_plot[i, j]) >
+                            median_colour_value
+                    ):
+                        this_colour = numpy.full(3, 1.)
+                    else:
+                        this_colour = numpy.full(3, 0.)
+                else:
+                    if metric_matrix_to_plot[i, j] > median_colour_value:
+                        this_colour = numpy.full(3, 0.)
+                    else:
+                        this_colour = numpy.full(3, 1.)
+
+                axes_object.text(
+                    numpy.mean(grid_edge_longitudes_deg_e[j:(j + 2)]),
+                    numpy.mean(grid_edge_latitudes_deg_n[i:(i + 2)]),
+                    this_string, color=this_colour,
+                    fontsize=label_font_size, fontweight='bold',
+                    verticalalignment='center', horizontalalignment='center'
+                )
+
+    title_string = '{0:s}{1:s}\n{2:s}'.format(
+        METRIC_TO_FANCY_NAME[metric_name][0].upper(),
+        METRIC_TO_FANCY_NAME[metric_name][1:],
+        TARGET_FIELD_TO_FANCY_NAME[target_field_name]
+    )
+
+    unit_exponent = METRIC_TO_UNIT_EXPONENT[metric_name]
+    if unit_exponent == 1 or unit_exponent == 2:
+        title_string += ' ({0:s})'.format(
+            TARGET_FIELD_TO_UNIT_STRING[target_field_name]
+        )
+
+    axes_object.set_title(title_string)
+
+    gg_plotting_utils.plot_colour_bar(
+        axes_object_or_matrix=axes_object,
+        data_matrix=metric_matrix_to_plot,
+        colour_map_object=colour_map_object,
+        colour_norm_object=colour_norm_object,
+        orientation_string='vertical'
     )
 
 
