@@ -45,5 +45,5 @@ python3 -u "${CODE_DIR_NAME}/plot_evaluation_by_latlng.py" \
 --latitude_spacing_deg=10 \
 --longitude_spacing_deg=10 \
 --main_font_size=40 \
---label_font_size=20 \
+--label_font_size=10 \
 --output_dir_name="${model_dir_name}/validation_by_latlng"
