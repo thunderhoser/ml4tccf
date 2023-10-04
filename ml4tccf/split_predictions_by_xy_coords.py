@@ -344,7 +344,7 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
                 this_output_dir_name += '_y=all'
             else:
                 this_output_dir_name += (
-                    '_y={0:+04.0f}-{1:+04.0f}km'
+                    '_y={0:+04.0f}_{1:+04.0f}km'
                 ).format(
                     METRES_TO_KM * y_coord_cutoffs_metres[j],
                     METRES_TO_KM * y_coord_cutoffs_metres[j + 1]
