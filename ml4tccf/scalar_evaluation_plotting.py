@@ -456,6 +456,11 @@ def plot_metric_by_latlng(
                     else:
                         this_colour = numpy.full(3, 1.)
 
+                print(numpy.mean(grid_edge_longitudes_deg_e[j:(j + 2)]))
+                print(numpy.mean(grid_edge_latitudes_deg_n[i:(i + 2)]))
+                print(this_string)
+                print('\n\n')
+
                 axes_object.text(
                     numpy.mean(grid_edge_longitudes_deg_e[j:(j + 2)]),
                     numpy.mean(grid_edge_latitudes_deg_n[i:(i + 2)]),
