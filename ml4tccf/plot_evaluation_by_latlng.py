@@ -228,7 +228,8 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
                 ),
                 min_colour_percentile=MIN_COLOUR_PERCENTILE,
                 max_colour_percentile=MAX_COLOUR_PERCENTILE,
-                label_format_string=label_format_string,
+                # label_format_string=label_format_string,
+                label_format_string=None,
                 label_font_size=label_font_size
             )
 

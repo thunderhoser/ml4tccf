@@ -438,14 +438,9 @@ def plot_metric_by_latlng(
                 if numpy.isnan(metric_matrix_unmasked[i, j]):
                     continue
 
-                print(metric_matrix_unmasked[i, j])
-                print(metric_matrix_to_plot[i, j])
-
                 this_string = label_format_string.format(
                     metric_matrix_to_plot[i, j]
                 )
-                print(this_string)
-                print('\n\n')
 
                 if metric_name == scalar_evaluation.BIAS_KEY:
                     if (
