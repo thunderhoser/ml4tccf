@@ -198,7 +198,7 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             plotting_utils.plot_borders(
                 border_latitudes_deg_n=border_latitudes_deg_n,
                 border_longitudes_deg_e=border_longitudes_deg_e,
-                axes_object=axes_object
+                axes_object=axes_object, line_width=1.
             )
 
             label_format_string = (
@@ -226,8 +226,8 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             )
 
             plotting_utils.plot_grid_lines(
-                plot_latitudes_deg_n=grid_latitudes_deg_n,
-                plot_longitudes_deg_e=grid_longitudes_deg_e,
+                plot_latitudes_deg_n=grid_edge_latitudes_deg_n,
+                plot_longitudes_deg_e=grid_edge_longitudes_deg_e,
                 axes_object=axes_object,
                 parallel_spacing_deg=10., meridian_spacing_deg=20.
             )
@@ -262,7 +262,7 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
         plotting_utils.plot_borders(
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            axes_object=axes_object
+            axes_object=axes_object, line_width=1.
         )
 
         label_format_string = (
@@ -287,6 +287,13 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             max_colour_percentile=MAX_COLOUR_PERCENTILE,
             label_format_string=label_format_string,
             label_font_size=label_font_size
+        )
+
+        plotting_utils.plot_grid_lines(
+            plot_latitudes_deg_n=grid_edge_latitudes_deg_n,
+            plot_longitudes_deg_e=grid_edge_longitudes_deg_e,
+            axes_object=axes_object,
+            parallel_spacing_deg=10., meridian_spacing_deg=20.
         )
 
         output_file_name = '{0:s}/{1:s}_by-latlng.jpg'.format(

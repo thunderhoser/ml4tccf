@@ -402,6 +402,7 @@ def plot_metric_by_latlng(
         min_latitude_deg=1., min_longitude_deg=1.,
         lat_spacing_deg=1e-6, lng_spacing_deg=1e-6
     )[0]
+    metric_matrix_unmasked = metric_matrix_to_plot + 0.
 
     # Do actual plotting.
     metric_matrix_to_plot = numpy.ma.masked_where(
@@ -426,7 +427,7 @@ def plot_metric_by_latlng(
 
         for i in range(num_grid_rows):
             for j in range(num_grid_columns):
-                if numpy.isnan(metric_matrix_to_plot[i, j]):
+                if numpy.isnan(metric_matrix_unmasked[i, j]):
                     continue
 
                 this_string = label_format_string.format(
