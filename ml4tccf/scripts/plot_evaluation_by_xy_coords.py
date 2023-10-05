@@ -33,6 +33,7 @@ pyplot.rc('figure', titlesize=FONT_SIZE)
 X_COORD_CUTOFFS_ARG_NAME = 'x_coord_cutoffs_metres'
 Y_COORD_CUTOFFS_ARG_NAME = 'y_coord_cutoffs_metres'
 INPUT_FILES_ARG_NAME = 'input_evaluation_file_names'
+LABEL_FONT_SIZE_ARG_NAME = 'label_font_size'
 CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -52,6 +53,10 @@ INPUT_FILES_HELP_STRING = (
     'y-coord bin should vary slowest.'
 ).format(Y_COORD_CUTOFFS_ARG_NAME, X_COORD_CUTOFFS_ARG_NAME)
 
+LABEL_FONT_SIZE_HELP_STRING = (
+    'Font size for text labels in grid cells.  If you do not want labels, make '
+    'this negative.'
+)
 CONFIDENCE_LEVEL_HELP_STRING = (
     'Confidence level for uncertainty intervals.  Must be in range 0...1.'
 )
@@ -73,6 +78,10 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + LABEL_FONT_SIZE_ARG_NAME, type=float, required=True,
+    help=LABEL_FONT_SIZE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + CONFIDENCE_LEVEL_ARG_NAME, type=float, required=False, default=0.95,
     help=CONFIDENCE_LEVEL_HELP_STRING
 )
@@ -83,7 +92,7 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
-         confidence_level, output_dir_name):
+         label_font_size, confidence_level, output_dir_name):
     """Plots evaluation metrics as a function of x-y (nadir-relative) coords.
 
     This is effectively the main method.
@@ -91,6 +100,7 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
     :param x_coord_cutoffs_metres: See documentation at top of file.
     :param y_coord_cutoffs_metres: Same.
     :param evaluation_file_names: Same.
+    :param label_font_size: Same.
     :param confidence_level: Same.
     :param output_dir_name: Same.
     """
@@ -101,6 +111,9 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
     )
+
+    if label_font_size < 0:
+        label_font_size = None
 
     x_coord_cutoffs_metres, y_coord_cutoffs_metres = (
         split_predictions.check_input_args(
@@ -226,12 +239,6 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
                         etbxy[i][j][metric_name].values[k, :]
                     )
 
-            label_format_string = (
-                '{0:.1f}'
-                if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
-                else '{0:.2f}'
-            )
-
             figure_object = scalar_eval_plotting.plot_metric_by_2categories(
                 metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                 metric_name=metric_name,
@@ -247,8 +254,8 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
                 ),
                 min_colour_percentile=MIN_COLOUR_PERCENTILE,
                 max_colour_percentile=MAX_COLOUR_PERCENTILE,
-                label_format_string=label_format_string,
-                label_font_size=20
+                label_font_size=label_font_size,
+                cbar_fraction_of_axis_length=0.6
             )[0]
 
             output_file_name = '{0:s}/{1:s}_{2:s}_by-xy.jpg'.format(
@@ -277,11 +284,6 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
 
                 metric_matrix[i, j, :] = etbxy[i][j][metric_name].values[:]
 
-        label_format_string = (
-            '{0:.1f}' if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
-            else '{0:.2f}'
-        )
-
         figure_object = scalar_eval_plotting.plot_metric_by_2categories(
             metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
             metric_name=metric_name,
@@ -297,8 +299,8 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
             ),
             min_colour_percentile=MIN_COLOUR_PERCENTILE,
             max_colour_percentile=MAX_COLOUR_PERCENTILE,
-            label_format_string=label_format_string,
-            label_font_size=20
+            label_font_size=label_font_size,
+            cbar_fraction_of_axis_length=0.6
         )[0]
 
         output_file_name = '{0:s}/{1:s}_by-xy.jpg'.format(
@@ -327,6 +329,7 @@ if __name__ == '__main__':
             dtype=float
         ),
         evaluation_file_names=getattr(INPUT_ARG_OBJECT, INPUT_FILES_ARG_NAME),
+        label_font_size=getattr(INPUT_ARG_OBJECT, LABEL_FONT_SIZE_ARG_NAME),
         confidence_level=getattr(INPUT_ARG_OBJECT, CONFIDENCE_LEVEL_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

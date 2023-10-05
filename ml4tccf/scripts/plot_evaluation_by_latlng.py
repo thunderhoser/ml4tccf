@@ -48,7 +48,10 @@ LONGITUDE_SPACING_HELP_SPACING = 'Zonal grid spacing (degrees).'
 MAIN_FONT_SIZE_HELP_STRING = (
     'Main font size (for everything except text labels in grid cells).'
 )
-LABEL_FONT_SIZE_HELP_STRING = 'Font size for text labels in grid cells.'
+LABEL_FONT_SIZE_HELP_STRING = (
+    'Font size for text labels in grid cells.  If you do not want labels, make '
+    'this negative.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Figures will be saved here.'
 )
@@ -95,7 +98,8 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
     """
 
     error_checking.assert_is_greater(main_font_size, 0.)
-    error_checking.assert_is_greater(label_font_size, 0.)
+    if label_font_size < 0:
+        label_font_size = None
 
     pyplot.rc('font', size=main_font_size)
     pyplot.rc('axes', titlesize=main_font_size)
@@ -201,12 +205,6 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
                 axes_object=axes_object, line_width=1.
             )
 
-            label_format_string = (
-                '{0:.1f}'
-                if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
-                else '{0:.2f}'
-            )
-
             scalar_eval_plotting.plot_metric_by_latlng(
                 axes_object=axes_object,
                 metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
@@ -221,7 +219,6 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
                 ),
                 min_colour_percentile=MIN_COLOUR_PERCENTILE,
                 max_colour_percentile=MAX_COLOUR_PERCENTILE,
-                label_format_string=label_format_string,
                 label_font_size=label_font_size
             )
 
@@ -265,12 +262,6 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             axes_object=axes_object, line_width=1.
         )
 
-        label_format_string = (
-            '{0:.1f}'
-            if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
-            else '{0:.2f}'
-        )
-
         scalar_eval_plotting.plot_metric_by_latlng(
             axes_object=axes_object,
             metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
@@ -285,7 +276,6 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             ),
             min_colour_percentile=MIN_COLOUR_PERCENTILE,
             max_colour_percentile=MAX_COLOUR_PERCENTILE,
-            label_format_string=label_format_string,
             label_font_size=label_font_size
         )
 

@@ -27,6 +27,7 @@ MIN_PRESSURE_CUTOFFS_ARG_NAME = 'min_pressure_cutoffs_mb'
 LATITUDE_CUTOFFS_ARG_NAME = 'tc_center_latitude_cutoffs_deg_n'
 MAX_WIND_BASED_FILES_ARG_NAME = 'input_max_wind_based_eval_file_names'
 MIN_PRESSURE_BASED_FILES_ARG_NAME = 'input_min_pressure_based_eval_file_names'
+LABEL_FONT_SIZE_ARG_NAME = 'label_font_size'
 CONFIDENCE_LEVEL_ARG_NAME = 'confidence_level'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
@@ -64,6 +65,10 @@ MIN_PRESSURE_BASED_FILES_HELP_STRING = (
     'bin should vary fastest; min-pressure bin should vary slowest.'
 ).format(LATITUDE_CUTOFFS_ARG_NAME, MIN_PRESSURE_CUTOFFS_ARG_NAME)
 
+LABEL_FONT_SIZE_HELP_STRING = (
+    'Font size for text labels in grid cells.  If you do not want labels, make '
+    'this negative.'
+)
 CONFIDENCE_LEVEL_HELP_STRING = (
     'Confidence level for uncertainty intervals.  Must be in range 0...1.'
 )
@@ -93,6 +98,10 @@ INPUT_ARG_PARSER.add_argument(
     required=False, default=[], help=MIN_PRESSURE_BASED_FILES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + LABEL_FONT_SIZE_ARG_NAME, type=float, required=True,
+    help=LABEL_FONT_SIZE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + CONFIDENCE_LEVEL_ARG_NAME, type=float, required=False, default=0.95,
     help=CONFIDENCE_LEVEL_HELP_STRING
 )
@@ -104,7 +113,8 @@ INPUT_ARG_PARSER.add_argument(
 
 def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
          tc_center_latitude_cutoffs_deg_n, max_wind_based_eval_file_names,
-         min_pressure_based_eval_file_names, confidence_level, output_dir_name):
+         min_pressure_based_eval_file_names, label_font_size,
+         confidence_level, output_dir_name):
     """Plots evaluation metrics as a function of TC intensity.
 
     This is effectively the main method.
@@ -114,6 +124,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
     :param tc_center_latitude_cutoffs_deg_n: Same.
     :param max_wind_based_eval_file_names: Same.
     :param min_pressure_based_eval_file_names: Same.
+    :param label_font_size: Same.
     :param confidence_level: Same.
     :param output_dir_name: Same.
     """
@@ -124,6 +135,9 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
     )
+
+    if label_font_size < 0:
+        label_font_size = None
 
     (
         max_wind_cutoffs_kt,
@@ -270,12 +284,6 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         )
 
                 if split_into_2d_bins:
-                    label_format_string = (
-                        '{0:.1f}'
-                        if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
-                        else '{0:.2f}'
-                    )
-
                     figure_object = (
                         scalar_eval_plotting.plot_metric_by_2categories(
                             metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
@@ -294,7 +302,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                             ),
                             min_colour_percentile=MIN_COLOUR_PERCENTILE,
                             max_colour_percentile=MAX_COLOUR_PERCENTILE,
-                            label_format_string=label_format_string
+                            label_font_size=label_font_size
                         )[0]
                     )
                 else:
@@ -337,11 +345,6 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     metric_matrix[j, i, :] = etbwll[i][j][metric_name].values[:]
 
             if split_into_2d_bins:
-                label_format_string = (
-                    '{0:.1f}' if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
-                    else '{0:.2f}'
-                )
-
                 figure_object = scalar_eval_plotting.plot_metric_by_2categories(
                     metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                     metric_name=metric_name,
@@ -357,7 +360,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     ),
                     min_colour_percentile=MIN_COLOUR_PERCENTILE,
                     max_colour_percentile=MAX_COLOUR_PERCENTILE,
-                    label_format_string=label_format_string
+                    label_font_size=label_font_size
                 )[0]
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
@@ -465,11 +468,6 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     )
 
             if split_into_2d_bins:
-                label_format_string = (
-                    '{0:.1f}' if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
-                    else '{0:.2f}'
-                )
-
                 figure_object = scalar_eval_plotting.plot_metric_by_2categories(
                     metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                     metric_name=metric_name,
@@ -485,7 +483,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     ),
                     min_colour_percentile=MIN_COLOUR_PERCENTILE,
                     max_colour_percentile=MAX_COLOUR_PERCENTILE,
-                    label_format_string=label_format_string
+                    label_font_size=label_font_size
                 )[0]
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
@@ -524,11 +522,6 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 metric_matrix[j, i, :] = etbpll[i][j][metric_name].values[:]
 
         if split_into_2d_bins:
-            label_format_string = (
-                '{0:.1f}' if numpy.nanmax(numpy.absolute(metric_matrix)) > 1
-                else '{0:.2f}'
-            )
-
             figure_object = scalar_eval_plotting.plot_metric_by_2categories(
                 metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                 metric_name=metric_name,
@@ -544,7 +537,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 ),
                 min_colour_percentile=MIN_COLOUR_PERCENTILE,
                 max_colour_percentile=MAX_COLOUR_PERCENTILE,
-                label_format_string=label_format_string
+                label_font_size=label_font_size
             )[0]
         else:
             figure_object = scalar_eval_plotting.plot_metric_by_category(
@@ -591,6 +584,7 @@ if __name__ == '__main__':
         min_pressure_based_eval_file_names=getattr(
             INPUT_ARG_OBJECT, MIN_PRESSURE_BASED_FILES_ARG_NAME
         ),
+        label_font_size=getattr(INPUT_ARG_OBJECT, LABEL_FONT_SIZE_ARG_NAME),
         confidence_level=getattr(INPUT_ARG_OBJECT, CONFIDENCE_LEVEL_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

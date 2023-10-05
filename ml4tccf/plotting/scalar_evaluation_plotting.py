@@ -122,6 +122,9 @@ METRIC_MARKER_SIZE = 16
 METRIC_MARKER_COLOUR = numpy.full(3, 0.)
 POLYGON_OPACITY = 0.5
 
+SATELLITE_SUBPOINT_MARKER = 'X'
+SATELLITE_SUBPOINT_MARKER_SIZE = 24
+
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 
@@ -305,11 +308,29 @@ def _plot_attr_diagram_background(
     )
 
 
+def _metric_value_to_label(metric_value):
+    """Converts metric value to string label.
+
+    :param metric_value: Metric value (scalar float).
+    :return: label_string: String.
+    """
+
+    label_string = '{0:.2f}'.format(metric_value).lstrip('0').lstrip('-0')
+    if len(label_string) == 3:
+        return label_string
+
+    label_string = '{0:.1f}'.format(metric_value).lstrip('0').lstrip('-0')
+    if len(label_string) == 3:
+        return label_string
+
+    return '{0:.0f}'.format(metric_value)
+
+
 def plot_metric_by_latlng(
         axes_object, metric_matrix, metric_name, target_field_name,
         grid_edge_latitudes_deg_n, grid_edge_longitudes_deg_e,
         colour_map_name, min_colour_percentile, max_colour_percentile,
-        label_format_string=None, label_font_size=30):
+        label_font_size=30, plot_satellite_subpoints=True):
     """Plots one metric as a function of lat-long.
 
     M = number of rows in grid
@@ -328,9 +349,9 @@ def plot_metric_by_latlng(
         `matplotlib.pyplot.get_cmap`).
     :param min_colour_percentile: Determines minimum value in colour scheme.
     :param max_colour_percentile: Determines max value in colour scheme.
-    :param label_format_string: Format string for text label in each grid cell.
-        Make this None if you do not want text labels.
-    :param label_font_size: Font size for text labels.
+    :param label_font_size: Font size for text labels.  If you do not want
+        labels, make this None.
+    :param plot_satellite_subpoints: Boolean flag.
     """
 
     # Check input args.
@@ -363,6 +384,7 @@ def plot_metric_by_latlng(
     error_checking.assert_is_leq(min_colour_percentile, 5.)
     error_checking.assert_is_geq(max_colour_percentile, 95.)
     error_checking.assert_is_leq(max_colour_percentile, 100.)
+    error_checking.assert_is_boolean(plot_satellite_subpoints)
 
     colour_map_object = pyplot.get_cmap(colour_map_name)
 
@@ -419,7 +441,35 @@ def plot_metric_by_latlng(
         edgecolors='None', zorder=-1e11
     )
 
-    if label_format_string is not None:
+    if plot_satellite_subpoints:
+        if metric_name == scalar_evaluation.BIAS_KEY:
+            marker_colour = matplotlib.colors.to_rgba(
+                c=numpy.array([27, 158, 119], dtype=float) / 255,
+                alpha=0.5
+            )
+        else:
+            marker_colour = matplotlib.colors.to_rgba(
+                c=numpy.array([217, 95, 2], dtype=float) / 255,
+                alpha=0.5
+            )
+
+        for cyclone_id_string in ['2021AL01', '2021EP01', '2021WP01']:
+            subpoint_longitude_deg_e = (
+                misc_utils.cyclone_id_to_satellite_metadata(
+                    cyclone_id_string
+                )[0]
+            )
+
+            axes_object.plot(
+                subpoint_longitude_deg_e, 0., linestyle='None',
+                marker=SATELLITE_SUBPOINT_MARKER,
+                markersize=SATELLITE_SUBPOINT_MARKER_SIZE,
+                markerfacecolor=marker_colour,
+                markeredgecolor=marker_colour,
+                markeredgewidth=0
+            )
+
+    if label_font_size is not None:
         if metric_name == scalar_evaluation.BIAS_KEY:
             median_colour_value = 0.5 * max_colour_value
         else:
@@ -430,7 +480,7 @@ def plot_metric_by_latlng(
                 if numpy.isnan(metric_matrix_unmasked[i, j]):
                     continue
 
-                this_string = label_format_string.format(
+                this_string = _metric_value_to_label(
                     metric_matrix_to_plot[i, j]
                 )
 
@@ -484,7 +534,7 @@ def plot_metric_by_2categories(
         y_category_description_strings, y_label_string,
         x_category_description_strings, x_label_string,
         colour_map_name, min_colour_percentile, max_colour_percentile,
-        label_format_string=None, label_font_size=30):
+        label_font_size=30, cbar_fraction_of_axis_length=1.):
     """Plots one evaluation metric across 2 categories (stratified evaluation).
 
     M = number of categories along y-axis
@@ -505,9 +555,9 @@ def plot_metric_by_2categories(
         `matplotlib.pyplot.get_cmap`).
     :param min_colour_percentile: Determines minimum value in colour scheme.
     :param max_colour_percentile: Determines max value in colour scheme.
-    :param label_format_string: Format string for text label in each grid cell.
-        Make this None if you do not want text labels.
-    :param label_font_size: Font size for text labels.
+    :param label_font_size: Font size for text labels.  If you do not want
+        labels, make this None.
+    :param cbar_fraction_of_axis_length: Fraction of axis length for colour bar.
     :return: figure_object: Figure handle (instance of
         `matplotlib.figure.Figure`).
     :return: axes_object: Axes handle (instance of
@@ -538,6 +588,8 @@ def plot_metric_by_2categories(
     error_checking.assert_is_leq(min_colour_percentile, 5.)
     error_checking.assert_is_geq(max_colour_percentile, 95.)
     error_checking.assert_is_leq(max_colour_percentile, 100.)
+    error_checking.assert_is_greater(cbar_fraction_of_axis_length, 0.)
+    error_checking.assert_is_leq(cbar_fraction_of_axis_length, 1.)
 
     colour_map_object = pyplot.get_cmap(colour_map_name)
 
@@ -601,7 +653,7 @@ def plot_metric_by_2categories(
     axes_object.set_yticklabels(y_category_description_strings)
     axes_object.set_ylabel(y_label_string)
 
-    if label_format_string is not None:
+    if label_font_size is not None:
         if metric_name == scalar_evaluation.BIAS_KEY:
             median_colour_value = 0.5 * max_colour_value
         else:
@@ -612,7 +664,7 @@ def plot_metric_by_2categories(
                 if numpy.isnan(metric_matrix_to_plot[i, j]):
                     continue
 
-                this_string = label_format_string.format(
+                this_string = _metric_value_to_label(
                     metric_matrix_to_plot[i, j]
                 )
 
@@ -655,7 +707,8 @@ def plot_metric_by_2categories(
         data_matrix=metric_matrix_to_plot,
         colour_map_object=colour_map_object,
         colour_norm_object=colour_norm_object,
-        orientation_string='vertical'
+        orientation_string='vertical',
+        fraction_of_axis_length=cbar_fraction_of_axis_length
     )
 
     return figure_object, axes_object
