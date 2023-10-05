@@ -26,6 +26,14 @@ METRES_TO_KM = 0.001
 
 NUM_EXAMPLES_KEY = 'num_examples'
 
+QUASI_SKILL_SCORE_NAMES = [
+    scalar_evaluation.MSE_SKILL_SCORE_KEY,
+    scalar_evaluation.MAE_SKILL_SCORE_KEY,
+    scalar_evaluation.KGE_KEY,
+    scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY,
+    scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY
+]
+
 BASIC_TARGET_FIELD_NAMES = [
     scalar_evaluation.X_OFFSET_NAME,
     scalar_evaluation.Y_OFFSET_NAME,
@@ -328,12 +336,12 @@ def _metric_value_to_label(metric_value):
     :return: label_string: String.
     """
 
-    label_string = '{0:.2f}'.format(metric_value).lstrip('0').lstrip('-0')
-    if len(label_string) == 3:
+    label_string = '{0:.2f}'.format(metric_value).lstrip('0').replace('-0', '')
+    if len(label_string.replace('-', '')) <= 3:
         return label_string
 
-    label_string = '{0:.1f}'.format(metric_value).lstrip('0').lstrip('-0')
-    if len(label_string) == 3:
+    label_string = '{0:.1f}'.format(metric_value).lstrip('0').replace('-0', '')
+    if len(label_string.replace('-', '')) <= 3:
         return label_string
 
     return '{0:.0f}'.format(metric_value)
@@ -430,15 +438,13 @@ def plot_metric_by_latlng(
                 metric_matrix_to_plot[numpy.isfinite(metric_matrix_to_plot)],
                 max_colour_percentile
             )
+
+            if metric_name in QUASI_SKILL_SCORE_NAMES:
+                min_colour_value = max([min_colour_value, -10.])
+
             max_colour_value = max([
                 max_colour_value, min_colour_value + TOLERANCE
             ])
-
-    if metric_name == scalar_evaluation.KGE_KEY:
-        print('Min and max KGE = {0:.4f}, {1:.4f}'.format(
-            numpy.nanmin(metric_matrix_to_plot),
-            numpy.nanmax(metric_matrix_to_plot)
-        ))
 
     metric_matrix_to_plot = grids.latlng_field_grid_points_to_edges(
         field_matrix=metric_matrix_to_plot,
@@ -504,11 +510,6 @@ def plot_metric_by_latlng(
                 this_string = _metric_value_to_label(
                     metric_matrix_to_plot[i, j]
                 )
-
-                if metric_name == scalar_evaluation.KGE_KEY:
-                    print('KGE = {0:.4f} ... string = {1:s}'.format(
-                        metric_matrix_to_plot[i, j], this_string
-                    ))
 
                 if metric_name == scalar_evaluation.BIAS_KEY:
                     if (
@@ -648,6 +649,10 @@ def plot_metric_by_2categories(
                 metric_matrix_to_plot[numpy.isfinite(metric_matrix_to_plot)],
                 max_colour_percentile
             )
+
+            if metric_name in QUASI_SKILL_SCORE_NAMES:
+                min_colour_value = max([min_colour_value, -10.])
+
             max_colour_value = max([
                 max_colour_value, min_colour_value + TOLERANCE
             ])
