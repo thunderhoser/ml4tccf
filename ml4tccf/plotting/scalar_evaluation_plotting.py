@@ -452,12 +452,12 @@ def plot_metric_by_latlng(
         if metric_name == scalar_evaluation.BIAS_KEY:
             marker_colour = matplotlib.colors.to_rgba(
                 c=numpy.array([27, 158, 119], dtype=float) / 255,
-                alpha=0.5
+                alpha=1.
             )
         else:
             marker_colour = matplotlib.colors.to_rgba(
                 c=numpy.array([217, 95, 2], dtype=float) / 255,
-                alpha=0.5
+                alpha=1.
             )
 
         for cyclone_id_string in ['2021AL01', '2021EP01', '2021WP01']:
