@@ -505,6 +505,11 @@ def plot_metric_by_latlng(
                     metric_matrix_to_plot[i, j]
                 )
 
+                if metric_name == scalar_evaluation.KGE_KEY:
+                    print('KGE = {0:.4f} ... string = {1:s}'.format(
+                        metric_matrix_to_plot[i, j], this_string
+                    ))
+
                 if metric_name == scalar_evaluation.BIAS_KEY:
                     if (
                             numpy.absolute(metric_matrix_to_plot[i, j]) >
