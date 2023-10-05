@@ -4,7 +4,6 @@ import os
 import sys
 import glob
 import argparse
-import warnings
 import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -12,7 +11,6 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import time_conversion
 import number_rounding
 import file_system_utils
 import error_checking
@@ -20,7 +18,6 @@ import prediction_io
 import extended_best_track_io as ebtrk_io
 import misc_utils
 import scalar_prediction_utils
-import extended_best_track_utils as ebtrk_utils
 import neural_net_training_cira_ir as nn_training
 import split_predictions_by_intensity as split_by_intensity
 
@@ -193,117 +190,18 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
     prediction_table_xarray = scalar_prediction_utils.concat_over_examples(
         prediction_tables_xarray
     )
-    pt = prediction_table_xarray
 
     print('Reading data from: "{0:s}"...'.format(ebtrk_file_name))
     ebtrk_table_xarray = ebtrk_io.read_file(ebtrk_file_name)
-    ebtrk_times_unix_sec = (
-        HOURS_TO_SECONDS * ebtrk_table_xarray[ebtrk_utils.VALID_TIME_KEY]
+    prediction_x_coords_metres, prediction_y_coords_metres = (
+        misc_utils.match_predictions_to_tc_centers(
+            prediction_table_xarray=prediction_table_xarray,
+            ebtrk_table_xarray=ebtrk_table_xarray,
+            return_xy=True
+        )
     )
 
-    try:
-        ebtrk_cyclone_id_strings = numpy.array([
-            s.decode('utf-8')
-            for s in ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values
-        ])
-    except AttributeError:
-        ebtrk_cyclone_id_strings = (
-            ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values
-        )
-
-    num_examples = len(pt[scalar_prediction_utils.TARGET_TIME_KEY].values)
-    prediction_x_coords_metres = numpy.full(num_examples, numpy.nan)
-    prediction_y_coords_metres = numpy.full(num_examples, numpy.nan)
-
-    print(SEPARATOR_STRING)
-
-    for i in range(num_examples):
-        if numpy.mod(i, 100) == 0:
-            print((
-                'Have found x-y (nadir-relative) coords for {0:d} of {1:d} '
-                'examples...'
-            ).format(
-                i, num_examples
-            ))
-
-        this_cyclone_id_string = (
-            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i].decode('utf-8')
-        )
-        this_time_unix_sec = (
-            pt[scalar_prediction_utils.TARGET_TIME_KEY].values[i]
-        )
-
-        these_indices = numpy.where(numpy.logical_and(
-            ebtrk_cyclone_id_strings == this_cyclone_id_string,
-            numpy.absolute(ebtrk_times_unix_sec - this_time_unix_sec) <=
-            SYNOPTIC_TIME_TOLERANCE_SEC
-        ))[0]
-
-        if len(these_indices) == 0:
-            warning_string = (
-                'POTENTIAL ERROR: Cannot find cyclone {0:s} within {1:d} '
-                'seconds of {2:s} in extended best-track data.'
-            ).format(
-                this_cyclone_id_string,
-                SYNOPTIC_TIME_TOLERANCE_SEC,
-                time_conversion.unix_sec_to_string(
-                    this_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
-                )
-            )
-
-            warnings.warn(warning_string)
-            continue
-
-        if len(these_indices) > 1:
-            warning_string = (
-                'POTENTIAL ERROR: Found {0:d} instances of cyclone {1:s} '
-                'within {2:d} seconds of {3:s} in extended best-track data:'
-                '\n{4:s}'
-            ).format(
-                len(these_indices),
-                this_cyclone_id_string,
-                SYNOPTIC_TIME_TOLERANCE_SEC,
-                time_conversion.unix_sec_to_string(
-                    this_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
-                ),
-                str(ebtrk_table_xarray.isel(
-                    indexers={ebtrk_utils.STORM_OBJECT_DIM: these_indices}
-                ))
-            )
-
-            warnings.warn(warning_string)
-
-        this_latitude_deg_n = ebtrk_table_xarray[
-            ebtrk_utils.CENTER_LATITUDE_KEY
-        ].values[these_indices[0]]
-
-        this_longitude_deg_e = ebtrk_table_xarray[
-            ebtrk_utils.CENTER_LONGITUDE_KEY
-        ].values[these_indices[0]]
-
-        # TODO(thunderhoser): The longitude command below is not foolproof.
-        fake_grid_latitudes_deg_n = numpy.array([
-            this_latitude_deg_n - 0.1, this_latitude_deg_n + 0.1
-        ])
-        fake_grid_longitudes_deg_e = numpy.array([
-            this_longitude_deg_e - 0.1, this_longitude_deg_e + 0.1
-        ])
-
-        these_x_metres, these_y_metres = misc_utils.get_xy_grid_one_tc_object(
-            cyclone_id_string=this_cyclone_id_string,
-            grid_latitudes_deg_n=fake_grid_latitudes_deg_n,
-            grid_longitudes_deg_e=fake_grid_longitudes_deg_e,
-            normalize_to_minmax=False
-        )
-        prediction_x_coords_metres[i] = numpy.mean(these_x_metres)
-        prediction_y_coords_metres[i] = numpy.mean(these_y_metres)
-
-    print((
-        'Have found x-y (nadir-relative) coords for all {0:d} examples!'
-    ).format(
-        num_examples
-    ))
-    print(SEPARATOR_STRING)
+    num_examples = len(prediction_x_coords_metres)
 
     for i in range(len(x_coord_cutoffs_metres)):
         for j in range(len(y_coord_cutoffs_metres)):
