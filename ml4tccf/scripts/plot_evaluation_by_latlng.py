@@ -249,9 +249,6 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
         for i in range(num_grid_rows):
             for j in range(num_grid_columns):
                 if etbll[i][j] is None:
-                    if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
-                        metric_matrix[i, j, :] = 0
-
                     continue
 
                 if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:

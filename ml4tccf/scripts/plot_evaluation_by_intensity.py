@@ -340,9 +340,6 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
             for j in range(num_latitude_bins + 1):
                 for i in range(num_wind_bins + 1):
                     if etbwll[i][j] is None:
-                        if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
-                            metric_matrix[i, j, :] = 0
-                        
                         continue
 
                     if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
@@ -351,8 +348,10 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                                 scalar_evaluation.OFFSET_DIST_BIN_COUNT_KEY
                             ].values
                         )
-                else:
-                    metric_matrix[i, j, :] = etbwll[i][j][metric_name].values[:]
+                    else:
+                        metric_matrix[i, j, :] = (
+                            etbwll[i][j][metric_name].values[:]
+                        )
 
             if split_into_2d_bins:
                 figure_object = scalar_eval_plotting.plot_metric_by_2categories(
@@ -527,9 +526,6 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
         for j in range(num_latitude_bins + 1):
             for i in range(num_pressure_bins + 1):
                 if etbpll[i][j] is None:
-                    if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
-                        metric_matrix[i, j, :] = 0
-
                     continue
 
                 if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:

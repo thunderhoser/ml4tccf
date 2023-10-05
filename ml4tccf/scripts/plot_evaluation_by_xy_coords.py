@@ -280,9 +280,6 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
         for j in range(num_x_coord_bins + 1):
             for i in range(num_y_coord_bins + 1):
                 if etbxy[i][j] is None:
-                    if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
-                        metric_matrix[i, j, :] = 0
-
                     continue
 
                 if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
