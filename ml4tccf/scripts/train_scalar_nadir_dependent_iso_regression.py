@@ -109,8 +109,7 @@ def _run(prediction_file_pattern, ebtrk_file_name,
 
     pt = prediction_table_xarray
     if (
-            pt.attrs[prediction_utils.ISOTONIC_MODEL_FILE_KEY] is not None or
-            pt.attrs[prediction_utils.NADIR_DEP_ISO_MODEL_FILE_KEY] is not None
+            pt.attrs[prediction_utils.ISOTONIC_MODEL_FILE_KEY] is not None
     ):
         raise ValueError(
             'Predictions used for training isotonic regression must be made'

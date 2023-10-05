@@ -73,8 +73,6 @@ def _run(input_prediction_file_name, model_file_name, ebtrk_file_name,
     if (
             pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY]
             is not None
-            or pt.attrs[scalar_prediction_utils.NADIR_DEP_ISO_MODEL_FILE_KEY]
-            is not None
     ):
         raise ValueError(
             'Input predictions must be made with base model only (i.e., must '
@@ -125,8 +123,7 @@ def _run(input_prediction_file_name, model_file_name, ebtrk_file_name,
         target_times_unix_sec=
         pt[scalar_prediction_utils.TARGET_TIME_KEY].values,
         model_file_name=pt.attrs[scalar_prediction_utils.MODEL_FILE_KEY],
-        isotonic_model_file_name=None,
-        nadir_dependent_iso_model_file_name=model_file_name
+        isotonic_model_file_name=model_file_name
     )
 
 
