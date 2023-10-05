@@ -358,8 +358,10 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                                 scalar_evaluation.OFFSET_DIST_BIN_COUNT_KEY
                             ].values
                         )
-                else:
-                    metric_matrix[i, j, :] = etbwll[i][j][metric_name].values[:]
+                    else:
+                        metric_matrix[i, j, :] = (
+                            etbwll[i][j][metric_name].values[:]
+                        )
 
             if split_into_2d_bins:
                 figure_object = scalar_eval_plotting.plot_metric_by_2categories(
