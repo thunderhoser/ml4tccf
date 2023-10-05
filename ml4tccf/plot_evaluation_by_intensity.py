@@ -356,6 +356,12 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                             ].values
                         )
                     else:
+                        print(i)
+                        print(j)
+                        print(metric_matrix.shape)
+                        print(metric_name)
+                        print('\n\n')
+
                         metric_matrix[i, j, :] = (
                             etbwll[i][j][metric_name].values[:]
                         )
