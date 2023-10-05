@@ -14,9 +14,17 @@ from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import error_checking
+from ml4tccf.utils import extended_best_track_utils as ebtrk_utils
+from ml4tccf.utils import scalar_prediction_utils
+from ml4tccf.machine_learning import neural_net_training_cira_ir as nn_training
+
+SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
 TOLERANCE = 1e-6
+SYNOPTIC_TIME_TOLERANCE_SEC = nn_training.SYNOPTIC_TIME_TOLERANCE_SEC
 
+HOURS_TO_SECONDS = 3600
 DEGREES_LAT_TO_METRES = 60 * 1852.
 MAX_XY_COORD_METRES = 60 * DEGREES_LAT_TO_METRES
 
@@ -956,3 +964,135 @@ def create_latlng_grid(
         lng_spacing_deg=longitude_spacing_deg,
         num_rows=num_grid_rows, num_columns=num_grid_columns
     )
+
+
+def match_predictions_to_tc_centers(
+        prediction_table_xarray, ebtrk_table_xarray, return_xy):
+    """Finds TC-center for every prediction.
+
+    E = number of TC objects
+
+    :param prediction_table_xarray: xarray table with predictions, in format
+        returned by `prediction_io.read_file`.
+    :param ebtrk_table_xarray: xarray table with extended best-track data, in
+        format returned by `extended_best_track_io.read_file`.
+    :param return_xy: Boolean flag.  If True (False), will return nadir-relative
+        x-y coordinates (lat-long coordinates).
+    :return: zonal_center_coords: length-E numpy array with zonal coordinates of
+        TC centers.  These will be either nadir-relative x-coordinates or
+        longitudes.
+    :return: meridional_center_coords: length-E numpy array with meridional
+        coordinates of TC centers.  These will be either nadir-relative
+        y-coordinates or latitudes.
+    """
+
+    error_checking.assert_is_boolean(return_xy)
+
+    ebtrk_times_unix_sec = (
+        HOURS_TO_SECONDS * ebtrk_table_xarray[ebtrk_utils.VALID_TIME_KEY]
+    )
+
+    try:
+        ebtrk_cyclone_id_strings = numpy.array([
+            s.decode('utf-8')
+            for s in ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values
+        ])
+    except AttributeError:
+        ebtrk_cyclone_id_strings = (
+            ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values
+        )
+
+    pt = prediction_table_xarray
+    num_examples = len(pt[scalar_prediction_utils.TARGET_TIME_KEY].values)
+    zonal_center_coords = numpy.full(num_examples, numpy.nan)
+    meridional_center_coords = numpy.full(num_examples, numpy.nan)
+
+    print(SEPARATOR_STRING)
+
+    for i in range(num_examples):
+        if numpy.mod(i, 100) == 0:
+            print('Have found TC center for {0:d} of {1:d} examples...'.format(
+                i, num_examples
+            ))
+
+        this_cyclone_id_string = (
+            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i].decode('utf-8')
+        )
+        this_time_unix_sec = (
+            pt[scalar_prediction_utils.TARGET_TIME_KEY].values[i]
+        )
+
+        these_indices = numpy.where(numpy.logical_and(
+            ebtrk_cyclone_id_strings == this_cyclone_id_string,
+            numpy.absolute(ebtrk_times_unix_sec - this_time_unix_sec) <=
+            SYNOPTIC_TIME_TOLERANCE_SEC
+        ))[0]
+
+        if len(these_indices) == 0:
+            warning_string = (
+                'POTENTIAL ERROR: Cannot find cyclone {0:s} within {1:d} '
+                'seconds of {2:s} in extended best-track data.'
+            ).format(
+                this_cyclone_id_string,
+                SYNOPTIC_TIME_TOLERANCE_SEC,
+                time_conversion.unix_sec_to_string(
+                    this_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+                )
+            )
+
+            warnings.warn(warning_string)
+            continue
+
+        if len(these_indices) > 1:
+            warning_string = (
+                'POTENTIAL ERROR: Found {0:d} instances of cyclone {1:s} '
+                'within {2:d} seconds of {3:s} in extended best-track data:'
+                '\n{4:s}'
+            ).format(
+                len(these_indices),
+                this_cyclone_id_string,
+                SYNOPTIC_TIME_TOLERANCE_SEC,
+                time_conversion.unix_sec_to_string(
+                    this_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+                ),
+                str(ebtrk_table_xarray.isel(
+                    indexers={ebtrk_utils.STORM_OBJECT_DIM: these_indices}
+                ))
+            )
+
+            warnings.warn(warning_string)
+
+        this_latitude_deg_n = ebtrk_table_xarray[
+            ebtrk_utils.CENTER_LATITUDE_KEY
+        ].values[these_indices[0]]
+
+        this_longitude_deg_e = ebtrk_table_xarray[
+            ebtrk_utils.CENTER_LONGITUDE_KEY
+        ].values[these_indices[0]]
+
+        if not return_xy:
+            zonal_center_coords[i] = this_longitude_deg_e + 0.
+            meridional_center_coords[i] = this_latitude_deg_n + 0.
+            continue
+
+        # TODO(thunderhoser): The longitude command below is not foolproof.
+        fake_grid_latitudes_deg_n = numpy.array([
+            this_latitude_deg_n - 0.1, this_latitude_deg_n + 0.1
+        ])
+        fake_grid_longitudes_deg_e = numpy.array([
+            this_longitude_deg_e - 0.1, this_longitude_deg_e + 0.1
+        ])
+
+        these_x_metres, these_y_metres = get_xy_grid_one_tc_object(
+            cyclone_id_string=this_cyclone_id_string,
+            grid_latitudes_deg_n=fake_grid_latitudes_deg_n,
+            grid_longitudes_deg_e=fake_grid_longitudes_deg_e,
+            normalize_to_minmax=False
+        )
+        zonal_center_coords[i] = numpy.mean(these_x_metres)
+        meridional_center_coords[i] = numpy.mean(these_y_metres)
+
+    print('Have found TC center for all {0:d} examples!'.format(num_examples))
+    print(SEPARATOR_STRING)
+
+    return zonal_center_coords, meridional_center_coords
