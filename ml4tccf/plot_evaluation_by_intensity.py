@@ -350,19 +350,13 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         continue
 
                     if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
-                        metric_matrix[i, j, :] = numpy.sum(
+                        metric_matrix[j, i, :] = numpy.sum(
                             etbwll[i][j][
                                 scalar_evaluation.OFFSET_DIST_BIN_COUNT_KEY
                             ].values
                         )
                     else:
-                        print(i)
-                        print(j)
-                        print(metric_matrix.shape)
-                        print(metric_name)
-                        print('\n\n')
-
-                        metric_matrix[i, j, :] = (
+                        metric_matrix[j, i, :] = (
                             etbwll[i][j][metric_name].values[:]
                         )
 
@@ -542,13 +536,13 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     continue
 
                 if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
-                    metric_matrix[i, j, :] = numpy.sum(
+                    metric_matrix[j, i, :] = numpy.sum(
                         etbpll[i][j][
                             scalar_evaluation.OFFSET_DIST_BIN_COUNT_KEY
                         ].values
                     )
                 else:
-                    metric_matrix[i, j, :] = etbpll[i][j][metric_name].values[:]
+                    metric_matrix[j, i, :] = etbpll[i][j][metric_name].values[:]
 
         if split_into_2d_bins:
             figure_object = scalar_eval_plotting.plot_metric_by_2categories(
