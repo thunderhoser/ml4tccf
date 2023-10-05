@@ -427,6 +427,12 @@ def plot_metric_by_latlng(
                 max_colour_value, min_colour_value + TOLERANCE
             ])
 
+            print(metric_name)
+            print(target_field_name)
+            print(min_colour_value)
+            print(max_colour_value)
+            print('\n\n')
+
     metric_matrix_to_plot = grids.latlng_field_grid_points_to_edges(
         field_matrix=metric_matrix_to_plot,
         min_latitude_deg=1., min_longitude_deg=1.,
