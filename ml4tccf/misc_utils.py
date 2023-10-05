@@ -61,7 +61,7 @@ TROPICAL_STD_ATMO_TEMPS_KELVINS = numpy.array([
 TROPICAL_STD_ATMO_HEIGHTS_M_ASL = numpy.linspace(0, 17000, num=18, dtype=float)
 
 
-def _cyclone_id_to_satellite_metadata(cyclone_id_string):
+def cyclone_id_to_satellite_metadata(cyclone_id_string):
     """Returns satellite metadata for the given cyclone.
 
     :param cyclone_id_string: Cyclone ID.
@@ -869,7 +869,7 @@ def get_xy_grid_one_tc_object(
     if test_mode:
         satellite_subpoint_longitude_deg_e = 0.
     else:
-        satellite_subpoint_longitude_deg_e = _cyclone_id_to_satellite_metadata(
+        satellite_subpoint_longitude_deg_e = cyclone_id_to_satellite_metadata(
             cyclone_id_string
         )[0]
 
