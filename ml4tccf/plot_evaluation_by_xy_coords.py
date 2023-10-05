@@ -287,9 +287,19 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
         for j in range(num_x_coord_bins + 1):
             for i in range(num_y_coord_bins + 1):
                 if etbxy[i][j] is None:
+                    if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
+                        metric_matrix[i, j, :] = 0
+
                     continue
 
-                metric_matrix[i, j, :] = etbxy[i][j][metric_name].values[:]
+                if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
+                    metric_matrix[i, j, :] = numpy.sum(
+                        etbxy[i][j][
+                            scalar_evaluation.OFFSET_DIST_BIN_COUNT_KEY
+                        ].values
+                    )
+                else:
+                    metric_matrix[i, j, :] = etbxy[i][j][metric_name].values[:]
 
         figure_object = scalar_eval_plotting.plot_metric_by_2categories(
             metric_matrix=numpy.nanmean(metric_matrix, axis=-1),

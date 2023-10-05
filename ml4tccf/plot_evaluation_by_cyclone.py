@@ -181,7 +181,12 @@ def _run(input_file_names_or_pattern, confidence_level, cyclone_id_font_size,
         )
 
         for i in range(num_cyclones):
-            metric_matrix[i, :] = etbc[i][metric_name].values[:]
+            if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
+                metric_matrix[i, :] = numpy.sum(
+                    etbc[i][scalar_evaluation.OFFSET_DIST_BIN_COUNT_KEY].values
+                )
+            else:
+                metric_matrix[i, :] = etbc[i][metric_name].values[:]
 
         figure_object, axes_object = (
             scalar_eval_plotting.plot_metric_by_category(

@@ -164,7 +164,12 @@ def _run(evaluation_file_names, confidence_level, output_dir_name):
         )
 
         for i in range(num_basins):
-            metric_matrix[i, :] = etbb[i][metric_name].values[:]
+            if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
+                metric_matrix[i, :] = numpy.sum(
+                    etbb[i][scalar_evaluation.OFFSET_DIST_BIN_COUNT_KEY].values
+                )
+            else:
+                metric_matrix[i, :] = etbb[i][metric_name].values[:]
 
         figure_object, axes_object = (
             scalar_eval_plotting.plot_metric_by_category(

@@ -24,6 +24,8 @@ import taylor_diagram
 TOLERANCE = 1e-6
 METRES_TO_KM = 0.001
 
+NUM_EXAMPLES_KEY = 'num_examples'
+
 BASIC_TARGET_FIELD_NAMES = [
     scalar_evaluation.X_OFFSET_NAME,
     scalar_evaluation.Y_OFFSET_NAME,
@@ -45,7 +47,8 @@ ADVANCED_METRIC_NAMES = [
     scalar_evaluation.MEAN_DISTANCE_KEY,
     scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY,
     scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY,
-    scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY
+    scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY,
+    NUM_EXAMPLES_KEY
 ]
 
 TARGET_FIELD_TO_CONV_RATIO = {
@@ -81,7 +84,8 @@ METRIC_TO_UNIT_EXPONENT = {
     scalar_evaluation.MEAN_DISTANCE_KEY: 1,
     scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY: 0,
     scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY: 2,
-    scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY: 0
+    scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY: 0,
+    NUM_EXAMPLES_KEY: 0
 }
 
 METRIC_TO_FANCY_NAME = {
@@ -99,7 +103,8 @@ METRIC_TO_FANCY_NAME = {
     scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY:
         'root mean squared Euclidean distance',
     scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY:
-        'mean-squared-Euclidean-distance skill score'
+        'mean-squared-Euclidean-distance skill score',
+    NUM_EXAMPLES_KEY: 'number of examples'
 }
 
 RELIABILITY_LINE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
@@ -406,7 +411,7 @@ def plot_metric_by_latlng(
     if METRIC_TO_UNIT_EXPONENT[metric_name] == 2:
         metric_matrix_to_plot = numpy.sqrt(metric_matrix_to_plot)
 
-    if numpy.all(numpy.isnan(metric_matrix_to_plot)):
+    if not numpy.any(numpy.isfinite(metric_matrix_to_plot)):
         min_colour_value = 0.
         max_colour_value = 1.
     else:
@@ -417,21 +422,17 @@ def plot_metric_by_latlng(
             max_colour_value = max([max_colour_value, TOLERANCE])
             min_colour_value = -1 * max_colour_value
         else:
-            min_colour_value = numpy.nanpercentile(
-                metric_matrix_to_plot, min_colour_percentile
+            min_colour_value = numpy.percentile(
+                metric_matrix_to_plot[numpy.isfinite(metric_matrix_to_plot)],
+                min_colour_percentile
             )
-            max_colour_value = numpy.nanpercentile(
-                metric_matrix_to_plot, max_colour_percentile
+            max_colour_value = numpy.percentile(
+                metric_matrix_to_plot[numpy.isfinite(metric_matrix_to_plot)],
+                max_colour_percentile
             )
             max_colour_value = max([
                 max_colour_value, min_colour_value + TOLERANCE
             ])
-
-            print(metric_name)
-            print(target_field_name)
-            print(min_colour_value)
-            print(max_colour_value)
-            print('\n\n')
 
     metric_matrix_to_plot = grids.latlng_field_grid_points_to_edges(
         field_matrix=metric_matrix_to_plot,
@@ -617,7 +618,7 @@ def plot_metric_by_2categories(
     if METRIC_TO_UNIT_EXPONENT[metric_name] == 2:
         metric_matrix_to_plot = numpy.sqrt(metric_matrix_to_plot)
 
-    if numpy.all(numpy.isnan(metric_matrix_to_plot)):
+    if not numpy.any(numpy.isfinite(metric_matrix_to_plot)):
         min_colour_value = 0.
         max_colour_value = 1.
     else:
@@ -628,11 +629,13 @@ def plot_metric_by_2categories(
             max_colour_value = max([max_colour_value, TOLERANCE])
             min_colour_value = -1 * max_colour_value
         else:
-            min_colour_value = numpy.nanpercentile(
-                metric_matrix_to_plot, min_colour_percentile
+            min_colour_value = numpy.percentile(
+                metric_matrix_to_plot[numpy.isfinite(metric_matrix_to_plot)],
+                min_colour_percentile
             )
-            max_colour_value = numpy.nanpercentile(
-                metric_matrix_to_plot, max_colour_percentile
+            max_colour_value = numpy.percentile(
+                metric_matrix_to_plot[numpy.isfinite(metric_matrix_to_plot)],
+                max_colour_percentile
             )
             max_colour_value = max([
                 max_colour_value, min_colour_value + TOLERANCE

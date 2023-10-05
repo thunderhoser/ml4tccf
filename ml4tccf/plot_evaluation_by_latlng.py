@@ -256,9 +256,19 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
         for i in range(num_grid_rows):
             for j in range(num_grid_columns):
                 if etbll[i][j] is None:
+                    if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
+                        metric_matrix[i, j, :] = 0
+
                     continue
 
-                metric_matrix[i, j, :] = etbll[i][j][metric_name].values[:]
+                if metric_name == scalar_eval_plotting.NUM_EXAMPLES_KEY:
+                    metric_matrix[i, j, :] = numpy.sum(
+                        etbll[i][j][
+                            scalar_evaluation.OFFSET_DIST_BIN_COUNT_KEY
+                        ].values
+                    )
+                else:
+                    metric_matrix[i, j, :] = etbll[i][j][metric_name].values[:]
 
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
