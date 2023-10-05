@@ -6,7 +6,7 @@ for every bin of nadir-relative coordinates.
 
 import os
 import sys
-import dill
+import pickle
 import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -432,10 +432,10 @@ def write_file(
     file_system_utils.mkdir_recursive_if_necessary(file_name=dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'wb')
-    dill.dump(x_coord_model_objects, dill_file_handle)
-    dill.dump(y_coord_model_objects, dill_file_handle)
-    dill.dump(nadir_relative_x_cutoffs_metres, dill_file_handle)
-    dill.dump(nadir_relative_y_cutoffs_metres, dill_file_handle)
+    pickle.dump(x_coord_model_objects, dill_file_handle)
+    pickle.dump(y_coord_model_objects, dill_file_handle)
+    pickle.dump(nadir_relative_x_cutoffs_metres, dill_file_handle)
+    pickle.dump(nadir_relative_y_cutoffs_metres, dill_file_handle)
     dill_file_handle.close()
 
 
@@ -452,10 +452,10 @@ def read_file(dill_file_name):
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
-    x_coord_model_objects = dill.load(dill_file_handle)
-    y_coord_model_objects = dill.load(dill_file_handle)
-    nadir_relative_x_cutoffs_metres = dill.load(dill_file_handle)
-    nadir_relative_y_cutoffs_metres = dill.load(dill_file_handle)
+    x_coord_model_objects = pickle.load(dill_file_handle)
+    y_coord_model_objects = pickle.load(dill_file_handle)
+    nadir_relative_x_cutoffs_metres = pickle.load(dill_file_handle)
+    nadir_relative_y_cutoffs_metres = pickle.load(dill_file_handle)
     dill_file_handle.close()
 
     return (
