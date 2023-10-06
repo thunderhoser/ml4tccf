@@ -56,6 +56,7 @@ while ($i <= ${#CYCLONE_ID_STRINGS})
     --cyclone_id_string="${cyclone_id_string}" \
     --num_bnn_iterations=1 \
     --max_ensemble_size=100 \
+    --data_aug_num_translations=8 \
     --random_seed=6695 \
     --output_dir_name="${model_dir_name}/validation/with_random_seed"
     
