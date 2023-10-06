@@ -164,6 +164,10 @@ def train_models(
             nadir_relative_x_cutoffs_metres[j + 1]
         )[0]
 
+        print('Number of future training examples = {0:d}'.format(
+            len(future_training_indices)
+        ))
+
         if len(future_training_indices) < min_training_sample_size:
             training_with_higher_bins = True
             training_indices = numpy.concatenate((
