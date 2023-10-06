@@ -1,0 +1,64 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="evaluate_by_xy_coords"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --array=1-77
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=evaluate_by_xy_coords_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment07_xy_5times/further_training"
+
+set FIRST_LAYER_FILTER_COUNTS=("16" "16" "16" "16" "24" "24" "24" "24" "32" "32" "32" "32" "40" "40" "40" "40" "16" "16" "16" "16" "24" "24" "24" "24" "32" "32" "32" "32" "40" "40" "40" "40" "16" "16" "16" "16" "24" "24" "24" "24" "32" "32" "32" "32" "40" "40" "40" "40" "16" "16" "16" "16" "24" "24" "24" "24" "32" "32" "32" "32" "40" "40" "40" "40")
+set WAVELENGTH_GROUP_STRINGS_MICRONS=("8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "3.900-6.185-6.950" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200" "6.950-10.350-11.200")
+set BATCHES_PER_EPOCH_COUNTS=("24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36" "24" "24" "36" "36")
+set USE_XY_FLAGS=("0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1" "0" "1")
+
+set BEST_MODEL_INDICES=(1 31 48)
+
+set XY_BIN_STRINGS=("x=-inf_-6000km_y=-inf_+000km" "x=-6000_-4500km_y=-inf_+000km" "x=-4500_-3000km_y=-inf_+000km" "x=-3000_-1500km_y=-inf_+000km" "x=-1500_+000km_y=-inf_+000km" "x=+000_+1500km_y=-inf_+000km" "x=+1500_+3000km_y=-inf_+000km" "x=+3000_+4500km_y=-inf_+000km" "x=+4500_+6000km_y=-inf_+000km" "x=+6000_+infkm_y=-inf_+000km" "x=all_y=-inf_+000km" "x=-inf_-6000km_y=+000_+1500km" "x=-6000_-4500km_y=+000_+1500km" "x=-4500_-3000km_y=+000_+1500km" "x=-3000_-1500km_y=+000_+1500km" "x=-1500_+000km_y=+000_+1500km" "x=+000_+1500km_y=+000_+1500km" "x=+1500_+3000km_y=+000_+1500km" "x=+3000_+4500km_y=+000_+1500km" "x=+4500_+6000km_y=+000_+1500km" "x=+6000_+infkm_y=+000_+1500km" "x=all_y=+000_+1500km" "x=-inf_-6000km_y=+1500_+3000km" "x=-6000_-4500km_y=+1500_+3000km" "x=-4500_-3000km_y=+1500_+3000km" "x=-3000_-1500km_y=+1500_+3000km" "x=-1500_+000km_y=+1500_+3000km" "x=+000_+1500km_y=+1500_+3000km" "x=+1500_+3000km_y=+1500_+3000km" "x=+3000_+4500km_y=+1500_+3000km" "x=+4500_+6000km_y=+1500_+3000km" "x=+6000_+infkm_y=+1500_+3000km" "x=all_y=+1500_+3000km" "x=-inf_-6000km_y=+3000_+4500km" "x=-6000_-4500km_y=+3000_+4500km" "x=-4500_-3000km_y=+3000_+4500km" "x=-3000_-1500km_y=+3000_+4500km" "x=-1500_+000km_y=+3000_+4500km" "x=+000_+1500km_y=+3000_+4500km" "x=+1500_+3000km_y=+3000_+4500km" "x=+3000_+4500km_y=+3000_+4500km" "x=+4500_+6000km_y=+3000_+4500km" "x=+6000_+infkm_y=+3000_+4500km" "x=all_y=+3000_+4500km" "x=-inf_-6000km_y=+4500_+6000km" "x=-6000_-4500km_y=+4500_+6000km" "x=-4500_-3000km_y=+4500_+6000km" "x=-3000_-1500km_y=+4500_+6000km" "x=-1500_+000km_y=+4500_+6000km" "x=+000_+1500km_y=+4500_+6000km" "x=+1500_+3000km_y=+4500_+6000km" "x=+3000_+4500km_y=+4500_+6000km" "x=+4500_+6000km_y=+4500_+6000km" "x=+6000_+infkm_y=+4500_+6000km" "x=all_y=+4500_+6000km" "x=-inf_-6000km_y=+6000_+infkm" "x=-6000_-4500km_y=+6000_+infkm" "x=-4500_-3000km_y=+6000_+infkm" "x=-3000_-1500km_y=+6000_+infkm" "x=-1500_+000km_y=+6000_+infkm" "x=+000_+1500km_y=+6000_+infkm" "x=+1500_+3000km_y=+6000_+infkm" "x=+3000_+4500km_y=+6000_+infkm" "x=+4500_+6000km_y=+6000_+infkm" "x=+6000_+infkm_y=+6000_+infkm" "x=all_y=+6000_+infkm" "x=-inf_-6000km_y=all" "x=-6000_-4500km_y=all" "x=-4500_-3000km_y=all" "x=-3000_-1500km_y=all" "x=-1500_+000km_y=all" "x=+000_+1500km_y=all" "x=+1500_+3000km_y=all" "x=+3000_+4500km_y=all" "x=+4500_+6000km_y=all" "x=+6000_+infkm_y=all" "x=all_y=all")
+set xy_bin_string=${XY_BIN_STRINGS[$SLURM_ARRAY_TASK_ID]}
+
+set i=1
+
+while ($i <= ${#BEST_MODEL_INDICES})
+    set model_index=${BEST_MODEL_INDICES[$i]}
+    
+    set num_first_layer_filters=${FIRST_LAYER_FILTER_COUNTS[$model_index]}
+    set wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$model_index]}
+    set num_batches_per_epoch=${BATCHES_PER_EPOCH_COUNTS[$model_index]}
+    set use_xy_flag=${USE_XY_FLAGS[$model_index]}
+    
+    set model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-epoch=${num_batches_per_epoch}"
+    echo $model_dir_name
+
+    python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+    --input_prediction_file_pattern="${model_dir_name}/nadir_dependent_iso_regression/validation_by_xy_coords/${xy_bin_string}/predictions*.nc" \
+    --num_bootstrap_reps=100 \
+    --num_xy_offset_bins=30 \
+    --xy_offset_limits_metres -45000 45000 \
+    --num_offset_distance_bins=30 \
+    --offset_distance_limits_metres 0 60000 \
+    --num_offset_direction_bins=36 \
+    --output_file_name="${model_dir_name}/nadir_dependent_iso_regression/validation_by_xy_coords/${xy_bin_string}/evaluation.nc"
+
+    @ i = $i + 1
+end
