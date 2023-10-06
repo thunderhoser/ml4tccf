@@ -30,9 +30,9 @@ set model_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble"
 echo $model_dir_name
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation_by_latlng.py" \
---input_evaluation_dir_name="${model_dir_name}/nadir_dependent_iso_regression/validation_by_latlng" \
+--input_evaluation_dir_name="${model_dir_name}/nadir_dependent_iso_regression_2d/validation_by_latlng" \
 --latitude_spacing_deg=10 \
 --longitude_spacing_deg=10 \
 --main_font_size=40 \
 --label_font_size=10 \
---output_dir_name="${model_dir_name}/nadir_dependent_iso_regression/validation_by_latlng"
+--output_dir_name="${model_dir_name}/nadir_dependent_iso_regression_2d/validation_by_latlng"

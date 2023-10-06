@@ -30,5 +30,5 @@ set model_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble"
 echo $model_dir_name
 
 python3 -u "${CODE_DIR_NAME}/split_predictions_by_basin.py" \
---input_prediction_file_pattern="${model_dir_name}/nadir_dependent_iso_regression/validation/predictions_*.nc" \
---output_prediction_dir_name="${model_dir_name}/nadir_dependent_iso_regression/validation_by_basin"
+--input_prediction_file_pattern="${model_dir_name}/nadir_dependent_iso_regression_2d/validation/predictions_*.nc" \
+--output_prediction_dir_name="${model_dir_name}/nadir_dependent_iso_regression_2d/validation_by_basin"

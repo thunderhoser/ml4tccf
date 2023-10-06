@@ -41,6 +41,6 @@ set model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group
 echo $model_dir_name
 
 python3 -u "${CODE_DIR_NAME}/plot_scalar_evaluation.py" \
---input_evaluation_file_name="${model_dir_name}/nadir_dependent_iso_regression/validation/evaluation.nc" \
+--input_evaluation_file_name="${model_dir_name}/nadir_dependent_iso_regression_2d/validation/evaluation.nc" \
 --confidence_level=0.95 \
---output_dir_name="${model_dir_name}/nadir_dependent_iso_regression/validation/evaluation"
+--output_dir_name="${model_dir_name}/nadir_dependent_iso_regression_2d/validation/evaluation"

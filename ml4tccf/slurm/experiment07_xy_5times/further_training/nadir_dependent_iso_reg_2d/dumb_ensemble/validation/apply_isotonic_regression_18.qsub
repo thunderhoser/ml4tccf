@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="apply_nadir_dependent_iso_regression"
+#SBATCH --job-name="apply_nadir_dependent_iso_regression_2d"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -18,7 +18,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=apply_nadir_dependent_iso_regression_%A_%a.out
+#SBATCH --output=apply_nadir_dependent_iso_regression_2d_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -50,11 +50,11 @@ while ($i <= ${#BEST_MODEL_INDICES})
     set model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-epoch=${num_batches_per_epoch}"
     echo $model_dir_name
     
-    python3 -u "${CODE_DIR_NAME}/apply_scalar_nadir_dependent_iso_regression.py" \
+    python3 -u "${CODE_DIR_NAME}/apply_scalar_nadir_dependent_iso_regression_2d.py" \
     --input_prediction_file_name="${model_dir_name}/validation/with_random_seed/predictions_${cyclone_id_string}.nc" \
-    --input_model_file_name="${model_dir_name}/nadir_dependent_iso_regression/isotonic_regression.dill" \
+    --input_model_file_name="${model_dir_name}/nadir_dependent_iso_regression_2d/isotonic_regression.dill" \
     --input_extended_best_track_file_name="${EXTENDED_BEST_TRACK_FILE_NAME}" \
-    --output_prediction_file_name="${model_dir_name}/nadir_dependent_iso_regression/validation/with_random_seed/predictions_${cyclone_id_string}.nc"
+    --output_prediction_file_name="${model_dir_name}/nadir_dependent_iso_regression_2d/validation/with_random_seed/predictions_${cyclone_id_string}.nc"
     
     @ i = $i + 1
 end

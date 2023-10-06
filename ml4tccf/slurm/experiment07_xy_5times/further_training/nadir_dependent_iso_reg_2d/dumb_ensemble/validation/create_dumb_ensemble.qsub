@@ -49,14 +49,14 @@ while ($i <= ${#CYCLONE_ID_STRINGS})
         set num_batches_per_epoch=${BATCHES_PER_EPOCH_COUNTS[$best_model_index]}
         set use_xy_flag=${USE_XY_FLAGS[$best_model_index]}
         
-        set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-epoch=${num_batches_per_epoch}/nadir_dependent_iso_regression/validation/with_random_seed/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
+        set input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-epoch=${num_batches_per_epoch}/nadir_dependent_iso_regression_2d/validation/with_random_seed/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
         @ j = $j + 1
     end
     
     python3 -u "${CODE_DIR_NAME}/create_multimodel_ensemble.py" \
     --input_prediction_file_names ${input_file_names_string} \
     --max_total_ensemble_size=200 \
-    --output_prediction_file_name="${OUTPUT_DIR_NAME}/nadir_dependent_iso_regression/validation/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
+    --output_prediction_file_name="${OUTPUT_DIR_NAME}/nadir_dependent_iso_regression_2d/validation/predictions_${CYCLONE_ID_STRINGS[$i]}.nc"
 
     @ i = $i + 1
 end
