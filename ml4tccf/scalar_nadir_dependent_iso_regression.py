@@ -124,12 +124,14 @@ def train_models(
 
     :param prediction_table_xarray: xarray table in format returned by
         `prediction_io.read_file`.
-    :param nadir_relative_x_cutoffs_metres: Category cutoffs for nadir-relative
-        x-coordinate.  Please leave -inf and +inf out of this list, as they will
-        be added automatically.
-    :param nadir_relative_y_cutoffs_metres: Category cutoffs for nadir-relative
-        y-coordinate.  Please leave -inf and +inf out of this list, as they will
-        be added automatically.
+    :param nadir_relative_x_cutoffs_metres: numpy array of category cutoffs for
+        nadir-relative x-coordinate.  Please leave -inf and +inf out of this
+        list, as they will be added automatically.  Thus, the array should have
+        length N - 1.
+    :param nadir_relative_y_cutoffs_metres: numpy array of category cutoffs for
+        nadir-relative y-coordinate.  Please leave -inf and +inf out of this
+        list, as they will be added automatically.  Thus, the array should have
+        length M - 1.
     :param ebtrk_file_name: Name of file with extended best-track data (will be
         read by `extended_best_track_io.read_file`).  This file will be used to
         find nadir-relative coordinates for every TC object.
@@ -197,10 +199,6 @@ def train_models(
             nadir_relative_prediction_xs_metres >=
             nadir_relative_x_cutoffs_metres[j + 1]
         )[0]
-
-        print('Number of future training examples = {0:d}'.format(
-            len(future_training_indices)
-        ))
 
         if len(future_training_indices) < min_training_sample_size:
             training_with_higher_bins = True

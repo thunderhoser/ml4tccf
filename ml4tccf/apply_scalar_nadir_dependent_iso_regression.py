@@ -13,11 +13,13 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import prediction_io
 import scalar_prediction_io
 import scalar_prediction_utils
-import scalar_nadir_dependent_iso_regression as isotonic_regression
+import scalar_nadir_dependent_iso_regression as iso_reg_1d_bins
+import scalar_nadir_dependent_iso_reg_2d_bins as iso_reg_2d_bins
 
 INPUT_PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EBTRK_FILE_ARG_NAME = 'input_extended_best_track_file_name'
+USE_2D_BINS_ARG_NAME = 'use_2d_bins'
 OUTPUT_PREDICTION_FILE_ARG_NAME = 'output_prediction_file_name'
 
 INPUT_PREDICTION_FILE_HELP_STRING = (
@@ -31,6 +33,14 @@ MODEL_FILE_HELP_STRING = (
 EBTRK_FILE_HELP_STRING = (
     'Path to file with extended best-track data (contains TC-center locations).'
     '  Will be read by `extended_best_track_io.read_file`.'
+)
+USE_2D_BINS_HELP_STRING = (
+    'Boolean flag.  If this flag is 1, there should be a separate pair of IR '
+    'models (one to correct TC-center x, one for TC-center y) for every 2-D '
+    'bin in nadir-relative space.  If this flag is 0, there will be one '
+    'x-correcting IR model for every bin along the nadir-relative x-direction, '
+    'plus one y-correcting IR model for every bin along the nadir-relative '
+    'y-direction.'
 )
 OUTPUT_PREDICTION_FILE_HELP_STRING = (
     'Path to output file, containing model predictions after isotonic '
@@ -51,19 +61,25 @@ INPUT_ARG_PARSER.add_argument(
     help=EBTRK_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + USE_2D_BINS_ARG_NAME, type=int, required=True,
+    help=USE_2D_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_PREDICTION_FILE_ARG_NAME, type=str, required=True,
     help=OUTPUT_PREDICTION_FILE_HELP_STRING
 )
 
 
 def _run(input_prediction_file_name, model_file_name, ebtrk_file_name,
-         output_prediction_file_name):
+         use_2d_bins, output_prediction_file_name):
     """Applies nadir-dependent isotonic-regression models to scalar target vars.
 
     This is effectively the main method.
 
     :param input_prediction_file_name: See documentation at top of file.
     :param model_file_name: Same.
+    :param ebtrk_file_name: Same.
+    :param use_2d_bins: Same.
     :param output_prediction_file_name: Same.
     :raises: ValueError: if predictions in `input_prediction_file_name` were
         made with isotonic regression.
@@ -89,19 +105,36 @@ def _run(input_prediction_file_name, model_file_name, ebtrk_file_name,
     print('Reading isotonic-regression models from: "{0:s}"...'.format(
         model_file_name
     ))
-    (
-        x_coord_model_objects, y_coord_model_objects,
-        nadir_relative_x_cutoffs_metres, nadir_relative_y_cutoffs_metres
-    ) = isotonic_regression.read_file(model_file_name)
 
-    prediction_table_xarray = isotonic_regression.apply_models(
-        prediction_table_xarray=prediction_table_xarray,
-        x_coord_model_objects=x_coord_model_objects,
-        y_coord_model_objects=y_coord_model_objects,
-        nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
-        nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
-        ebtrk_file_name=ebtrk_file_name
-    )
+    if use_2d_bins:
+        (
+            x_coord_model_matrix, y_coord_model_matrix,
+            nadir_relative_x_cutoffs_metres, nadir_relative_y_cutoffs_metres
+        ) = iso_reg_2d_bins.read_file(model_file_name)
+
+        prediction_table_xarray = iso_reg_2d_bins.apply_models(
+            prediction_table_xarray=prediction_table_xarray,
+            x_coord_model_matrix=x_coord_model_matrix,
+            y_coord_model_matrix=y_coord_model_matrix,
+            nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
+            nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
+            ebtrk_file_name=ebtrk_file_name
+        )
+    else:
+        (
+            x_coord_model_objects, y_coord_model_objects,
+            nadir_relative_x_cutoffs_metres, nadir_relative_y_cutoffs_metres
+        ) = iso_reg_1d_bins.read_file(model_file_name)
+
+        prediction_table_xarray = iso_reg_1d_bins.apply_models(
+            prediction_table_xarray=prediction_table_xarray,
+            x_coord_model_objects=x_coord_model_objects,
+            y_coord_model_objects=y_coord_model_objects,
+            nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
+            nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
+            ebtrk_file_name=ebtrk_file_name
+        )
+
     pt = prediction_table_xarray
 
     target_matrix = numpy.transpose(numpy.vstack((
@@ -143,6 +176,7 @@ if __name__ == '__main__':
         ),
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
         ebtrk_file_name=getattr(INPUT_ARG_OBJECT, EBTRK_FILE_ARG_NAME),
+        use_2d_bins=bool(getattr(INPUT_ARG_OBJECT, USE_2D_BINS_ARG_NAME)),
         output_prediction_file_name=getattr(
             INPUT_ARG_OBJECT, OUTPUT_PREDICTION_FILE_ARG_NAME
         )
