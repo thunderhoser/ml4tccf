@@ -46,5 +46,5 @@ python3 -u "${CODE_DIR_NAME}/train_scalar_nadir_dependent_iso_regression.py" \
 --input_extended_best_track_file_name="${EXTENDED_BEST_TRACK_FILE_NAME}" \
 --nadir_relative_x_cutoffs_metres -6000000 -4500000 -3000000 -1500000 0 1500000 3000000 4500000 6000000 \
 --nadir_relative_y_cutoffs_metres 0 1500000 3000000 4500000 6000000 \
---min_training_sample_size=8 \
+--min_training_sample_size=400 \
 --output_model_dir_name="${model_dir_name}/nadir_dependent_iso_regression"
