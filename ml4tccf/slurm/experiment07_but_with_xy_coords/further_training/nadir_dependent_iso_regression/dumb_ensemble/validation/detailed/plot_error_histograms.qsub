@@ -24,9 +24,12 @@ source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment07_channels_and_filters/further_training/further_training"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment07_but_with_xy_coords/further_training"
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble"
+echo $model_dir_name
 
 python3 -u "${CODE_DIR_NAME}/plot_error_histograms_scalar.py" \
---input_prediction_file_pattern="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/predictions_*.nc" \
+--input_prediction_file_pattern="${model_dir_name}/nadir_dependent_iso_regression/validation/predictions_*.nc" \
 --plot_orig_errors=1 \
---output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/error_histograms"
+--output_dir_name="${model_dir_name}/nadir_dependent_iso_regression/validation/error_histograms"
