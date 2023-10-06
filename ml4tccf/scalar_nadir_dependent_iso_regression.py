@@ -40,6 +40,40 @@ def check_input_args(nadir_relative_x_cutoffs_metres,
         (-inf and inf).
     """
 
+    error_checking.assert_is_numpy_array(
+        nadir_relative_x_cutoffs_metres, num_dimensions=1
+    )
+    error_checking.assert_is_numpy_array_without_nan(
+        nadir_relative_x_cutoffs_metres
+    )
+    if (
+            numpy.isinf(nadir_relative_x_cutoffs_metres[0]) and
+            nadir_relative_x_cutoffs_metres[0] < 0
+    ):
+        nadir_relative_x_cutoffs_metres = nadir_relative_x_cutoffs_metres[1:]
+    if (
+            numpy.isinf(nadir_relative_x_cutoffs_metres[-1]) and
+            nadir_relative_x_cutoffs_metres[-1] > 0
+    ):
+        nadir_relative_x_cutoffs_metres = nadir_relative_x_cutoffs_metres[:-1]
+
+    error_checking.assert_is_numpy_array(
+        nadir_relative_y_cutoffs_metres, num_dimensions=1
+    )
+    error_checking.assert_is_numpy_array_without_nan(
+        nadir_relative_y_cutoffs_metres
+    )
+    if (
+            numpy.isinf(nadir_relative_y_cutoffs_metres[0]) and
+            nadir_relative_y_cutoffs_metres[0] < 0
+    ):
+        nadir_relative_y_cutoffs_metres = nadir_relative_y_cutoffs_metres[1:]
+    if (
+            numpy.isinf(nadir_relative_y_cutoffs_metres[-1]) and
+            nadir_relative_y_cutoffs_metres[-1] > 0
+    ):
+        nadir_relative_y_cutoffs_metres = nadir_relative_y_cutoffs_metres[:-1]
+
     nadir_relative_x_cutoffs_metres = number_rounding.round_to_nearest(
         nadir_relative_x_cutoffs_metres, KM_TO_METRES
     )
