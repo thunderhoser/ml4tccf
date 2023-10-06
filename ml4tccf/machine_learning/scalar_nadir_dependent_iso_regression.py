@@ -32,6 +32,40 @@ def check_input_args(nadir_relative_x_cutoffs_metres,
         (-inf and inf).
     """
 
+    error_checking.assert_is_numpy_array(
+        nadir_relative_x_cutoffs_metres, num_dimensions=1
+    )
+    error_checking.assert_is_numpy_array_without_nan(
+        nadir_relative_x_cutoffs_metres
+    )
+    if (
+            numpy.isinf(nadir_relative_x_cutoffs_metres[0]) and
+            nadir_relative_x_cutoffs_metres[0] < 0
+    ):
+        nadir_relative_x_cutoffs_metres = nadir_relative_x_cutoffs_metres[1:]
+    if (
+            numpy.isinf(nadir_relative_x_cutoffs_metres[-1]) and
+            nadir_relative_x_cutoffs_metres[-1] > 0
+    ):
+        nadir_relative_x_cutoffs_metres = nadir_relative_x_cutoffs_metres[:-1]
+
+    error_checking.assert_is_numpy_array(
+        nadir_relative_y_cutoffs_metres, num_dimensions=1
+    )
+    error_checking.assert_is_numpy_array_without_nan(
+        nadir_relative_y_cutoffs_metres
+    )
+    if (
+            numpy.isinf(nadir_relative_y_cutoffs_metres[0]) and
+            nadir_relative_y_cutoffs_metres[0] < 0
+    ):
+        nadir_relative_y_cutoffs_metres = nadir_relative_y_cutoffs_metres[1:]
+    if (
+            numpy.isinf(nadir_relative_y_cutoffs_metres[-1]) and
+            nadir_relative_y_cutoffs_metres[-1] > 0
+    ):
+        nadir_relative_y_cutoffs_metres = nadir_relative_y_cutoffs_metres[:-1]
+
     nadir_relative_x_cutoffs_metres = number_rounding.round_to_nearest(
         nadir_relative_x_cutoffs_metres, KM_TO_METRES
     )
@@ -82,12 +116,14 @@ def train_models(
 
     :param prediction_table_xarray: xarray table in format returned by
         `prediction_io.read_file`.
-    :param nadir_relative_x_cutoffs_metres: Category cutoffs for nadir-relative
-        x-coordinate.  Please leave -inf and +inf out of this list, as they will
-        be added automatically.
-    :param nadir_relative_y_cutoffs_metres: Category cutoffs for nadir-relative
-        y-coordinate.  Please leave -inf and +inf out of this list, as they will
-        be added automatically.
+    :param nadir_relative_x_cutoffs_metres: numpy array of category cutoffs for
+        nadir-relative x-coordinate.  Please leave -inf and +inf out of this
+        list, as they will be added automatically.  Thus, the array should have
+        length N - 1.
+    :param nadir_relative_y_cutoffs_metres: numpy array of category cutoffs for
+        nadir-relative y-coordinate.  Please leave -inf and +inf out of this
+        list, as they will be added automatically.  Thus, the array should have
+        length M - 1.
     :param ebtrk_file_name: Name of file with extended best-track data (will be
         read by `extended_best_track_io.read_file`).  This file will be used to
         find nadir-relative coordinates for every TC object.
@@ -337,6 +373,9 @@ def apply_models(
             example_indices = numpy.where(
                 numpy.logical_and(x_flags, y_flags)
             )[0]
+
+            if len(example_indices) == 0:
+                continue
 
             new_prediction_table_xarray = prediction_table_xarray.isel(
                 {prediction_utils.EXAMPLE_DIM_KEY: example_indices}

@@ -16,13 +16,12 @@ from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import extended_best_track_utils as ebtrk_utils
 from ml4tccf.utils import scalar_prediction_utils
-from ml4tccf.machine_learning import neural_net_training_cira_ir as nn_training
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
 TOLERANCE = 1e-6
-SYNOPTIC_TIME_TOLERANCE_SEC = nn_training.SYNOPTIC_TIME_TOLERANCE_SEC
+SYNOPTIC_TIME_TOLERANCE_SEC = 900
 
 HOURS_TO_SECONDS = 3600
 DEGREES_LAT_TO_METRES = 60 * 1852.

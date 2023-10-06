@@ -6,12 +6,15 @@ import numpy
 from ml4tccf.io import prediction_io
 from ml4tccf.utils import scalar_prediction_utils as prediction_utils
 from ml4tccf.machine_learning import \
-    scalar_nadir_dependent_iso_regression as isotonic_regression
+    scalar_nadir_dependent_iso_regression as iso_reg_1d_bins
+from ml4tccf.machine_learning import \
+    scalar_nadir_dependent_iso_reg_2d_bins as iso_reg_2d_bins
 
 INPUT_FILE_PATTERN_ARG_NAME = 'input_prediction_file_pattern'
 EBTRK_FILE_ARG_NAME = 'input_extended_best_track_file_name'
 NADIR_RELATIVE_X_CUTOFFS_ARG_NAME = 'nadir_relative_x_cutoffs_metres'
 NADIR_RELATIVE_Y_CUTOFFS_ARG_NAME = 'nadir_relative_y_cutoffs_metres'
+USE_2D_BINS_ARG_NAME = 'use_2d_bins'
 MIN_SAMPLE_SIZE_ARG_NAME = 'min_training_sample_size'
 OUTPUT_DIR_ARG_NAME = 'output_model_dir_name'
 
@@ -31,6 +34,15 @@ NADIR_RELATIVE_X_CUTOFFS_HELP_STRING = (
 NADIR_RELATIVE_Y_CUTOFFS_HELP_STRING = (
     'Category cutoffs for nadir-relative y-coordinate.  Please leave -inf and '
     '+inf out of this list, as they will be added automatically.'
+)
+USE_2D_BINS_HELP_STRING = (
+    'Boolean flag.  Either way, the nadir-relative coordinate space will be '
+    'divided into 2-D bins.  If this flag is 1, there will be a separate pair '
+    'of isotonic-regression models (one to correct x-coordinate of TC center, '
+    'one to correct y-coord of TC center) for every 2-D bin.  If this flag is '
+    '0, there will be one x-coord-correcting isotonic-regression model for '
+    'every bin along the nadir-relative x-coord, plus one y-coord-correcting '
+    'IR model for every bin along the nadir-relative y-coord.'
 )
 MIN_SAMPLE_SIZE_HELP_STRING = (
     'Minimum sample size (number of examples) for training one model.'
@@ -59,6 +71,10 @@ INPUT_ARG_PARSER.add_argument(
     required=True, help=NADIR_RELATIVE_Y_CUTOFFS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + USE_2D_BINS_ARG_NAME, type=int, required=True,
+    help=USE_2D_BINS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + MIN_SAMPLE_SIZE_ARG_NAME, type=int, required=True,
     help=MIN_SAMPLE_SIZE_HELP_STRING
 )
@@ -70,7 +86,7 @@ INPUT_ARG_PARSER.add_argument(
 
 def _run(prediction_file_pattern, ebtrk_file_name,
          nadir_relative_x_cutoffs_metres, nadir_relative_y_cutoffs_metres,
-         min_training_sample_size, output_dir_name):
+         use_2d_bins, min_training_sample_size, output_dir_name):
     """Trains nadir-dependent isotonic-regression models for scalar target vars.
 
     This is effectively the main method.
@@ -79,6 +95,7 @@ def _run(prediction_file_pattern, ebtrk_file_name,
     :param ebtrk_file_name: Same.
     :param nadir_relative_x_cutoffs_metres: Same.
     :param nadir_relative_y_cutoffs_metres: Same.
+    :param use_2d_bins: Same.
     :param min_training_sample_size: Same.
     :param output_dir_name: Same.
     """
@@ -117,8 +134,35 @@ def _run(prediction_file_pattern, ebtrk_file_name,
             ' regression).'
         )
 
-    x_coord_model_objects, y_coord_model_objects = (
-        isotonic_regression.train_models(
+    if not use_2d_bins:
+        x_coord_model_objects, y_coord_model_objects = (
+            iso_reg_1d_bins.train_models(
+                prediction_table_xarray=prediction_table_xarray,
+                nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
+                nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
+                ebtrk_file_name=ebtrk_file_name,
+                min_training_sample_size=min_training_sample_size
+            )
+        )
+
+        output_file_name = iso_reg_1d_bins.find_file(
+            model_dir_name=output_dir_name, raise_error_if_missing=False
+        )
+        print('Writing isotonic-regression models to: "{0:s}"...'.format(
+            output_file_name
+        ))
+        iso_reg_1d_bins.write_file(
+            dill_file_name=output_file_name,
+            x_coord_model_objects=x_coord_model_objects,
+            y_coord_model_objects=y_coord_model_objects,
+            nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
+            nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres
+        )
+
+        return
+
+    x_coord_model_matrix, y_coord_model_matrix = (
+        iso_reg_2d_bins.train_models(
             prediction_table_xarray=prediction_table_xarray,
             nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
             nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
@@ -127,16 +171,16 @@ def _run(prediction_file_pattern, ebtrk_file_name,
         )
     )
 
-    output_file_name = isotonic_regression.find_file(
+    output_file_name = iso_reg_2d_bins.find_file(
         model_dir_name=output_dir_name, raise_error_if_missing=False
     )
     print('Writing isotonic-regression models to: "{0:s}"...'.format(
         output_file_name
     ))
-    isotonic_regression.write_file(
+    iso_reg_2d_bins.write_file(
         dill_file_name=output_file_name,
-        x_coord_model_objects=x_coord_model_objects,
-        y_coord_model_objects=y_coord_model_objects,
+        x_coord_model_matrix=x_coord_model_matrix,
+        y_coord_model_matrix=y_coord_model_matrix,
         nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
         nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres
     )
@@ -158,6 +202,7 @@ if __name__ == '__main__':
             getattr(INPUT_ARG_OBJECT, NADIR_RELATIVE_Y_CUTOFFS_ARG_NAME),
             dtype=float
         ),
+        use_2d_bins=bool(getattr(INPUT_ARG_OBJECT, USE_2D_BINS_ARG_NAME)),
         min_training_sample_size=getattr(
             INPUT_ARG_OBJECT, MIN_SAMPLE_SIZE_ARG_NAME
         ),
