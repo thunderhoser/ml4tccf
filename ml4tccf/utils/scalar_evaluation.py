@@ -200,6 +200,12 @@ def _get_crps_one_variable(target_values, prediction_matrix, is_var_direction):
             numpy.expand_dims(target_values, axis=-1),
             axis=-1, repeats=ensemble_size
         )
+
+        # TODO(thunderhoser): HACK.
+        prediction_matrix[
+            numpy.isclose(prediction_matrix, 360, atol=TOLERANCE)
+        ] = 0.
+
         mean_abs_error_by_example = numpy.nanmean(
             numpy.absolute(get_angular_diffs(target_matrix, prediction_matrix)),
             axis=-1

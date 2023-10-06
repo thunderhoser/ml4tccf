@@ -8,11 +8,11 @@ of the TC center and one to correct the y-coordinate.
 
 import dill
 import numpy
-from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import extended_best_track_io as ebtrk_io
 from ml4tccf.utils import misc_utils
+from ml4tccf.utils import special_connected_regions
 from ml4tccf.utils import scalar_prediction_utils as prediction_utils
 from ml4tccf.machine_learning import scalar_isotonic_regression as basic_iso_reg
 from ml4tccf.machine_learning import \
@@ -21,77 +21,11 @@ from ml4tccf.machine_learning import \
 METRES_TO_KM = 0.001
 
 
-def _linear_bin_index_to_2d(linear_index, nadir_relative_x_cutoffs_metres,
-                            nadir_relative_y_cutoffs_metres):
-    """Converts linear bin index to row and column indices.
-
-    This is non-trivial, because I do not traverse the 2-D array in the normal
-    way -- i.e., row-major, where I go across the rows and then down the
-    columns.  Instead, I traverse the array along diagonals, from the
-    top-left to bottom-right.
-
-    There is a reason I traverse the array in such a weird way: sometimes I need
-    to glom together adjacent bins for training, because a single bin does not
-    have enough samples.  With 1-D bins, finding adjacent bins is easy.  But
-    with 2-D bins, finding adjacent bins is a little more tricky.  The relevant
-    bins could be in the same row, in the same column, or neither.
-
-    :param linear_index: Linear index into 2-D bin array.
-    :param nadir_relative_x_cutoffs_metres: See doc for `_find_examples_in_bin`.
-    :param nadir_relative_y_cutoffs_metres: Same.
-    :return: row_index: Row index into 2-D bin array.
-    :return: column_index: Column index into 2-D bin array.
-    """
-
-    finite_x_cutoffs_metres = nadir_relative_x_cutoffs_metres[1:-1]
-    finite_x_cutoffs_metres = numpy.concatenate((
-        finite_x_cutoffs_metres[0] - numpy.diff(finite_x_cutoffs_metres[:2]),
-        finite_x_cutoffs_metres,
-        finite_x_cutoffs_metres[-1] + numpy.diff(finite_x_cutoffs_metres[-2:])
-    ))
-
-    finite_y_cutoffs_metres = nadir_relative_y_cutoffs_metres[1:-1]
-    finite_y_cutoffs_metres = numpy.concatenate((
-        finite_y_cutoffs_metres[0] - numpy.diff(finite_y_cutoffs_metres[:2]),
-        finite_y_cutoffs_metres,
-        finite_y_cutoffs_metres[-1] + numpy.diff(finite_y_cutoffs_metres[-2:])
-    ))
-
-    x_bin_centers_metres = (
-        0.5 * (finite_x_cutoffs_metres[:-1] + finite_x_cutoffs_metres[1:])
-    )
-    y_bin_centers_metres = (
-        0.5 * (finite_y_cutoffs_metres[:-1] + finite_y_cutoffs_metres[1:])
-    )
-
-    x_bin_center_matrix_metres, y_bin_center_matrix_metres = (
-        grids.xy_vectors_to_matrices(
-            x_unique_metres=x_bin_centers_metres,
-            y_unique_metres=y_bin_centers_metres
-        )
-    )
-
-    dist_from_origin_matrix_metres = numpy.sqrt(
-        (x_bin_center_matrix_metres - x_bin_centers_metres[0]) ** 2 +
-        (y_bin_center_matrix_metres - y_bin_centers_metres[0]) ** 2
-    )
-    sort_indices_linear = numpy.argsort(
-        numpy.ravel(dist_from_origin_matrix_metres)
-    )
-
-    row_index, column_index = numpy.unravel_index(
-        sort_indices_linear[linear_index],
-        shape=dist_from_origin_matrix_metres.shape
-    )
-
-    return row_index, column_index
-
-
 def _find_examples_in_bin(
         nadir_relative_prediction_xs_metres,
         nadir_relative_prediction_ys_metres,
         nadir_relative_x_cutoffs_metres, nadir_relative_y_cutoffs_metres,
-        linear_bin_index, verbose):
+        bin_row, bin_column, verbose):
     """Finds examples in one 2-D bin of nadir-relative coordinates.
 
     E = number of examples
@@ -106,19 +40,16 @@ def _find_examples_in_bin(
         cutoffs for nadir-relative x-coord.
     :param nadir_relative_y_cutoffs_metres: length-(M + 1) numpy array with bin
         cutoffs for nadir-relative y-coord.
-    :param linear_bin_index: Linear index of 2-D bin.  This will be converted to
-        row and column by `_linear_bin_index_to_2d`.
+    :param bin_row: Row index of bin.
+    :param bin_column: Column index of bin.
     :param verbose: Boolean flag.
     :return: example_indices: 1-D numpy array with indices of examples in bin.
         These are indices into the arrays `nadir_relative_prediction_xs_metres`
         and `nadir_relative_prediction_ys_metres`.
     """
 
-    i, j = _linear_bin_index_to_2d(
-        linear_index=linear_bin_index,
-        nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
-        nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres
-    )
+    i = bin_row + 0
+    j = bin_column + 0
 
     in_row_flags = numpy.logical_and(
         nadir_relative_prediction_ys_metres >=
@@ -186,6 +117,7 @@ def train_models(
         of TC center.
     """
 
+    # Check input args.
     (
         nadir_relative_x_cutoffs_metres, nadir_relative_y_cutoffs_metres
     ) = iso_reg_1d_bins.check_input_args(
@@ -195,6 +127,28 @@ def train_models(
 
     error_checking.assert_is_integer(min_training_sample_size)
     error_checking.assert_is_greater(min_training_sample_size, 0)
+
+    # Find training sets (clusters in 2-D nadir-relative space).
+    finite_x_cutoffs_metres = nadir_relative_x_cutoffs_metres[1:-1]
+    finite_x_cutoffs_metres = numpy.concatenate((
+        finite_x_cutoffs_metres[0] - numpy.diff(finite_x_cutoffs_metres[:2]),
+        finite_x_cutoffs_metres,
+        finite_x_cutoffs_metres[-1] + numpy.diff(finite_x_cutoffs_metres[-2:])
+    ))
+
+    finite_y_cutoffs_metres = nadir_relative_y_cutoffs_metres[1:-1]
+    finite_y_cutoffs_metres = numpy.concatenate((
+        finite_y_cutoffs_metres[0] - numpy.diff(finite_y_cutoffs_metres[:2]),
+        finite_y_cutoffs_metres,
+        finite_y_cutoffs_metres[-1] + numpy.diff(finite_y_cutoffs_metres[-2:])
+    ))
+
+    x_bin_centers_metres = (
+        0.5 * (finite_x_cutoffs_metres[:-1] + finite_x_cutoffs_metres[1:])
+    )
+    y_bin_centers_metres = (
+        0.5 * (finite_y_cutoffs_metres[:-1] + finite_y_cutoffs_metres[1:])
+    )
 
     print('Reading data from: "{0:s}"...'.format(ebtrk_file_name))
     ebtrk_table_xarray = ebtrk_io.read_file(ebtrk_file_name)
@@ -208,44 +162,67 @@ def train_models(
 
     num_bin_rows = len(nadir_relative_y_cutoffs_metres) - 1
     num_bin_columns = len(nadir_relative_x_cutoffs_metres) - 1
+    num_samples_matrix = numpy.full(
+        (num_bin_rows, num_bin_columns), -1, dtype=int
+    )
+
+    for i in range(num_bin_rows):
+        for j in range(num_bin_columns):
+            these_indices = _find_examples_in_bin(
+                nadir_relative_prediction_xs_metres=
+                nadir_relative_prediction_xs_metres,
+                nadir_relative_prediction_ys_metres=
+                nadir_relative_prediction_ys_metres,
+                nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
+                nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
+                bin_row=i, bin_column=j, verbose=False
+            )
+
+            num_samples_matrix[i, j] = len(these_indices)
+
+    region_id_matrix = special_connected_regions.find_connected_regions(
+        data_matrix=num_samples_matrix,
+        minimum_sum=min_training_sample_size,
+        grid_x_coords=x_bin_centers_metres,
+        grid_y_coords=y_bin_centers_metres
+    )
+    assert numpy.all(region_id_matrix > 0)
+
+    for i in range(num_bin_rows):
+        for j in range(num_bin_columns):
+            print((
+                'Bin {0:d}, {1:d} ... '
+                'nadir-relative x in [{2:.0f}, {3:.0f}) km ... '
+                'nadir-relative y in [{4:.0f}, {5:.0f}) km ... '
+                '{6:d} examples (in region {7:d} with {8:d} examples)'
+            ).format(
+                i, j,
+                METRES_TO_KM * nadir_relative_x_cutoffs_metres[j],
+                METRES_TO_KM * nadir_relative_x_cutoffs_metres[j + 1],
+                METRES_TO_KM * nadir_relative_y_cutoffs_metres[i],
+                METRES_TO_KM * nadir_relative_y_cutoffs_metres[i + 1],
+                num_samples_matrix[i, j],
+                region_id_matrix[i, j],
+                numpy.sum(
+                    num_samples_matrix[region_id_matrix == region_id_matrix[i, j]]
+                )
+            ))
+
+    # Do actual stuff.
     x_coord_model_matrix = numpy.full(
         (num_bin_rows, num_bin_columns), '', dtype='object'
     )
     y_coord_model_matrix = numpy.full(
         (num_bin_rows, num_bin_columns), '', dtype='object'
     )
+    num_regions = numpy.max(region_id_matrix)
 
-    num_bins = num_bin_rows * num_bin_columns
-    training_indices = numpy.array([], dtype=int)
-
-    for k in range(num_bins):
-        i, j = _linear_bin_index_to_2d(
-            linear_index=k,
-            nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
-            nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres
+    for k in range(num_regions):
+        these_bin_rows, these_bin_columns = numpy.where(
+            region_id_matrix == k + 1
         )
 
-        new_training_indices = _find_examples_in_bin(
-            nadir_relative_prediction_xs_metres=
-            nadir_relative_prediction_xs_metres,
-            nadir_relative_prediction_ys_metres=
-            nadir_relative_prediction_ys_metres,
-            nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
-            nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
-            linear_bin_index=k,
-            verbose=True
-        )
-
-        if not isinstance(x_coord_model_matrix[i, j], str):
-            continue
-
-        training_indices = numpy.concatenate(
-            (training_indices, new_training_indices), axis=0
-        )
-        if len(training_indices) < min_training_sample_size:
-            continue
-
-        future_training_indices = numpy.concatenate([
+        training_indices = numpy.concatenate([
             _find_examples_in_bin(
                 nadir_relative_prediction_xs_metres=
                 nadir_relative_prediction_xs_metres,
@@ -253,19 +230,12 @@ def train_models(
                 nadir_relative_prediction_ys_metres,
                 nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
                 nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
-                linear_bin_index=k_new,
-                verbose=False
+                bin_row=i, bin_column=j, verbose=False
             )
-            for k_new in range(k + 1, num_bins)
+            for i, j in zip(these_bin_rows, these_bin_columns)
         ])
 
-        if len(future_training_indices) < min_training_sample_size:
-            training_with_higher_bins = True
-            training_indices = numpy.concatenate((
-                training_indices, future_training_indices
-            ))
-        else:
-            training_with_higher_bins = False
+        assert len(training_indices) >= min_training_sample_size
 
         this_prediction_table_xarray = prediction_table_xarray.isel(
             {prediction_utils.EXAMPLE_DIM_KEY: training_indices}
@@ -276,54 +246,21 @@ def train_models(
             len(training_indices)
         )
 
-        print((
-            'Training model for nadir-relative x in [{0:.0f}, {1:.0f}) km and '
-            'nadir-relative y in [{2:.0f}, {3:.0f}) km with {4:d} examples...'
-        ).format(
-            METRES_TO_KM * nadir_relative_x_cutoffs_metres[j],
-            METRES_TO_KM * nadir_relative_x_cutoffs_metres[j + 1],
-            METRES_TO_KM * nadir_relative_y_cutoffs_metres[i],
-            METRES_TO_KM * nadir_relative_y_cutoffs_metres[i + 1],
-            len(training_indices)
+        print('Training model for region {0:d} with {1:d} examples...'.format(
+            k + 1, len(training_indices)
         ))
-
-        x_coord_model_matrix[i, j], y_coord_model_matrix[i, j] = (
-            basic_iso_reg.train_models(
-                this_prediction_table_xarray
-            )
+        this_x_model_object, this_y_model_object = basic_iso_reg.train_models(
+            this_prediction_table_xarray
         )
 
-        for k_prev in range(k):
-            i_prev, j_prev = _linear_bin_index_to_2d(
-                linear_index=k_prev,
-                nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
-                nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres
-            )
+        for i, j in zip(these_bin_rows, these_bin_columns):
+            x_coord_model_matrix[i, j] = this_x_model_object
+            y_coord_model_matrix[i, j] = this_y_model_object
 
-            if not isinstance(x_coord_model_matrix[i_prev, j_prev], str):
-                continue
-
-            x_coord_model_matrix[i_prev, j_prev] = x_coord_model_matrix[i, j]
-            y_coord_model_matrix[i_prev, j_prev] = y_coord_model_matrix[i, j]
-
-        if training_with_higher_bins:
-            for k_future in range(k + 1, num_bins):
-                i_future, j_future = _linear_bin_index_to_2d(
-                    linear_index=k_future,
-                    nadir_relative_x_cutoffs_metres=
-                    nadir_relative_x_cutoffs_metres,
-                    nadir_relative_y_cutoffs_metres=
-                    nadir_relative_y_cutoffs_metres
-                )
-
-                x_coord_model_matrix[i_future, j_future] = (
-                    x_coord_model_matrix[i, j]
-                )
-                y_coord_model_matrix[i_future, j_future] = (
-                    y_coord_model_matrix[i, j]
-                )
-
-        training_indices = numpy.array([], dtype=int)
+    for i in range(num_bin_rows):
+        for j in range(num_bin_columns):
+            assert not isinstance(x_coord_model_matrix[i, j], str)
+            assert not isinstance(y_coord_model_matrix[i, j], str)
 
     return x_coord_model_matrix, y_coord_model_matrix
 
@@ -371,58 +308,50 @@ def apply_models(
     error_checking.assert_is_numpy_array(
         y_coord_model_matrix, exact_dimensions=expected_dim
     )
-
-    num_bins = num_bin_rows * num_bin_columns
     new_prediction_tables_xarray = []
 
-    for k in range(num_bins):
-        i, j = _linear_bin_index_to_2d(
-            linear_index=k,
-            nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
-            nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres
-        )
+    for i in range(num_bin_rows):
+        for j in range(num_bin_columns):
+            example_indices = _find_examples_in_bin(
+                nadir_relative_prediction_xs_metres=
+                nadir_relative_prediction_xs_metres,
+                nadir_relative_prediction_ys_metres=
+                nadir_relative_prediction_ys_metres,
+                nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
+                nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
+                bin_row=i, bin_column=j, verbose=True
+            )
 
-        example_indices = _find_examples_in_bin(
-            nadir_relative_prediction_xs_metres=
-            nadir_relative_prediction_xs_metres,
-            nadir_relative_prediction_ys_metres=
-            nadir_relative_prediction_ys_metres,
-            nadir_relative_x_cutoffs_metres=nadir_relative_x_cutoffs_metres,
-            nadir_relative_y_cutoffs_metres=nadir_relative_y_cutoffs_metres,
-            linear_bin_index=k,
-            verbose=True
-        )
+            if len(example_indices) == 0:
+                continue
 
-        if len(example_indices) == 0:
-            continue
+            new_prediction_table_xarray = prediction_table_xarray.isel(
+                {prediction_utils.EXAMPLE_DIM_KEY: example_indices}
+            )
+            npt = new_prediction_table_xarray
+            assert (
+                len(npt.coords[prediction_utils.EXAMPLE_DIM_KEY].values) ==
+                len(example_indices)
+            )
 
-        new_prediction_table_xarray = prediction_table_xarray.isel(
-            {prediction_utils.EXAMPLE_DIM_KEY: example_indices}
-        )
-        npt = new_prediction_table_xarray
-        assert (
-            len(npt.coords[prediction_utils.EXAMPLE_DIM_KEY].values) ==
-            len(example_indices)
-        )
+            print((
+                'Applying models for nadir-relative x in [{0:.0f}, {1:.0f}) km,'
+                ' and nadir-relative y in [{2:.0f}, {3:.0f}) km, to {4:d} '
+                'examples...'
+            ).format(
+                METRES_TO_KM * nadir_relative_x_cutoffs_metres[j],
+                METRES_TO_KM * nadir_relative_x_cutoffs_metres[j + 1],
+                METRES_TO_KM * nadir_relative_y_cutoffs_metres[i],
+                METRES_TO_KM * nadir_relative_y_cutoffs_metres[i + 1],
+                len(example_indices)
+            ))
 
-        print((
-            'Applying models for nadir-relative x in [{0:.0f}, {1:.0f}) km,'
-            ' and nadir-relative y in [{2:.0f}, {3:.0f}) km, to {4:d} '
-            'examples...'
-        ).format(
-            METRES_TO_KM * nadir_relative_x_cutoffs_metres[j],
-            METRES_TO_KM * nadir_relative_x_cutoffs_metres[j + 1],
-            METRES_TO_KM * nadir_relative_y_cutoffs_metres[i],
-            METRES_TO_KM * nadir_relative_y_cutoffs_metres[i + 1],
-            len(example_indices)
-        ))
-
-        new_prediction_table_xarray = basic_iso_reg.apply_models(
-            prediction_table_xarray=new_prediction_table_xarray,
-            x_coord_model_object=x_coord_model_matrix[i, j],
-            y_coord_model_object=y_coord_model_matrix[i, j]
-        )
-        new_prediction_tables_xarray.append(new_prediction_table_xarray)
+            new_prediction_table_xarray = basic_iso_reg.apply_models(
+                prediction_table_xarray=new_prediction_table_xarray,
+                x_coord_model_object=x_coord_model_matrix[i, j],
+                y_coord_model_object=y_coord_model_matrix[i, j]
+            )
+            new_prediction_tables_xarray.append(new_prediction_table_xarray)
 
     new_prediction_table_xarray = prediction_utils.concat_over_examples(
         new_prediction_tables_xarray
