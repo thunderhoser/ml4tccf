@@ -384,6 +384,9 @@ def apply_models(
                 numpy.logical_and(x_flags, y_flags)
             )[0]
 
+            if len(example_indices) == 0:
+                continue
+
             new_prediction_table_xarray = prediction_table_xarray.isel(
                 {prediction_utils.EXAMPLE_DIM_KEY: example_indices}
             )
