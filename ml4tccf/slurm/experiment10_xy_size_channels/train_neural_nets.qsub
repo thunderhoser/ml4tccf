@@ -69,7 +69,7 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --a_deck_file_name="${A_DECK_FILE_NAME}" \
 --scalar_a_deck_field_names "absolute_latitude_deg_n" "longitude_cosine" "longitude_sine" "intensity_m_s01" "sea_level_pressure_pa" \
 --remove_nontropical_systems=1 \
---use_xy_coords_as_predictors=${use_xy_flag} \
+--use_xy_coords_as_predictors=1 \
 --use_shuffled_data=1 \
 --satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
 --training_years 2017 2018 2019 2020 2022 \
