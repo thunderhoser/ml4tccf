@@ -59,7 +59,7 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.OPTIMIZER_FUNCTION_KEY: keras.optimizers.Adam()
 }
 
-GRID_ROW_COUNTS = numpy.array([300, 400, 500, 600], dtype=int)
+GRID_ROW_COUNTS = numpy.array([300, 400, 500, 590], dtype=int)
 LAG_TIME_COUNTS = numpy.array([3, 4, 5, 6, 7], dtype=int)
 FIRST_LAYER_FILTER_COUNTS = numpy.array([10, 20, 30, 40], dtype=int)
 
@@ -79,7 +79,7 @@ def _run():
                     LAG_TIME_COUNTS[j], 5
                 ], dtype=int)
 
-                num_conv_blocks = 8 if GRID_ROW_COUNTS[i] == 600 else 7
+                num_conv_blocks = 8 if GRID_ROW_COUNTS[i] == 590 else 7
                 num_channels_by_conv_layer = numpy.linspace(
                     1, num_conv_blocks, num=num_conv_blocks, dtype=int
                 ) * FIRST_LAYER_FILTER_COUNTS[k]
