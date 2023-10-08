@@ -1117,6 +1117,20 @@ def data_generator_shuffled(option_dict):
                 column_translations_low_res_px
             )
 
+        # TODO(thunderhoser): This is a HACK.  Should be controlled by an input
+        # arg.
+        final_axis_length = (
+            len(low_res_wavelengths_microns) +
+            2 * int(use_xy_coords_as_predictors)
+        )
+        new_dimensions = (
+            vector_predictor_matrix.shape[:3] +
+            (len(lag_times_minutes), final_axis_length)
+        )
+        vector_predictor_matrix = numpy.reshape(
+            vector_predictor_matrix, new_dimensions
+        )
+
         predictor_matrices = [vector_predictor_matrix]
         if scalar_predictor_matrix is not None:
             predictor_matrices.append(scalar_predictor_matrix)
