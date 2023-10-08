@@ -61,7 +61,7 @@ DEFAULT_OPTION_DICT = {
 
 GRID_ROW_COUNTS = numpy.array([300, 400, 500, 600], dtype=int)
 LAG_TIME_COUNTS = numpy.array([3, 4, 5, 6, 7], dtype=int)
-FIRST_LAYER_FILTER_COUNTS = numpy.array([30, 40, 50, 60], dtype=int)
+FIRST_LAYER_FILTER_COUNTS = numpy.array([10, 20, 30, 40], dtype=int)
 
 
 def _run():
