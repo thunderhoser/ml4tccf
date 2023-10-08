@@ -16,7 +16,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import error_checking
+from gewittergefahr.gg_utils import error_checking
 
 
 def _find_one_connected_region(
@@ -165,24 +165,27 @@ def find_connected_regions(
     while not numpy.all(region_id_matrix > -1):
         prev_region_id_matrix = region_id_matrix + 0
 
-        unassigned_indices_linear = numpy.where(
+        seed_indices_linear = numpy.where(
             numpy.ravel(region_id_matrix) == -1
         )[0]
-        seed_index_linear = numpy.random.choice(
-            unassigned_indices_linear, size=1, replace=False
-        )[0]
-        seed_row, seed_column = numpy.unravel_index(
-            seed_index_linear, (num_grid_rows, num_grid_columns)
-        )
+        numpy.random.shuffle(seed_indices_linear)
 
-        region_id_matrix = _find_one_connected_region(
-            data_matrix=data_matrix,
-            seed_row=seed_row, seed_column=seed_column,
-            minimum_sum=minimum_sum,
-            region_id_matrix=region_id_matrix,
-            grid_x_coords=grid_x_coords,
-            grid_y_coords=grid_y_coords
-        )
+        for this_linear_index in seed_indices_linear:
+            seed_row, seed_column = numpy.unravel_index(
+                this_linear_index, (num_grid_rows, num_grid_columns)
+            )
+
+            region_id_matrix = _find_one_connected_region(
+                data_matrix=data_matrix,
+                seed_row=seed_row, seed_column=seed_column,
+                minimum_sum=minimum_sum,
+                region_id_matrix=region_id_matrix,
+                grid_x_coords=grid_x_coords,
+                grid_y_coords=grid_y_coords
+            )
+
+            if not numpy.all(prev_region_id_matrix == region_id_matrix):
+                break
 
         if numpy.all(prev_region_id_matrix == region_id_matrix):
             break

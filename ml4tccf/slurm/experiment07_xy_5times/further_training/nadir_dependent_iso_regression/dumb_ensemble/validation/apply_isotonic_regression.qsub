@@ -54,6 +54,7 @@ while ($i <= ${#BEST_MODEL_INDICES})
     --input_prediction_file_name="${model_dir_name}/validation/with_random_seed/predictions_${cyclone_id_string}.nc" \
     --input_model_file_name="${model_dir_name}/nadir_dependent_iso_regression/isotonic_regression.dill" \
     --input_extended_best_track_file_name="${EXTENDED_BEST_TRACK_FILE_NAME}" \
+    --use_2d_bins=0 \
     --output_prediction_file_name="${model_dir_name}/nadir_dependent_iso_regression/validation/with_random_seed/predictions_${cyclone_id_string}.nc"
     
     @ i = $i + 1
