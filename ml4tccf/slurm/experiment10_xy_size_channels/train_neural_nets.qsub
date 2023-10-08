@@ -44,9 +44,9 @@ echo $output_dir_name
 
 set POSSIBLE_LAG_TIMES_MINUTES=("0" "30" "60" "90" "120" "150" "180")
 set lag_time_string_minutes=""
-set i=0
+set i=1
 
-while ($i < $num_lag_times)
+while ($i <= $num_lag_times)
     set lag_time_string_minutes="${lag_time_string_minutes} ${POSSIBLE_LAG_TIMES_MINUTES[$i]}"
     @ i++
 end
