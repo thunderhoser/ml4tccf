@@ -38,7 +38,7 @@ set CYCLONE_ID_STRINGS=("2021AL01" "2021AL02" "2021AL03" "2021AL04" "2021AL05" "
 
 set i=$SLURM_ARRAY_TASK_ID
 
-while ($i <= `expr $SLURM_ARRAY_TASK_ID + 5` && $i <= $#CYCLONE_ID_STRINGS)
+while ($i <= `expr $SLURM_ARRAY_TASK_ID` && $i <= $#CYCLONE_ID_STRINGS)
     set j=1
     
     while ($j <= ${#BEST_MODEL_INDICES})
