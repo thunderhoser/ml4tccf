@@ -1,0 +1,46 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_error_histograms"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --array=8,19,39,54
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_error_histograms_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment10_xy_size_channels/further_training"
+
+set GRID_ROW_COUNTS=("300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "590" "590" "590" "590" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "590" "590" "590" "590" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "590" "590" "590" "590" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "590" "590" "590" "590" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "590" "590" "590" "590")
+set LAG_TIME_COUNTS=("3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7")
+set FIRST_LAYER_FILTER_COUNTS=("10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40")
+
+
+set num_first_layer_filters=${FIRST_LAYER_FILTER_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$SLURM_ARRAY_TASK_ID]}
+set num_batches_per_epoch=${BATCHES_PER_EPOCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set use_xy_flag=${USE_XY_FLAGS[$SLURM_ARRAY_TASK_ID]}
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-epoch=${num_batches_per_epoch}"
+echo $model_dir_name
+
+python3 -u "${CODE_DIR_NAME}/plot_error_histograms_scalar.py" \
+--input_prediction_file_pattern="${model_dir_name}/nadir_dependent_iso_regression_2d/validation/predictions_*.nc" \
+--plot_orig_errors=1 \
+--output_dir_name="${model_dir_name}/nadir_dependent_iso_regression_2d/validation/error_histograms"
