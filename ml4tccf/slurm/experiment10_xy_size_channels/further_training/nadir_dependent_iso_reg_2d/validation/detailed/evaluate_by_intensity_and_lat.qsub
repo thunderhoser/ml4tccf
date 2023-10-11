@@ -31,8 +31,7 @@ set GRID_ROW_COUNTS=("300" "300" "300" "300" "400" "400" "400" "400" "500" "500"
 set LAG_TIME_COUNTS=("3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7")
 set FIRST_LAYER_FILTER_COUNTS=("10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40" "10" "20" "30" "40")
 
-
-set BEST_MODEL_INDICES=(8 19 39 54)
+set BEST_MODEL_INDICES=(1 2 5 17 18 21 33 49 65)
 
 set WIND_CUTOFF_STRINGS=("max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=-inf-05.0" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=5.0-15.0" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=15.0-25.0" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=25.0-35.0" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=35.0-45.0" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=45.0-55.0" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=55.0-65.0" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=65.0-inf" "max_wind_kt=0.0-50.0_tc_center_latitude_deg_n=all" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=-inf-05.0" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=5.0-15.0" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=15.0-25.0" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=25.0-35.0" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=35.0-45.0" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=45.0-55.0" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=55.0-65.0" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=65.0-inf" "max_wind_kt=50.0-80.0_tc_center_latitude_deg_n=all" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=-inf-05.0" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=5.0-15.0" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=15.0-25.0" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=25.0-35.0" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=35.0-45.0" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=45.0-55.0" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=55.0-65.0" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=65.0-inf" "max_wind_kt=80.0-inf_tc_center_latitude_deg_n=all" "max_wind_kt=all_tc_center_latitude_deg_n=-inf-05.0" "max_wind_kt=all_tc_center_latitude_deg_n=5.0-15.0" "max_wind_kt=all_tc_center_latitude_deg_n=15.0-25.0" "max_wind_kt=all_tc_center_latitude_deg_n=25.0-35.0" "max_wind_kt=all_tc_center_latitude_deg_n=35.0-45.0" "max_wind_kt=all_tc_center_latitude_deg_n=45.0-55.0" "max_wind_kt=all_tc_center_latitude_deg_n=55.0-65.0" "max_wind_kt=all_tc_center_latitude_deg_n=65.0-inf" "max_wind_kt=all_tc_center_latitude_deg_n=all")
 set wind_cutoff_string=${WIND_CUTOFF_STRINGS[$SLURM_ARRAY_TASK_ID]}
@@ -42,14 +41,13 @@ set i=1
 while ($i <= ${#BEST_MODEL_INDICES})
     set model_index=${BEST_MODEL_INDICES[$i]}
     
+    set num_grid_rows=${GRID_ROW_COUNTS[$model_index]}
+    set num_lag_times=${LAG_TIME_COUNTS[$model_index]}
     set num_first_layer_filters=${FIRST_LAYER_FILTER_COUNTS[$model_index]}
-    set wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$model_index]}
-    set num_batches_per_epoch=${BATCHES_PER_EPOCH_COUNTS[$model_index]}
-    set use_xy_flag=${USE_XY_FLAGS[$model_index]}
     
-    set model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-epoch=${num_batches_per_epoch}"
+    set model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_num-lag-times=${num_lag_times}_num-first-layer-filters=${num_first_layer_filters}"
     echo $model_dir_name
-
+    
     python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
     --input_prediction_file_pattern="${model_dir_name}/nadir_dependent_iso_regression_2d/validation_by_intensity_cutoffs=50-80/${wind_cutoff_string}/predictions*.nc" \
     --num_bootstrap_reps=100 \
@@ -71,12 +69,11 @@ set i=1
 while ($i <= ${#BEST_MODEL_INDICES})
     set model_index=${BEST_MODEL_INDICES[$i]}
     
+    set num_grid_rows=${GRID_ROW_COUNTS[$model_index]}
+    set num_lag_times=${LAG_TIME_COUNTS[$model_index]}
     set num_first_layer_filters=${FIRST_LAYER_FILTER_COUNTS[$model_index]}
-    set wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$model_index]}
-    set num_batches_per_epoch=${BATCHES_PER_EPOCH_COUNTS[$model_index]}
-    set use_xy_flag=${USE_XY_FLAGS[$model_index]}
     
-    set model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}_num-first-layer-filters=${num_first_layer_filters}_use-xy-coords=${use_xy_flag}_num-batches-per-epoch=${num_batches_per_epoch}"
+    set model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_num-lag-times=${num_lag_times}_num-first-layer-filters=${num_first_layer_filters}"
     echo $model_dir_name
 
     python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \

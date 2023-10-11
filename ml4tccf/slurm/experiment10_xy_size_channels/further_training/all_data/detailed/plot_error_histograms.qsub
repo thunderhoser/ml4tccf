@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="plot_evaluation_by_basin"
+#SBATCH --job-name="plot_error_histograms"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="batch"
@@ -18,7 +18,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_evaluation_by_basin_%A_%a.out
+#SBATCH --output=plot_error_histograms_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -38,7 +38,7 @@ set num_first_layer_filters=${FIRST_LAYER_FILTER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_num-lag-times=${num_lag_times}_num-first-layer-filters=${num_first_layer_filters}"
 echo $model_dir_name
 
-python3 -u "${CODE_DIR_NAME}/plot_evaluation_by_basin.py" \
---input_evaluation_file_names "${model_dir_name}/nadir_dependent_iso_regression_2d/validation_by_basin/basin=AL/evaluation.nc" "${model_dir_name}/nadir_dependent_iso_regression_2d/validation_by_basin/basin=EP/evaluation.nc" "${model_dir_name}/nadir_dependent_iso_regression_2d/validation_by_basin/basin=WP/evaluation.nc" \
---confidence_level=0.95 \
---output_dir_name="${model_dir_name}/nadir_dependent_iso_regression_2d/validation_by_basin"
+python3 -u "${CODE_DIR_NAME}/plot_error_histograms_scalar.py" \
+--input_prediction_file_pattern="${model_dir_name}/all_data/predictions_*.nc" \
+--plot_orig_errors=1 \
+--output_dir_name="${model_dir_name}/all_data/error_histograms"
