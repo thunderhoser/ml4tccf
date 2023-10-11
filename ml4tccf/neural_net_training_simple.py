@@ -1067,7 +1067,6 @@ def data_generator_shuffled(option_dict):
 
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
-        print(vector_predictor_matrix.shape)
         (
             _, vector_predictor_matrix,
             row_translations_low_res_px, column_translations_low_res_px
@@ -1079,7 +1078,6 @@ def data_generator_shuffled(option_dict):
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=-10.
         )
-        print(vector_predictor_matrix.shape)
 
         vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
             data_matrix=vector_predictor_matrix,
@@ -1881,6 +1879,19 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
             column_translations_low_res_px
         )
 
+    # TODO(thunderhoser): This is a HACK.  Should be controlled by an input arg.
+    final_axis_length = (
+        len(low_res_wavelengths_microns) +
+        2 * int(use_xy_coords_as_predictors)
+    )
+    new_dimensions = (
+        vector_predictor_matrix.shape[:3] +
+        (len(lag_times_minutes), final_axis_length)
+    )
+    vector_predictor_matrix = numpy.reshape(
+        vector_predictor_matrix, new_dimensions
+    )
+
     predictor_matrices = [vector_predictor_matrix]
     if scalar_predictor_matrix is not None:
         predictor_matrices.append(scalar_predictor_matrix)
@@ -2074,6 +2085,7 @@ def create_data_specific_trans(
 
     idxs = good_time_indices
     brightness_temp_matrix_kelvins = brightness_temp_matrix_kelvins[idxs, ...]
+    xy_coord_matrix = xy_coord_matrix[idxs, ...]
     grid_spacings_km = grid_spacings_km[idxs, ...]
     cyclone_center_latitudes_deg_n = cyclone_center_latitudes_deg_n[idxs, ...]
     target_times_unix_sec = target_times_unix_sec[idxs, ...]
@@ -2159,6 +2171,19 @@ def create_data_specific_trans(
             num_columns_to_keep=orig_num_columns_low_res,
             for_high_res=False
         )[:, 0, :, :]
+    )
+
+    # TODO(thunderhoser): This is a HACK.  Should be controlled by an input arg.
+    final_axis_length = (
+        len(low_res_wavelengths_microns) +
+        2 * int(use_xy_coords_as_predictors)
+    )
+    new_dimensions = (
+        vector_predictor_matrix.shape[:3] +
+        (len(lag_times_minutes), final_axis_length)
+    )
+    vector_predictor_matrix = numpy.reshape(
+        vector_predictor_matrix, new_dimensions
     )
 
     predictor_matrices = [vector_predictor_matrix]
