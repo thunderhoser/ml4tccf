@@ -14,7 +14,7 @@ import number_rounding
 import time_conversion
 import error_checking
 
-TOLERANCE = 1e-6
+TOLERANCE_KM = 2e-6
 
 MODEL_FILE_KEY = 'model_file_name'
 ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
@@ -206,7 +206,7 @@ def concat_over_ensemble_members(prediction_tables_xarray,
         prediction_tables_xarray[i][GRID_SPACING_KEY].values = (
             number_rounding.round_to_nearest(
                 prediction_tables_xarray[i][GRID_SPACING_KEY].values,
-                TOLERANCE
+                TOLERANCE_KM
             )
         )
 
