@@ -197,11 +197,13 @@ def concat_over_ensemble_members(prediction_tables_xarray,
             for c in enhanced_cyclone_id_strings
         ], dtype=int)
 
-        print(len(good_indices))
-
         prediction_tables_xarray[i] = prediction_tables_xarray[i].isel({
             EXAMPLE_DIM_KEY: good_indices
         })
+
+        numpy.set_printoptions(threshold=sys.maxsize)
+
+        print(prediction_tables_xarray[i][GRID_SPACING_KEY].values)
 
     return xarray.concat(
         prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
