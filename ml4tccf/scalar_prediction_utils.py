@@ -210,6 +210,14 @@ def concat_over_ensemble_members(prediction_tables_xarray,
             )
         )
 
+        these_diffs = numpy.absolute(
+            prediction_tables_xarray[i][GRID_SPACING_KEY].values -
+            prediction_tables_xarray[0][GRID_SPACING_KEY].values
+        )
+
+        numpy.set_printoptions(threshold=sys.maxsize)
+        print(these_diffs)
+
     return xarray.concat(
         prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
         data_vars='minimal', coords='minimal', compat='identical',
