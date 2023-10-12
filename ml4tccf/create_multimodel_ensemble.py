@@ -93,7 +93,8 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
 
     prediction_table_xarray = (
         scalar_prediction_utils.concat_over_ensemble_members(
-            prediction_tables_xarray
+            prediction_tables_xarray=prediction_tables_xarray,
+            use_only_common_examples=True
         )
     )
 
