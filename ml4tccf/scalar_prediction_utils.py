@@ -10,8 +10,11 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import number_rounding
 import time_conversion
 import error_checking
+
+TOLERANCE = 1e-6
 
 MODEL_FILE_KEY = 'model_file_name'
 ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
@@ -200,10 +203,12 @@ def concat_over_ensemble_members(prediction_tables_xarray,
         prediction_tables_xarray[i] = prediction_tables_xarray[i].isel({
             EXAMPLE_DIM_KEY: good_indices
         })
-
-        numpy.set_printoptions(threshold=sys.maxsize)
-
-        print(prediction_tables_xarray[i][GRID_SPACING_KEY].values)
+        prediction_tables_xarray[i][GRID_SPACING_KEY].values = (
+            number_rounding.round_to_nearest(
+                prediction_tables_xarray[i][GRID_SPACING_KEY].values,
+                TOLERANCE
+            )
+        )
 
     return xarray.concat(
         prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
