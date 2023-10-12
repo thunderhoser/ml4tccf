@@ -101,16 +101,89 @@ def concat_over_examples(prediction_tables_xarray):
     )
 
 
-def concat_over_ensemble_members(prediction_tables_xarray):
+def concat_over_ensemble_members(prediction_tables_xarray,
+                                 use_only_common_examples=False):
     """Concatenates prediction data over many ensemble members.
 
     :param prediction_tables_xarray: 1-D list of input tables, in format
         returned by `prediction_io.read_file`.
+    :param use_only_common_examples: Boolean flag.  If True, will allow
+        different tables to contain different examples and will concatenate only
+        for common examples.
     :return: prediction_table_xarray: xarray table with all predictions.
     :raises: ValueError: if models are not identical.
     """
 
+    from gewittergefahr.gg_utils import time_conversion
+    from gewittergefahr.gg_utils import error_checking
+
+    error_checking.assert_is_boolean(use_only_common_examples)
+
+    if not use_only_common_examples:
+        return xarray.concat(
+            prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
+            data_vars='minimal', coords='minimal', compat='identical',
+            join='exact'
+        )
+
+    cyclone_target_time_strings = [
+        '{0:s}_{1:s}'.format(
+            c,
+            time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M%S')
+        ) for c, t in zip(
+            prediction_tables_xarray[0][CYCLONE_ID_KEY].values,
+            prediction_tables_xarray[0][TARGET_TIME_KEY].values
+        )
+    ]
+
+    cyclone_target_time_strings = set(cyclone_target_time_strings)
+
+    for this_table in prediction_tables_xarray:
+        these_cyclone_target_time_strings = [
+            '{0:s}_{1:s}'.format(
+                c,
+                time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M%S')
+            ) for c, t in zip(
+                this_table[CYCLONE_ID_KEY].values,
+                this_table[TARGET_TIME_KEY].values
+            )
+        ]
+
+        these_cyclone_target_time_strings = set(
+            these_cyclone_target_time_strings
+        )
+
+        cyclone_target_time_strings = cyclone_target_time_strings.intersection(
+            these_cyclone_target_time_strings
+        )
+
+    assert len(cyclone_target_time_strings) > 0
+
+    cyclone_target_time_strings = list(cyclone_target_time_strings)
+    cyclone_target_time_strings.sort()
+
+    for i in range(len(prediction_tables_xarray)):
+        these_cyclone_target_time_strings = [
+            '{0:s}_{1:s}'.format(
+                c,
+                time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M%S')
+            ) for c, t in zip(
+                prediction_tables_xarray[i][CYCLONE_ID_KEY].values,
+                prediction_tables_xarray[i][TARGET_TIME_KEY].values
+            )
+        ]
+
+        good_indices = numpy.where(numpy.isin(
+            numpy.array(these_cyclone_target_time_strings),
+            numpy.array(cyclone_target_time_strings)
+        ))[0]
+
+        prediction_tables_xarray[i] = prediction_tables_xarray[i].isel({
+            EXAMPLE_DIM_KEY: good_indices
+        })
+
     return xarray.concat(
         prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
-        data_vars='minimal', coords='minimal', compat='identical', join='exact'
+        data_vars='minimal', coords='minimal', compat='identical',
+        join='exact'
     )
