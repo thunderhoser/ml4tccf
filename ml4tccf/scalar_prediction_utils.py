@@ -180,10 +180,10 @@ def concat_over_ensemble_members(prediction_tables_xarray,
             )
         ]
 
-        good_indices = numpy.where(numpy.isin(
-            numpy.array(these_cyclone_target_time_strings),
-            numpy.array(cyclone_target_time_strings)
-        ))[0]
+        good_indices = numpy.array([
+            these_cyclone_target_time_strings.index(c)
+            for c in cyclone_target_time_strings
+        ], dtype=int)
 
         prediction_tables_xarray[i] = prediction_tables_xarray[i].isel({
             EXAMPLE_DIM_KEY: good_indices
