@@ -10,11 +10,8 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import number_rounding
 import time_conversion
 import error_checking
-
-TOLERANCE_KM = 2e-6
 
 MODEL_FILE_KEY = 'model_file_name'
 ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
@@ -203,20 +200,22 @@ def concat_over_ensemble_members(prediction_tables_xarray,
         prediction_tables_xarray[i] = prediction_tables_xarray[i].isel({
             EXAMPLE_DIM_KEY: good_indices
         })
-        prediction_tables_xarray[i][GRID_SPACING_KEY].values = (
-            number_rounding.round_to_nearest(
-                prediction_tables_xarray[i][GRID_SPACING_KEY].values,
-                TOLERANCE_KM
+
+    grid_spacing_matrix_km = numpy.concatenate([
+        numpy.expand_dims(t[GRID_SPACING_KEY].values, axis=1)
+        for t in prediction_tables_xarray
+    ], axis=1)
+
+    grid_spacings_km = numpy.mean(grid_spacing_matrix_km, axis=1)
+    print(grid_spacings_km)
+
+    for i in range(len(prediction_tables_xarray)):
+        prediction_tables_xarray[i].assign({
+            GRID_SPACING_KEY: (
+                prediction_tables_xarray[i][GRID_SPACING_KEY].dims,
+                grid_spacings_km
             )
-        )
-
-        these_diffs = numpy.absolute(
-            prediction_tables_xarray[i][GRID_SPACING_KEY].values -
-            prediction_tables_xarray[0][GRID_SPACING_KEY].values
-        )
-
-        numpy.set_printoptions(threshold=sys.maxsize)
-        print(these_diffs)
+        })
 
     return xarray.concat(
         prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
