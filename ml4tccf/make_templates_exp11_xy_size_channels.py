@@ -146,7 +146,7 @@ def _run():
                 model_object = tcnn_architecture.create_model(option_dict)
 
                 output_file_name = (
-                    '{0:s}/num-grid-rows={1:03d}_num-lag-times={2:d}_'
+                    '{0:s}/num-grid-rows={1:s}_num-lag-times={2:d}_'
                     'num-first-layer-filters={3:02d}/model.h5'
                 ).format(
                     OUTPUT_DIR_NAME,
