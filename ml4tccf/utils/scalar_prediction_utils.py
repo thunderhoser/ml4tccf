@@ -2,11 +2,8 @@
 
 import numpy
 import xarray
-from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import error_checking
-
-TOLERANCE_KM = 2e-6
 
 MODEL_FILE_KEY = 'model_file_name'
 ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
@@ -202,10 +199,9 @@ def concat_over_ensemble_members(prediction_tables_xarray,
     ], axis=1)
 
     grid_spacings_km = numpy.mean(grid_spacing_matrix_km, axis=1)
-    print(grid_spacings_km)
 
     for i in range(len(prediction_tables_xarray)):
-        prediction_tables_xarray[i].assign({
+        prediction_tables_xarray[i] = prediction_tables_xarray[i].assign({
             GRID_SPACING_KEY: (
                 prediction_tables_xarray[i][GRID_SPACING_KEY].dims,
                 grid_spacings_km

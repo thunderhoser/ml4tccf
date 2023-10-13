@@ -17,6 +17,7 @@ INPUT_DIMENSIONS_SCALAR_KEY = 'input_dimensions_scalar'
 INCLUDE_HIGH_RES_KEY = 'include_high_res_data'
 INCLUDE_SCALAR_DATA_KEY = 'include_scalar_data'
 NUM_CONV_LAYERS_KEY = 'num_conv_layers_by_block'
+POOLING_SIZE_KEY = 'pooling_size_by_block_px'
 NUM_CHANNELS_KEY = 'num_channels_by_conv_layer'
 CONV_DROPOUT_RATES_KEY = 'dropout_rate_by_conv_layer'
 
@@ -39,6 +40,7 @@ DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
     INCLUDE_SCALAR_DATA_KEY: False,
     NUM_CONV_LAYERS_KEY: numpy.full(11, 2, dtype=int),
+    POOLING_SIZE_KEY: numpy.full(10, 2, dtype=int),
     NUM_CHANNELS_KEY: numpy.array([
         2, 2, 4, 4, 16, 16, 32, 32, 64, 64, 96, 96, 128, 128, 184, 184,
         256, 256, 384, 384, 512, 512
@@ -82,6 +84,9 @@ def check_input_args(option_dict):
         architecture that includes scalar data as input.
     option_dict["num_conv_layers_by_block"]: length-B numpy array with number of
         conv layers for each block.
+    option_dict["pooling_size_by_block_px"]: length-B numpy array with size of
+        max-pooling window for each block.  For example, if you want 2-by-2
+        pooling in the [j]th block, make pooling_size_by_block_px[j] = 2.
     option_dict["num_channels_by_conv_layer"]: length-C numpy array with number
         of channels for each conv layer.
     option_dict["dropout_rate_by_conv_layer"]: length-C numpy array with dropout
@@ -178,6 +183,17 @@ def check_input_args(option_dict):
     num_conv_layers = numpy.sum(option_dict[NUM_CONV_LAYERS_KEY])
 
     error_checking.assert_is_numpy_array(
+        option_dict[POOLING_SIZE_KEY],
+        exact_dimensions=numpy.array([num_conv_layers], dtype=int)
+    )
+    error_checking.assert_is_integer_numpy_array(
+        option_dict[POOLING_SIZE_KEY]
+    )
+    error_checking.assert_is_geq_numpy_array(
+        option_dict[POOLING_SIZE_KEY], 2
+    )
+
+    error_checking.assert_is_numpy_array(
         option_dict[NUM_CHANNELS_KEY],
         exact_dimensions=numpy.array([num_conv_layers], dtype=int)
     )
@@ -246,6 +262,7 @@ def create_model(option_dict):
     include_high_res_data = option_dict[INCLUDE_HIGH_RES_KEY]
     include_scalar_data = option_dict[INCLUDE_SCALAR_DATA_KEY]
     num_conv_layers_by_block = option_dict[NUM_CONV_LAYERS_KEY]
+    pooling_size_by_block_px = option_dict[POOLING_SIZE_KEY]
     num_channels_by_conv_layer = option_dict[NUM_CHANNELS_KEY]
     dropout_rate_by_conv_layer = option_dict[CONV_DROPOUT_RATES_KEY]
     forecast_module_num_conv_layers = option_dict[FC_MODULE_NUM_CONV_LAYERS_KEY]
@@ -353,8 +370,10 @@ def create_model(option_dict):
                     )
 
             this_pooling_layer_object = architecture_utils.get_2d_pooling_layer(
-                num_rows_in_window=2, num_columns_in_window=2,
-                num_rows_per_stride=2, num_columns_per_stride=2,
+                num_rows_in_window=pooling_size_by_block_px[block_index],
+                num_columns_in_window=pooling_size_by_block_px[block_index],
+                num_rows_per_stride=pooling_size_by_block_px[block_index],
+                num_columns_per_stride=pooling_size_by_block_px[block_index],
                 pooling_type_string=architecture_utils.MAX_POOLING_STRING
             )
             layer_object = keras.layers.TimeDistributed(
@@ -405,8 +424,10 @@ def create_model(option_dict):
 
         if block_index != num_conv_blocks - 1:
             this_pooling_layer_object = architecture_utils.get_2d_pooling_layer(
-                num_rows_in_window=2, num_columns_in_window=2,
-                num_rows_per_stride=2, num_columns_per_stride=2,
+                num_rows_in_window=pooling_size_by_block_px[block_index],
+                num_columns_in_window=pooling_size_by_block_px[block_index],
+                num_rows_per_stride=pooling_size_by_block_px[block_index],
+                num_columns_per_stride=pooling_size_by_block_px[block_index],
                 pooling_type_string=architecture_utils.MAX_POOLING_STRING
             )
             layer_object = keras.layers.TimeDistributed(
