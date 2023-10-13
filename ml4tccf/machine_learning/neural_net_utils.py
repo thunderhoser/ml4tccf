@@ -15,6 +15,7 @@ from ml4tccf.machine_learning import custom_losses_gridded
 from ml4tccf.machine_learning import custom_metrics_gridded
 from ml4tccf.machine_learning import cnn_architecture
 from ml4tccf.machine_learning import u_net_architecture
+from ml4tccf.machine_learning import temporal_cnn_architecture
 from ml4tccf.outside_code import accum_grad_optimizer
 
 TOLERANCE = 1e-6
@@ -1039,13 +1040,16 @@ def read_model(hdf5_file_name):
                         )
                     )
 
-            # TODO(thunderhoser): HACK
-            try:
-                model_object = cnn_architecture.create_model(architecture_dict)
-            except:
-                model_object = cnn_architecture.create_intensity_model(
-                    architecture_dict
-                )
+            if temporal_cnn_architecture.FC_MODULE_USE_3D_CONV in architecture_dict:
+                model_object = temporal_cnn_architecture.create_model(architecture_dict)
+            else:
+                # TODO(thunderhoser): HACK
+                try:
+                    model_object = cnn_architecture.create_model(architecture_dict)
+                except:
+                    model_object = cnn_architecture.create_intensity_model(
+                        architecture_dict
+                    )
 
     model_object.load_weights(hdf5_file_name)
     return model_object
