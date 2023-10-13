@@ -207,7 +207,6 @@ def concat_over_ensemble_members(prediction_tables_xarray,
     ], axis=1)
 
     grid_spacings_km = numpy.mean(grid_spacing_matrix_km, axis=1)
-    print(grid_spacings_km)
 
     for i in range(len(prediction_tables_xarray)):
         prediction_tables_xarray[i] = prediction_tables_xarray[i].assign({
