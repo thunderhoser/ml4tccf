@@ -210,7 +210,7 @@ def concat_over_ensemble_members(prediction_tables_xarray,
     print(grid_spacings_km)
 
     for i in range(len(prediction_tables_xarray)):
-        prediction_tables_xarray[i].assign({
+        prediction_tables_xarray[i] = prediction_tables_xarray[i].assign({
             GRID_SPACING_KEY: (
                 prediction_tables_xarray[i][GRID_SPACING_KEY].dims,
                 grid_spacings_km
