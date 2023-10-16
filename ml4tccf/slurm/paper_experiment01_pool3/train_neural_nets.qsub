@@ -1,0 +1,82 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="train_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --nodes=1
+#SBATCH --ntasks=8           # 8 tasks per node
+#SBATCH --cpus-per-task=2
+#SBATCH --ntasks-per-node=8  # 8 GPUs per node
+#SBATCH --exclusive
+#SBATCH --time=30:00:00
+#SBATCH --array=1-120%66
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=train_neural_nets_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment01_pool3/templates"
+set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment01_pool3"
+
+set TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022/shuffled_8hour_chunks_900by900/training_2017-2020_and_2022/simplified_all_wavelengths"
+set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022/shuffled_8hour_chunks_900by900/validation_2021/simplified_all_wavelengths"
+set A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/including_western_pacific/processed_a_decks_2017-2022_norm_params_2017-2020_and_2022.nc"
+
+set GRID_ROW_COUNTS=("300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700" "300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700" "300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700" "300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700" "300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300-pool-by-2" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700")
+set GRID_ROW_COUNTS_NUM_ONLY=("300" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700" "300" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700" "300" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700" "300" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700" "300" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "500" "500" "500" "500" "600" "600" "600" "600" "700" "700" "700" "700")
+set LAG_TIME_COUNTS=("3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "5" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "6" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7" "7")
+set FIRST_LAYER_FILTER_COUNTS=("10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25" "10" "15" "20" "25")
+
+set num_grid_rows=${GRID_ROW_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_grid_rows_num_only=${GRID_ROW_COUNTS_NUM_ONLY[$SLURM_ARRAY_TASK_ID]}
+set num_lag_times=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set num_first_layer_filters=${FIRST_LAYER_FILTER_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+set template_file_name="${TEMPLATE_DIR_NAME}/num-grid-rows=${num_grid_rows}_num-lag-times=${num_lag_times}_num-first-layer-filters=${num_first_layer_filters}/model.h5"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-grid-rows=${num_grid_rows}_num-lag-times=${num_lag_times}_num-first-layer-filters=${num_first_layer_filters}"
+echo $output_dir_name
+
+set POSSIBLE_LAG_TIMES_MINUTES=("0" "30" "60" "90" "120" "150" "180")
+set lag_time_string_minutes=""
+set i=1
+
+while ($i <= $num_lag_times)
+    set lag_time_string_minutes="${lag_time_string_minutes} ${POSSIBLE_LAG_TIMES_MINUTES[$i]}"
+    @ i++
+end
+
+echo $lag_time_string_minutes
+
+python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
+--input_template_file_name="${template_file_name}" \
+--output_model_dir_name="${output_dir_name}" \
+--lag_times_minutes ${lag_time_string_minutes} \
+--low_res_wavelengths_microns 3.900 6.185 6.950 \
+--num_examples_per_batch=3 \
+--max_examples_per_cyclone=2 \
+--num_rows_low_res=${num_grid_rows_num_only} \
+--num_columns_low_res=${num_grid_rows_num_only} \
+--data_aug_num_translations=3 \
+--data_aug_mean_translation_low_res_px=24 \
+--data_aug_stdev_translation_low_res_px=12 \
+--synoptic_times_only=0 \
+--a_deck_file_name="${A_DECK_FILE_NAME}" \
+--scalar_a_deck_field_names "absolute_latitude_deg_n" "longitude_cosine" "longitude_sine" "intensity_m_s01" "sea_level_pressure_pa" \
+--remove_nontropical_systems=1 \
+--use_xy_coords_as_predictors=0 \
+--use_shuffled_data=1 \
+--satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
+--training_years 2017 2018 2019 2020 2022 \
+--satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
+--validation_years 2021 \
+--num_epochs=1000 \
+--num_training_batches_per_epoch=168 \
+--num_validation_batches_per_epoch=56
