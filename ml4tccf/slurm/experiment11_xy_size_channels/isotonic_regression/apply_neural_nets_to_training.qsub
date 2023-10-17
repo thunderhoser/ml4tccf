@@ -58,7 +58,7 @@ while ($i <= `expr $SLURM_ARRAY_TASK_ID + 5` && $i <= $#CYCLONE_ID_STRINGS)
         --num_bnn_iterations=1 \
         --max_ensemble_size=100 \
         --data_aug_num_translations=8 \
-        --output_dir_name="${model_dir_name}/all_data"
+        --output_dir_name="${model_dir_name}/training"
     
         @ j = $j + 1
     end
