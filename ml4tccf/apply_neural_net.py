@@ -22,7 +22,7 @@ import neural_net_training_fancy as nn_training_fancy
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 LARGE_INTEGER = int(1e10)
-NUM_EXAMPLES_PER_BATCH = 32
+NUM_EXAMPLES_PER_BATCH = 10
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
