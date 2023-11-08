@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="evaluate_neural_nets"
+#SBATCH --job-name="compute_spread_vs_skill"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="gpu"
@@ -18,7 +18,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=evaluate_neural_nets_%A_%a.out
+#SBATCH --output=compute_spread_vs_skill_%A_%a.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -38,12 +38,12 @@ set num_first_layer_filters=${FIRST_LAYER_FILTER_COUNTS[$SLURM_ARRAY_TASK_ID]}
 set model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_num-lag-times=${num_lag_times}_num-first-layer-filters=${num_first_layer_filters}"
 echo $model_dir_name
 
-python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+python3 -u "${CODE_DIR_NAME}/compute_spread_vs_skill.py" \
 --input_prediction_file_pattern="${model_dir_name}/isotonic_regression/validation/predictions*.nc" \
---num_bootstrap_reps=100 \
 --num_xy_offset_bins=30 \
---xy_offset_limits_metres -45000 45000 \
+--xy_offset_limits_percentile 0.5 99.5 \
 --num_offset_distance_bins=30 \
---offset_distance_limits_metres 0 60000 \
---num_offset_direction_bins=36 \
---output_file_name="${model_dir_name}/isotonic_regression/validation/evaluation.nc"
+--offset_distance_limits_percentile 0.5 99.5 \
+--num_offset_direction_bins=30 \
+--offset_direction_limits_percentile 0.5 99.5 \
+--output_file_name="${model_dir_name}/isotonic_regression/validation/spread_vs_skill.nc"
