@@ -480,7 +480,7 @@ def _run(experiment_dir_name):
         for j in range(length_axis2):
             for k in range(length_axis3):
                 this_model_dir_name = (
-                    '{0:s}/num-grid-rows={1:03d}_num-lag-times={2:d}_'
+                    '{0:s}/num-grid-rows={1:s}_num-lag-times={2:d}_'
                     'num-first-layer-filters={3:02d}'
                 ).format(
                     experiment_dir_name,
