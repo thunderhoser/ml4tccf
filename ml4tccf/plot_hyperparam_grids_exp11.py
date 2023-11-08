@@ -75,7 +75,7 @@ BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
 SELECTED_MARKER_SIZE_GRID_CELLS = 0.175
-SELECTED_MARKER_INDICES = numpy.array([0, 0, 0], dtype=int)
+SELECTED_MARKER_INDICES = numpy.array([0, 3, 0], dtype=int)
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 MONO_FRACTION_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='cividis', lut=20)
