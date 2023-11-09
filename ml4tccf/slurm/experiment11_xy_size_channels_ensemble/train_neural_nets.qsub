@@ -1,0 +1,69 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="train_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="batch"
+#SBATCH --nodes=1
+#SBATCH --ntasks=8           # 8 tasks per node
+#SBATCH --cpus-per-task=2
+#SBATCH --ntasks-per-node=8  # 8 GPUs per node
+#SBATCH --exclusive
+#SBATCH --time=30:00:00
+#SBATCH --array=1-52
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=train_neural_nets_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment11_xy_size_channels_ensemble/templates"
+set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment11_xy_size_channels_ensemble"
+
+set TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022/shuffled_6hour_chunks/training_2017-2020_and_2022/simplified_all_wavelengths"
+set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022/shuffled_6hour_chunks/validation_2021/simplified_all_wavelengths"
+set A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/including_western_pacific/processed_a_decks_2017-2022_norm_params_2017-2020_and_2022.nc"
+
+set WAVELENGTH_GROUP_STRINGS=("8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200" "8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200")
+set ENSEMBLE_MEMBERS=("01" "01" "01" "01" "02" "02" "02" "02" "03" "03" "03" "03" "04" "04" "04" "04" "05" "05" "05" "05" "06" "06" "06" "06" "07" "07" "07" "07" "08" "08" "08" "08" "09" "09" "09" "09" "10" "10" "10" "10" "11" "11" "11" "11" "12" "12" "12" "12" "13" "13" "13" "13")
+
+set wavelength_group_string=${WAVELENGTH_GROUP_STRINGS[$SLURM_ARRAY_TASK_ID]}
+set ensemble_member=${ENSEMBLE_MEMBERS[$SLURM_ARRAY_TASK_ID]}
+
+set template_file_name="${TEMPLATE_DIR_NAME}/wavelengths-microns=${wavelength_group_string}_ensemble-member=${ensemble_member}/model.h5"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/wavelengths-microns=${wavelength_group_string}_ensemble-member=${ensemble_member}"
+echo $output_dir_name
+
+set wavelength_group_string="$wavelength_group_string:gas/-/ /"
+
+python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
+--input_template_file_name="${template_file_name}" \
+--output_model_dir_name="${output_dir_name}" \
+--lag_times_minutes 0 30 60 90 120 150 \
+--low_res_wavelengths_microns ${wavelength_group_string} \
+--num_examples_per_batch=32 \
+--max_examples_per_cyclone=3 \
+--num_rows_low_res=300 \
+--num_columns_low_res=300 \
+--data_aug_num_translations=2 \
+--data_aug_mean_translation_low_res_px=24 \
+--data_aug_stdev_translation_low_res_px=12 \
+--synoptic_times_only=0 \
+--a_deck_file_name="${A_DECK_FILE_NAME}" \
+--scalar_a_deck_field_names "absolute_latitude_deg_n" "longitude_cosine" "longitude_sine" "intensity_m_s01" "sea_level_pressure_pa" \
+--remove_nontropical_systems=1 \
+--use_xy_coords_as_predictors=0 \
+--use_shuffled_data=1 \
+--satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
+--training_years 2017 2018 2019 2020 2022 \
+--satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
+--validation_years 2021 \
+--num_epochs=1000 \
+--num_training_batches_per_epoch=36 \
+--num_validation_batches_per_epoch=12
