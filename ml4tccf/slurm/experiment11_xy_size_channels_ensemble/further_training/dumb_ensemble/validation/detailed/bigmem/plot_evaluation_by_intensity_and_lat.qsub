@@ -3,7 +3,7 @@
 #SBATCH --job-name="plot_evaluation_by_intensity_and_lat"
 #SBATCH --partition="bigmem"
 #SBATCH --account="gsd-hpcs"
-#SBATCH --qos="batch"
+#SBATCH --qos="gpu"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
