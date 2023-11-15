@@ -745,6 +745,7 @@ def get_target_times_and_scalar_predictors(
 
     for i in range(num_cyclones):
         this_num_times = len(target_times_by_cyclone_unix_sec[i])
+        print(target_times_by_cyclone_unix_sec[i])
 
         scalar_predictor_matrix_by_cyclone[i] = nn_utils.read_scalar_data(
             a_deck_file_name=a_deck_file_name,
