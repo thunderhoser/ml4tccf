@@ -731,9 +731,6 @@ def get_target_times_and_scalar_predictors(
                 all_target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
             )
 
-        print(satellite_file_names_by_cyclone[i])
-        print(target_times_by_cyclone_unix_sec[i])
-
     if a_deck_file_name is None:
         scalar_predictor_matrix_by_cyclone = [None] * num_cyclones
         return (
