@@ -79,6 +79,7 @@ SYNOPTIC_TIMES_ONLY_KEY = 'synoptic_times_only'
 A_DECK_FILE_KEY = 'a_deck_file_name'
 SCALAR_A_DECK_FIELDS_KEY = 'scalar_a_deck_field_names'
 REMOVE_NONTROPICAL_KEY = 'remove_nontropical_systems'
+REMOVE_TROPICAL_KEY = 'remove_tropical_systems'
 USE_XY_COORDS_KEY = 'use_xy_coords_as_predictors'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
@@ -94,7 +95,8 @@ DEFAULT_GENERATOR_OPTION_DICT = {
     SYNOPTIC_TIMES_ONLY_KEY: True,
     A_DECK_FILE_KEY: None,
     SCALAR_A_DECK_FIELDS_KEY: [],
-    REMOVE_NONTROPICAL_KEY: False
+    REMOVE_NONTROPICAL_KEY: False,
+    REMOVE_TROPICAL_KEY: False
 }
 
 NUM_EPOCHS_KEY = 'num_epochs'
@@ -364,8 +366,12 @@ def check_generator_args(option_dict):
 
     error_checking.assert_is_list(option_dict[SCALAR_A_DECK_FIELDS_KEY])
     error_checking.assert_is_boolean(option_dict[REMOVE_NONTROPICAL_KEY])
+    error_checking.assert_is_boolean(option_dict[REMOVE_TROPICAL_KEY])
+    assert not (
+        option_dict[REMOVE_NONTROPICAL_KEY] and option_dict[REMOVE_TROPICAL_KEY]
+    )
 
-    if option_dict[REMOVE_NONTROPICAL_KEY]:
+    if option_dict[REMOVE_NONTROPICAL_KEY] or option_dict[REMOVE_TROPICAL_KEY]:
         assert option_dict[A_DECK_FILE_KEY] is not None
     elif len(option_dict[SCALAR_A_DECK_FIELDS_KEY]) > 0:
         assert option_dict[A_DECK_FILE_KEY] is not None
@@ -501,7 +507,7 @@ def get_high_res_data_from_predictors(predictor_matrices):
 
 def read_scalar_data(
         a_deck_file_name, field_names, remove_nontropical_systems,
-        cyclone_id_strings, target_times_unix_sec):
+        remove_tropical_systems, cyclone_id_strings, target_times_unix_sec):
     """Reads scalar data for the given cyclone objects.
 
     One cyclone object = one cyclone and one target time
@@ -515,6 +521,8 @@ def read_scalar_data(
         be in the constant list `VALID_SCALAR_FIELD_NAMES`.
     :param remove_nontropical_systems: Boolean flag.  If True, will return only
         NaN for non-tropical systems.
+    :param remove_tropical_systems: Boolean flag.  If True, will return only
+        NaN for tropical systems.
     :param cyclone_id_strings: length-T list of cyclone IDs.
     :param target_times_unix_sec: length-T numpy array of target times.
     :return: scalar_predictor_matrix: T-by-F numpy array.
@@ -524,6 +532,8 @@ def read_scalar_data(
     error_checking.assert_file_exists(a_deck_file_name)
     error_checking.assert_is_string_list(field_names)
     error_checking.assert_is_boolean(remove_nontropical_systems)
+    error_checking.assert_is_boolean(remove_tropical_systems)
+    assert not (remove_nontropical_systems and remove_tropical_systems)
     error_checking.assert_is_string_list(cyclone_id_strings)
 
     num_cyclone_objects = len(cyclone_id_strings)
@@ -571,6 +581,11 @@ def read_scalar_data(
             keep_this_time = (
                 adt[a_deck_io.STORM_TYPE_KEY].values[a_deck_index]
                 in TROPICAL_SYSTEM_TYPE_STRINGS
+            )
+        elif remove_tropical_systems:
+            keep_this_time = (
+                adt[a_deck_io.STORM_TYPE_KEY].values[a_deck_index]
+                not in TROPICAL_SYSTEM_TYPE_STRINGS
             )
 
         if not keep_this_time:
@@ -884,19 +899,22 @@ def read_metafile(pickle_file_name):
     metadata_dict = pickle.load(pickle_file_handle)
     pickle_file_handle.close()
 
-    missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
-    if len(missing_keys) == 0:
-        return metadata_dict
-
     training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
     validation_option_dict = metadata_dict[VALIDATION_OPTIONS_KEY]
 
     if USE_XY_COORDS_KEY not in training_option_dict:
         training_option_dict[USE_XY_COORDS_KEY] = False
         validation_option_dict[USE_XY_COORDS_KEY] = False
+    if REMOVE_TROPICAL_KEY not in training_option_dict:
+        training_option_dict[REMOVE_TROPICAL_KEY] = False
+        validation_option_dict[REMOVE_TROPICAL_KEY] = False
 
     metadata_dict[TRAINING_OPTIONS_KEY] = training_option_dict
     metadata_dict[VALIDATION_OPTIONS_KEY] = validation_option_dict
+
+    missing_keys = list(set(METADATA_KEYS) - set(metadata_dict.keys()))
+    if len(missing_keys) == 0:
+        return metadata_dict
 
     error_string = (
         '\n{0:s}\nKeys listed above were expected, but not found, in file '
@@ -1047,14 +1065,12 @@ def read_model(hdf5_file_name):
                         )
                     )
 
-            # TODO(thunderhoser): HACK
-            try:
-                model_object = cnn_architecture.create_model(architecture_dict)
-            except:
+            if temporal_cnn_architecture.FC_MODULE_USE_3D_CONV in architecture_dict:
+                model_object = temporal_cnn_architecture.create_model(architecture_dict)
+            else:
+                # TODO(thunderhoser): HACK
                 try:
-                    model_object = temporal_cnn_architecture.create_model(
-                        architecture_dict
-                    )
+                    model_object = cnn_architecture.create_model(architecture_dict)
                 except:
                     model_object = cnn_architecture.create_intensity_model(
                         architecture_dict
