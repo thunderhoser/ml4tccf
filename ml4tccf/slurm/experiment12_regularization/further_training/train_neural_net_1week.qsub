@@ -66,6 +66,6 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --num_epochs=1000 \
 --num_training_batches_per_epoch=36 \
 --num_validation_batches_per_epoch=12 \
---plateau_patience_epochs=10 \
+--plateau_patience_epochs=20 \
 --plateau_learning_rate_multiplier=0.6 \
---early_stopping_patience_epochs=50
+--early_stopping_patience_epochs=500
