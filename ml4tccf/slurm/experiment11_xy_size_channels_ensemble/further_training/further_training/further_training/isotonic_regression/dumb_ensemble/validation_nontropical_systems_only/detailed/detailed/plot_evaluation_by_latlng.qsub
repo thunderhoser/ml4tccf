@@ -1,0 +1,38 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_evaluation_by_latlng"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_evaluation_by_latlng_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment11_xy_size_channels_ensemble/further_training/further_training/further_training"
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble"
+echo $model_dir_name
+
+python3 -u "${CODE_DIR_NAME}/plot_evaluation_by_latlng.py" \
+--input_evaluation_dir_name="${model_dir_name}/isotonic_regression/validation_nontropical_systems_only/by_latlng" \
+--latitude_spacing_deg=10 \
+--longitude_spacing_deg=10 \
+--main_font_size=40 \
+--label_font_size=10 \
+--output_dir_name="${model_dir_name}/isotonic_regression/validation_nontropical_systems_only/by_latlng"
