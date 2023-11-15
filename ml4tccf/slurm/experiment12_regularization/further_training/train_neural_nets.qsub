@@ -1,0 +1,72 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="train_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
+#SBATCH --nodes=1
+#SBATCH --ntasks=8           # 8 tasks per node
+#SBATCH --cpus-per-task=2
+#SBATCH --ntasks-per-node=8  # 8 GPUs per node
+#SBATCH --exclusive
+#SBATCH --time=10:45:00
+#SBATCH --array=1-80%40
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=train_neural_nets_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment12_regularization"
+set TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/experiment12_regularization/further_training"
+
+set TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022/shuffled_8hour_chunks_900by900/training_2017-2020_and_2022/simplified_all_wavelengths"
+set VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_from_2017-2020_and_2022/shuffled_8hour_chunks_900by900/validation_2021/simplified_all_wavelengths"
+set A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/including_western_pacific/processed_a_decks_2017-2022_norm_params_2017-2020_and_2022.nc"
+
+set DENSE_LAYER_COUNTS=("3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "6" "6" "6" "6" "6" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "6" "6" "6" "6" "6" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "6" "6" "6" "6" "6" "3" "3" "3" "3" "3" "4" "4" "4" "4" "4" "5" "5" "5" "5" "5" "6" "6" "6" "6" "6")
+set DENSE_LAYER_DROPOUT_RATES=("0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.125" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.250" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.375" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500" "0.500")
+set L2_WEIGHTS=("0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000" "0.0000001000" "0.0000003162" "0.0000010000" "0.0000031623" "0.0000100000")
+
+set num_dense_layers=${DENSE_LAYER_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set dense_layer_dropout_rate=${DENSE_LAYER_DROPOUT_RATES[$SLURM_ARRAY_TASK_ID]}
+set l2_weight=${L2_WEIGHTS[$SLURM_ARRAY_TASK_ID]}
+
+set template_file_name="${TEMPLATE_DIR_NAME}/num-dense-layers=${num_dense_layers}_dense-dropout-rate=${dense_layer_dropout_rate}_l2-weight=${l2_weight}/model.h5"
+set output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-dense-layers=${num_dense_layers}_dense-dropout-rate=${dense_layer_dropout_rate}_l2-weight=${l2_weight}"
+echo $output_dir_name
+
+python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
+--input_template_file_name="${template_file_name}" \
+--output_model_dir_name="${output_dir_name}" \
+--lag_times_minutes 0 30 60 90 120 150 \
+--low_res_wavelengths_microns 3.900 6.185 6.950 \
+--num_examples_per_batch=32 \
+--max_examples_per_cyclone=3 \
+--num_rows_low_res=300 \
+--num_columns_low_res=300 \
+--data_aug_num_translations=2 \
+--data_aug_mean_translation_low_res_px=24 \
+--data_aug_stdev_translation_low_res_px=12 \
+--synoptic_times_only=0 \
+--a_deck_file_name="${A_DECK_FILE_NAME}" \
+--scalar_a_deck_field_names "absolute_latitude_deg_n" "longitude_cosine" "longitude_sine" "intensity_m_s01" "sea_level_pressure_pa" \
+--remove_nontropical_systems=1 \
+--use_xy_coords_as_predictors=0 \
+--use_shuffled_data=1 \
+--satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
+--training_years 2017 2018 2019 2020 2022 \
+--satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
+--validation_years 2021 \
+--num_epochs=1000 \
+--num_training_batches_per_epoch=36 \
+--num_validation_batches_per_epoch=12 \
+--plateau_patience_epochs=10 \
+--plateau_learning_rate_multiplier=0.6 \
+--early_stopping_patience_epochs=50
