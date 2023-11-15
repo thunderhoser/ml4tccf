@@ -18,7 +18,7 @@ from ml4tccf.machine_learning import \
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 LARGE_INTEGER = int(1e10)
-NUM_EXAMPLES_PER_BATCH = 32
+NUM_EXAMPLES_PER_BATCH = 10
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
@@ -27,6 +27,7 @@ NUM_BNN_ITERATIONS_ARG_NAME = 'num_bnn_iterations'
 MAX_ENSEMBLE_SIZE_ARG_NAME = 'max_ensemble_size'
 NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 RANDOM_SEED_ARG_NAME = 'random_seed'
+REMOVE_TROPICAL_SYSTEMS_ARG_NAME = 'remove_tropical_systems'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 MODEL_FILE_HELP_STRING = (
@@ -61,6 +62,10 @@ RANDOM_SEED_HELP_STRING = (
     'ensure that for a given cyclone object, two models see the same random '
     'translations.  Then you would set this seed to be equal for the two '
     'models.'
+)
+REMOVE_TROPICAL_SYSTEMS_HELP_STRING = (
+    'Boolean flag.  If 1, the NN will be applied only to non-tropical systems, '
+    'regardless of how it was trained.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Results will be written by '
@@ -98,6 +103,10 @@ INPUT_ARG_PARSER.add_argument(
     help=RANDOM_SEED_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + REMOVE_TROPICAL_SYSTEMS_ARG_NAME, type=int, required=False,
+    default=0, help=REMOVE_TROPICAL_SYSTEMS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -105,7 +114,7 @@ INPUT_ARG_PARSER.add_argument(
 
 def _run(model_file_name, satellite_dir_name, cyclone_id_string,
          num_bnn_iterations, max_ensemble_size, data_aug_num_translations,
-         random_seed, output_dir_name):
+         random_seed, remove_tropical_systems, output_dir_name):
     """Applies trained neural net -- inference time!
 
     This is effectively the main method.
@@ -117,6 +126,7 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     :param max_ensemble_size: Same.
     :param data_aug_num_translations: Same.
     :param random_seed: Same.
+    :param remove_tropical_systems: Same.
     :param output_dir_name: Same.
     """
 
@@ -149,6 +159,10 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
         data_aug_num_translations
     )
+
+    if remove_tropical_systems:
+        validation_option_dict[nn_utils.REMOVE_TROPICAL_KEY] = True
+        validation_option_dict[nn_utils.REMOVE_NONTROPICAL_KEY] = False
 
     # TODO(thunderhoser): I might want to make this an input arg to the script.
     validation_option_dict[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = True
@@ -277,5 +291,8 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, NUM_TRANSLATIONS_ARG_NAME
         ),
         random_seed=getattr(INPUT_ARG_OBJECT, RANDOM_SEED_ARG_NAME),
+        remove_tropical_systems=bool(
+            getattr(INPUT_ARG_OBJECT, REMOVE_TROPICAL_SYSTEMS_ARG_NAME)
+        ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )

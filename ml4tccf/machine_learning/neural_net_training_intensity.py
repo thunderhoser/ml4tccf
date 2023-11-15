@@ -137,6 +137,7 @@ def data_generator_shuffled(option_dict, ebtrk_file_name,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
         remove_nontropical_systems=remove_nontropical_systems,
+        remove_tropical_systems=False,
         desired_years=years,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
@@ -256,6 +257,7 @@ def data_generator_shuffled(option_dict, ebtrk_file_name,
                 num_rows_low_res=num_rows_low_res,
                 num_columns_low_res=num_columns_low_res,
                 return_coords=use_extrap_based_forecasts,
+                return_xy_coords=False,
                 cyclone_id_strings=these_cyclone_id_strings,
                 target_times_unix_sec=these_target_times_unix_sec
             )
@@ -509,6 +511,7 @@ def data_generator_shuffled_no_trans(option_dict, ebtrk_file_name):
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
         remove_nontropical_systems=remove_nontropical_systems,
+        remove_tropical_systems=False,
         desired_years=years,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
@@ -622,6 +625,7 @@ def data_generator_shuffled_no_trans(option_dict, ebtrk_file_name):
                 num_rows_low_res=num_rows_low_res,
                 num_columns_low_res=num_columns_low_res,
                 return_coords=False,
+                return_xy_coords=False,
                 cyclone_id_strings=these_cyclone_id_strings,
                 target_times_unix_sec=these_target_times_unix_sec
             )
@@ -1084,6 +1088,7 @@ def create_data(option_dict, ebtrk_file_name, center_fixing_model_object,
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
         remove_nontropical_systems=remove_nontropical_systems,
+        remove_tropical_systems=False,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
 
@@ -1158,7 +1163,7 @@ def create_data(option_dict, ebtrk_file_name, center_fixing_model_object,
         low_res_wavelengths_microns=low_res_wavelengths_microns,
         num_rows_low_res=num_rows_low_res,
         num_columns_low_res=num_columns_low_res,
-        return_coords=True
+        return_coords=True, return_xy_coords=False
     )
 
     if (
@@ -1433,6 +1438,7 @@ def create_data_no_trans(
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
         remove_nontropical_systems=remove_nontropical_systems,
+        remove_tropical_systems=False,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
 
@@ -1507,7 +1513,7 @@ def create_data_no_trans(
         low_res_wavelengths_microns=low_res_wavelengths_microns,
         num_rows_low_res=num_rows_low_res,
         num_columns_low_res=num_columns_low_res,
-        return_coords=True
+        return_coords=True, return_xy_coords=False
     )
 
     if (

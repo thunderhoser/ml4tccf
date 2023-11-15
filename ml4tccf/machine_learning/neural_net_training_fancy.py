@@ -56,6 +56,7 @@ SYNOPTIC_TIMES_ONLY_KEY = nn_utils.SYNOPTIC_TIMES_ONLY_KEY
 A_DECK_FILE_KEY = nn_utils.A_DECK_FILE_KEY
 SCALAR_A_DECK_FIELDS_KEY = nn_utils.SCALAR_A_DECK_FIELDS_KEY
 REMOVE_NONTROPICAL_KEY = nn_utils.REMOVE_NONTROPICAL_KEY
+REMOVE_TROPICAL_KEY = nn_utils.REMOVE_TROPICAL_KEY
 SEMANTIC_SEG_FLAG_KEY = nn_utils.SEMANTIC_SEG_FLAG_KEY
 TARGET_SMOOOTHER_STDEV_KEY = nn_utils.TARGET_SMOOOTHER_STDEV_KEY
 
@@ -641,7 +642,7 @@ def get_target_times_and_scalar_predictors(
         cyclone_id_strings, synoptic_times_only,
         satellite_file_names_by_cyclone, a_deck_file_name,
         scalar_a_deck_field_names, remove_nontropical_systems,
-        predictor_lag_times_sec):
+        remove_tropical_systems, predictor_lag_times_sec):
     """Returns target times and scalar predictors for each cyclone.
 
     C = number of cyclones
@@ -663,6 +664,10 @@ def get_target_times_and_scalar_predictors(
         [used only if `a_deck_file_name` is not None]
         Boolean flag.  If True, will return only target times corresponding to
         tropical systems (no extratropical, subtropical, etc.).
+    :param remove_tropical_systems:
+        [used only if `a_deck_file_name` is not None]
+        Boolean flag.  If True, will return only target times corresponding to
+        non-tropical systems.
     :param predictor_lag_times_sec: 1-D numpy array of lag times for predictors.
         Make this None if you do not want to consider predictor lag times.
     :return: target_times_by_cyclone_unix_sec: length-C list, where the [i]th
@@ -737,6 +742,7 @@ def get_target_times_and_scalar_predictors(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
             remove_nontropical_systems=remove_nontropical_systems,
+            remove_tropical_systems=remove_tropical_systems,
             cyclone_id_strings=[cyclone_id_strings[i]] * this_num_times,
             target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
         )
@@ -814,6 +820,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
+    remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -839,6 +846,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
         remove_nontropical_systems=remove_nontropical_systems,
+        remove_tropical_systems=remove_tropical_systems,
         predictor_lag_times_sec=None
     )
 
@@ -1146,6 +1154,7 @@ def create_data_specific_trans(
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
+    remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -1194,6 +1203,7 @@ def create_data_specific_trans(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
             remove_nontropical_systems=remove_nontropical_systems,
+            remove_tropical_systems=remove_tropical_systems,
             cyclone_id_strings=[cyclone_id_string] * this_num_times,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
         )
@@ -1435,9 +1445,13 @@ def data_generator(option_dict):
     option_dict["remove_nontropical_systems"]: Boolean flag.  If True, only
         tropical systems will be used for training.  If False, all systems
         (including subtropical, post-tropical, etc.) will be used.
+    option_dict["remove_tropical_systems"]: Boolean flag.  If True, only
+        non-tropical systems will be used for training.  If False, all systems
+        will be used.
     option_dict["a_deck_file_name"]: Path to A-deck file, which is needed if
-        `len(scalar_a_deck_field_names) > 0 or remove_nontropical_systems`.
-        If A-deck file is not needed, you can make this None.
+        `len(scalar_a_deck_field_names) > 0 or remove_nontropical_systems or
+        remove_tropical_systems`.  If A-deck file is not needed, you can make
+        this None.
 
     :return: predictor_matrices: If both high- and low-resolution data are
         used, this will be a list with the items
@@ -1505,6 +1519,7 @@ def data_generator(option_dict):
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
+    remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
 
     orig_num_rows_low_res = num_rows_low_res + 0
     orig_num_columns_low_res = num_columns_low_res + 0
@@ -1545,6 +1560,7 @@ def data_generator(option_dict):
         a_deck_file_name=a_deck_file_name,
         scalar_a_deck_field_names=scalar_a_deck_field_names,
         remove_nontropical_systems=remove_nontropical_systems,
+        remove_tropical_systems=remove_tropical_systems,
         predictor_lag_times_sec=None
     )
 

@@ -180,6 +180,7 @@ def _get_target_times_and_scalar_predictors(
                 a_deck_file_name=a_deck_file_name,
                 field_names=scalar_a_deck_field_names,
                 remove_nontropical_systems=remove_nontropical_systems,
+                remove_tropical_systems=False,
                 cyclone_id_strings=[cyclone_id_strings[i]] * this_num_times,
                 target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
             )
@@ -1338,6 +1339,7 @@ def create_data_specific_trans(
             a_deck_file_name=a_deck_file_name,
             field_names=scalar_a_deck_field_names,
             remove_nontropical_systems=remove_nontropical_systems,
+            remove_tropical_systems=False,
             cyclone_id_strings=[cyclone_id_string] * this_num_times,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY]
         )
