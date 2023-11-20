@@ -40,17 +40,12 @@ set model_dir_name="${TOP_MODEL_DIR_NAME}/num-dense-layers=${num_dense_layers}_d
 echo $model_dir_name
 
 set CYCLONE_ID_STRINGS=("2021AL01" "2021AL02" "2021AL03" "2021AL04" "2021AL05" "2021AL06" "2021AL07" "2021AL08" "2021AL09" "2021AL10" "2021AL11" "2021AL12" "2021AL13" "2021AL14" "2021AL15" "2021AL16" "2021AL17" "2021AL18" "2021AL19" "2021EP01" "2021EP02" "2021EP03" "2021EP04" "2021EP05" "2021EP06" "2021EP07" "2021EP08" "2021EP09" "2021EP10" "2021EP11" "2021EP12" "2021EP13" "2021EP14" "2021EP15" "2021EP16" "2021EP17" "2021EP18" "2021EP19" "2021WP01" "2021WP02" "2021WP03" "2021WP04" "2021WP05" "2021WP06" "2021WP07" "2021WP08" "2021WP09" "2021WP10" "2021WP11" "2021WP12" "2021WP13" "2021WP14" "2021WP15" "2021WP16" "2021WP17" "2021WP18" "2021WP19" "2021WP20" "2021WP21" "2021WP22" "2021WP23" "2021WP24" "2021WP25" "2021WP26" "2021WP27" "2021WP28" "2021WP29")
-set i=$SLURM_ARRAY_TASK_ID
 
-while ($i <= `expr $SLURM_ARRAY_TASK_ID + 7` && $i <= $#CYCLONE_ID_STRINGS)
-    python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
-    --input_model_file_name="${model_dir_name}/model.h5" \
-    --input_satellite_dir_name="${EXAMPLE_DIR_NAME}" \
-    --cyclone_id_string="${CYCLONE_ID_STRINGS[$i]}" \
-    --num_bnn_iterations=1 \
-    --max_ensemble_size=100 \
-    --data_aug_num_translations=8 \
-    --output_dir_name="${model_dir_name}/validation"
-
-    @ i = $i + 1
-end
+python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+--input_model_file_name="${model_dir_name}/model.h5" \
+--input_satellite_dir_name="${EXAMPLE_DIR_NAME}" \
+--cyclone_id_string="${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--num_bnn_iterations=1 \
+--max_ensemble_size=100 \
+--data_aug_num_translations=8 \
+--output_dir_name="${model_dir_name}/validation"
