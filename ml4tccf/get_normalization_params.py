@@ -117,9 +117,21 @@ def _run(satellite_dir_name, years, cyclone_id_strings, num_satellite_files,
             dtype=int
         )
 
-        good_flags = numpy.array([c in years for c in cyclone_years], dtype=float)
+        good_flags = numpy.array(
+            [c in years for c in cyclone_years], dtype=float
+        )
         good_indices = numpy.where(good_flags)[0]
         cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
+    else:
+        for this_cyclone_id_string in cyclone_id_strings:
+            these_file_names = satellite_io.find_files_one_cyclone(
+                directory_name=satellite_dir_name,
+                cyclone_id_string=this_cyclone_id_string,
+                raise_error_if_all_missing=False
+            )
+
+            if len(these_file_names) == 0:
+                cyclone_id_strings.remove(this_cyclone_id_string)
 
     cyclone_id_strings.sort()
 
