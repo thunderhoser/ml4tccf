@@ -33,6 +33,7 @@ NUM_CHUNKS_PER_INPUT_ARG_NAME = 'num_chunks_per_input_file'
 NUM_CHUNKS_PER_OUTPUT_ARG_NAME = 'num_chunks_per_output_file'
 TIME_INTERVAL_ARG_NAME = 'output_time_interval_minutes'
 YEARS_ARG_NAME = 'years'
+CYCLONE_IDS_ARG_NAME = 'cyclone_id_strings'
 FIRST_OUT_FILE_NUM_ARG_NAME = 'first_output_file_num'
 OUTPUT_DIR_ARG_NAME = 'output_satellite_dir_name'
 
@@ -49,7 +50,14 @@ NUM_CHUNKS_PER_OUTPUT_HELP_STRING = 'Number of chunks per output file.'
 TIME_INTERVAL_HELP_STRING = (
     'Time interval for output files.  This must be a multiple of 30 minutes.'
 )
-YEARS_HELP_STRING = 'List of years.  Will shuffle all cyclones in these years.'
+YEARS_HELP_STRING = (
+    'Will shuffle cyclones in these years (list).  If you would rather specify '
+    'cyclone IDs, leave this argument alone.'
+)
+CYCLONE_IDS_HELP_STRING = (
+    'Will shuffle cyclones in this list (format "yyyyBBnn").  If you would '
+    'rather specify years, leave this argument alone.'
+)
 FIRST_OUT_FILE_NUM_HELP_STRING = (
     'Number used to name first output file produced by this script.  For each '
     'successive output file, the number will increment by 1.'
@@ -78,8 +86,12 @@ INPUT_ARG_PARSER.add_argument(
     help=TIME_INTERVAL_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + YEARS_ARG_NAME, type=int, nargs='+', required=True,
+    '--' + YEARS_ARG_NAME, type=int, nargs='+', required=False, default=[-1],
     help=YEARS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + CYCLONE_IDS_ARG_NAME, type=str, nargs='+', required=False,
+    default=[''], help=CYCLONE_IDS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + FIRST_OUT_FILE_NUM_ARG_NAME, type=int, required=True,
@@ -152,8 +164,8 @@ def _get_time_range_by_chunk(num_chunks_per_input_file,
 
 
 def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
-         output_time_interval_minutes, years, first_output_file_num,
-         output_dir_name):
+         output_time_interval_minutes, years, cyclone_id_strings,
+         first_output_file_num, output_dir_name):
     """Shuffles satellite files to make training more efficient.
 
     This is effectively the main method.
@@ -163,11 +175,19 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
     :param num_chunks_per_output_file: Same.
     :param output_time_interval_minutes: Same.
     :param years: Same.
+    :param cyclone_id_strings: Same.
     :param first_output_file_num: Same.
     :param output_dir_name: Same.
     """
 
     # Check input args.
+    if len(years) == 1 and years[0] < 1900:
+        years = None
+    if len(cyclone_id_strings) == 1 and cyclone_id_strings[0] == '':
+        cyclone_id_strings = None
+
+    assert not (years is None and cyclone_id_strings is None)
+
     error_checking.assert_is_geq(num_chunks_per_input_file, 2)
     error_checking.assert_is_geq(num_chunks_per_output_file, 2)
     error_checking.assert_is_geq(first_output_file_num, 0)
@@ -203,18 +223,32 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
     error_checking.assert_is_leq(num_time_steps_per_output_file, 200)
 
     # Do actual stuff.
-    cyclone_id_strings = satellite_io.find_cyclones(
-        directory_name=input_dir_name, raise_error_if_all_missing=True
-    )
-    cyclone_years = numpy.array(
-        [misc_utils.parse_cyclone_id(c)[0] for c in cyclone_id_strings],
-        dtype=int
-    )
+    if cyclone_id_strings is None:
+        cyclone_id_strings = satellite_io.find_cyclones(
+            directory_name=input_dir_name, raise_error_if_all_missing=True
+        )
+        cyclone_years = numpy.array(
+            [misc_utils.parse_cyclone_id(c)[0] for c in cyclone_id_strings],
+            dtype=int
+        )
 
-    good_flags = numpy.isin(element=cyclone_years, test_elements=years)
-    good_indices = numpy.where(good_flags)[0]
-    cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
-    del cyclone_years
+        good_flags = numpy.array(
+            [c in years for c in cyclone_years], dtype=float
+        )
+        good_indices = numpy.where(good_flags)[0]
+        cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
+    else:
+        for this_cyclone_id_string in cyclone_id_strings:
+            these_file_names = satellite_io.find_files_one_cyclone(
+                directory_name=input_dir_name,
+                cyclone_id_string=this_cyclone_id_string,
+                raise_error_if_all_missing=False
+            )
+
+            if len(these_file_names) == 0:
+                cyclone_id_strings.remove(this_cyclone_id_string)
+
+    cyclone_id_strings.sort()
 
     input_file_names = []
     for this_id_string in cyclone_id_strings:
@@ -416,6 +450,7 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, TIME_INTERVAL_ARG_NAME
         ),
         years=numpy.array(getattr(INPUT_ARG_OBJECT, YEARS_ARG_NAME), dtype=int),
+        cyclone_id_strings=getattr(INPUT_ARG_OBJECT, CYCLONE_IDS_ARG_NAME),
         first_output_file_num=getattr(
             INPUT_ARG_OBJECT, FIRST_OUT_FILE_NUM_ARG_NAME
         ),
