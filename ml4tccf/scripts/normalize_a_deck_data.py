@@ -22,6 +22,7 @@ FIELD_NAMES_TO_NORMALIZE = [
 
 INPUT_FILE_ARG_NAME = 'input_a_deck_file_name'
 TRAINING_YEARS_ARG_NAME = 'training_years'
+TRAINING_CYCLONES_ARG_NAME = 'training_cyclone_id_strings'
 OUTPUT_FILE_ARG_NAME = 'output_a_deck_file_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -30,7 +31,13 @@ INPUT_FILE_HELP_STRING = (
 )
 TRAINING_YEARS_HELP_STRING = (
     'List of training years.  Normalization parameters will be computed only '
-    'from these years.'
+    'from these years.  If you would rather specify cyclone IDs, leave this '
+    'argument alone.'
+)
+TRAINING_CYCLONES_HELP_STRING = (
+    'List of training cyclones (IDs in format "yyyyBBnn").  Normalization '
+    'parameters will be computed only from these cyclones.  If you would '
+    'rather specify years, leave this argument alone.'
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file.  Normalized data will be written here by '
@@ -43,8 +50,12 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + TRAINING_YEARS_ARG_NAME, type=int, nargs='+', required=True,
-    help=TRAINING_YEARS_HELP_STRING
+    '--' + TRAINING_YEARS_ARG_NAME, type=int, nargs='+', required=False,
+    default=[-1], help=TRAINING_YEARS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + TRAINING_CYCLONES_ARG_NAME, type=str, nargs='+', required=False,
+    default=[''], help=TRAINING_CYCLONES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
@@ -52,28 +63,48 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_file_name, training_years, output_file_name):
+def _run(input_file_name, training_years, training_cyclone_id_strings,
+         output_file_name):
     """Normalizes A-deck data.
 
     This is effectively the main method.
 
     :param input_file_name: See documentation at top of file.
     :param training_years: Same.
+    :param training_cyclone_id_strings: Same.
     :param output_file_name: Same.
     """
+
+    if len(training_years) == 1 and training_years[0] < 1900:
+        training_years = None
+    if (
+            len(training_cyclone_id_strings) == 1 and
+            training_cyclone_id_strings[0] == ''
+    ):
+        training_cyclone_id_strings = None
+
+    assert not (training_years is None and training_cyclone_id_strings is None)
 
     print('Reading data from: "{0:s}"...'.format(input_file_name))
     a_deck_table_xarray = a_deck_io.read_file(input_file_name)
 
-    a_deck_years = numpy.array([
-        int(time_conversion.unix_sec_to_string(t, '%Y'))
-        for t in a_deck_table_xarray[a_deck_io.VALID_TIME_KEY].values
-    ], dtype=int)
+    if training_cyclone_id_strings is None:
+        a_deck_years = numpy.array([
+            int(time_conversion.unix_sec_to_string(t, '%Y'))
+            for t in a_deck_table_xarray[a_deck_io.VALID_TIME_KEY].values
+        ], dtype=int)
 
-    training_row_flags = numpy.isin(
-        element=a_deck_years, test_elements=training_years
-    )
-    training_row_indices = numpy.where(training_row_flags)[0]
+        training_row_flags = numpy.isin(
+            element=a_deck_years, test_elements=training_years
+        )
+        training_row_indices = numpy.where(training_row_flags)[0]
+    else:
+        training_row_flags = numpy.isin(
+            element=a_deck_table_xarray[a_deck_io.CYCLONE_ID_KEY].values,
+            test_elements=numpy.array(training_cyclone_id_strings)
+        )
+        training_row_indices = numpy.where(training_row_flags)[0]
+
     adt = a_deck_table_xarray
 
     norm_absolute_latitudes = normalization._normalize_one_variable(
@@ -226,7 +257,8 @@ def _run(input_file_name, training_years, output_file_name):
     }
 
     attribute_dict = {
-        a_deck_io.TRAINING_YEARS_FOR_NORM_KEY: training_years
+        a_deck_io.TRAINING_YEARS_FOR_NORM_KEY: training_years,
+        a_deck_io.TRAINING_CYCLONES_FOR_NORM_KEY: training_cyclone_id_strings
     }
 
     a_deck_table_xarray = xarray.Dataset(
@@ -250,6 +282,9 @@ if __name__ == '__main__':
         input_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
         training_years=numpy.array(
             getattr(INPUT_ARG_OBJECT, TRAINING_YEARS_ARG_NAME), dtype=int
+        ),
+        training_cyclone_id_strings=getattr(
+            INPUT_ARG_OBJECT, TRAINING_CYCLONES_ARG_NAME
         ),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
