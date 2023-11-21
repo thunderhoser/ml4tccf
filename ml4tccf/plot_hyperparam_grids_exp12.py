@@ -633,7 +633,7 @@ def _run(experiment_dir_name):
             axes_object.set_ylabel(y_axis_label)
             axes_object.set_title(
                 r'L$_2$ weight = 10$^{'
-                + numpy.log10(L2_WEIGHTS_AXIS3[k])
+                + '{0:.1f}'.format(numpy.log10(L2_WEIGHTS_AXIS3[k]))
                 + r'}$'
             )
 
