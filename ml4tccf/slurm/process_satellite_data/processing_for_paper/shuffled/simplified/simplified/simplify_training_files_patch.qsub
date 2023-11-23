@@ -1,0 +1,42 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="simplify_training_files"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=02:00:00
+#SBATCH --array=1-30
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=simplify_training_files_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set INPUT_DIR_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/shuffled_8hour_chunks_500by500/training"
+set OUTPUT_DIR_NAME="${INPUT_DIR_NAME}/simplified_all_wavelengths"
+
+set FILE_NUMBER_SET_STRINGS=("294" "295" "296" "297" "298" "299" "300" "301" "302" "303" "304" "305" "306" "307" "308" "309" "310" "311" "312" "313" "314" "315" "316" "317" "318" "319" "320" "321" "322" "323")
+
+set file_number_set_string="${FILE_NUMBER_SET_STRINGS[$SLURM_ARRAY_TASK_ID]}"
+set file_numbers=($file_number_set_string:as/ / /)
+
+foreach file_number ($file_numbers)
+    python3 -u "${CODE_DIR_NAME}/simplify_satellite_files.py" \
+    --input_dir_name="${INPUT_DIR_NAME}" \
+    --shuffled_file_number=${file_number} \
+    --wavelengths_to_keep_microns 3.9 6.185 6.95 7.34 8.5 9.61 10.35 11.2 12.3 13.3 \
+    --output_dir_name="${OUTPUT_DIR_NAME}"
+end
