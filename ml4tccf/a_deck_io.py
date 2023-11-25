@@ -32,6 +32,7 @@ UNNORM_EXTRAP_LATITUDE_KEY = 'unnormalized_extrapolated_6h_latitude_deg_n'
 UNNORM_EXTRAP_LONGITUDE_KEY = 'unnormalized_extrapolated_6h_longitude_deg_e'
 
 INTENSITY_KEY = 'intensity_m_s01'
+UNNORM_INTENSITY_KEY = 'unnorm_intensity_m_s01'
 SEA_LEVEL_PRESSURE_KEY = 'sea_level_pressure_pa'
 STORM_TYPE_KEY = 'storm_type_string'
 UNNORM_TROPICAL_FLAG_KEY = 'unnorm_tropical_flag_int'

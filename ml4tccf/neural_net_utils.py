@@ -593,7 +593,7 @@ def read_scalar_data(
 
         keep_this_time = (
             keep_this_time and
-            adt[a_deck_io.INTENSITY_KEY].values[a_deck_index]
+            adt[a_deck_io.UNNORM_INTENSITY_KEY].values[a_deck_index]
             >= MIN_TROPICAL_INTENSITY_M_S01
         )
 
@@ -1075,8 +1075,8 @@ def read_model(hdf5_file_name):
                     )
 
             # TODO(thunderhoser): HACK
-            model_object = temporal_cnn_architecture.create_model(architecture_dict)
-
+            # model_object = temporal_cnn_architecture.create_model(architecture_dict)
+            #
             # if temporal_cnn_architecture.FC_MODULE_USE_3D_CONV in architecture_dict:
             #     model_object = temporal_cnn_architecture.create_model(architecture_dict)
             # else:
