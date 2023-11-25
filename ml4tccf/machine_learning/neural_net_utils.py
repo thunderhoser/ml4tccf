@@ -586,7 +586,8 @@ def read_scalar_data(
 
         keep_this_time = (
             keep_this_time and
-            adt[a_deck_io.INTENSITY_KEY] >= MIN_TROPICAL_INTENSITY_M_S01
+            adt[a_deck_io.UNNORM_INTENSITY_KEY].values[a_deck_index]
+            >= MIN_TROPICAL_INTENSITY_M_S01
         )
 
         if not keep_this_time:

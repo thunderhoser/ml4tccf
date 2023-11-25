@@ -146,7 +146,7 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
     )
 
     norm_intensities = normalization._normalize_one_variable(
-        actual_values_new=adt[a_deck_io.INTENSITY_KEY].values,
+        actual_values_new=adt[a_deck_io.INTENSITY_KEY].values + 0.,
         actual_values_training=
         adt[a_deck_io.INTENSITY_KEY].values[training_row_indices]
     )
@@ -244,6 +244,9 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
         ),
         a_deck_io.INTENSITY_KEY: (
             these_dim, norm_intensities
+        ),
+        a_deck_io.UNNORM_INTENSITY_KEY: (
+            these_dim, adt[a_deck_io.INTENSITY_KEY].values
         ),
         a_deck_io.SEA_LEVEL_PRESSURE_KEY: (
             these_dim, norm_central_pressures
