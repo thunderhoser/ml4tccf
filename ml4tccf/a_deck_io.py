@@ -37,10 +37,11 @@ STORM_TYPE_KEY = 'storm_type_string'
 UNNORM_TROPICAL_FLAG_KEY = 'unnorm_tropical_flag_int'
 UNNORM_SUBTROPICAL_FLAG_KEY = 'unnorm_subtropical_flag_int'
 UNNORM_EXTRATROPICAL_FLAG_KEY = 'unnorm_extratropical_flag_int'
-UNNORM_POSTTROPICAL_FLAG_KEY = 'unnorm_posttropical_flag_int'
-UNNORM_LOW_OR_WAVE_FLAG_KEY = 'unnorm_low_or_wave_flag_int'
-UNNORM_MONSOON_FLAG_KEY = 'unnorm_monsoon_flag_int'
-UNNORM_UNKNOWN_FLAG_KEY = 'unnorm_unknown_flag_int'
+UNNORM_DISTURBANCE_FLAG_KEY = 'unnorm_disturbance_flag_int'
+# UNNORM_POSTTROPICAL_FLAG_KEY = 'unnorm_posttropical_flag_int'
+# UNNORM_LOW_OR_WAVE_FLAG_KEY = 'unnorm_low_or_wave_flag_int'
+# UNNORM_MONSOON_FLAG_KEY = 'unnorm_monsoon_flag_int'
+# UNNORM_UNKNOWN_FLAG_KEY = 'unnorm_unknown_flag_int'
 
 LAST_ISOBAR_PRESSURE_KEY = 'last_closed_isobar_pressure_pa'
 LAST_ISOBAR_RADIUS_KEY = 'last_closed_isobar_radius_metres'
@@ -72,6 +73,7 @@ EASTWARD_MOTION_KEY = 'eastward_motion_m_s01'
 NORTHWARD_MOTION_KEY = 'northward_motion_m_s01'
 
 TRAINING_YEARS_FOR_NORM_KEY = 'training_years_for_normalization'
+TRAINING_CYCLONES_FOR_NORM_KEY = 'training_cyclone_ids_for_normalization'
 
 TROPICAL_DISTURBANCE_TYPE_STRING = 'tropical_disturbance'
 TROPICAL_DEPRESSION_TYPE_STRING = 'tropical_depression'
@@ -118,7 +120,7 @@ def write_file(a_deck_table_xarray, netcdf_file_name):
     )
 
 
-def storm_types_to_1hot_encoding(a_deck_table_xarray):
+def storm_types_to_1hot_encoding_old(a_deck_table_xarray):
     """Converts each storm type to one-hot encoding.
 
     :param a_deck_table_xarray: xarray table in format returned by
@@ -199,17 +201,75 @@ def storm_types_to_1hot_encoding(a_deck_table_xarray):
         UNNORM_EXTRATROPICAL_FLAG_KEY: (
             a_deck_table_xarray[STORM_TYPE_KEY].dims, extratropical_flags_int
         ),
-        UNNORM_POSTTROPICAL_FLAG_KEY: (
-            a_deck_table_xarray[STORM_TYPE_KEY].dims, posttropical_flags_int
+        # UNNORM_POSTTROPICAL_FLAG_KEY: (
+        #     a_deck_table_xarray[STORM_TYPE_KEY].dims, posttropical_flags_int
+        # ),
+        # UNNORM_LOW_OR_WAVE_FLAG_KEY: (
+        #     a_deck_table_xarray[STORM_TYPE_KEY].dims, low_or_wave_flags_int
+        # ),
+        # UNNORM_UNKNOWN_FLAG_KEY: (
+        #     a_deck_table_xarray[STORM_TYPE_KEY].dims, unknown_flags_int
+        # ),
+        # UNNORM_MONSOON_FLAG_KEY: (
+        #     a_deck_table_xarray[STORM_TYPE_KEY].dims, monsoon_flags_int
+        # )
+    })
+
+
+def storm_types_to_1hot_encoding(a_deck_table_xarray):
+    """Converts each storm type to one-hot encoding.
+
+    :param a_deck_table_xarray: xarray table in format returned by
+        `read_file`, containing variable "storm_type_string".
+    :return: a_deck_table_xarray: Same as input but also containing binary
+        variables "unnorm_tropical_flag_int", "unnorm_subtropical_flag_int",
+        "unnorm_extratropical_flag_int", etc.
+    """
+
+    storm_type_strings = a_deck_table_xarray[STORM_TYPE_KEY].values
+
+    tropical_type_strings = numpy.array([
+        TROPICAL_DEPRESSION_TYPE_STRING, TROPICAL_STORM_TYPE_STRING,
+        TROPICAL_TYPHOON_TYPE_STRING, TROPICAL_SUPER_TYPHOON_TYPE_STRING,
+        TROPICAL_CYCLONE_TYPE_STRING, TROPICAL_HURRICANE_TYPE_STRING
+    ])
+    tropical_flags_int = numpy.isin(
+        element=storm_type_strings, test_elements=tropical_type_strings
+    ).astype(int)
+
+    subtropical_type_strings = numpy.array([
+        SUBTROPICAL_DEPRESSION_TYPE_STRING, SUBTROPICAL_STORM_TYPE_STRING
+    ])
+    subtropical_flags_int = numpy.isin(
+        element=storm_type_strings, test_elements=subtropical_type_strings
+    ).astype(int)
+
+    extratropical_type_strings = numpy.array([
+        EXTRATROPICAL_TYPE_STRING, POSTTROPICAL_TYPE_STRING
+    ])
+    extratropical_flags_int = numpy.isin(
+        element=storm_type_strings, test_elements=extratropical_type_strings
+    ).astype(int)
+
+    disturbance_type_strings = numpy.array([
+        LOW_TYPE_STRING, TROPICAL_DISTURBANCE_TYPE_STRING
+    ])
+    disturbance_flags_int = numpy.isin(
+        element=storm_type_strings, test_elements=disturbance_type_strings
+    ).astype(int)
+
+    return a_deck_table_xarray.assign({
+        UNNORM_TROPICAL_FLAG_KEY: (
+            a_deck_table_xarray[STORM_TYPE_KEY].dims, tropical_flags_int
         ),
-        UNNORM_LOW_OR_WAVE_FLAG_KEY: (
-            a_deck_table_xarray[STORM_TYPE_KEY].dims, low_or_wave_flags_int
+        UNNORM_SUBTROPICAL_FLAG_KEY: (
+            a_deck_table_xarray[STORM_TYPE_KEY].dims, subtropical_flags_int
         ),
-        UNNORM_UNKNOWN_FLAG_KEY: (
-            a_deck_table_xarray[STORM_TYPE_KEY].dims, unknown_flags_int
+        UNNORM_EXTRATROPICAL_FLAG_KEY: (
+            a_deck_table_xarray[STORM_TYPE_KEY].dims, extratropical_flags_int
         ),
-        UNNORM_MONSOON_FLAG_KEY: (
-            a_deck_table_xarray[STORM_TYPE_KEY].dims, monsoon_flags_int
+        UNNORM_DISTURBANCE_FLAG_KEY: (
+            a_deck_table_xarray[STORM_TYPE_KEY].dims, disturbance_flags_int
         )
     })
 
