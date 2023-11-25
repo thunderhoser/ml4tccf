@@ -257,8 +257,11 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
     }
 
     attribute_dict = {
-        a_deck_io.TRAINING_YEARS_FOR_NORM_KEY: training_years,
-        a_deck_io.TRAINING_CYCLONES_FOR_NORM_KEY: training_cyclone_id_strings
+        a_deck_io.TRAINING_YEARS_FOR_NORM_KEY:
+            [] if training_years is None else training_years,
+        a_deck_io.TRAINING_CYCLONES_FOR_NORM_KEY:
+            '' if training_cyclone_id_strings is None
+            else ' '.join([c for c in training_cyclone_id_strings])
     }
 
     a_deck_table_xarray = xarray.Dataset(
