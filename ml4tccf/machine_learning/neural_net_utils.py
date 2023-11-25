@@ -21,6 +21,9 @@ from ml4tccf.outside_code import accum_grad_optimizer
 TOLERANCE = 1e-6
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
 
+KT_TO_METRES_PER_SECOND = 1.852 / 3.6
+MIN_TROPICAL_INTENSITY_M_S01 = 25 * KT_TO_METRES_PER_SECOND
+
 CIRA_IR_DATA_TYPE_STRING = 'cira_ir'
 RG_FANCY_DATA_TYPE_STRING = 'robert_galina_fancy'
 RG_SIMPLE_DATA_TYPE_STRING = 'robert_galina_simple'
@@ -580,6 +583,11 @@ def read_scalar_data(
                 adt[a_deck_io.STORM_TYPE_KEY].values[a_deck_index]
                 not in TROPICAL_SYSTEM_TYPE_STRINGS
             )
+
+        keep_this_time = (
+            keep_this_time and
+            adt[a_deck_io.INTENSITY_KEY] >= MIN_TROPICAL_INTENSITY_M_S01
+        )
 
         if not keep_this_time:
             continue
