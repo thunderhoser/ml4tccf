@@ -1,0 +1,37 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="evaluate_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=evaluate_neural_nets_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_ensemble/tropical_and_nontropical"
+
+python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+--input_prediction_file_pattern="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/predictions*.nc" \
+--num_bootstrap_reps=1 \
+--num_xy_offset_bins=30 \
+--xy_offset_limits_metres -45000 45000 \
+--num_offset_distance_bins=30 \
+--offset_distance_limits_metres 0 60000 \
+--num_offset_direction_bins=36 \
+--output_file_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/evaluation_no_bootstrap.nc"
