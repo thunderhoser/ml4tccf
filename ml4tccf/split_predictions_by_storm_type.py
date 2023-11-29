@@ -31,8 +31,11 @@ EXTRATROPICAL_TYPE_STRING = 'extratropical'
 DISTURBANCE_TYPE_STRING = 'disturbance'
 MISC_TYPE_STRING = 'miscellaneous'
 
+NON_TROPICAL_TYPE_STRING = 'non_tropical'
+
 INPUT_PREDICTION_FILES_ARG_NAME = 'input_prediction_file_pattern'
 A_DECK_FILE_ARG_NAME = 'input_a_deck_file_name'
+MAKE_STORM_TYPES_BINARY_ARG_NAME = 'make_storm_types_binary'
 OUTPUT_DIR_ARG_NAME = 'output_prediction_dir_name'
 
 INPUT_PREDICTION_FILES_HELP_STRING = (
@@ -42,6 +45,10 @@ INPUT_PREDICTION_FILES_HELP_STRING = (
 A_DECK_FILE_HELP_STRING = (
     'Path to A-deck file, containing storm types.  Will be read by '
     '`a_deck_io.read_file`.'
+)
+MAKE_STORM_TYPES_BINARY_HELP_STRING = (
+    'Boolean flag.  If 1, storm types will be binary (tropical vs. '
+    'non-tropical).  If 0, there will be five storm types.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of top-level output directory.  Within this directory, one '
@@ -61,19 +68,24 @@ INPUT_ARG_PARSER.add_argument(
     help=A_DECK_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + MAKE_STORM_TYPES_BINARY_ARG_NAME, type=int, required=True,
+    help=MAKE_STORM_TYPES_BINARY_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
 def _run(input_prediction_file_pattern, a_deck_file_name,
-         top_output_prediction_dir_name):
+         make_storm_types_binary, top_output_prediction_dir_name):
     """Splits predictions by storm type.
 
     This is effectively the main method.
 
     :param input_prediction_file_pattern: See documentation at top of file.
     :param a_deck_file_name: Same.
+    :param make_storm_types_binary: Same.
     :param top_output_prediction_dir_name: Same.
     :raises: ValueError: if no prediction files could be found.
     """
@@ -199,6 +211,14 @@ def _run(input_prediction_file_pattern, a_deck_file_name,
         adt = a_deck_table_xarray
         j = these_indices[0]
 
+        if make_storm_types_binary:
+            if adt[a_deck_io.UNNORM_TROPICAL_FLAG_KEY].values[j] == 1:
+                prediction_storm_type_strings[i] = TROPICAL_TYPE_STRING
+            else:
+                prediction_storm_type_strings[i] = NON_TROPICAL_TYPE_STRING
+
+            continue
+
         if adt[a_deck_io.UNNORM_TROPICAL_FLAG_KEY].values[j] == 1:
             prediction_storm_type_strings[i] = TROPICAL_TYPE_STRING
         elif adt[a_deck_io.UNNORM_SUBTROPICAL_FLAG_KEY].values[j] == 1:
@@ -244,6 +264,9 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, INPUT_PREDICTION_FILES_ARG_NAME
         ),
         a_deck_file_name=getattr(INPUT_ARG_OBJECT, A_DECK_FILE_ARG_NAME),
+        make_storm_types_binary=bool(
+            getattr(INPUT_ARG_OBJECT, MAKE_STORM_TYPES_BINARY_ARG_NAME)
+        ),
         top_output_prediction_dir_name=getattr(
             INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME
         )
