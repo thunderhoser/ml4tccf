@@ -139,7 +139,7 @@ def _run(input_prediction_file_pattern, a_deck_file_name,
 
     # Find storm type corresponding to each prediction.
     num_examples = len(pt[scalar_prediction_utils.TARGET_TIME_KEY].values)
-    prediction_storm_type_strings = numpy.full(num_examples, numpy.nan)
+    prediction_storm_type_strings = numpy.full(num_examples, '', dtype=object)
     print(SEPARATOR_STRING)
 
     for i in range(num_examples):
