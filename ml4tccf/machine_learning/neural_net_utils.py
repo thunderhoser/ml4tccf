@@ -1,6 +1,7 @@
 """Helper methods for neural networks (training and inference)."""
 
 import os
+import time
 import pickle
 import numpy
 import keras
@@ -964,6 +965,7 @@ def apply_model(
 
     # Do actual stuff.
     prediction_matrix = None
+    exec_start_time_unix_sec = time.time()
 
     for i in range(0, num_examples, num_examples_per_batch):
         first_index = i
@@ -984,8 +986,15 @@ def apply_model(
 
         prediction_matrix[first_index:last_index, ...] = this_prediction_matrix
 
+    elapsed_time_sec = time.time() - exec_start_time_unix_sec
+
     if verbose:
-        print('Have applied model to all {0:d} examples!'.format(num_examples))
+        print((
+            'Have applied model to all {0:d} examples!  It took {1:.4f} '
+            'seconds.'
+        ).format(
+            num_examples, elapsed_time_sec
+        ))
 
     return prediction_matrix
 
