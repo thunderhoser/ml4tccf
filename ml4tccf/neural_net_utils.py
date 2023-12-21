@@ -2,6 +2,7 @@
 
 import os
 import sys
+import time
 import pickle
 import numpy
 import keras
@@ -971,6 +972,7 @@ def apply_model(
 
     # Do actual stuff.
     prediction_matrix = None
+    exec_start_time_unix_sec = time.time()
 
     for i in range(0, num_examples, num_examples_per_batch):
         first_index = i
@@ -991,8 +993,15 @@ def apply_model(
 
         prediction_matrix[first_index:last_index, ...] = this_prediction_matrix
 
+    elapsed_time_sec = time.time() - exec_start_time_unix_sec
+
     if verbose:
-        print('Have applied model to all {0:d} examples!'.format(num_examples))
+        print((
+            'Have applied model to all {0:d} examples!  It took {1:.4f} '
+            'seconds.'
+        ).format(
+            num_examples, elapsed_time_sec
+        ))
 
     return prediction_matrix
 
@@ -1074,19 +1083,16 @@ def read_model(hdf5_file_name):
                         )
                     )
 
-            # TODO(thunderhoser): HACK
-            model_object = temporal_cnn_architecture.create_model(architecture_dict)
-
-            # if temporal_cnn_architecture.FC_MODULE_USE_3D_CONV in architecture_dict:
-            #     model_object = temporal_cnn_architecture.create_model(architecture_dict)
-            # else:
-            #     # TODO(thunderhoser): HACK
-            #     try:
-            #         model_object = cnn_architecture.create_model(architecture_dict)
-            #     except:
-            #         model_object = cnn_architecture.create_intensity_model(
-            #             architecture_dict
-            #         )
+            if temporal_cnn_architecture.FC_MODULE_USE_3D_CONV in architecture_dict:
+                model_object = temporal_cnn_architecture.create_model(architecture_dict)
+            else:
+                # TODO(thunderhoser): HACK
+                try:
+                    model_object = cnn_architecture.create_model(architecture_dict)
+                except:
+                    model_object = cnn_architecture.create_intensity_model(
+                        architecture_dict
+                    )
 
     model_object.load_weights(hdf5_file_name)
     return model_object
