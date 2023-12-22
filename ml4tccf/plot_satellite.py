@@ -46,6 +46,7 @@ IMAGE_CENTER_LABEL_BBOX_DICT = {
 }
 
 TITLE_FONT_SIZE = 50
+TICK_LABEL_FONT_SIZE = 40
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -292,10 +293,10 @@ def plot_data_one_time(
 
             axes_object.set_xticklabels(
                 axes_object.get_xticklabels(),
-                fontsize=TITLE_FONT_SIZE, rotation=90.
+                fontsize=TICK_LABEL_FONT_SIZE, rotation=90.
             )
             axes_object.set_yticklabels(
-                axes_object.get_yticklabels(), fontsize=TITLE_FONT_SIZE
+                axes_object.get_yticklabels(), fontsize=TICK_LABEL_FONT_SIZE
             )
         else:
             satellite_plotting.plot_2d_grid_no_coords(
@@ -405,6 +406,14 @@ def plot_data_one_time(
                 plot_longitudes_deg_e=numpy.ravel(grid_longitudes_deg_e),
                 axes_object=axes_object,
                 parallel_spacing_deg=2., meridian_spacing_deg=2.
+            )
+
+            axes_object.set_xticklabels(
+                axes_object.get_xticklabels(),
+                fontsize=TICK_LABEL_FONT_SIZE, rotation=90.
+            )
+            axes_object.set_yticklabels(
+                axes_object.get_yticklabels(), fontsize=TICK_LABEL_FONT_SIZE
             )
         else:
             satellite_plotting.plot_2d_grid_no_coords(
