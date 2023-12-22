@@ -308,17 +308,17 @@ def plot_data_one_time(
             transform=axes_object.transAxes, zorder=1e10
         )
 
-        label_string = (
-            '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
-            '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
-        )
-        axes_object.text(
-            0.55, 0.5, label_string, color=numpy.full(3, 0.),
-            fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
-            bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
-            horizontalalignment='left', verticalalignment='center',
-            transform=axes_object.transAxes, zorder=1e10
-        )
+        # label_string = (
+        #     '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
+        #     '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
+        # )
+        # axes_object.text(
+        #     0.55, 0.5, label_string, color=numpy.full(3, 0.),
+        #     fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
+        #     bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
+        #     horizontalalignment='left', verticalalignment='center',
+        #     transform=axes_object.transAxes, zorder=1e10
+        # )
 
         title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
             high_res_wavelengths_microns[j], cyclone_id_string,
@@ -414,17 +414,17 @@ def plot_data_one_time(
             transform=axes_object.transAxes, zorder=1e10
         )
 
-        label_string = (
-            '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
-            '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
-        )
-        axes_object.text(
-            0.55, 0.5, label_string, color=numpy.full(3, 0.),
-            fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
-            bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
-            horizontalalignment='left', verticalalignment='center',
-            transform=axes_object.transAxes, zorder=1e10
-        )
+        # label_string = (
+        #     '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
+        #     '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
+        # )
+        # axes_object.text(
+        #     0.55, 0.5, label_string, color=numpy.full(3, 0.),
+        #     fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
+        #     bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
+        #     horizontalalignment='left', verticalalignment='center',
+        #     transform=axes_object.transAxes, zorder=1e10
+        # )
 
         title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
             low_res_wavelengths_microns[j], cyclone_id_string,
@@ -665,7 +665,7 @@ def _run(satellite_dir_name, normalization_file_name, cyclone_id_string,
         )
 
         stx = satellite_table_xarray
-        are_data_normalized = numpy.any(
+        are_data_normalized = not numpy.any(
             stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values > 20.
         )
 
