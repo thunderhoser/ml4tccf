@@ -675,11 +675,14 @@ def _run(satellite_dir_name, normalization_file_name, cyclone_id_string,
             for_high_res=False
         )
 
-        satellite_table_xarray = satellite_utils.subset_wavelengths(
-            satellite_table_xarray=satellite_table_xarray,
-            wavelengths_to_keep_microns=high_res_wavelengths_microns,
-            for_high_res=True
-        )
+        try:
+            satellite_table_xarray = satellite_utils.subset_wavelengths(
+                satellite_table_xarray=satellite_table_xarray,
+                wavelengths_to_keep_microns=high_res_wavelengths_microns,
+                for_high_res=True
+            )
+        except KeyError:
+            pass
 
         if num_grid_rows_low_res is not None:
             satellite_table_xarray = satellite_utils.subset_grid(
