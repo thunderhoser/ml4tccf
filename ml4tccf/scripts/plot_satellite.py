@@ -25,9 +25,9 @@ DATE_FORMAT = '%Y-%m-%d'
 
 METRES_TO_MICRONS = 1e6
 
-IMAGE_CENTER_MARKER = 'o'
-IMAGE_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
-IMAGE_CENTER_MARKER_SIZE = 9
+IMAGE_CENTER_MARKER = '*'
+IMAGE_CENTER_MARKER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+IMAGE_CENTER_MARKER_SIZE = 24
 
 IMAGE_CENTER_LABEL_FONT_SIZE = 32
 IMAGE_CENTER_LABEL_BBOX_DICT = {
@@ -36,6 +36,8 @@ IMAGE_CENTER_LABEL_BBOX_DICT = {
     'linewidth': 1,
     'facecolor': numpy.full(3, 1.)
 }
+
+TITLE_FONT_SIZE = 40
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -279,6 +281,14 @@ def plot_data_one_time(
                 axes_object=axes_object,
                 parallel_spacing_deg=2., meridian_spacing_deg=2.
             )
+
+            axes_object.set_xticklabels(
+                axes_object.get_xticklabels(),
+                fontsize=TITLE_FONT_SIZE, rotation=90.
+            )
+            axes_object.set_yticklabels(
+                axes_object.get_yticklabels(), fontsize=TITLE_FONT_SIZE
+            )
         else:
             satellite_plotting.plot_2d_grid_no_coords(
                 data_matrix=t[
@@ -300,23 +310,26 @@ def plot_data_one_time(
             transform=axes_object.transAxes, zorder=1e10
         )
 
-        label_string = (
-            '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
-            '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
-        )
-        axes_object.text(
-            0.55, 0.5, label_string, color=numpy.full(3, 0.),
-            fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
-            bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
-            horizontalalignment='left', verticalalignment='center',
-            transform=axes_object.transAxes, zorder=1e10
-        )
+        # label_string = (
+        #     '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
+        #     '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
+        # )
+        # axes_object.text(
+        #     0.55, 0.5, label_string, color=numpy.full(3, 0.),
+        #     fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
+        #     bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
+        #     horizontalalignment='left', verticalalignment='center',
+        #     transform=axes_object.transAxes, zorder=1e10
+        # )
 
-        title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
-            high_res_wavelengths_microns[j], cyclone_id_string,
-            valid_time_string
+        # title_string = '{0:.3f}-micron BDRF for {1:s} at {2:s}'.format(
+        #     high_res_wavelengths_microns[j], cyclone_id_string,
+        #     valid_time_string
+        # )
+        title_string = '{0:.3f}-micron BDRF'.format(
+            high_res_wavelengths_microns[j]
         )
-        axes_object.set_title(title_string)
+        axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
 
         panel_file_names[panel_index] = (
             '{0:s}/{1:s}_{2:s}_{3:06.3f}microns.jpg'
@@ -406,23 +419,26 @@ def plot_data_one_time(
             transform=axes_object.transAxes, zorder=1e10
         )
 
-        label_string = (
-            '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
-            '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
-        )
-        axes_object.text(
-            0.55, 0.5, label_string, color=numpy.full(3, 0.),
-            fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
-            bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
-            horizontalalignment='left', verticalalignment='center',
-            transform=axes_object.transAxes, zorder=1e10
-        )
+        # label_string = (
+        #     '{0:.4f}'.format(center_latitude_deg_n) + r' $^{\circ}$N' +
+        #     '\n{0:.4f}'.format(center_longitude_deg_e) + r' $^{\circ}$E'
+        # )
+        # axes_object.text(
+        #     0.55, 0.5, label_string, color=numpy.full(3, 0.),
+        #     fontsize=IMAGE_CENTER_LABEL_FONT_SIZE,
+        #     bbox=IMAGE_CENTER_LABEL_BBOX_DICT,
+        #     horizontalalignment='left', verticalalignment='center',
+        #     transform=axes_object.transAxes, zorder=1e10
+        # )
 
-        title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
-            low_res_wavelengths_microns[j], cyclone_id_string,
-            valid_time_string
+        # title_string = r'{0:.3f}-micron $T_b$ for {1:s} at {2:s}'.format(
+        #     low_res_wavelengths_microns[j], cyclone_id_string,
+        #     valid_time_string
+        # )
+        title_string = r'{0:.3f}-micron $T_b$'.format(
+            low_res_wavelengths_microns[j]
         )
-        axes_object.set_title(title_string)
+        axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
 
         panel_file_names[panel_index] = (
             '{0:s}/{1:s}_{2:s}_{3:06.3f}microns.jpg'
@@ -657,7 +673,7 @@ def _run(satellite_dir_name, normalization_file_name, cyclone_id_string,
         )
 
         stx = satellite_table_xarray
-        are_data_normalized = numpy.any(
+        are_data_normalized = not numpy.any(
             stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values > 20.
         )
 
@@ -667,11 +683,14 @@ def _run(satellite_dir_name, normalization_file_name, cyclone_id_string,
             for_high_res=False
         )
 
-        satellite_table_xarray = satellite_utils.subset_wavelengths(
-            satellite_table_xarray=satellite_table_xarray,
-            wavelengths_to_keep_microns=high_res_wavelengths_microns,
-            for_high_res=True
-        )
+        try:
+            satellite_table_xarray = satellite_utils.subset_wavelengths(
+                satellite_table_xarray=satellite_table_xarray,
+                wavelengths_to_keep_microns=high_res_wavelengths_microns,
+                for_high_res=True
+            )
+        except KeyError:
+            pass
 
         if num_grid_rows_low_res is not None:
             satellite_table_xarray = satellite_utils.subset_grid(
