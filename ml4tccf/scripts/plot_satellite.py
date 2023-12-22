@@ -14,6 +14,7 @@ from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.plotting import imagemagick_utils
 from ml4tccf.io import border_io
 from ml4tccf.io import satellite_io
+from ml4tccf.utils import normalization
 from ml4tccf.utils import satellite_utils
 from ml4tccf.plotting import plotting_utils
 from ml4tccf.plotting import satellite_plotting
@@ -43,13 +44,13 @@ PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
 INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
+NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 VALID_TIMES_ARG_NAME = 'valid_time_strings'
 NUM_TIMES_ARG_NAME = 'num_times'
 FIRST_DATE_ARG_NAME = 'first_date_string'
 LAST_DATE_ARG_NAME = 'last_date_string'
 PLOT_LATLNG_ARG_NAME = 'plot_latlng_coords'
-ARE_DATA_NORMALIZED_ARG_NAME = 'are_data_normalized'
 LOW_RES_WAVELENGTHS_ARG_NAME = 'low_res_wavelengths_microns'
 HIGH_RES_WAVELENGTHS_ARG_NAME = 'high_res_wavelengths_microns'
 NUM_GRID_ROWS_ARG_NAME = 'num_grid_rows_low_res'
@@ -60,6 +61,12 @@ INPUT_DIR_HELP_STRING = (
     'Name of directory with satellite data.  Files for the relevant cyclone '
     'will be found by `satellite_io.find_file` and read by '
     '`satellite_io.read_file`.'
+)
+NORMALIZATION_FILE_HELP_STRING = (
+    'Path to file with normalization parameters.  If the satellite data are '
+    'normalized, this file will be used to convert back to physical units '
+    'before plotting.  You can also leave this empty, if you just want to plot '
+    'in z-score units.'
 )
 CYCLONE_ID_HELP_STRING = 'Cyclone ID, in format "yyyyBBnn".'
 VALID_TIMES_HELP_STRING = (
@@ -81,9 +88,6 @@ DATE_HELP_STRING = (
 
 PLOT_LATLNG_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot with(out) lat-long coordinates.'
-)
-ARE_DATA_NORMALIZED_HELP_STRING = (
-    'Boolean flag.  If 1 (0), will assume that data are (not) normalized.'
 )
 LOW_RES_WAVELENGTHS_HELP_STRING = (
     'Will plot low-resolution data (brightness temperature) at these '
@@ -109,6 +113,10 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + NORMALIZATION_FILE_ARG_NAME, type=str, required=False, default='',
+    help=NORMALIZATION_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
     help=CYCLONE_ID_HELP_STRING
 )
@@ -131,10 +139,6 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + PLOT_LATLNG_ARG_NAME, type=int, required=True,
     help=PLOT_LATLNG_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + ARE_DATA_NORMALIZED_ARG_NAME, type=int, required=False, default=0,
-    help=ARE_DATA_NORMALIZED_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + LOW_RES_WAVELENGTHS_ARG_NAME, type=float, nargs='+',
@@ -503,9 +507,9 @@ def plot_data_one_time(
         )
 
 
-def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
-         first_date_string, last_date_string,
-         plot_latlng_coords, are_data_normalized,
+def _run(satellite_dir_name, normalization_file_name, cyclone_id_string,
+         valid_time_strings, num_times, first_date_string, last_date_string,
+         plot_latlng_coords,
          low_res_wavelengths_microns, high_res_wavelengths_microns,
          num_grid_rows_low_res, num_grid_columns_low_res, output_dir_name):
     """Plots satellite images for one cyclone at the given times.
@@ -513,13 +517,13 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
     This is effectively the main method.
 
     :param satellite_dir_name: See documentation at top of file.
+    :param normalization_file_name: Same.
     :param cyclone_id_string: Same.
     :param valid_time_strings: Same.
     :param num_times: Same.
     :param first_date_string: Same.
     :param last_date_string: Same.
     :param plot_latlng_coords: Same.
-    :param are_data_normalized: Same.
     :param low_res_wavelengths_microns: Same.
     :param high_res_wavelengths_microns: Same.
     :param num_grid_rows_low_res: Same.
@@ -535,6 +539,9 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
             and high_res_wavelengths_microns[0] < 0
     ):
         high_res_wavelengths_microns = numpy.array([])
+
+    if normalization_file_name == '':
+        normalization_file_name = None
 
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
@@ -626,6 +633,7 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
         )
 
     satellite_tables_xarray = []
+    are_data_normalized = False
 
     for this_file_name in satellite_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
@@ -646,6 +654,11 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
                 start_times_unix_sec=valid_times_unix_sec[these_flags],
                 end_times_unix_sec=valid_times_unix_sec[these_flags]
             )
+        )
+
+        stx = satellite_table_xarray
+        are_data_normalized = numpy.any(
+            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values > 20.
         )
 
         satellite_table_xarray = satellite_utils.subset_wavelengths(
@@ -683,6 +696,18 @@ def _run(satellite_dir_name, cyclone_id_string, valid_time_strings, num_times,
     )
     del satellite_tables_xarray
 
+    if are_data_normalized and normalization_file_name is not None:
+        print('Reading data from: "{0:s}"...'.format(normalization_file_name))
+        norm_param_table_xarray = normalization.read_file(
+            normalization_file_name
+        )
+
+        satellite_table_xarray = normalization.denormalize_data(
+            satellite_table_xarray=satellite_table_xarray,
+            normalization_param_table_xarray=norm_param_table_xarray
+        )
+        are_data_normalized = False
+
     if plot_latlng_coords:
         border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
     else:
@@ -708,6 +733,9 @@ if __name__ == '__main__':
 
     _run(
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, INPUT_DIR_ARG_NAME),
+        normalization_file_name=getattr(
+            INPUT_ARG_OBJECT, NORMALIZATION_FILE_ARG_NAME
+        ),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
         valid_time_strings=getattr(INPUT_ARG_OBJECT, VALID_TIMES_ARG_NAME),
         num_times=getattr(INPUT_ARG_OBJECT, NUM_TIMES_ARG_NAME),
@@ -715,9 +743,6 @@ if __name__ == '__main__':
         last_date_string=getattr(INPUT_ARG_OBJECT, LAST_DATE_ARG_NAME),
         plot_latlng_coords=bool(
             getattr(INPUT_ARG_OBJECT, PLOT_LATLNG_ARG_NAME)
-        ),
-        are_data_normalized=bool(
-            getattr(INPUT_ARG_OBJECT, ARE_DATA_NORMALIZED_ARG_NAME)
         ),
         low_res_wavelengths_microns=numpy.array(
             getattr(INPUT_ARG_OBJECT, LOW_RES_WAVELENGTHS_ARG_NAME), dtype=float
