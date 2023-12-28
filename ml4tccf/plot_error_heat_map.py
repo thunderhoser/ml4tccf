@@ -345,12 +345,16 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
         vmin=these_colour_map_limits[0], vmax=these_colour_map_limits[1]
     )
 
-    axes_object.set_title(
-        'Heat map of model errors for TC center\n'
-        'Actual center is at (0, 0) km'
+    title_string = (
+        'Heat map of model errors\n'
+        r'Mean $x$-error = {0:.1f} km; mean $y$-error = {1:.1f} km'
+    ).format(
+        numpy.mean(x_errors_km), numpy.mean(y_errors_km)
     )
-    axes_object.set_xlabel(r'Predicted $x$-position (km)')
-    axes_object.set_ylabel(r'Predicted $y$-position (km)')
+
+    axes_object.set_title(title_string)
+    axes_object.set_xlabel(r'$x$-error (model minus actual; km)')
+    axes_object.set_ylabel(r'$y$-error (model minus actual; km)')
 
     tick_coords_km = METRES_TO_KM * numpy.linspace(
         xy_error_limits_metres[0], xy_error_limits_metres[1],
@@ -452,12 +456,17 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
         vmin=these_colour_map_limits[0], vmax=these_colour_map_limits[1]
     )
 
-    axes_object.set_title(
-        'Heat map of original errors (created by data\n'
-        'augmentation during training) for TC center'
+    title_string = (
+        'Heat map of uncorrected errors\n'
+        r'Mean $x$-error = {0:.1f} km; mean $y$-error = {1:.1f} km'
+    ).format(
+        numpy.mean(predicted_x_offsets_km - actual_x_offsets_km),
+        numpy.mean(predicted_y_offsets_km - actual_y_offsets_km)
     )
-    axes_object.set_xlabel(r'Predicted $x$-position (km)')
-    axes_object.set_ylabel(r'Predicted $y$-position (km)')
+
+    axes_object.set_title(title_string)
+    axes_object.set_xlabel(r'$x$-error (model minus actual; km)')
+    axes_object.set_ylabel(r'$y$-error (model minus actual; km)')
 
     axes_object.set_xticks(tick_coords_px)
     axes_object.set_xticklabels(tick_coord_labels)

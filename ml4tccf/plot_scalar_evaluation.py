@@ -119,12 +119,7 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             mean_observations=mean_observations_km,
             mean_value_in_training=0.,
             min_value_to_plot=numpy.nanmin(all_mean_values_km),
-            max_value_to_plot=numpy.nanmax(all_mean_values_km),
-            # example_counts=
-            # t[scalar_evaluation.XY_OFFSET_BIN_COUNT_KEY].values[j, :],
-            # inv_mean_observations=mean_observations_km,
-            # inv_example_counts=
-            # t[scalar_evaluation.XY_OFFSET_INV_BIN_COUNT_KEY].values[j, :]
+            max_value_to_plot=numpy.nanmax(all_mean_values_km)
         )
 
         evaluation_plotting.plot_inset_histogram(
@@ -141,9 +136,13 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         evaluation_plotting.plot_inset_histogram(
             figure_object=figure_object,
+            # bin_centers=(
+            #     METRES_TO_KM *
+            #     t[scalar_evaluation.XY_OFFSET_INV_BIN_CENTER_KEY].values[j, :]
+            # ),
             bin_centers=(
                 METRES_TO_KM *
-                t[scalar_evaluation.XY_OFFSET_INV_BIN_CENTER_KEY].values[j, :]
+                t[scalar_evaluation.XY_OFFSET_BIN_CENTER_KEY].values[j, :]
             ),
             bin_counts=
             t[scalar_evaluation.XY_OFFSET_INV_BIN_COUNT_KEY].values[j, :],
@@ -168,40 +167,35 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
         if num_bootstrap_reps == 1:
             title_string = (
                 'Attributes diagram for {0:s}\n'
-                '(MSE = {1:.1f}; MSESS = {2:.3f}; REL = {3:.1f}; RES = {4:.1f})'
+                'MSESS = {1:.3f}; REL = {2:.1f}'
             ).format(
-                r'$x$-offset'
+                r'$x$-coord'
                 if target_field_names[j] == scalar_evaluation.X_OFFSET_NAME
-                else r'$y$-offset',
-                mean_squared_errors[0],
+                else r'$y$-coord',
                 mse_skill_scores[0],
-                reliabilities[0],
-                resolutions[0]
+                reliabilities[0]
             )
         else:
             title_string = (
                 'Attributes diagram for {0:s}\n'
-                '(MSE = [{1:.1f}, {2:.1f}]; MSESS = [{3:.3f}, {4:.3f}];\n'
-                'REL = [{5:.1f}, {6:.1f}]; RES = [{7:.1f}, {8:.1f}])'
+                'MSESS = [{1:.3f}, {2:.3f}]\n'
+                'REL = [{3:.1f}, {4:.1f}]'
             ).format(
-                r'$x$-offset'
+                r'$x$-coord'
                 if target_field_names[j] == scalar_evaluation.X_OFFSET_NAME
-                else r'$y$-offset',
-                numpy.nanpercentile(mean_squared_errors, min_percentile),
-                numpy.nanpercentile(mean_squared_errors, max_percentile),
+                else r'$y$-coord',
                 numpy.nanpercentile(mse_skill_scores, min_percentile),
                 numpy.nanpercentile(mse_skill_scores, max_percentile),
                 numpy.nanpercentile(reliabilities, min_percentile),
-                numpy.nanpercentile(reliabilities, max_percentile),
-                numpy.nanpercentile(resolutions, min_percentile),
-                numpy.nanpercentile(resolutions, max_percentile)
+                numpy.nanpercentile(reliabilities, max_percentile)
             )
 
-        axes_object.set_title(title_string)
+        title_string += r' km$^2$'
         print(title_string)
+        axes_object.set_title(title_string)
 
-        axes_object.set_xlabel('Predicted offset (km)')
-        axes_object.set_ylabel('Conditional mean observed offset (km)')
+        axes_object.set_xlabel('Prediction (km)')
+        axes_object.set_ylabel('Conditional mean observation (km)')
 
         figure_file_name = '{0:s}/attributes_diagram_{1:s}.jpg'.format(
             output_dir_name,
@@ -245,12 +239,7 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             mean_observations=mean_observations_km,
             mean_value_in_training=climo_offset_distance_km,
             min_value_to_plot=numpy.nanmin(all_mean_values_km),
-            max_value_to_plot=numpy.nanmax(all_mean_values_km),
-            # example_counts=
-            # t[scalar_evaluation.OFFSET_DIST_BIN_COUNT_KEY].values,
-            # inv_mean_observations=mean_observations_km,
-            # inv_example_counts=
-            # t[scalar_evaluation.OFFSET_DIST_INV_BIN_COUNT_KEY].values
+            max_value_to_plot=numpy.nanmax(all_mean_values_km)
         )
 
         evaluation_plotting.plot_inset_histogram(
@@ -268,8 +257,12 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             figure_object=figure_object,
             bin_centers=(
                 METRES_TO_KM *
-                t[scalar_evaluation.OFFSET_DIST_INV_BIN_CENTER_KEY].values
+                t[scalar_evaluation.OFFSET_DIST_BIN_CENTER_KEY].values
             ),
+            # bin_centers=(
+            #     METRES_TO_KM *
+            #     t[scalar_evaluation.OFFSET_DIST_INV_BIN_CENTER_KEY].values
+            # ),
             bin_counts=
             t[scalar_evaluation.OFFSET_DIST_INV_BIN_COUNT_KEY].values,
             has_predictions=False,
@@ -292,35 +285,30 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         if num_bootstrap_reps == 1:
             title_string = (
-                'Attributes diagram for Euclidean offset\n'
-                '(MSE = {0:.1f}; MSESS = {1:.3f}; REL = {2:.1f}; RES = {3:.1f})'
+                'Attributes diagram for total correction distance\n'
+                'MSESS = {0:.3f}; REL = {1:.1f}'
             ).format(
-                mean_squared_errors[0],
                 mse_skill_scores[0],
-                reliabilities[0],
-                resolutions[0]
+                reliabilities[0]
             )
         else:
             title_string = (
-                'Attributes diagram for Euclidean offset\n'
-                '(MSE = [{0:.1f}, {1:.1f}]; MSESS = [{2:.3f}, {3:.3f}];\n'
-                'REL = [{4:.1f}, {5:.1f}]; RES = [{6:.1f}, {7:.1f}])'
+                'Attributes diagram for total correction distance\n'
+                'MSESS = [{0:.3f}, {1:.3f}]\n'
+                'REL = [{2:.1f}, {3:.1f}]'
             ).format(
-                numpy.nanpercentile(mean_squared_errors, min_percentile),
-                numpy.nanpercentile(mean_squared_errors, max_percentile),
                 numpy.nanpercentile(mse_skill_scores, min_percentile),
                 numpy.nanpercentile(mse_skill_scores, max_percentile),
                 numpy.nanpercentile(reliabilities, min_percentile),
-                numpy.nanpercentile(reliabilities, max_percentile),
-                numpy.nanpercentile(resolutions, min_percentile),
-                numpy.nanpercentile(resolutions, max_percentile)
+                numpy.nanpercentile(reliabilities, max_percentile)
             )
 
-        axes_object.set_title(title_string)
+        title_string += r' km$^2$'
         print(title_string)
+        axes_object.set_title(title_string)
 
-        axes_object.set_xlabel('Predicted offset (km)')
-        axes_object.set_ylabel('Conditional mean observed offset (km)')
+        axes_object.set_xlabel('Prediction (km)')
+        axes_object.set_ylabel('Conditional mean observation (km)')
 
         figure_file_name = '{0:s}/attributes_diagram_{1:s}.jpg'.format(
             output_dir_name,
@@ -362,12 +350,7 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             mean_observations=mean_observations_deg,
             mean_value_in_training=180.,
             min_value_to_plot=numpy.nanmin(all_mean_values_deg),
-            max_value_to_plot=numpy.nanmax(all_mean_values_deg),
-            # example_counts=
-            # t[scalar_evaluation.OFFSET_DIR_BIN_COUNT_KEY].values,
-            # inv_mean_observations=mean_observations_deg,
-            # inv_example_counts=
-            # t[scalar_evaluation.OFFSET_DIR_INV_BIN_COUNT_KEY].values
+            max_value_to_plot=numpy.nanmax(all_mean_values_deg)
         )
 
         evaluation_plotting.plot_inset_histogram(
@@ -380,8 +363,9 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         evaluation_plotting.plot_inset_histogram(
             figure_object=figure_object,
-            bin_centers=
-            t[scalar_evaluation.OFFSET_DIR_INV_BIN_CENTER_KEY].values,
+            bin_centers=t[scalar_evaluation.OFFSET_DIR_BIN_CENTER_KEY].values,
+            # bin_centers=
+            # t[scalar_evaluation.OFFSET_DIR_INV_BIN_CENTER_KEY].values,
             bin_counts=
             t[scalar_evaluation.OFFSET_DIR_INV_BIN_COUNT_KEY].values,
             has_predictions=False,
@@ -400,35 +384,30 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         if num_bootstrap_reps == 1:
             title_string = (
-                'Attributes diagram for offset direction\n'
-                '(MSE = {0:.1f}; MSESS = {1:.3f}; REL = {2:.1f}; RES = {3:.1f})'
+                'Attributes diagram for correction direction\n'
+                'MSESS = {0:.3f}; REL = {1:.1f}'
             ).format(
-                mean_squared_errors[0],
                 mse_skill_scores[0],
-                reliabilities[0],
-                resolutions[0]
+                reliabilities[0]
             )
         else:
             title_string = (
-                'Attributes diagram for offset direction\n'
-                '(MSE = [{0:.1f}, {1:.1f}]; MSESS = [{2:.3f}, {3:.3f}];\n'
-                'REL = [{4:.1f}, {5:.1f}]; RES = [{6:.1f}, {7:.1f}])'
+                'Attributes diagram for correction direction\n'
+                'MSESS = [{0:.3f}, {1:.3f}]\n'
+                'REL = [{2:.1f}, {3:.1f}]'
             ).format(
-                numpy.nanpercentile(mean_squared_errors, min_percentile),
-                numpy.nanpercentile(mean_squared_errors, max_percentile),
                 numpy.nanpercentile(mse_skill_scores, min_percentile),
                 numpy.nanpercentile(mse_skill_scores, max_percentile),
                 numpy.nanpercentile(reliabilities, min_percentile),
-                numpy.nanpercentile(reliabilities, max_percentile),
-                numpy.nanpercentile(resolutions, min_percentile),
-                numpy.nanpercentile(resolutions, max_percentile)
+                numpy.nanpercentile(reliabilities, max_percentile)
             )
 
-        axes_object.set_title(title_string)
+        title_string += r' deg$^2$'
         print(title_string)
+        axes_object.set_title(title_string)
 
-        axes_object.set_xlabel('Predicted direction (deg)')
-        axes_object.set_ylabel('Conditional mean observed direction (deg)')
+        axes_object.set_xlabel('Prediction (deg)')
+        axes_object.set_ylabel('Conditional mean observation (deg)')
 
         figure_file_name = '{0:s}/attributes_diagram_{1:s}.jpg'.format(
             output_dir_name,

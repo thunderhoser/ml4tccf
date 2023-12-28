@@ -140,11 +140,6 @@ def _plot_x_error_histogram(
     print('Bias for x-distance = {0:.1f} km'.format(
         numpy.mean(predicted_x_offsets_km - actual_x_offsets_km)
     ))
-    print('Min/max/quartiles of x-distance error (km):\n{0:s}'.format(
-        str(numpy.percentile(
-            predicted_x_offsets_km - actual_x_offsets_km, [0, 25, 50, 75, 100]
-        ))
-    ))
     print('MAE for x-distance = {0:.1f} km'.format(
         numpy.mean(numpy.absolute(predicted_x_offsets_km - actual_x_offsets_km))
     ))
@@ -176,13 +171,22 @@ def _plot_x_error_histogram(
     )
 
     if plotting_orig_error:
-        axes_object.set_title(
-            'Histogram of original errors (created by data\n' +
-            r'augmentation during training) for $x$-position'
-        )
+        title_string = r'Histogram of uncorrected errors for $x$-coord'
     else:
-        axes_object.set_title(r'Histogram of model errors for $x$-position')
+        title_string = r'Histogram of model errors for $x$-coord'
 
+    absolute_errors_km = numpy.absolute(
+        predicted_x_offsets_km - actual_x_offsets_km
+    )
+    title_string += (
+        '\nMAE = {0:.1f} km; medAE = {1:.1f} km; RMSE = {2:.1f} km'
+    ).format(
+        numpy.mean(absolute_errors_km),
+        numpy.median(absolute_errors_km),
+        numpy.sqrt(numpy.mean(absolute_errors_km ** 2))
+    )
+
+    axes_object.set_title(title_string)
     axes_object.set_xlabel('Error (predicted minus actual; km)')
     axes_object.set_ylabel('Frequency')
 
@@ -217,11 +221,6 @@ def _plot_y_error_histogram(
     print('Bias for y-distance = {0:.1f} km'.format(
         numpy.mean(predicted_y_offsets_km - actual_y_offsets_km)
     ))
-    print('Min/max/quartiles of y-distance error (km):\n{0:s}'.format(
-        str(numpy.percentile(
-            predicted_y_offsets_km - actual_y_offsets_km, [0, 25, 50, 75, 100]
-        ))
-    ))
     print('MAE for y-distance = {0:.1f} km'.format(
         numpy.mean(numpy.absolute(predicted_y_offsets_km - actual_y_offsets_km))
     ))
@@ -252,13 +251,22 @@ def _plot_y_error_histogram(
     )
 
     if plotting_orig_error:
-        axes_object.set_title(
-            'Histogram of original errors (created by data\n' +
-            r'augmentation during training) for $y$-position'
-        )
+        title_string = r'Histogram of uncorrected errors for $y$-coord'
     else:
-        axes_object.set_title(r'Histogram of model errors for $y$-position')
+        title_string = r'Histogram of model errors for $y$-coord'
 
+    absolute_errors_km = numpy.absolute(
+        predicted_y_offsets_km - actual_y_offsets_km
+    )
+    title_string += (
+        '\nMAE = {0:.1f} km; medAE = {1:.1f} km; RMSE = {2:.1f} km'
+    ).format(
+        numpy.mean(absolute_errors_km),
+        numpy.median(absolute_errors_km),
+        numpy.sqrt(numpy.mean(absolute_errors_km ** 2))
+    )
+
+    axes_object.set_title(title_string)
     axes_object.set_xlabel('Error (predicted minus actual; km)')
     axes_object.set_ylabel('Frequency')
 
@@ -307,11 +315,6 @@ def _plot_euclidean_error_histogram(
     print('Mean Euclidean error = {0:.1f} km'.format(
         numpy.mean(euclidean_errors_km)
     ))
-    print('Min/max/quartiles of Euclidean error (km):\n{0:s}'.format(
-        str(numpy.percentile(
-            euclidean_errors_km, [0, 25, 50, 75, 100]
-        ))
-    ))
 
     bin_counts = histograms.create_histogram(
         input_values=euclidean_errors_km,
@@ -339,14 +342,20 @@ def _plot_euclidean_error_histogram(
     )
 
     if plotting_orig_error:
-        axes_object.set_title(
-            'Histogram of original Euclidean errors\n'
-            '(created by data augmentation during training)'
-        )
+        title_string = 'Histogram of uncorrected Euclidean errors'
     else:
-        axes_object.set_title("Histogram of model's Euclidean errors")
+        title_string = 'Histogram of model''s Euclidean errors'
 
-    axes_object.set_xlabel('Total distance between predicted and actual (km)')
+    title_string += (
+        '\nMean = {0:.1f} km; median = {1:.1f} km; RMS = {2:.1f} km'
+    ).format(
+        numpy.mean(euclidean_errors_km),
+        numpy.median(euclidean_errors_km),
+        numpy.sqrt(numpy.mean(euclidean_errors_km ** 2))
+    )
+
+    axes_object.set_title(title_string)
+    axes_object.set_xlabel('Distance b/w actual and estimated TC center (km)')
     axes_object.set_ylabel('Frequency')
 
     output_file_name = '{0:s}/{1:s}_error_histogram_euclidean.jpg'.format(
@@ -398,11 +407,6 @@ def _plot_direction_error_histogram(
     print('Bias for angle = {0:.1f} deg'.format(
         numpy.mean(angular_diffs_deg)
     ))
-    print('Min/max/quartiles of angle error (deg):\n{0:s}'.format(
-        str(numpy.percentile(
-            angular_diffs_deg, [0, 25, 50, 75, 100]
-        ))
-    ))
     print('MAE for angle = {0:.1f} deg'.format(
         numpy.mean(numpy.absolute(angular_diffs_deg))
     ))
@@ -433,13 +437,19 @@ def _plot_direction_error_histogram(
     )
 
     if plotting_orig_error:
-        axes_object.set_title(
-            'Histogram of original direction errors\n'
-            '(created by data augmentation during training)'
-        )
+        title_string = 'Histogram of uncorrected direction errors'
     else:
-        axes_object.set_title("Histogram of model's direction errors")
+        title_string = 'Histogram of model''s direction errors'
 
+    title_string += (
+        '\nMAE = {0:.1f} deg; medAE = {1:.1f} deg; RMSE = {2:.1f} deg'
+    ).format(
+        numpy.mean(numpy.absolute(angular_diffs_deg)),
+        numpy.median(numpy.absolute(angular_diffs_deg)),
+        numpy.sqrt(numpy.mean(numpy.absolute(angular_diffs_deg) ** 2))
+    )
+
+    axes_object.set_title(title_string)
     axes_object.set_xlabel('Error (predicted minus actual; CCW positive; deg)')
     axes_object.set_ylabel('Frequency')
 
