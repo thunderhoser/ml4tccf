@@ -277,7 +277,7 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
 
         if num_bootstrap_reps == 1:
             title_string = (
-                'Attributes diagram for total correction distance\n'
+                'Attributes diagram for correction distance\n'
                 'MSESS = {0:.3f}; REL = {1:.1f}'
             ).format(
                 mse_skill_scores[0],
@@ -285,7 +285,7 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
             )
         else:
             title_string = (
-                'Attributes diagram for total correction distance\n'
+                'Attributes diagram for correction distance\n'
                 'MSESS = [{0:.3f}, {1:.3f}]\n'
                 'REL = [{2:.1f}, {3:.1f}]'
             ).format(

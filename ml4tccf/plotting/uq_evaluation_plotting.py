@@ -21,7 +21,7 @@ TARGET_NAME_ABBREV_TO_FANCY = {
     X_OFFSET_NAME: r'$x$-coord',
     Y_OFFSET_NAME: r'$y$-coord',
     OFFSET_DIRECTION_NAME: 'correction direction',
-    OFFSET_DISTANCE_NAME: 'correction vector'
+    OFFSET_DISTANCE_NAME: 'Euclidean correction vector'
 }
 TARGET_NAME_TO_UNITS = {
     X_OFFSET_NAME: 'km',
@@ -349,7 +349,7 @@ def plot_spread_vs_skill(
     )
 
     title_string = (
-        'Spread-skill plot for {0:s}\n'
+        'Spread vs. skill for {0:s}\n'
         'SSREL = {1:.1f} {2:s}; SSRAT = {3:.2f}'
     ).format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
@@ -518,7 +518,7 @@ def plot_pit_histogram(
 
     title_string = 'PIT histogram for {0:s}\nPITD = {1:.3f}'.format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name].replace(
-            'correction vector', 'correction distance'
+            'Euclidean correction vector', 'correction distance'
         ),
         pit_deviation_key
     )
@@ -585,7 +585,7 @@ def plot_rank_histogram(
 
     title_string = 'Rank histogram for {0:s}\nRHD = {1:.3f}'.format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name].replace(
-            'correction vector', 'correction distance'
+            'Euclidean correction vector', 'correction distance'
         ),
         pit_deviation_key
     )
