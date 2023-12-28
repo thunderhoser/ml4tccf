@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="shuffle_satellite_files_training_part2"
+#SBATCH --job-name="shuffle_satellite_files_training_part5"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="gpu"
@@ -17,7 +17,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=shuffle_satellite_files_training_part2_%A.out
+#SBATCH --output=shuffle_satellite_files_training_part5_%A.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -32,6 +32,6 @@ python3 -u "${CODE_DIR_NAME}/shuffle_satellite_files.py" \
 --num_chunks_per_input_file=3 \
 --num_chunks_per_output_file=8 \
 --output_time_interval_minutes=30 \
---cyclone_id_strings "2019EP08" "2018WP25" "2019WP07" "2018EP20" "2016WP12" "2017WP24" "2017AL08" "2020EP16" "2018EP19" "2017WP22" "2016WP08" "2018EP24" "2019AL17" "2019EP07" "2016WP04" "2016WP13" "2019WP13" "2017WP33" "2019WP25" "2018WP36" "2017AL16" "2018WP24" "2018EP16" "2019EP05" "2020EP12" "2016WP23" "2019WP11" "2018EP17" "2019EP19" "2017AL01" "2017WP11" "2016WP16" "2017WP13" "2019WP27" \
---first_output_file_num=10000 \
+--cyclone_id_strings "2019AL05" "2020EP17" "2018AL06" "2020EP11" "2016WP19" "2020EP08" "2017AL09" "2018WP22" "2017AL04" "2016WP10" "2018WP35" "2018AL07" "2017AL05" "2019WP05" "2019EP16" "2016WP17" "2019EP11" "2019WP09" "2017WP06" "2018EP14" "2018WP32" "2020EP20" "2016WP21" "2017WP31" "2019AL08" "2019EP17" "2017AL11" "2017WP07" "2019WP03" "2017AL14" "2018WP23" "2019AL13" "2018AL05" \
+--first_output_file_num=40000 \
 --output_satellite_dir_name="${OUTPUT_DIR_NAME}"
