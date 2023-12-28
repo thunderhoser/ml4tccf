@@ -28,5 +28,5 @@ set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_model
 
 python3 -u "${CODE_DIR_NAME}/make_pit_histograms.py" \
 --input_prediction_file_pattern="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/predictions*.nc" \
---num_bins=20 \
+--num_bins=50 \
 --output_file_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/pit_histograms.nc"

@@ -12,6 +12,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import error_checking
 import pit_utils
 import spread_skill_utils as ss_utils
 import discard_test_utils as dt_utils
@@ -25,10 +26,10 @@ OFFSET_DIRECTION_NAME = ss_utils.OFFSET_DIRECTION_NAME
 OFFSET_DISTANCE_NAME = ss_utils.OFFSET_DISTANCE_NAME
 
 TARGET_NAME_ABBREV_TO_FANCY = {
-    X_OFFSET_NAME: r'$x$-offset',
-    Y_OFFSET_NAME: r'$y$-offset',
-    OFFSET_DIRECTION_NAME: 'offset direction',
-    OFFSET_DISTANCE_NAME: 'Euclidean offset distance'
+    X_OFFSET_NAME: r'$x$-coord',
+    Y_OFFSET_NAME: r'$y$-coord',
+    OFFSET_DIRECTION_NAME: 'correction direction',
+    OFFSET_DISTANCE_NAME: 'total correction distance'
 }
 TARGET_NAME_TO_UNITS = {
     X_OFFSET_NAME: 'km',
@@ -292,19 +293,17 @@ def plot_spread_vs_skill(
 
     if target_var_name == OFFSET_DISTANCE_NAME:
         axes_object.set_xlabel(
-            'Spread (RMSD between ensemble members; {0:s})'.format(unit_string)
+            'Spread (Euclidean ensemble stdev; {0:s})'.format(unit_string)
         )
         axes_object.set_ylabel(
-            'Skill (RMSD of mean prediction; {0:s})'.format(unit_string)
+            'Skill (RMSD of ensemble mean; {0:s})'.format(unit_string)
         )
     else:
         axes_object.set_xlabel(
-            'Spread (stdev of predictive distribution; {0:s})'.format(
-                unit_string
-            )
+            'Spread (ensemble stdev; {0:s})'.format(unit_string)
         )
         axes_object.set_ylabel(
-            'Skill (RMSE of mean prediction; {0:s})'.format(unit_string)
+            'Skill (RMSE of ensemble mean; {0:s})'.format(unit_string)
         )
 
     bin_frequencies = example_counts.astype(float) / numpy.sum(example_counts)
@@ -320,7 +319,7 @@ def plot_spread_vs_skill(
         axes_object=axes_object, bin_edges=bin_edges,
         bin_frequencies=bin_frequencies * 100
     )
-    histogram_axes_object.set_ylabel('% examples in each bin')
+    histogram_axes_object.set_ylabel('% TC samples in each bin')
 
     # axes_object.set_xlim(
     #     min([bin_edges[0], 0]),
@@ -358,7 +357,7 @@ def plot_spread_vs_skill(
     )
 
     title_string = (
-        'Spread vs. skill for {0:s}\n'
+        'Spread-skill plot for {0:s}\n'
         'SSREL = {1:.1f} {2:s}; SSRAT = {3:.2f}'
     ).format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
@@ -427,11 +426,11 @@ def plot_discard_test(
 
     if target_var_name == OFFSET_DISTANCE_NAME:
         axes_object.set_ylabel(
-            'Mean absolute error ({0:s})'.format(unit_string)
+            'Mean Euclidean error ({0:s})'.format(unit_string)
         )
     else:
         axes_object.set_ylabel(
-            'Mean absolute distance ({0:s})'.format(unit_string)
+            'Mean absolute error ({0:s})'.format(unit_string)
         )
 
     inset_axes_object = _plot_means_as_inset(
@@ -460,12 +459,10 @@ def plot_discard_test(
 
     title_string = (
         'Discard test for {0:s}\n'
-        'MF = {1:.1f}%; DI = {2:.3f} {3:s} per % discarded'
+        'DTMF = {1:.1f}%'
     ).format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
-        100 * mono_fraction,
-        mean_mae_improvement / 100,
-        unit_string
+        100 * mono_fraction
     )
 
     print(title_string)
@@ -500,9 +497,6 @@ def plot_pit_histogram(
     )
 
     pit_deviation_key = t[pit_utils.PIT_DEVIATION_KEY].values[j]
-    low_bin_bias = t[pit_utils.LOW_BIN_BIAS_KEY].values[j]
-    middle_bin_bias = t[pit_utils.MIDDLE_BIN_BIAS_KEY].values[j]
-    high_bin_bias = t[pit_utils.HIGH_BIN_BIAS_KEY].values[j]
     bin_counts = t[pit_utils.BIN_COUNT_KEY].values[j, :]
 
     bin_edges = t.coords[pit_utils.BIN_EDGE_DIM].values
@@ -532,12 +526,78 @@ def plot_pit_histogram(
 
     title_string = (
         'PIT histogram for {0:s}\n'
-        'PITD = {1:.3f}; low-PIT freq bias = {2:.3f}\n'
-        'medium-PIT freq bias = {3:.3f}; high-PIT freq bias = {4:.3f}\n'
+        'PITD = {1:.3f}'
     ).format(
         TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
-        pit_deviation_key, low_bin_bias,
-        middle_bin_bias, high_bin_bias
+        pit_deviation_key
+    )
+
+    print(title_string)
+    axes_object.set_title(title_string)
+
+    return figure_object, axes_object
+
+
+def plot_rank_histogram(
+        result_table_xarray, target_var_name, ensemble_size,
+        face_colour=DEFAULT_HISTOGRAM_FACE_COLOUR,
+        edge_colour=DEFAULT_HISTOGRAM_EDGE_COLOUR,
+        edge_width=DEFAULT_HISTOGRAM_EDGE_WIDTH):
+    """Plots rank histogram for one target variable.
+
+    :param result_table_xarray: See doc for `plot_pit_histogram`.
+    :param target_var_name: Same.
+    :param ensemble_size: Ensemble size of model.
+    :param face_colour: See doc for `plot_pit_histogram`.
+    :param edge_colour: Same.
+    :param edge_width: Same.
+    :return: figure_object: Same.
+    :return: axes_object: Same.
+    """
+
+    error_checking.assert_is_integer(ensemble_size)
+    error_checking.assert_is_greater(ensemble_size, 1)
+
+    # Find values for the chosen target variable.
+    t = result_table_xarray
+    j = t.coords[ss_utils.TARGET_FIELD_DIM].values.tolist().index(
+        target_var_name
+    )
+
+    pit_deviation_key = t[pit_utils.PIT_DEVIATION_KEY].values[j]
+    bin_counts = t[pit_utils.BIN_COUNT_KEY].values[j, :]
+
+    bin_edges = (ensemble_size + 1) * t.coords[pit_utils.BIN_EDGE_DIM].values
+    bin_frequencies = bin_counts.astype(float) / numpy.sum(bin_counts)
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+    axes_object.bar(
+        x=bin_edges[:-1], height=bin_frequencies, width=numpy.diff(bin_edges),
+        color=face_colour, edgecolor=edge_colour, linewidth=edge_width,
+        align='edge'
+    )
+
+    num_bins = len(bin_edges) - 1
+    perfect_x_coords = numpy.array([0, ensemble_size + 1], dtype=float)
+    perfect_y_coords = numpy.array([1. / num_bins, 1. / num_bins])
+    axes_object.plot(
+        perfect_x_coords, perfect_y_coords, color=REFERENCE_LINE_COLOUR,
+        linestyle='dashed', linewidth=REFERENCE_LINE_WIDTH
+    )
+
+    axes_object.set_xlabel('Rank of observation in ensemble')
+    axes_object.set_ylabel('Frequency')
+    axes_object.set_xlim(0, ensemble_size + 1)
+    axes_object.set_ylim(bottom=0.)
+
+    title_string = (
+        'Rank histogram for {0:s}\n'
+        'RHD = {1:.3f}'
+    ).format(
+        TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
+        pit_deviation_key
     )
 
     print(title_string)
