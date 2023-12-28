@@ -1,24 +1,13 @@
 """Simplifies satellite files by removing most wavelengths and pixels."""
 
-import os
-import sys
 import argparse
 import numpy
 import xarray
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import satellite_io
-import satellite_utils
+from ml4tccf.io import satellite_io
+from ml4tccf.utils import satellite_utils
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 TOLERANCE = 1e-6
-
-NUM_GRID_ROWS_TO_KEEP = 500
-NUM_GRID_COLUMNS_TO_KEEP = 500
 
 GOES_WAVELENGTHS_METRES = 1e-6 * numpy.array([
     3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
@@ -31,6 +20,8 @@ INPUT_DIR_ARG_NAME = 'input_dir_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 SHUFFLED_FILE_NUMBER_ARG_NAME = 'shuffled_file_number'
 WAVELENGTHS_TO_KEEP_ARG_NAME = 'wavelengths_to_keep_microns'
+NUM_ROWS_TO_KEEP_ARG_NAME = 'num_grid_rows_to_keep'
+NUM_COLUMNS_TO_KEEP_ARG_NAME = 'num_grid_columns_to_keep'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -50,6 +41,8 @@ SHUFFLED_FILE_NUMBER_HELP_STRING = (
 WAVELENGTHS_TO_KEEP_HELP_STRING = (
     'List of wavelengths to keep (for infrared brightness temperature only).'
 )
+NUM_ROWS_TO_KEEP_HELP_STRING = 'Number of grid rows to keep.'
+NUM_COLUMNS_TO_KEEP_HELP_STRING = 'Number of grid columns to keep.'
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Files with subset satellite data will be '
     'written here by `satellite_io.write_file`, to exact locations determined '
@@ -74,13 +67,22 @@ INPUT_ARG_PARSER.add_argument(
     help=WAVELENGTHS_TO_KEEP_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_ROWS_TO_KEEP_ARG_NAME, type=int, required=True,
+    help=NUM_ROWS_TO_KEEP_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_COLUMNS_TO_KEEP_ARG_NAME, type=int, required=True,
+    help=NUM_COLUMNS_TO_KEEP_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
 def _run(input_dir_name, cyclone_id_string, shuffled_file_number,
-         wavelengths_to_keep_microns, output_dir_name):
+         wavelengths_to_keep_microns, num_grid_rows_to_keep,
+         num_grid_columns_to_keep, output_dir_name):
     """Simplifies satellite files by removing most wavelengths and pixels.
 
     This is effectively the main method.
@@ -89,6 +91,8 @@ def _run(input_dir_name, cyclone_id_string, shuffled_file_number,
     :param cyclone_id_string: Same.
     :param shuffled_file_number: Same.
     :param wavelengths_to_keep_microns: Same.
+    :param num_grid_rows_to_keep: Same.
+    :param num_grid_columns_to_keep: Same.
     :param output_dir_name: Same.
     """
 
@@ -138,8 +142,8 @@ def _run(input_dir_name, cyclone_id_string, shuffled_file_number,
 
         satellite_table_xarray = satellite_utils.subset_grid(
             satellite_table_xarray=satellite_table_xarray,
-            num_rows_to_keep=NUM_GRID_ROWS_TO_KEEP,
-            num_columns_to_keep=NUM_GRID_COLUMNS_TO_KEEP,
+            num_rows_to_keep=num_grid_rows_to_keep,
+            num_columns_to_keep=num_grid_columns_to_keep,
             for_high_res=False
         )
 
@@ -218,6 +222,12 @@ if __name__ == '__main__':
         ),
         wavelengths_to_keep_microns=numpy.array(
             getattr(INPUT_ARG_OBJECT, WAVELENGTHS_TO_KEEP_ARG_NAME), dtype=float
+        ),
+        num_grid_rows_to_keep=getattr(
+            INPUT_ARG_OBJECT, NUM_ROWS_TO_KEEP_ARG_NAME
+        ),
+        num_grid_columns_to_keep=getattr(
+            INPUT_ARG_OBJECT, NUM_COLUMNS_TO_KEEP_ARG_NAME
         ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
