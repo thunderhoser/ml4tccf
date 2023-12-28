@@ -173,25 +173,38 @@ def _get_histogram_euclidean(target_matrix, prediction_matrix, num_bins):
     :return: result_dict: Same.
     """
 
-    num_examples = prediction_matrix.shape[0]
-    ensemble_size = prediction_matrix.shape[2]
-    pit_values = numpy.full(num_examples, numpy.nan)
+    target_distances = numpy.sqrt(
+        target_matrix[:, 0] ** 2 + target_matrix[:, 1] ** 2
+    )
+    predicted_distance_matrix = numpy.sqrt(
+        prediction_matrix[:, 0, :] ** 2 + prediction_matrix[:, 1, :] ** 2
+    )
 
-    for i in range(num_examples):
-        this_data_matrix = numpy.concatenate((
-            numpy.transpose(prediction_matrix[i, ...]),
-            target_matrix[[i], :]
-        ), axis=0)
+    return _get_histogram_one_var(
+        target_values=target_distances,
+        prediction_matrix=predicted_distance_matrix,
+        num_bins=num_bins, is_var_direction=False
+    )
 
-        pit_values[i] = multivariate_cdf._ecdf_mv(
-            data=this_data_matrix, method='seq', use_ranks=True
-        )[0][-1]
-
-    pit_values = (pit_values - 1.) / ensemble_size
-    assert numpy.all(pit_values >= 0.)
-    assert numpy.all(pit_values <= 1.)
-
-    return _pit_values_to_histogram(pit_values=pit_values, num_bins=num_bins)
+    # num_examples = prediction_matrix.shape[0]
+    # ensemble_size = prediction_matrix.shape[2]
+    # pit_values = numpy.full(num_examples, numpy.nan)
+    #
+    # for i in range(num_examples):
+    #     this_data_matrix = numpy.concatenate((
+    #         numpy.transpose(prediction_matrix[i, ...]),
+    #         target_matrix[[i], :]
+    #     ), axis=0)
+    #
+    #     pit_values[i] = multivariate_cdf._ecdf_mv(
+    #         data=this_data_matrix, method='seq', use_ranks=True
+    #     )[0][-1]
+    #
+    # pit_values = (pit_values - 1.) / ensemble_size
+    # assert numpy.all(pit_values >= 0.)
+    # assert numpy.all(pit_values <= 1.)
+    #
+    # return _pit_values_to_histogram(pit_values=pit_values, num_bins=num_bins)
 
 
 def _get_histogram_one_var(target_values, prediction_matrix, num_bins,
