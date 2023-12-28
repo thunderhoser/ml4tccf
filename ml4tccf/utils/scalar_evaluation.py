@@ -1390,10 +1390,9 @@ def get_scores_all_variables(
     ]
 
     # TODO(thunderhoser): Need constant!
-    climo_xy_offset_metres = numpy.mean(1000 * grid_spacings_km) * (
+    climo_offset_distance_metres = numpy.mean(1000 * grid_spacings_km) * (
         training_option_dict[neural_net_utils.DATA_AUG_MEAN_TRANS_KEY]
     )
-    climo_offset_distance_metres = numpy.sqrt(2 * (climo_xy_offset_metres ** 2))
 
     result_table_xarray.attrs[MODEL_FILE_KEY] = model_file_name
     result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = (

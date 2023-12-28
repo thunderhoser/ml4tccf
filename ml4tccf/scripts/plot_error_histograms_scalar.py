@@ -337,7 +337,7 @@ def _plot_euclidean_error_histogram(
     if plotting_orig_error:
         title_string = 'Histogram of uncorrected Euclidean errors'
     else:
-        title_string = 'Histogram of model''s Euclidean errors'
+        title_string = "Histogram of model's Euclidean errors"
 
     title_string += (
         '\nMean = {0:.1f} km; median = {1:.1f} km; RMS = {2:.1f} km'
@@ -432,7 +432,7 @@ def _plot_direction_error_histogram(
     if plotting_orig_error:
         title_string = 'Histogram of uncorrected direction errors'
     else:
-        title_string = 'Histogram of model''s direction errors'
+        title_string = "Histogram of model's direction errors"
 
     title_string += (
         '\nMAE = {0:.1f} deg; medAE = {1:.1f} deg; RMSE = {2:.1f} deg'

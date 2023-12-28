@@ -162,7 +162,7 @@ def run_discard_test(prediction_file_names, discard_fractions):
         prediction_matrix[:, xy_indices, :], axis=-1
     )
     xy_target_matrix = target_matrix[:, xy_indices]
-    euclidean_squared_errors = (
+    euclidean_errors = numpy.sqrt(
         (mean_xy_prediction_matrix[:, 0] - xy_target_matrix[:, 0]) ** 2 +
         (mean_xy_prediction_matrix[:, 1] - xy_target_matrix[:, 1]) ** 2
     )
@@ -221,18 +221,18 @@ def run_discard_test(prediction_file_names, discard_fractions):
                 continue
 
             if TARGET_FIELD_NAMES[j] == OFFSET_DISTANCE_NAME:
-                t[POST_DISCARD_MAE_KEY].values[j, k] = numpy.sqrt(numpy.mean(
-                    euclidean_squared_errors[use_example_indices]
-                ))
+                t[POST_DISCARD_MAE_KEY].values[j, k] = numpy.mean(
+                    euclidean_errors[use_example_indices]
+                )
 
-                t[MEAN_MEAN_PREDICTION_KEY].values[j, k] = numpy.sqrt(
-                    numpy.mean(
+                t[MEAN_MEAN_PREDICTION_KEY].values[j, k] = numpy.mean(
+                    numpy.sqrt(
                         mean_xy_prediction_matrix[use_example_indices, 0] ** 2 +
                         mean_xy_prediction_matrix[use_example_indices, 1] ** 2
                     )
                 )
 
-                t[MEAN_TARGET_KEY].values[j, k] = numpy.sqrt(numpy.mean(
+                t[MEAN_TARGET_KEY].values[j, k] = numpy.mean(numpy.sqrt(
                     xy_target_matrix[use_example_indices, 0] ** 2 +
                     xy_target_matrix[use_example_indices, 1] ** 2
                 ))
