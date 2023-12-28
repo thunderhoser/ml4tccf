@@ -124,7 +124,8 @@ STORM_TYPE_RENAMING_DICT = {
     'WV': a_deck_io.WAVE_TYPE_STRING,
     'ET': a_deck_io.EXTRAPOLATED_TYPE_STRING,
     'MD': a_deck_io.MONSOON_DEPRESSION_TYPE_STRING,
-    'XX': a_deck_io.UNKNOWN_TYPE_STRING
+    'XX': a_deck_io.UNKNOWN_TYPE_STRING,
+    'NAN': a_deck_io.UNKNOWN_TYPE_STRING,
 }
 
 WIND_THRESHOLDS_KEY = 'wind_thresholds_kt'
