@@ -29,7 +29,7 @@ TARGET_NAME_ABBREV_TO_FANCY = {
     X_OFFSET_NAME: r'$x$-coord',
     Y_OFFSET_NAME: r'$y$-coord',
     OFFSET_DIRECTION_NAME: 'correction direction',
-    OFFSET_DISTANCE_NAME: 'total correction distance'
+    OFFSET_DISTANCE_NAME: 'correction vector'
 }
 TARGET_NAME_TO_UNITS = {
     X_OFFSET_NAME: 'km',
@@ -278,7 +278,7 @@ def plot_spread_vs_skill(
     perfect_x_coords = numpy.array([0, max_value_to_plot])
     perfect_y_coords = numpy.array([0, max_value_to_plot])
     axes_object.plot(
-        perfect_x_coords, perfect_y_coords, color=REFERENCE_LINE_COLOUR,
+        perfect_x_coords, perfect_y_coords, color=numpy.full(3, 0.),
         linestyle='dashed', linewidth=REFERENCE_LINE_WIDTH
     )
 
@@ -524,11 +524,10 @@ def plot_pit_histogram(
     axes_object.set_xlim(0., 1.)
     axes_object.set_ylim(bottom=0.)
 
-    title_string = (
-        'PIT histogram for {0:s}\n'
-        'PITD = {1:.3f}'
-    ).format(
-        TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
+    title_string = 'PIT histogram for {0:s}\nPITD = {1:.3f}'.format(
+        TARGET_NAME_ABBREV_TO_FANCY[target_var_name].replace(
+            'correction vector', 'correction distance'
+        ),
         pit_deviation_key
     )
 
@@ -592,11 +591,10 @@ def plot_rank_histogram(
     axes_object.set_xlim(0, ensemble_size + 1)
     axes_object.set_ylim(bottom=0.)
 
-    title_string = (
-        'Rank histogram for {0:s}\n'
-        'RHD = {1:.3f}'
-    ).format(
-        TARGET_NAME_ABBREV_TO_FANCY[target_var_name],
+    title_string = 'Rank histogram for {0:s}\nRHD = {1:.3f}'.format(
+        TARGET_NAME_ABBREV_TO_FANCY[target_var_name].replace(
+            'correction vector', 'correction distance'
+        ),
         pit_deviation_key
     )
 
