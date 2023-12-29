@@ -238,29 +238,29 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
     del eval_table_by_wind
 
     latitude_description_strings = [
-        '[{0:.1f}, {1:.1f})'.format(l1, l2)
+        '[{0:.0f}, {1:.0f})'.format(l1, l2)
         for l1, l2 in zip(
             tc_center_latitude_cutoffs_deg_n[:-1],
             tc_center_latitude_cutoffs_deg_n[1:]
         )
     ]
-    latitude_description_strings[0] = '< {0:.1f}'.format(
+    latitude_description_strings[0] = '< {0:.0f}'.format(
         tc_center_latitude_cutoffs_deg_n[1]
     )
-    latitude_description_strings[-1] = '>= {0:.1f}'.format(
+    latitude_description_strings[-1] = '>= {0:.0f}'.format(
         tc_center_latitude_cutoffs_deg_n[-2]
     )
     latitude_description_strings.append('All')
 
     if num_wind_bins > 0:
         wind_description_strings = [
-            '[{0:.1f}, {1:.1f})'.format(v1, v2)
+            '[{0:.0f}, {1:.0f})'.format(v1, v2)
             for v1, v2 in zip(max_wind_cutoffs_kt[:-1], max_wind_cutoffs_kt[1:])
         ]
-        wind_description_strings[0] = '< {0:.1f}'.format(
+        wind_description_strings[0] = '< {0:.0f}'.format(
             max_wind_cutoffs_kt[1]
         )
-        wind_description_strings[-1] = '>= {0:.1f}'.format(
+        wind_description_strings[-1] = '>= {0:.0f}'.format(
             max_wind_cutoffs_kt[-2]
         )
         wind_description_strings.append('All')
