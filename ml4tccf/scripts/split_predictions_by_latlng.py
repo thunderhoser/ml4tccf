@@ -17,8 +17,8 @@ from ml4tccf.scripts import split_predictions_by_intensity as split_by_intensity
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
-MIN_LATITUDE_DEG_N = -5.
-MAX_LATITUDE_DEG_N = 55.
+MIN_LATITUDE_DEG_N = 0.
+MAX_LATITUDE_DEG_N = 50.
 MIN_LONGITUDE_DEG_E = 0.
 MAX_LONGITUDE_DEG_E = 360.
 
