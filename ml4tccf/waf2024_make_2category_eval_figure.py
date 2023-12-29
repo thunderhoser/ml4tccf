@@ -150,12 +150,21 @@ def _run(input_dir_name, output_dir_name):
         concat_figure_file_name
     ))
 
-    imagemagick_utils.concatenate_images(
-        input_file_names=resized_panel_file_names,
-        output_file_name=concat_figure_file_name,
-        num_panel_rows=NUM_PANEL_ROWS,
-        num_panel_columns=NUM_PANEL_COLUMNS
-    )
+    if all(['by-latlng' in f for f in panel_file_names]):
+        imagemagick_utils.concatenate_images(
+            input_file_names=resized_panel_file_names,
+            output_file_name=concat_figure_file_name,
+            num_panel_rows=NUM_PANEL_COLUMNS,
+            num_panel_columns=NUM_PANEL_ROWS
+        )
+    else:
+        imagemagick_utils.concatenate_images(
+            input_file_names=resized_panel_file_names,
+            output_file_name=concat_figure_file_name,
+            num_panel_rows=NUM_PANEL_ROWS,
+            num_panel_columns=NUM_PANEL_COLUMNS
+        )
+
     imagemagick_utils.resize_image(
         input_file_name=concat_figure_file_name,
         output_file_name=concat_figure_file_name,
