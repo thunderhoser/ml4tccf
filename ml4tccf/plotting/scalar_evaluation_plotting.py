@@ -83,6 +83,7 @@ METRIC_TO_UNIT_EXPONENT = {
     scalar_evaluation.CORRELATION_KEY: 0,
     scalar_evaluation.KGE_KEY: 0,
     scalar_evaluation.MEAN_DISTANCE_KEY: 1,
+    scalar_evaluation.MEDIAN_DISTANCE_KEY: 1,
     scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY: 0,
     scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY: 2,
     scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY: 0,
@@ -99,6 +100,7 @@ METRIC_TO_FANCY_NAME = {
     scalar_evaluation.CORRELATION_KEY: 'correlation',
     scalar_evaluation.KGE_KEY: 'KGE',
     scalar_evaluation.MEAN_DISTANCE_KEY: 'mean Euclidean distance',
+    scalar_evaluation.MEDIAN_DISTANCE_KEY: 'median Euclidean distance',
     scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY:
         'MED skill score',
     scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY:
