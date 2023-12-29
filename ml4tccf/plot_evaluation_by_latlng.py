@@ -22,11 +22,6 @@ import split_predictions_by_latlng as split_predictions
 
 TOLERANCE = 1e-6
 
-MIN_LATITUDE_DEG_N = split_predictions.MIN_LATITUDE_DEG_N
-MAX_LATITUDE_DEG_N = split_predictions.MAX_LATITUDE_DEG_N
-MIN_LONGITUDE_DEG_E = split_predictions.MIN_LONGITUDE_DEG_E
-MAX_LONGITUDE_DEG_E = split_predictions.MAX_LONGITUDE_DEG_E
-
 BORDER_COLOUR = numpy.full(3, 152. / 255)
 
 BIAS_COLOUR_MAP_NAME = 'seismic'
@@ -40,7 +35,7 @@ MAX_COLOUR_PERCENTILE = 99.
 
 FIGURE_RESOLUTION_DPI = 300
 FIGURE_WIDTH_INCHES = 20
-FIGURE_HEIGHT_INCHES = 11.25
+FIGURE_HEIGHT_INCHES = 8
 
 INPUT_DIR_ARG_NAME = 'input_evaluation_dir_name'
 LATITUDE_SPACING_ARG_NAME = 'latitude_spacing_deg'
@@ -239,6 +234,12 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
                 parallel_spacing_deg=10., meridian_spacing_deg=20.
             )
 
+            axes_object.set_ylim(bottom=split_predictions.MIN_LATITUDE_DEG_N)
+            axes_object.set_ylim(
+                top=split_predictions.MAX_LATITUDE_DEG_N +
+                    latitude_spacing_deg / 2
+            )
+
             output_file_name = '{0:s}/{1:s}_{2:s}_by-latlng.jpg'.format(
                 output_dir_name,
                 target_field_name.replace('_', '-'),
@@ -302,6 +303,12 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             plot_longitudes_deg_e=grid_edge_longitudes_deg_e,
             axes_object=axes_object,
             parallel_spacing_deg=10., meridian_spacing_deg=20.
+        )
+
+        axes_object.set_ylim(bottom=split_predictions.MIN_LATITUDE_DEG_N)
+        axes_object.set_ylim(
+            top=split_predictions.MAX_LATITUDE_DEG_N +
+                latitude_spacing_deg / 2
         )
 
         output_file_name = '{0:s}/{1:s}_by-latlng.jpg'.format(
