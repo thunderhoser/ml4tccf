@@ -234,7 +234,9 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
                 parallel_spacing_deg=10., meridian_spacing_deg=20.
             )
 
-            axes_object.set_ylim(bottom=split_predictions.MIN_LATITUDE_DEG_N)
+            axes_object.set_ylim(
+                bottom=split_predictions.MIN_LATITUDE_DEG_N - 1.
+            )
             axes_object.set_ylim(
                 top=split_predictions.MAX_LATITUDE_DEG_N +
                     latitude_spacing_deg / 2
@@ -305,7 +307,7 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             parallel_spacing_deg=10., meridian_spacing_deg=20.
         )
 
-        axes_object.set_ylim(bottom=split_predictions.MIN_LATITUDE_DEG_N)
+        axes_object.set_ylim(bottom=split_predictions.MIN_LATITUDE_DEG_N - 1.)
         axes_object.set_ylim(
             top=split_predictions.MAX_LATITUDE_DEG_N +
                 latitude_spacing_deg / 2
