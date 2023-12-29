@@ -291,14 +291,14 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         )
 
                 if split_into_2d_bins:
-                    figure_object = (
+                    figure_object, axes_object = (
                         scalar_eval_plotting.plot_metric_by_2categories(
                             metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                             metric_name=metric_name,
                             target_field_name=target_field_name,
                             y_category_description_strings=
                             latitude_description_strings,
-                            y_label_string=r'TC latitude ($^{\circ}$N)',
+                            y_label_string=r'TC-center latitude ($^{\circ}$N)',
                             x_category_description_strings=
                             wind_description_strings,
                             x_label_string='TC intensity (kt)',
@@ -310,8 +310,15 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                             min_colour_percentile=MIN_COLOUR_PERCENTILE,
                             max_colour_percentile=MAX_COLOUR_PERCENTILE,
                             label_font_size=label_font_size
-                        )[0]
+                        )
                     )
+
+                    if (
+                            metric_name == scalar_evaluation.BIAS_KEY and
+                            target_field_name == scalar_evaluation.Y_OFFSET_NAME
+                    ):
+                        axes_object.set_ylabel('')
+                        axes_object.set_yticks([], [])
                 else:
                     figure_object = (
                         scalar_eval_plotting.plot_metric_by_category(
@@ -361,12 +368,14 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         )
 
             if split_into_2d_bins:
-                figure_object = scalar_eval_plotting.plot_metric_by_2categories(
+                (
+                    figure_object, axes_object
+                ) = scalar_eval_plotting.plot_metric_by_2categories(
                     metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                     metric_name=metric_name,
                     target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
                     y_category_description_strings=latitude_description_strings,
-                    y_label_string=r'TC latitude ($^{\circ}$N)',
+                    y_label_string=r'TC-center latitude ($^{\circ}$N)',
                     x_category_description_strings=wind_description_strings,
                     x_label_string='TC intensity (kt)',
                     colour_map_name=(
@@ -377,7 +386,23 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     min_colour_percentile=MIN_COLOUR_PERCENTILE,
                     max_colour_percentile=MAX_COLOUR_PERCENTILE,
                     label_font_size=label_font_size
-                )[0]
+                )
+
+                if metric_name in [
+                        scalar_evaluation.MEAN_DISTANCE_KEY,
+                        scalar_evaluation.MEDIAN_DISTANCE_KEY,
+                        scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY
+                ]:
+                    axes_object.set_xlabel('')
+                    axes_object.set_xticks([], [])
+
+                if metric_name in [
+                        scalar_evaluation.MEDIAN_DISTANCE_KEY,
+                        scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY,
+                        scalar_eval_plotting.NUM_EXAMPLES_KEY
+                ]:
+                    axes_object.set_ylabel('')
+                    axes_object.set_yticks([], [])
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
                     metric_matrix=metric_matrix[0, ...],
@@ -489,7 +514,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     metric_name=metric_name,
                     target_field_name=target_field_name,
                     y_category_description_strings=latitude_description_strings,
-                    y_label_string=r'TC latitude ($^{\circ}$N)',
+                    y_label_string=r'TC-center latitude ($^{\circ}$N)',
                     x_category_description_strings=pressure_description_strings,
                     x_label_string='TC pressure (mb)',
                     colour_map_name=(
@@ -550,7 +575,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                 metric_name=metric_name,
                 target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
                 y_category_description_strings=latitude_description_strings,
-                y_label_string=r'TC latitude ($^{\circ}$N)',
+                y_label_string=r'TC-center latitude ($^{\circ}$N)',
                 x_category_description_strings=pressure_description_strings,
                 x_label_string='TC pressure (mb)',
                 colour_map_name=(
