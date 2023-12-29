@@ -45,6 +45,7 @@ BASIC_METRIC_NAMES = [
 
 ADVANCED_METRIC_NAMES = [
     scalar_evaluation.MEAN_DISTANCE_KEY,
+    scalar_evaluation.MEDIAN_DISTANCE_KEY,
     scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY,
     scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY,
     scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY,
@@ -59,9 +60,9 @@ TARGET_FIELD_TO_CONV_RATIO = {
 }
 
 TARGET_FIELD_TO_FANCY_NAME = {
-    scalar_evaluation.X_OFFSET_NAME: r' for $x$-position',
-    scalar_evaluation.Y_OFFSET_NAME: r' for $y$-position',
-    scalar_evaluation.OFFSET_DIRECTION_NAME: ' for offset direction',
+    scalar_evaluation.X_OFFSET_NAME: r' for $x$-coord',
+    scalar_evaluation.Y_OFFSET_NAME: r' for $y$-coord',
+    scalar_evaluation.OFFSET_DIRECTION_NAME: ' for correction direction',
     scalar_evaluation.OFFSET_DISTANCE_NAME: ''
 }
 
@@ -89,22 +90,22 @@ METRIC_TO_UNIT_EXPONENT = {
 }
 
 METRIC_TO_FANCY_NAME = {
-    scalar_evaluation.CRPS_KEY: 'continuous ranked probability score',
-    scalar_evaluation.MEAN_SQUARED_ERROR_KEY: 'root mean squared error',
-    scalar_evaluation.MSE_SKILL_SCORE_KEY: 'Mean-squared-error skill score',
-    scalar_evaluation.MEAN_ABSOLUTE_ERROR_KEY: 'mean absolute error',
-    scalar_evaluation.MAE_SKILL_SCORE_KEY: 'Mean-absolute-error skill score',
+    scalar_evaluation.CRPS_KEY: 'CRPS',
+    scalar_evaluation.MEAN_SQUARED_ERROR_KEY: 'RMSE',
+    scalar_evaluation.MSE_SKILL_SCORE_KEY: 'MSE skill score',
+    scalar_evaluation.MEAN_ABSOLUTE_ERROR_KEY: 'MAE',
+    scalar_evaluation.MAE_SKILL_SCORE_KEY: 'MAE skill score',
     scalar_evaluation.BIAS_KEY: 'bias',
     scalar_evaluation.CORRELATION_KEY: 'correlation',
-    scalar_evaluation.KGE_KEY: 'Kling-Gupta efficiency',
+    scalar_evaluation.KGE_KEY: 'KGE',
     scalar_evaluation.MEAN_DISTANCE_KEY: 'mean Euclidean distance',
     scalar_evaluation.MEAN_DIST_SKILL_SCORE_KEY:
-        'mean-Euclidean-distance skill score',
+        'MED skill score',
     scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY:
-        'root mean squared Euclidean distance',
+        'RMS Euclidean distance',
     scalar_evaluation.MEAN_SQ_DIST_SKILL_SCORE_KEY:
-        'mean-squared-Euclidean-distance skill score',
-    NUM_EXAMPLES_KEY: 'number of examples'
+        'MSED skill score',
+    NUM_EXAMPLES_KEY: 'number of TC samples'
 }
 
 RELIABILITY_LINE_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
@@ -330,11 +331,11 @@ def _metric_value_to_label(metric_value):
     :return: label_string: String.
     """
 
-    label_string = '{0:.2f}'.format(metric_value).lstrip('0').replace('-0', '')
+    label_string = '{0:.2f}'.format(metric_value).lstrip('0').replace('-0', '-')
     if len(label_string.replace('-', '')) <= 3:
         return label_string
 
-    label_string = '{0:.1f}'.format(metric_value).lstrip('0').replace('-0', '')
+    label_string = '{0:.1f}'.format(metric_value).lstrip('0').replace('-0', '-')
     if len(label_string.replace('-', '')) <= 3:
         return label_string
 
@@ -527,7 +528,7 @@ def plot_metric_by_latlng(
                     verticalalignment='center', horizontalalignment='center'
                 )
 
-    title_string = '{0:s}{1:s}\n{2:s}'.format(
+    title_string = '{0:s}{1:s}{2:s}'.format(
         METRIC_TO_FANCY_NAME[metric_name][0].upper(),
         METRIC_TO_FANCY_NAME[metric_name][1:],
         TARGET_FIELD_TO_FANCY_NAME[target_field_name]
@@ -715,7 +716,7 @@ def plot_metric_by_2categories(
                     verticalalignment='center', horizontalalignment='center'
                 )
 
-    title_string = '{0:s}{1:s}\n{2:s}'.format(
+    title_string = '{0:s}{1:s}{2:s}'.format(
         METRIC_TO_FANCY_NAME[metric_name][0].upper(),
         METRIC_TO_FANCY_NAME[metric_name][1:],
         TARGET_FIELD_TO_FANCY_NAME[target_field_name]
@@ -826,7 +827,7 @@ def plot_metric_by_category(
     axes_object.set_xticklabels(category_description_strings, rotation=90.)
     axes_object.set_xlabel(x_label_string)
 
-    title_string = '{0:s}{1:s}\n{2:s}'.format(
+    title_string = '{0:s}{1:s}{2:s}'.format(
         METRIC_TO_FANCY_NAME[metric_name][0].upper(),
         METRIC_TO_FANCY_NAME[metric_name][1:],
         TARGET_FIELD_TO_FANCY_NAME[target_field_name]
