@@ -525,7 +525,7 @@ def plot_metric_by_latlng(
                 axes_object.text(
                     numpy.mean(grid_edge_longitudes_deg_e[j:(j + 2)]),
                     numpy.mean(grid_edge_latitudes_deg_n[i:(i + 2)]),
-                    this_string, color=this_colour,
+                    this_string, color=this_colour, rotation=90.,
                     fontsize=label_font_size, fontweight='bold',
                     verticalalignment='center', horizontalalignment='center'
                 )
