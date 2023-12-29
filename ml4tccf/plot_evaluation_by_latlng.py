@@ -27,6 +27,8 @@ MAX_LATITUDE_DEG_N = split_predictions.MAX_LATITUDE_DEG_N
 MIN_LONGITUDE_DEG_E = split_predictions.MIN_LONGITUDE_DEG_E
 MAX_LONGITUDE_DEG_E = split_predictions.MAX_LONGITUDE_DEG_E
 
+BORDER_COLOUR = numpy.full(3, 152. / 255)
+
 BIAS_COLOUR_MAP_NAME = 'seismic'
 MAIN_COLOUR_MAP_NAME = 'viridis'
 MIN_COLOUR_PERCENTILE = 1.
@@ -209,7 +211,8 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             plotting_utils.plot_borders(
                 border_latitudes_deg_n=border_latitudes_deg_n,
                 border_longitudes_deg_e=border_longitudes_deg_e,
-                axes_object=axes_object, line_width=1.
+                line_width=1., line_colour=BORDER_COLOUR,
+                axes_object=axes_object
             )
 
             scalar_eval_plotting.plot_metric_by_latlng(
@@ -273,7 +276,8 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
         plotting_utils.plot_borders(
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            axes_object=axes_object, line_width=1.
+            line_width=1., line_colour=BORDER_COLOUR,
+            axes_object=axes_object
         )
 
         scalar_eval_plotting.plot_metric_by_latlng(
