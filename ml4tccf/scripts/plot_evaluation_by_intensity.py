@@ -284,7 +284,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                         )
 
                 if split_into_2d_bins:
-                    figure_object, axes_object = (
+                    figure_object, _ = (
                         scalar_eval_plotting.plot_metric_by_2categories(
                             metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                             metric_name=metric_name,
@@ -305,13 +305,6 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                             label_font_size=label_font_size
                         )
                     )
-
-                    if (
-                            metric_name == scalar_evaluation.BIAS_KEY and
-                            target_field_name == scalar_evaluation.Y_OFFSET_NAME
-                    ):
-                        axes_object.set_ylabel('')
-                        axes_object.set_yticks([], [])
                 else:
                     figure_object = (
                         scalar_eval_plotting.plot_metric_by_category(
@@ -362,7 +355,7 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
 
             if split_into_2d_bins:
                 (
-                    figure_object, axes_object
+                    figure_object, _
                 ) = scalar_eval_plotting.plot_metric_by_2categories(
                     metric_matrix=numpy.nanmean(metric_matrix, axis=-1),
                     metric_name=metric_name,
@@ -380,22 +373,6 @@ def _run(max_wind_cutoffs_kt, min_pressure_cutoffs_mb,
                     max_colour_percentile=MAX_COLOUR_PERCENTILE,
                     label_font_size=label_font_size
                 )
-
-                if metric_name in [
-                        scalar_evaluation.MEAN_DISTANCE_KEY,
-                        scalar_evaluation.MEDIAN_DISTANCE_KEY,
-                        scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY
-                ]:
-                    axes_object.set_xlabel('')
-                    axes_object.set_xticks([], [])
-
-                if metric_name in [
-                        scalar_evaluation.MEDIAN_DISTANCE_KEY,
-                        scalar_evaluation.MEAN_SQUARED_DISTANCE_KEY,
-                        scalar_eval_plotting.NUM_EXAMPLES_KEY
-                ]:
-                    axes_object.set_ylabel('')
-                    axes_object.set_yticks([], [])
             else:
                 figure_object = scalar_eval_plotting.plot_metric_by_category(
                     metric_matrix=metric_matrix[0, ...],
