@@ -38,4 +38,5 @@ python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" \
 --prediction_plotting_format_string="probability_contours" \
 --prob_colour_map_name="BuGn" \
 --prob_contour_smoothing_radius_px=5 \
+--point_prediction_marker_size=24 \
 --output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/waf2024/predictions_2020AL01"
