@@ -290,6 +290,9 @@ def _run(prediction_file_pattern, latitude_limits_deg_n,
             y_error_limits_km[1]
         ))
 
+    sort_indices = numpy.argsort(ptx[prediction_utils.TARGET_TIME_KEY].values)
+    ptx = ptx.isel({prediction_utils.EXAMPLE_DIM_KEY: sort_indices})
+
     prediction_matrix_km, target_matrix_km = (
         _create_pred_and_target_matrices(prediction_table_xarray)
     )
