@@ -622,7 +622,7 @@ def _make_figure_one_example(
 
             figure_object, axes_object = _plot_predictors_1panel(
                 brightness_temp_matrix_kelvins=
-                brightness_temp_matrix_kelvins[i, ..., j],
+                brightness_temp_matrix_kelvins[..., i, j],
                 grid_latitudes_deg_n=btemp_latitude_matrix_deg_n[:, i],
                 grid_longitudes_deg_e=btemp_longitude_matrix_deg_e[:, i],
                 border_latitudes_deg_n=border_latitudes_deg_n,
