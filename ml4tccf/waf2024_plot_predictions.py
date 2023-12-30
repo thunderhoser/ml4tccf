@@ -598,8 +598,8 @@ def _make_figure_one_example(
                 pyplot.close(figure_object)
 
                 imagemagick_utils.resize_image(
-                    input_file_name=output_file_name,
-                    output_file_name=output_file_name,
+                    input_file_name=panel_file_names[-1],
+                    output_file_name=panel_file_names[-1],
                     output_size_pixels=PANEL_SIZE_PX
                 )
 
