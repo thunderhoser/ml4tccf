@@ -25,7 +25,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 # set SATELLITE_DIR_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/simplified_all_wavelengths"
-set SATELLITE_DIR_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper"
+set SATELLITE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/800x800_grids"
 set NORMALIZATION_FILE_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalization_params_for_paper.zarr"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_ensemble/tropical_only"
 
