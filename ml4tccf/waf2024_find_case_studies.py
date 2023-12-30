@@ -141,9 +141,7 @@ def _run(prediction_file_pattern, latitude_limits_deg_n,
     if numpy.diff(euclidean_error_limits_km)[0] <= 0:
         euclidean_error_limits_km = None
     if euclidean_error_limits_km is not None:
-        error_checking.assert_is_greater_numpy_array(
-            euclidean_error_limits_km, 0.
-        )
+        error_checking.assert_is_geq_numpy_array(euclidean_error_limits_km, 0.)
 
     if numpy.diff(x_error_limits_km)[0] <= 0:
         x_error_limits_km = None
