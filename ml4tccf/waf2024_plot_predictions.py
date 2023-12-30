@@ -24,7 +24,7 @@ import gg_general_utils
 import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
-import imagemagick_utils
+from gewittergefahr.plotting import imagemagick_utils
 import border_io
 import prediction_io
 import misc_utils
@@ -39,6 +39,7 @@ import plotting_utils
 import satellite_plotting
 
 TOLERANCE = 1e-6
+INPUT_ARG_TIME_FORMAT = '%Y-%m-%d-%H'
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
 MICRONS_TO_METRES = 1e-6
@@ -81,6 +82,8 @@ VALID_PRED_PLOTTING_FORMAT_STRINGS = [
 PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
 NORMALIZATION_FILE_ARG_NAME = 'input_normalization_file_name'
+TARGET_TIMES_ARG_NAME = 'target_time_strings'
+NUM_SAMPLES_PER_TIME_ARG_NAME = 'num_samples_per_target_time'
 LAG_TIMES_ARG_NAME = 'lag_times_minutes'
 WAVELENGTHS_ARG_NAME = 'wavelengths_microns'
 PREDICTION_PLOTTING_FORMAT_ARG_NAME = 'prediction_plotting_format_string'
@@ -89,8 +92,6 @@ PROB_CONTOUR_SMOOTHING_RADIUS_ARG_NAME = 'prob_contour_smoothing_radius_px'
 POINT_PREDICTION_MARKER_SIZE_ARG_NAME = 'point_prediction_marker_size'
 POINT_PREDICTION_OPACITY_ARG_NAME = 'point_prediction_opacity'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
-
-# TODO(thunderhoser): May want valid time as input arg.
 
 PREDICTION_FILE_HELP_STRING = (
     'Path to prediction file, containing predictions and targets for one TC.  '
@@ -105,6 +106,17 @@ NORMALIZATION_FILE_HELP_STRING = (
     'Path to file with normalization parameters.  If the satellite data are '
     'normalized, this file will be used to convert back to physical units '
     'before plotting.'
+)
+TARGET_TIMES_HELP_STRING = (
+    '1-D list of target times (format "yyyy-mm-dd-HH") -- will plot only TC '
+    'samples with these target times.  If you do not want to subset by time, '
+    'leave this argument alone.'
+)
+NUM_SAMPLES_PER_TIME_HELP_STRING = (
+    'Will plot this many (randomly selected) TC samples per target time.  Keep '
+    'in mind that in general there are many TC samples per target time, each '
+    'corresponding to a different random translation.  If you do not want to '
+    'subset by random translations, leave this argument alone.'
 )
 LAG_TIMES_HELP_STRING = (
     '1-D list of lag times at which to plot predictor (satellite) data.'
@@ -149,6 +161,14 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NORMALIZATION_FILE_ARG_NAME, type=str, required=False, default='',
     help=NORMALIZATION_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + TARGET_TIMES_ARG_NAME, type=str, nargs='+', required=False,
+    default=[''], help=TARGET_TIMES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_SAMPLES_PER_TIME_ARG_NAME, type=int, required=False,
+    default=-1, help=NUM_SAMPLES_PER_TIME_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + LAG_TIMES_ARG_NAME, type=int, nargs='+', required=True,
@@ -676,7 +696,38 @@ def _make_figure_one_example(
     )
 
 
+def _subset_random_translations(target_times_unix_sec,
+                                num_samples_per_target_time):
+    """Randomly subsets translation vectors.
+
+    E = number of examples (or "TC samples")
+
+    :param target_times_unix_sec: length-E numpy array of target times, which
+        are not necessarily unique.
+    :param num_samples_per_target_time: Number of samples to keep for each
+        target time.
+    :return: selected_indices: 1-D numpy array of selected example indices.
+    """
+
+    selected_indices = numpy.array([], dtype=int)
+
+    for this_time_unix_sec in numpy.unique(target_times_unix_sec):
+        these_indices = numpy.where(
+            target_times_unix_sec == this_time_unix_sec
+        )[0]
+
+        if len(these_indices) > num_samples_per_target_time:
+            these_indices = numpy.random.choice(
+                these_indices, size=num_samples_per_target_time, replace=False
+            )
+
+        selected_indices = numpy.concatenate((selected_indices, these_indices))
+
+    return selected_indices
+
+
 def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
+         target_time_strings, num_samples_per_target_time,
          lag_times_minutes, wavelengths_microns,
          prediction_plotting_format_string, prob_colour_map_name,
          prob_contour_smoothing_radius_px, point_prediction_marker_size,
@@ -688,6 +739,8 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
     :param prediction_file_name: See documentation at top of this script.
     :param satellite_dir_name: Same.
     :param normalization_file_name: Same.
+    :param target_time_strings: Same.
+    :param num_samples_per_target_time: Same.
     :param lag_times_minutes: Same.
     :param wavelengths_microns: Same.
     :param prediction_plotting_format_string: Same.
@@ -719,6 +772,51 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
         error_checking.assert_is_greater(point_prediction_marker_size, 0)
         error_checking.assert_is_greater(point_prediction_opacity, 0.)
         error_checking.assert_is_leq(point_prediction_opacity, 1.)
+
+    assert 0 in lag_times_minutes
+
+    if len(target_time_strings) == 1 and target_time_strings[0] == '':
+        target_time_strings = None
+        target_times_unix_sec = None
+    else:
+        target_times_unix_sec = numpy.array([
+            time_conversion.string_to_unix_sec(t, INPUT_ARG_TIME_FORMAT)
+            for t in target_time_strings
+        ], dtype=int)
+
+    if num_samples_per_target_time < 1:
+        num_samples_per_target_time = None
+
+    if target_times_unix_sec is not None:
+        found_time_flags = numpy.isin(
+            element=target_times_unix_sec,
+            test_elements=ptx[prediction_utils.TARGET_TIME_KEY].values
+        )
+        missing_time_indices = numpy.where(numpy.invert(found_time_flags))[0]
+
+        if len(missing_time_indices) > 0:
+            error_string = (
+                'Could not find the following target times in the prediction '
+                'file:\n{0:s}'
+            ).format(
+                str(target_time_strings[missing_time_indices])
+            )
+
+            raise ValueError(error_string)
+
+        keep_flags = numpy.isin(
+            element=ptx[prediction_utils.TARGET_TIME_KEY].values,
+            test_elements=target_times_unix_sec
+        )
+        keep_indices = numpy.where(keep_flags)[0]
+        ptx = ptx.isel({prediction_utils.EXAMPLE_DIM_KEY: keep_indices})
+
+    if num_samples_per_target_time is not None:
+        keep_indices = _subset_random_translations(
+            target_times_unix_sec=ptx[prediction_utils.TARGET_TIME_KEY].values,
+            num_samples_per_target_time=num_samples_per_target_time
+        )
+        ptx = ptx.isel({prediction_utils.EXAMPLE_DIM_KEY: keep_indices})
 
     # Read model metadata.
     model_file_name = ptx.attrs[prediction_utils.MODEL_FILE_KEY]
@@ -938,6 +1036,10 @@ if __name__ == '__main__':
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, SATELLITE_DIR_ARG_NAME),
         normalization_file_name=getattr(
             INPUT_ARG_OBJECT, NORMALIZATION_FILE_ARG_NAME
+        ),
+        target_time_strings=getattr(INPUT_ARG_OBJECT, TARGET_TIMES_ARG_NAME),
+        num_samples_per_target_time=getattr(
+            INPUT_ARG_OBJECT, NUM_SAMPLES_PER_TIME_ARG_NAME
         ),
         lag_times_minutes=numpy.array(
             getattr(INPUT_ARG_OBJECT, LAG_TIMES_ARG_NAME), dtype=int
