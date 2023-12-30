@@ -41,6 +41,8 @@ import satellite_plotting
 TOLERANCE = 1e-6
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
+MICRONS_TO_METRES = 1e-6
+
 PREDICTED_CENTER_MARKER = 'o'
 PREDICTED_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
 PREDICTED_CENTER_MARKER_EDGE_WIDTH = 0
@@ -894,7 +896,8 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
             }
             coord_dict = {
                 satellite_utils.HIGH_RES_WAVELENGTH_DIM: numpy.array([]),
-                satellite_utils.LOW_RES_WAVELENGTH_DIM: wavelengths_microns
+                satellite_utils.LOW_RES_WAVELENGTH_DIM:
+                    MICRONS_TO_METRES * wavelengths_microns
             }
             satellite_table_xarray = xarray.Dataset(
                 data_vars=main_data_dict, coords=coord_dict
