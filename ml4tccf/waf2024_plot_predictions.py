@@ -20,7 +20,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import time_conversion
-import gg_general_utils
+import general_utils as gg_general_utils
 import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
@@ -209,52 +209,6 @@ def _check_prediction_plotting_format(plotting_format_string, ensemble_size):
         plotting_format_string = MEAN_POINT_FORMAT_STRING
 
     return plotting_format_string
-
-
-def _get_prob_colour_map(base_colour_map_name, min_value, max_value):
-    """Returns colour scheme for probability contours.
-
-    :param base_colour_map_name: Name of base colour map (must be accepted by
-        `matplotlib.pyplot.get_cmap`).
-    :param min_value: Minimum probability in colour scheme.
-    :param max_value: Max probability in colour scheme.
-    :return: colour_map_object: Colour scheme (instance of
-        `matplotlib.colors.ListedColormap`).
-    :return: colour_norm_object: Instance of `matplotlib.colors.BoundaryNorm`,
-        defining the scale of the colour map.
-    """
-
-    num_colours = 1001
-    prob_values = 100 * numpy.linspace(
-        min_value, max_value, num=num_colours, dtype=float
-    )
-
-    opacity_values = numpy.full(num_colours, 0.8)
-    opacity_values[:100] = 0.
-    opacity_values[-100:] = 1.
-
-    this_colour_map_object = pyplot.get_cmap(base_colour_map_name)
-    this_colour_norm_object = matplotlib.colors.BoundaryNorm(
-        prob_values, this_colour_map_object.N
-    )
-
-    rgba_matrix = this_colour_map_object(this_colour_norm_object(prob_values))
-    colour_list = [
-        matplotlib.colors.to_rgba(
-            c=rgba_matrix[i, ..., :-1], alpha=opacity_values[i]
-        )
-        for i in range(num_colours)
-    ]
-
-    colour_map_object = matplotlib.colors.ListedColormap(colour_list)
-    colour_map_object.set_under(
-        matplotlib.colors.to_rgba(c=numpy.full(3, 1.), alpha=0.)
-    )
-    colour_norm_object = matplotlib.colors.BoundaryNorm(
-        prob_values, colour_map_object.N
-    )
-
-    return colour_map_object, colour_norm_object
 
 
 def _plot_predictors_1panel(
@@ -564,6 +518,8 @@ def _make_figure_one_example(
             )
             prob_matrix = prob_matrix / numpy.sum(prob_matrix)
 
+        prob_matrix = 100 * prob_matrix
+
         if numpy.any(prob_matrix > TOLERANCE):
             min_colour_value = numpy.min(prob_matrix[prob_matrix > TOLERANCE])
         else:
@@ -640,6 +596,13 @@ def _make_figure_one_example(
                     dpi=FIGURE_RESOLUTION_DPI, pad_inches=0, bbox_inches='tight'
                 )
                 pyplot.close(figure_object)
+
+                imagemagick_utils.resize_image(
+                    input_file_name=output_file_name,
+                    output_file_name=output_file_name,
+                    output_size_pixels=PANEL_SIZE_PX
+                )
+
                 continue
 
             axes_object.plot(
