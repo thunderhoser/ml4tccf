@@ -20,7 +20,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import time_conversion
-import general_utils as gg_general_utils
+import gg_general_utils
 import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
