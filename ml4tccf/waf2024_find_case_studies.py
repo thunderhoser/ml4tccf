@@ -214,7 +214,7 @@ def _run(prediction_file_pattern, latitude_limits_deg_n,
 
     if euclidean_error_limits_km is not None:
         prediction_matrix_km, target_matrix_km = (
-            _create_pred_and_target_matrices(prediction_table_xarray)
+            _create_pred_and_target_matrices(ptx)
         )
         all_euclidean_errors_km = numpy.sqrt(
             (prediction_matrix_km[:, 0] - target_matrix_km[:, 0]) ** 2 +
@@ -244,7 +244,7 @@ def _run(prediction_file_pattern, latitude_limits_deg_n,
 
     if x_error_limits_km is not None:
         prediction_matrix_km, target_matrix_km = (
-            _create_pred_and_target_matrices(prediction_table_xarray)
+            _create_pred_and_target_matrices(ptx)
         )
         all_x_errors_km = prediction_matrix_km[:, 1] - target_matrix_km[:, 1]
         orig_num_examples = len(all_x_errors_km)
@@ -271,7 +271,7 @@ def _run(prediction_file_pattern, latitude_limits_deg_n,
 
     if y_error_limits_km is not None:
         prediction_matrix_km, target_matrix_km = (
-            _create_pred_and_target_matrices(prediction_table_xarray)
+            _create_pred_and_target_matrices(ptx)
         )
         all_y_errors_km = prediction_matrix_km[:, 0] - target_matrix_km[:, 0]
         orig_num_examples = len(all_y_errors_km)
@@ -300,7 +300,7 @@ def _run(prediction_file_pattern, latitude_limits_deg_n,
     ptx = ptx.isel({prediction_utils.EXAMPLE_DIM_KEY: sort_indices})
 
     prediction_matrix_km, target_matrix_km = (
-        _create_pred_and_target_matrices(prediction_table_xarray)
+        _create_pred_and_target_matrices(ptx)
     )
     y_errors_km = prediction_matrix_km[:, 0] - target_matrix_km[:, 0]
     x_errors_km = prediction_matrix_km[:, 1] - target_matrix_km[:, 1]
