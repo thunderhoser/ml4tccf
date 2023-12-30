@@ -2093,7 +2093,6 @@ def create_data_specific_trans(
 
     idxs = good_time_indices
     brightness_temp_matrix_kelvins = brightness_temp_matrix_kelvins[idxs, ...]
-    xy_coord_matrix = xy_coord_matrix[idxs, ...]
     grid_spacings_km = grid_spacings_km[idxs, ...]
     cyclone_center_latitudes_deg_n = cyclone_center_latitudes_deg_n[idxs, ...]
     target_times_unix_sec = target_times_unix_sec[idxs, ...]
