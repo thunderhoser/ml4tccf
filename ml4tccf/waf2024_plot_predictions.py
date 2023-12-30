@@ -24,7 +24,7 @@ import gg_general_utils
 import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
-from gewittergefahr.plotting import imagemagick_utils
+import imagemagick_utils
 import border_io
 import prediction_io
 import misc_utils
