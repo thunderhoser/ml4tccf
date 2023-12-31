@@ -845,6 +845,9 @@ def _run(prediction_file_pattern, latitude_limits_deg_n, longitude_limits_deg_e,
         prediction_table_xarray=ptx, a_deck_file_name=a_deck_file_name
     )
 
+    x_coords_km *= METRES_TO_KM
+    y_coords_km *= METRES_TO_KM
+
     for i in range(len(cyclone_id_strings)):
         print((
             '{0:d}th example remaining ... '

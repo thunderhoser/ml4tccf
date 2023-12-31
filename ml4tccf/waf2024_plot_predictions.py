@@ -490,6 +490,15 @@ def _make_figure_one_example(
     else:
         prob_colour_map_object = None
 
+    grid_spacing_km = target_values[2]
+    y_error_km = grid_spacing_km * (
+        numpy.mean(prediction_matrix[0, :]) - target_values[0]
+    )
+    x_error_km = grid_spacing_km * (
+        numpy.mean(prediction_matrix[1, :]) - target_values[1]
+    )
+    euclidean_error_km = numpy.sqrt(y_error_km ** 2 + x_error_km ** 2)
+
     # Convert predictions to whatever format is needed for plotting.
     ensemble_size = prediction_matrix.shape[1]
 
@@ -582,6 +591,13 @@ def _make_figure_one_example(
                 wavelengths_microns[j],
                 int(numpy.round(lag_times_minutes[i]))
             )
+
+            if lag_times_minutes[i] == 0:
+                title_string += (
+                    '\nErrors (x, y, Euc) = {0:.1f}, {1:.1f}, {2:.1f} km'
+                ).format(
+                    x_error_km, y_error_km, euclidean_error_km
+                )
 
             this_file_name = (
                 '{0:s}_{1:04d}minutes_{2:06.3f}microns.jpg'
