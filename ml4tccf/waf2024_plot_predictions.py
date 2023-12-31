@@ -39,7 +39,7 @@ import plotting_utils
 import satellite_plotting
 
 TOLERANCE = 1e-6
-INPUT_ARG_TIME_FORMAT = '%Y-%m-%d-%H'
+INPUT_ARG_TIME_FORMAT = '%Y-%m-%d-%H%M'
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
 MICRONS_TO_METRES = 1e-6
