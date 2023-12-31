@@ -33,4 +33,4 @@ python3 -u "${CODE_DIR_NAME}/waf2024_find_case_studies.py" \
 --input_ebtrk_file_name="${EXTENDED_BEST_TRACK_FILE_NAME}" \
 --input_a_deck_file_name="${A_DECK_FILE_NAME}" \
 --latitude_limits_deg_n 40 90 \
---euclidean_error_limits_km 0 10
+--euclidean_error_limits_km 0 15
