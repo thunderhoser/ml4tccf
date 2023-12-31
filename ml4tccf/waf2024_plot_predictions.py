@@ -815,7 +815,7 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
                 'Could not find the following target times in the prediction '
                 'file:\n{0:s}'
             ).format(
-                str(target_time_strings[missing_time_indices])
+                str([target_time_strings[k] for k in missing_time_indices])
             )
 
             raise ValueError(error_string)
