@@ -967,7 +967,7 @@ def create_latlng_grid(
 
 def match_predictions_to_tc_centers(
         prediction_table_xarray, ebtrk_table_xarray, return_xy):
-    """Finds TC-center for every prediction.
+    """Finds TC center for every prediction.
 
     E = number of TC objects
 
