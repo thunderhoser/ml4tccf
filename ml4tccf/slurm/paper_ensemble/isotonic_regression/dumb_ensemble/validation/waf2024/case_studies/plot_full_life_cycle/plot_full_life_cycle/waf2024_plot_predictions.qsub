@@ -3,7 +3,7 @@
 #SBATCH --job-name="waf2024_plot_predictions"
 #SBATCH --partition="bigmem"
 #SBATCH --account="gsd-hpcs"
-#SBATCH --qos="bigmem"
+#SBATCH --qos="batch"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
