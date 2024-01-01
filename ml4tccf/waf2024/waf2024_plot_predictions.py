@@ -23,6 +23,7 @@ from ml4tccf.io import prediction_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import normalization
 from ml4tccf.utils import satellite_utils
+from ml4tccf.utils import spread_skill_utils as ss_utils
 from ml4tccf.utils import scalar_prediction_utils as prediction_utils
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
 from ml4tccf.machine_learning import \
@@ -35,7 +36,7 @@ from ml4tccf.plotting import plotting_utils
 from ml4tccf.plotting import satellite_plotting
 
 TOLERANCE = 1e-6
-INPUT_ARG_TIME_FORMAT = '%Y-%m-%d-%H'
+INPUT_ARG_TIME_FORMAT = '%Y-%m-%d-%H%M'
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
 MICRONS_TO_METRES = 1e-6
@@ -486,6 +487,26 @@ def _make_figure_one_example(
     else:
         prob_colour_map_object = None
 
+    grid_spacing_km = target_values[2]
+    y_error_km = grid_spacing_km * (
+        numpy.mean(prediction_matrix[0, :]) - target_values[0]
+    )
+    x_error_km = grid_spacing_km * (
+        numpy.mean(prediction_matrix[1, :]) - target_values[1]
+    )
+    euclidean_error_km = numpy.sqrt(y_error_km ** 2 + x_error_km ** 2)
+
+    y_stdev_km = grid_spacing_km * numpy.std(prediction_matrix[0, :], ddof=1)
+    x_stdev_km = grid_spacing_km * numpy.std(prediction_matrix[1, :], ddof=1)
+    euclidean_stdev_km = ss_utils._get_predictive_stdistdevs(
+        numpy.expand_dims(prediction_matrix, axis=0)
+    )[0]
+
+    if prediction_plotting_format_string == MEAN_POINT_FORMAT_STRING:
+        prediction_matrix = numpy.mean(
+            prediction_matrix, axis=-1, keepdims=True
+        )
+
     # Convert predictions to whatever format is needed for plotting.
     ensemble_size = prediction_matrix.shape[1]
 
@@ -578,6 +599,15 @@ def _make_figure_one_example(
                 wavelengths_microns[j],
                 int(numpy.round(lag_times_minutes[i]))
             )
+
+            if lag_times_minutes[i] == 0:
+                title_string += (
+                    '\nError (x/y/Euc) = {0:.1f}/{1:.1f}/{2:.1f} km'
+                    '\nStdev (x/y/Euc) = {3:.1f}/{4:.1f}/{5:.1f} km'
+                ).format(
+                    x_error_km, y_error_km, euclidean_error_km,
+                    x_stdev_km, y_stdev_km, euclidean_stdev_km
+                )
 
             this_file_name = (
                 '{0:s}_{1:04d}minutes_{2:06.3f}microns.jpg'
@@ -795,7 +825,7 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
                 'Could not find the following target times in the prediction '
                 'file:\n{0:s}'
             ).format(
-                str(target_time_strings[missing_time_indices])
+                str([target_time_strings[k] for k in missing_time_indices])
             )
 
             raise ValueError(error_string)
@@ -980,10 +1010,10 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
         ptx[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
     ), axis=-2)
 
-    if prediction_plotting_format_string == MEAN_POINT_FORMAT_STRING:
-        prediction_matrix = numpy.mean(
-            prediction_matrix, axis=-1, keepdims=True
-        )
+    # if prediction_plotting_format_string == MEAN_POINT_FORMAT_STRING:
+    #     prediction_matrix = numpy.mean(
+    #         prediction_matrix, axis=-1, keepdims=True
+    #     )
 
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
     num_examples = brightness_temp_matrix_kelvins.shape[0]

@@ -87,11 +87,9 @@ STORM_TYPES_HELP_STRING = (
 ).format(str(VALID_STORM_TYPE_STRINGS))
 
 A_DECK_FILE_HELP_STRING = (
-    '[used only if subsetting by storm type] Path to A-deck file.  Will be '
-    'read by `a_deck_io.read_file`.'
+    'Path to A-deck file.  Will be read by `a_deck_io.read_file`.'
 )
 EBTRK_FILE_HELP_STRING = (
-    '[used only if subsetting by lat, long, intensity, or nadir-relative x/y]'
     ' Path to extended best-track file.  Will be read by '
     '`extended_best_track_io.read_file`.'
 )
@@ -141,11 +139,11 @@ INPUT_ARG_PARSER.add_argument(
     default=[''], help=STORM_TYPES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + A_DECK_FILE_ARG_NAME, type=str, required=False, default='',
+    '--' + A_DECK_FILE_ARG_NAME, type=str, required=True,
     help=A_DECK_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + EBTRK_FILE_ARG_NAME, type=str, required=False, default='',
+    '--' + EBTRK_FILE_ARG_NAME, type=str, required=True,
     help=EBTRK_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
@@ -838,6 +836,9 @@ def _run(prediction_file_pattern, latitude_limits_deg_n, longitude_limits_deg_e,
     storm_type_strings = _get_storm_types(
         prediction_table_xarray=ptx, a_deck_file_name=a_deck_file_name
     )
+
+    x_coords_km *= METRES_TO_KM
+    y_coords_km *= METRES_TO_KM
 
     for i in range(len(cyclone_id_strings)):
         print((
