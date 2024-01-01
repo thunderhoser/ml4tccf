@@ -1,0 +1,56 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="apply_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=08:00:00
+#SBATCH --array=1-56
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_domain_video"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/800x800_grids"
+
+set GRID_ROW_COUNTS=("300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600")
+set MAIN_POOLING_FACTORS=("2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3")
+set LAG_TIME_COUNTS=("1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7")
+
+set num_grid_rows=${GRID_ROW_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set main_pooling_factor=${MAIN_POOLING_FACTORS[$SLURM_ARRAY_TASK_ID]}
+set num_lag_times=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_main-pooling-factor=${main_pooling_factor}_num-lag-times=${num_lag_times}"
+echo $model_dir_name
+
+set CYCLONE_ID_STRINGS=("2020AL01" "2020AL02" "2020AL03" "2020AL04" "2020AL05" "2020AL06" "2020AL07" "2020AL08" "2020AL09" "2020AL10" "2020AL11" "2020AL12" "2020AL13" "2020AL14" "2020AL15" "2020AL16" "2020AL17" "2020AL18" "2020AL19" "2020AL20" "2020AL21" "2020AL22" "2020AL23" "2020AL24" "2020AL25" "2020AL26" "2020AL27" "2020AL28" "2020AL29" "2020AL30" "2020AL31" "2020WP01" "2020WP02" "2020WP03" "2020WP04" "2020WP05" "2020WP06" "2020WP07" "2020WP08" "2020WP09" "2020WP10" "2020WP11" "2020WP12" "2020WP13" "2020WP14" "2020WP15" "2020WP16" "2020WP17" "2020WP18" "2020WP19" "2020WP20" "2020WP21" "2020WP22" "2020WP23" "2020WP24" "2020WP25" "2020WP26" "2021EP01" "2021EP02" "2021EP03" "2021EP04" "2021EP05" "2021EP06" "2021EP07" "2021EP08" "2021EP09" "2021EP10" "2021EP11" "2021EP12" "2021EP13" "2021EP14" "2021EP15" "2021EP16" "2021EP17" "2021EP18" "2021EP19")
+set i=1
+
+while ($i <= ${#CYCLONE_ID_STRINGS})
+    python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+    --input_model_file_name="${model_dir_name}/model.h5" \
+    --input_satellite_dir_name="${EXAMPLE_DIR_NAME}" \
+    --cyclone_id_string="${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+    --num_bnn_iterations=1 \
+    --max_ensemble_size=100 \
+    --data_aug_num_translations=8 \
+    --output_dir_name="${model_dir_name}/validation"
+    
+    @ i = $i + 1
+end
