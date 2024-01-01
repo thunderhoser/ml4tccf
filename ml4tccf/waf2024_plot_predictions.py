@@ -30,6 +30,7 @@ import prediction_io
 import misc_utils
 import normalization
 import satellite_utils
+import spread_skill_utils as ss_utils
 import scalar_prediction_utils as prediction_utils
 import neural_net_utils as nn_utils
 import neural_net_training_cira_ir as nn_training_cira_ir
@@ -499,6 +500,17 @@ def _make_figure_one_example(
     )
     euclidean_error_km = numpy.sqrt(y_error_km ** 2 + x_error_km ** 2)
 
+    y_stdev_km = grid_spacing_km * numpy.std(prediction_matrix[0, :], ddof=1)
+    x_stdev_km = grid_spacing_km * numpy.std(prediction_matrix[1, :], ddof=1)
+    euclidean_stdev_km = ss_utils._get_predictive_stdistdevs(
+        numpy.expand_dims(prediction_matrix, axis=0)
+    )[0]
+
+    if prediction_plotting_format_string == MEAN_POINT_FORMAT_STRING:
+        prediction_matrix = numpy.mean(
+            prediction_matrix, axis=-1, keepdims=True
+        )
+
     # Convert predictions to whatever format is needed for plotting.
     ensemble_size = prediction_matrix.shape[1]
 
@@ -594,9 +606,11 @@ def _make_figure_one_example(
 
             if lag_times_minutes[i] == 0:
                 title_string += (
-                    '\nErrors (x, y, Euc) = {0:.1f}, {1:.1f}, {2:.1f} km'
+                    '\nError (x/y/Euc) = {0:.1f}/{1:.1f}/{2:.1f} km'
+                    '\nStdev (x/y/Euc) = {3:.1f}/{4:.1f}/{5:.1f} km'
                 ).format(
-                    x_error_km, y_error_km, euclidean_error_km
+                    x_error_km, y_error_km, euclidean_error_km,
+                    x_stdev_km, y_stdev_km, euclidean_stdev_km
                 )
 
             this_file_name = (
@@ -1000,10 +1014,10 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
         ptx[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
     ), axis=-2)
 
-    if prediction_plotting_format_string == MEAN_POINT_FORMAT_STRING:
-        prediction_matrix = numpy.mean(
-            prediction_matrix, axis=-1, keepdims=True
-        )
+    # if prediction_plotting_format_string == MEAN_POINT_FORMAT_STRING:
+    #     prediction_matrix = numpy.mean(
+    #         prediction_matrix, axis=-1, keepdims=True
+    #     )
 
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
     num_examples = brightness_temp_matrix_kelvins.shape[0]
