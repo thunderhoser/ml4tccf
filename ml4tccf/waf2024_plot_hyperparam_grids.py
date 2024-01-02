@@ -502,6 +502,7 @@ def _run(experiment_dir_name):
                 )
 
                 this_metric_dict = _read_metrics_one_model(this_model_dir_name)
+                print(this_model_dir_name)
                 for m in range(num_metrics):
                     metric_matrix[i, j, k, m] = this_metric_dict[
                         METRIC_NAMES[m]
