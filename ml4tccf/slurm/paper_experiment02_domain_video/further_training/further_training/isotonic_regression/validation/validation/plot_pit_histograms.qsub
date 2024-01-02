@@ -1,0 +1,44 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="plot_pit_histograms"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --array=1-56
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_pit_histograms_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_domain_video/further_training/further_training"
+
+set GRID_ROW_COUNTS=("300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600")
+set MAIN_POOLING_FACTORS=("2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3")
+set LAG_TIME_COUNTS=("1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7")
+
+set num_grid_rows=${GRID_ROW_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set main_pooling_factor=${MAIN_POOLING_FACTORS[$SLURM_ARRAY_TASK_ID]}
+set num_lag_times=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_main-pooling-factor=${main_pooling_factor}_num-lag-times=${num_lag_times}"
+echo $model_dir_name
+
+python3 -u "${CODE_DIR_NAME}/plot_pit_histograms.py" \
+--input_file_name="${model_dir_name}/isotonic_regression/validation/pit_histograms.nc" \
+--ensemble_size_for_rank_hist=50 \
+--output_dir_name="${model_dir_name}/isotonic_regression/validation/pit_histograms"
