@@ -35,4 +35,4 @@ python3 -u "${CODE_DIR_NAME}/split_predictions_by_latlng.py" \
 --input_extended_best_track_file_name="${EXTENDED_BEST_TRACK_FILE_NAME}" \
 --latitude_spacing_deg=10 \
 --longitude_spacing_deg=10 \
---output_prediction_dir_name="${model_dir_name}/isotonic_regression/validation_by_storm_type/storm-type=non_tropical/validation_by_latlng"
+--output_prediction_dir_name="${model_dir_name}/isotonic_regression/validation_by_storm_type/storm-type=non_tropical_by_latlng"

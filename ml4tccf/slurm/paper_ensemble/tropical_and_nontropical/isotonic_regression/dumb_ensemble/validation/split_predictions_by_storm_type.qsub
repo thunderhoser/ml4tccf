@@ -25,7 +25,7 @@ conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_ensemble/tropical_and_nontropical"
-set A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/including_western_pacific/processed_a_decks_2017-2022.nc"
+set A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/including_western_pacific_a-decks_not-b-decks/processed_a_decks_2016-2022.nc"
 
 set model_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble"
 echo $model_dir_name

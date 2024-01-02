@@ -30,9 +30,9 @@ set model_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble"
 echo $model_dir_name
 
 python3 -u "${CODE_DIR_NAME}/plot_evaluation_by_latlng.py" \
---input_evaluation_dir_name="${model_dir_name}/isotonic_regression/validation_by_storm_type/storm-type=tropical/validation_by_latlng" \
+--input_evaluation_dir_name="${model_dir_name}/isotonic_regression/validation_by_storm_type/storm-type=tropical_by_latlng" \
 --latitude_spacing_deg=10 \
 --longitude_spacing_deg=10 \
 --main_font_size=40 \
---label_font_size=10 \
---output_dir_name="${model_dir_name}/isotonic_regression/validation_by_storm_type/storm-type=tropical/validation_by_latlng"
+--label_font_size=15 \
+--output_dir_name="${model_dir_name}/isotonic_regression/validation_by_storm_type/storm-type=tropical_by_latlng"
