@@ -1,0 +1,31 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="waf2024_make_uq_eval_figure.qsub"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=waf2024_make_uq_eval_figure_%A.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_ensemble/tropical_and_nontropical"
+
+python3 -u "${CODE_DIR_NAME}/waf2024_make_uq_eval_figure.py" \
+--input_evaluation_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_storm_type/storm-type=tropical" \
+--output_figure_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_storm_type/storm-type=tropical/waf2024/uq_eval_figure"
