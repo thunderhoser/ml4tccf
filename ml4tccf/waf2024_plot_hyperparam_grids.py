@@ -235,6 +235,11 @@ def _read_metrics_one_model(model_dir_name):
 
     this_file_name = '{0:s}/evaluation.nc'.format(validation_dir_name)
     if not os.path.isfile(this_file_name):
+        this_file_name = '{0:s}/evaluation_no_bootstrap.nc'.format(
+            validation_dir_name
+        )
+
+    if not os.path.isfile(this_file_name):
         return metric_dict
 
     print('Reading data from: "{0:s}"...'.format(this_file_name))
@@ -502,7 +507,6 @@ def _run(experiment_dir_name):
                 )
 
                 this_metric_dict = _read_metrics_one_model(this_model_dir_name)
-                print(this_model_dir_name)
                 for m in range(num_metrics):
                     metric_matrix[i, j, k, m] = this_metric_dict[
                         METRIC_NAMES[m]
