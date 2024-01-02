@@ -499,7 +499,7 @@ def _make_figure_one_example(
     y_stdev_km = grid_spacing_km * numpy.std(prediction_matrix[0, :], ddof=1)
     x_stdev_km = grid_spacing_km * numpy.std(prediction_matrix[1, :], ddof=1)
     euclidean_stdev_km = ss_utils._get_predictive_stdistdevs(
-        numpy.expand_dims(prediction_matrix, axis=0)
+        grid_spacing_km * numpy.expand_dims(prediction_matrix, axis=0)
     )[0]
 
     if prediction_plotting_format_string == MEAN_POINT_FORMAT_STRING:
