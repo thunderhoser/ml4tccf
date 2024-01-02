@@ -1,9 +1,9 @@
 #!/bin/tcsh
 
-#SBATCH --job-name="waf2024_find_cases_low_lat_high_error"
-#SBATCH --partition="bigmem"
-#SBATCH --account="gsd-hpcs"
-#SBATCH --qos="batch"
+#SBATCH --job-name="waf2024_find_cases_low_intensity_low_error"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -17,7 +17,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=waf2024_find_cases_low_lat_high_error_%A.out
+#SBATCH --output=waf2024_find_cases_low_intensity_low_error_%A.out
 
 module load cuda/10.1
 source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
@@ -29,8 +29,8 @@ set A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_ensemble/tropical_and_nontropical"
 
 python3 -u "${CODE_DIR_NAME}/waf2024_find_case_studies.py" \
---input_prediction_file_pattern="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/predictions_*.nc" \
+--input_prediction_file_pattern="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_storm_type/storm-type=non_tropical_by_storm_type/storm-type=tropical/predictions_*.nc" \
 --input_ebtrk_file_name="${EXTENDED_BEST_TRACK_FILE_NAME}" \
 --input_a_deck_file_name="${A_DECK_FILE_NAME}" \
---latitude_limits_deg_n 0 15 \
---euclidean_error_limits_km 50 1000
+--intensity_limits_kt 0 40 \
+--euclidean_error_limits_km 0 10
