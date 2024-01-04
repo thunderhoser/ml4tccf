@@ -640,10 +640,18 @@ def _make_figure_one_example(
                 title_string=title_string
             )
 
-            gg_plotting_utils.label_axes(
-                axes_object=axes_object,
-                label_string='({0:s})'.format(panel_letter)
-            )
+            if lag_times_minutes[i] == 0 and j == num_wavelengths - 1:
+                gg_plotting_utils.label_axes(
+                    axes_object=axes_object,
+                    label_string='({0:s})'.format(panel_letter),
+                    y_coord_normalized=1.13
+                )
+            else:
+                gg_plotting_utils.label_axes(
+                    axes_object=axes_object,
+                    label_string='({0:s})'.format(panel_letter),
+                    y_coord_normalized=1.
+                )
 
             if lag_times_minutes[i] != 0:
                 print('Saving figure to file: "{0:s}"...'.format(

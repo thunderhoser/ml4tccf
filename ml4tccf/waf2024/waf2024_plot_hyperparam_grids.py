@@ -75,14 +75,14 @@ WHITE_COLOUR = numpy.full(3, 1.)
 BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
-SELECTED_MARKER_SIZE_GRID_CELLS = 0.175
-SELECTED_MARKER_INDICES = numpy.array([0, 0, 0], dtype=int)
+SELECTED_MARKER_SIZE_GRID_CELLS = 0.125
+SELECTED_MARKER_INDICES = numpy.array([6, 2, 0], dtype=int)
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 MONO_FRACTION_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='cividis', lut=20)
 SSRAT_COLOUR_MAP_NAME = 'seismic'
 
-NAN_COLOUR = numpy.full(3, 0.)
+NAN_COLOUR = numpy.full(3, 152. / 255)
 MAIN_COLOUR_MAP_OBJECT.set_bad(NAN_COLOUR)
 MONO_FRACTION_COLOUR_MAP_OBJECT.set_bad(NAN_COLOUR)
 
@@ -218,11 +218,12 @@ def _plot_scores_2d(
     return figure_object, axes_object
 
 
-def _read_metrics_one_model(model_dir_name):
+def _read_metrics_one_model(model_dir_name, use_isotonic_regression):
     """Reads metrics for one model.
 
     :param model_dir_name: Name of directory with trained model and validation
         data.
+    :param use_isotonic_regression: See documentation at top of file.
     :return: metric_dict: Dictionary, where each key is a string from the list
         `METRIC_NAMES` and each value is a scalar.
     """
@@ -231,7 +232,10 @@ def _read_metrics_one_model(model_dir_name):
     for this_metric_name in METRIC_NAMES:
         metric_dict[this_metric_name] = numpy.nan
 
-    validation_dir_name = '{0:s}/validation'.format(model_dir_name)
+    validation_dir_name = '{0:s}/{1:s}validation'.format(
+        model_dir_name,
+        'isotonic_regression/' if use_isotonic_regression else ''
+    )
     if not os.path.isdir(validation_dir_name):
         return metric_dict
 
@@ -634,11 +638,11 @@ def _run(experiment_dir_name, use_isotonic_regression):
             figure_width_px = (
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
-            marker_size_px = figure_width_px * (
-                BEST_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
-            )
 
             if best_indices[2] == k:
+                marker_size_px = figure_width_px * (
+                    BEST_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
+                )
                 axes_object.plot(
                     best_indices[1], best_indices[0],
                     linestyle='None', marker=BEST_MARKER_TYPE,
@@ -648,6 +652,9 @@ def _run(experiment_dir_name, use_isotonic_regression):
                 )
 
             if SELECTED_MARKER_INDICES[2] == k:
+                marker_size_px = figure_width_px * (
+                    SELECTED_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
+                )
                 axes_object.plot(
                     SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
                     linestyle='None', marker=SELECTED_MARKER_TYPE,
@@ -658,9 +665,11 @@ def _run(experiment_dir_name, use_isotonic_regression):
 
             axes_object.set_xlabel(x_axis_label)
             axes_object.set_ylabel(y_axis_label)
-            axes_object.set_title('Main pooling factor = {0:d}'.format(
-                MAIN_POOLING_FACTORS_AXIS3[k]
-            ))
+
+            title_string = '{0:s} with\nmain pooling factor = {1:d}'.format(
+                METRIC_NAMES_FANCY[m], MAIN_POOLING_FACTORS_AXIS3[k]
+            )
+            axes_object.set_title(title_string)
 
             panel_file_names[k] = (
                 '{0:s}/{1:s}_main-pooling-factor={2:d}.jpg'
