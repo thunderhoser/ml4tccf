@@ -645,11 +645,11 @@ def _run(experiment_dir_name, use_isotonic_regression):
             figure_width_px = (
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
-            marker_size_px = figure_width_px * (
-                BEST_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
-            )
 
             if best_indices[2] == k:
+                marker_size_px = figure_width_px * (
+                    BEST_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
+                )
                 axes_object.plot(
                     best_indices[1], best_indices[0],
                     linestyle='None', marker=BEST_MARKER_TYPE,
@@ -659,6 +659,9 @@ def _run(experiment_dir_name, use_isotonic_regression):
                 )
 
             if SELECTED_MARKER_INDICES[2] == k:
+                marker_size_px = figure_width_px * (
+                    SELECTED_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
+                )
                 axes_object.plot(
                     SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
                     linestyle='None', marker=SELECTED_MARKER_TYPE,
