@@ -89,7 +89,7 @@ MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
 MONO_FRACTION_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='cividis', lut=20)
 SSRAT_COLOUR_MAP_NAME = 'seismic'
 
-NAN_COLOUR = numpy.full(3, 0.)
+NAN_COLOUR = numpy.full(3, 152. / 255)
 MAIN_COLOUR_MAP_OBJECT.set_bad(NAN_COLOUR)
 MONO_FRACTION_COLOUR_MAP_OBJECT.set_bad(NAN_COLOUR)
 
@@ -672,9 +672,11 @@ def _run(experiment_dir_name, use_isotonic_regression):
 
             axes_object.set_xlabel(x_axis_label)
             axes_object.set_ylabel(y_axis_label)
-            axes_object.set_title('Main pooling factor = {0:d}'.format(
-                MAIN_POOLING_FACTORS_AXIS3[k]
-            ))
+
+            title_string = '{0:s} with\nmain pooling factor = {1:d}'.format(
+                METRIC_NAMES_FANCY[m], MAIN_POOLING_FACTORS_AXIS3[k]
+            )
+            axes_object.set_title(title_string)
 
             panel_file_names[k] = (
                 '{0:s}/{1:s}_main-pooling-factor={2:d}.jpg'
