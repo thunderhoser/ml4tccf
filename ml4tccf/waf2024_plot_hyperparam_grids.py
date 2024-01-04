@@ -225,11 +225,12 @@ def _plot_scores_2d(
     return figure_object, axes_object
 
 
-def _read_metrics_one_model(model_dir_name):
+def _read_metrics_one_model(model_dir_name, use_isotonic_regression):
     """Reads metrics for one model.
 
     :param model_dir_name: Name of directory with trained model and validation
         data.
+    :param use_isotonic_regression: See documentation at top of file.
     :return: metric_dict: Dictionary, where each key is a string from the list
         `METRIC_NAMES` and each value is a scalar.
     """
@@ -238,7 +239,10 @@ def _read_metrics_one_model(model_dir_name):
     for this_metric_name in METRIC_NAMES:
         metric_dict[this_metric_name] = numpy.nan
 
-    validation_dir_name = '{0:s}/validation'.format(model_dir_name)
+    validation_dir_name = '{0:s}/{1:s}validation'.format(
+        model_dir_name,
+        'isotonic_regression/' if use_isotonic_regression else ''
+    )
     if not os.path.isdir(validation_dir_name):
         return metric_dict
 
