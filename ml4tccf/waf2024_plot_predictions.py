@@ -25,6 +25,7 @@ import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
 import imagemagick_utils
+import gg_plotting_utils
 import border_io
 import prediction_io
 import misc_utils
@@ -596,18 +597,24 @@ def _make_figure_one_example(
     num_lag_times = len(lag_times_minutes)
     num_wavelengths = len(wavelengths_microns)
     panel_file_names = []
+    panel_letter = None
 
     for i in range(num_lag_times):
         for j in range(num_wavelengths):
+            if panel_letter is None:
+                panel_letter = 'a'
+            else:
+                panel_letter = chr(ord(panel_letter) + 1)
+
             title_string = r'{0:.3f}-micron $T_b$ at {1:d}-min lag'.format(
                 wavelengths_microns[j],
                 int(numpy.round(lag_times_minutes[i]))
             )
 
-            if lag_times_minutes[i] == 0:
+            if lag_times_minutes[i] == 0 and j == num_wavelengths - 1:
                 title_string += (
-                    '\nError (x/y/Euc) = {0:.1f}/{1:.1f}/{2:.1f} km'
-                    '\nStdev (x/y/Euc) = {3:.1f}/{4:.1f}/{5:.1f} km'
+                    '\nErr (x/y/Euc) = {0:.1f}/{1:.1f}/{2:.1f} km'
+                    '\nStd (x/y/Euc) = {3:.1f}/{4:.1f}/{5:.1f} km'
                 ).format(
                     x_error_km, y_error_km, euclidean_error_km,
                     x_stdev_km, y_stdev_km, euclidean_stdev_km
@@ -635,6 +642,11 @@ def _make_figure_one_example(
                 border_longitudes_deg_e=border_longitudes_deg_e,
                 predicted_center_marker_size=point_prediction_marker_size,
                 title_string=title_string
+            )
+
+            gg_plotting_utils.label_axes(
+                axes_object=axes_object,
+                label_string='({0:s})'.format(panel_letter)
             )
 
             if lag_times_minutes[i] != 0:
@@ -689,11 +701,21 @@ def _make_figure_one_example(
                     output_file_name=panel_file_names[-1]
                 )
 
-    plotting_utils.concat_panels(
-        panel_file_names=panel_file_names,
-        num_panel_rows=num_lag_times,
-        concat_figure_file_name=output_file_name
-    )
+    if num_lag_times == 1:
+        num_panel_rows = int(numpy.ceil(
+            numpy.sqrt(num_wavelengths)
+        ))
+        plotting_utils.concat_panels(
+            panel_file_names=panel_file_names,
+            num_panel_rows=num_panel_rows,
+            concat_figure_file_name=output_file_name
+        )
+    else:
+        plotting_utils.concat_panels(
+            panel_file_names=panel_file_names,
+            num_panel_rows=num_lag_times,
+            concat_figure_file_name=output_file_name
+        )
 
     colour_map_object, colour_norm_object = (
         satellite_plotting.get_colour_scheme_for_brightness_temp()

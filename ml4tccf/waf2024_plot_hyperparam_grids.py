@@ -107,12 +107,21 @@ FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 EXPERIMENT_DIR_ARG_NAME = 'experiment_dir_name'
+USE_ISOTONIC_ARG_NAME = 'use_isotonic_regression'
+
 EXPERIMENT_DIR_HELP_STRING = 'Name of top-level directory with models.'
+USE_ISOTONIC_HELP_STRING = (
+    'Boolean flag.  If 1 (0), will plot results with(out) isotonic regression.'
+)
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER.add_argument(
     '--' + EXPERIMENT_DIR_ARG_NAME, type=str, required=True,
     help=EXPERIMENT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + USE_ISOTONIC_ARG_NAME, type=int, required=True,
+    help=USE_ISOTONIC_HELP_STRING
 )
 
 
@@ -469,12 +478,13 @@ def _print_ranking_one_metric(metric_matrix, metric_index):
         ))
 
 
-def _run(experiment_dir_name):
+def _run(experiment_dir_name, use_isotonic_regression):
     """Plots hyperparameter grids for 2024 WAF paper.
 
     This is effectively the main method.
 
     :param experiment_dir_name: See documentation at top of file.
+    :param use_isotonic_regression: Same.
     """
 
     length_axis1 = len(LAG_TIME_COUNTS_AXIS1)
@@ -506,7 +516,10 @@ def _run(experiment_dir_name):
                     LAG_TIME_COUNTS_AXIS1[i]
                 )
 
-                this_metric_dict = _read_metrics_one_model(this_model_dir_name)
+                this_metric_dict = _read_metrics_one_model(
+                    model_dir_name=this_model_dir_name,
+                    use_isotonic_regression=use_isotonic_regression
+                )
                 for m in range(num_metrics):
                     metric_matrix[i, j, k, m] = this_metric_dict[
                         METRIC_NAMES[m]
@@ -534,7 +547,10 @@ def _run(experiment_dir_name):
     )
     print(SEPARATOR_STRING)
 
-    output_dir_name = '{0:s}/hyperparam_grids'.format(experiment_dir_name)
+    output_dir_name = '{0:s}/hyperparam_grids{1:s}'.format(
+        experiment_dir_name,
+        '/isotonic_regression' if use_isotonic_regression else ''
+    )
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
     )
@@ -697,5 +713,8 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        experiment_dir_name=getattr(INPUT_ARG_OBJECT, EXPERIMENT_DIR_ARG_NAME)
+        experiment_dir_name=getattr(INPUT_ARG_OBJECT, EXPERIMENT_DIR_ARG_NAME),
+        use_isotonic_regression=bool(
+            getattr(INPUT_ARG_OBJECT, USE_ISOTONIC_ARG_NAME)
+        )
     )
