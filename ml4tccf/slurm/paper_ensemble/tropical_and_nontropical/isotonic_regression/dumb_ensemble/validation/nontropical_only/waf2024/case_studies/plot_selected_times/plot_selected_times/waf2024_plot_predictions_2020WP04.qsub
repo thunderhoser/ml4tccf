@@ -34,8 +34,8 @@ python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" \
 --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
 --input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
 --target_time_strings "2020-07-31-0000" "2020-07-31-0600" "2020-07-31-1200" "2020-07-31-1800" "2020-08-01-0000" \
---lag_times_minutes 0 60 120 \
---wavelengths_microns 8.500 9.610 12.300 \
+--lag_times_minutes 0 \
+--wavelengths_microns 3.9  6.185  6.95  7.34  8.5  9.61  10.35  11.2  12.3  13.3 \
 --prediction_plotting_format_string="probability_contours" \
 --prob_colour_map_name="BuGn" \
 --prob_contour_smoothing_radius_px=5 \
