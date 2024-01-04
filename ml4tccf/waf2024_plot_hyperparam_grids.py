@@ -673,8 +673,12 @@ def _run(experiment_dir_name, use_isotonic_regression):
             axes_object.set_xlabel(x_axis_label)
             axes_object.set_ylabel(y_axis_label)
 
-            title_string = '{0:s} with\nmain pooling factor = {1:d}'.format(
-                METRIC_NAMES_FANCY[m], MAIN_POOLING_FACTORS_AXIS3[k]
+            title_string = (
+                '{0:s} ({1:s})\nwith main pooling factor = {2:d}'
+            ).format(
+                METRIC_NAMES_FANCY[m],
+                METRIC_UNITS[m],
+                MAIN_POOLING_FACTORS_AXIS3[k]
             )
             axes_object.set_title(title_string)
 
