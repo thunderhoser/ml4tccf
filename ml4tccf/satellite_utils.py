@@ -730,17 +730,25 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
         new_table_xarray = satellite_table_xarray.isel(
             indexers={TIME_DIM: desired_indices}
         )
-        return new_table_xarray.assign_coords({
-            TIME_DIM: desired_times_unix_sec
-        })
+
+        try:
+            return new_table_xarray.assign_coords({
+                TIME_DIM: desired_times_unix_sec
+            })
+        except:
+            return new_table_xarray.assign_coords(TIME_DIM=desired_times_unix_sec)
 
     new_table_xarray = copy.deepcopy(satellite_table_xarray)
     new_table_xarray = new_table_xarray.isel(
         indexers={TIME_DIM: desired_indices}
     )
-    new_table_xarray = new_table_xarray.assign_coords({
-        TIME_DIM: desired_times_unix_sec
-    })
+
+    try:
+        new_table_xarray = new_table_xarray.assign_coords({
+            TIME_DIM: desired_times_unix_sec
+        })
+    except:
+        new_table_xarray = new_table_xarray.assign_coords(TIME_DIM=desired_times_unix_sec)
 
     low_res_wavelengths_microns = (
         METRES_TO_MICRONS *
