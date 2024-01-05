@@ -220,6 +220,9 @@ def assert_is_integer_numpy_array(input_variable):
     """
 
     assert_is_numpy_array(input_variable)
+    if 'int' in str(input_variable.dtype):
+        return
+
     if not numpy.issubdtype(input_variable.dtype, int):
         error_string = (
             '\n' + str(input_variable) +
