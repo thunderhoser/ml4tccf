@@ -3,6 +3,7 @@
 import os
 import sys
 import numpy
+import keras
 import keras.layers as layers
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -15,6 +16,7 @@ import error_checking
 try:
     input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
 except:
+    import tensorflow.keras as keras
     import tensorflow.keras.layers as layers
 
 KERNEL_INITIALIZER_NAME = 'glorot_uniform'
