@@ -118,10 +118,18 @@ def concat_over_time(satellite_tables_xarray, allow_different_cyclones=False):
         if t[BRIGHTNESS_TEMPERATURE_KEY].values.size > 0
     ]
 
-    satellite_table_xarray = xarray.concat(
-        satellite_tables_xarray, dim=TIME_DIM, data_vars='all',
-        coords='minimal', compat='identical', join='exact'
-    )
+    print(satellite_tables_xarray[0])
+
+    try:
+        satellite_table_xarray = xarray.concat(
+            satellite_tables_xarray, dim=TIME_DIM, data_vars='all',
+            coords='minimal', compat='identical', join='exact'
+        )
+    except:
+        satellite_table_xarray = xarray.concat(
+            satellite_tables_xarray, dim=TIME_DIM, data_vars='all',
+            coords='minimal', compat='identical'
+        )
 
     if allow_different_cyclones:
         return satellite_table_xarray
