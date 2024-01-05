@@ -20,12 +20,6 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=apply_neural_nets_first_%A_%a.out
 
-module load cuda/10.1
-# source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
-# conda activate base
-module use /scratch2/BMC/gsd-hpcs/bass/modulefiles
-module load Anaconda3/2019.07
-
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_domain_video/further_training/further_training/further_training"
 set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/800x800_grids"
@@ -45,14 +39,8 @@ set CYCLONE_ID_STRINGS=("2017AL01" "2017AL02" "2017AL03" "2017AL04" "2017AL05" "
 set i=1
 
 while ($i <= ${#CYCLONE_ID_STRINGS})
-    python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
-    --input_model_file_name="${model_dir_name}/model.h5" \
-    --input_satellite_dir_name="${EXAMPLE_DIR_NAME}" \
-    --cyclone_id_string="${CYCLONE_ID_STRINGS[$i]}" \
-    --num_bnn_iterations=1 \
-    --max_ensemble_size=100 \
-    --data_aug_num_translations=8 \
-    --output_dir_name="${model_dir_name}/training"
+    set this_directory_name=`pwd`
+    singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh apply_neural_nets.sh ${model_dir_name} ${cyclone_id_string}"
     
     @ i = $i + 1
 end
