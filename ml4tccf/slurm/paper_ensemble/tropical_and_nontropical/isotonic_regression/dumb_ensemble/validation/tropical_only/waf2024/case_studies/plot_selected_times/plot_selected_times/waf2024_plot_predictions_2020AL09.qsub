@@ -20,7 +20,7 @@
 #SBATCH --output=waf2024_plot_predictions_2020AL09_%A.out
 
 module load cuda/10.1
-source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+source /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
@@ -39,5 +39,5 @@ python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" \
 --prediction_plotting_format_string="probability_contours" \
 --prob_colour_map_name="BuGn" \
 --prob_contour_smoothing_radius_px=5 \
---point_prediction_marker_size=24 \
+--point_prediction_marker_size=36 \
 --output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_storm_type/storm-type=tropical/waf2024/case_study_2020AL09/selected_times"
