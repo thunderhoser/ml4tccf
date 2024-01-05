@@ -1,0 +1,23 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="waf2024_plot_predictions_2020AL17"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=02:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=waf2024_plot_predictions_2020AL17_%A.out
+
+set this_directory_name=`pwd`
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh waf2024_plot_predictions.sh '2020AL17' '2020-09-18-1200 2020-09-18-1800 2020-09-19-0600 2020-09-19-1200 2020-09-19-1800 2020-09-20-0000 2020-09-20-0600 2020-09-20-1200 2020-09-20-1800 2020-09-21-0000 2020-09-21-0600 2020-09-21-1200 2020-09-21-1800'"

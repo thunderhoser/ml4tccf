@@ -419,15 +419,10 @@ def plot_2d_grid_latlng(
         axes_object.contourf(
             longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
             data_matrix_to_plot,
-            cmap=colour_map_object, norm=colour_norm_object,
-            vmin=min_colour_value, vmax=max_colour_value
+            cmap=colour_map_object, norm=colour_norm_object
         )
     else:
         if regular_grid:
-            print(longitudes_to_plot_deg_e.shape)
-            print(latitudes_to_plot_deg_n.shape)
-            print(data_matrix_to_plot.shape)
-
             try:
                 axes_object.pcolormesh(
                     longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
@@ -449,7 +444,6 @@ def plot_2d_grid_latlng(
                 longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
                 data_matrix_to_plot,
                 cmap=colour_map_object, norm=colour_norm_object,
-                vmin=min_colour_value, vmax=max_colour_value,
                 edgecolors='None', zorder=-1e11, alpha=opacity
             )
 
@@ -515,7 +509,6 @@ def plot_2d_grid_no_coords(
     axes_object.imshow(
         data_matrix_to_plot, origin='lower',
         cmap=colour_map_object, norm=colour_norm_object,
-        vmin=min_colour_value, vmax=max_colour_value,
         zorder=-1e11, alpha=opacity
     )
 
