@@ -1,0 +1,56 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="apply_neural_nets_first"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=08:00:00
+#SBATCH --array=1-56
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_first_%A_%a.out
+
+module load cuda/10.1
+source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda activate base
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_domain_video/further_training/further_training/further_training"
+set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/800x800_grids"
+
+set GRID_ROW_COUNTS=("300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600")
+set MAIN_POOLING_FACTORS=("2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3")
+set LAG_TIME_COUNTS=("1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7")
+
+set num_grid_rows=${GRID_ROW_COUNTS[$SLURM_ARRAY_TASK_ID]}
+set main_pooling_factor=${MAIN_POOLING_FACTORS[$SLURM_ARRAY_TASK_ID]}
+set num_lag_times=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+set model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_main-pooling-factor=${main_pooling_factor}_num-lag-times=${num_lag_times}"
+echo $model_dir_name
+
+set CYCLONE_ID_STRINGS=("2017AL01" "2017AL02" "2017AL03" "2017AL04" "2017AL05" "2017AL06" "2017AL07" "2017AL08" "2017AL09" "2017AL10" "2017AL11" "2017AL12" "2017AL13" "2017AL14" "2017AL15" "2017AL16" "2017AL17" "2017AL18" "2017AL19" "2018AL01" "2018AL02" "2018AL03" "2018AL04" "2018AL05" "2018AL06" "2018AL07" "2018AL08" "2018AL09" "2018AL10" "2018AL11" "2018AL12" "2018AL13" "2019AL01" "2019AL02" "2019AL03" "2019AL04" "2019AL05" "2019AL06" "2019AL07" "2019AL08" "2019AL09" "2019AL10" "2019AL11" "2019AL12" "2019AL13" "2019AL14" "2019AL15" "2019AL16" "2019AL17" "2019AL18" "2019AL19" "2019AL20" "2018EP14" "2018EP15" "2018EP16" "2018EP17" "2018EP18" "2018EP19" "2018EP20" "2018EP21" "2018EP22" "2018EP23" "2018EP24" "2019EP01" "2019EP02" "2019EP03" "2019EP04" "2019EP05" "2019EP06" "2019EP07" "2019EP08" "2019EP09" "2019EP10" "2019EP11" "2019EP12" "2019EP13" "2019EP14" "2019EP15" "2019EP16" "2019EP17" "2019EP18" "2019EP19" "2019EP20" "2019EP21" "2020EP01" "2020EP02" "2020EP03" "2020EP04" "2020EP05" "2020EP06" "2020EP07" "2020EP08" "2020EP09" "2020EP10" "2020EP11" "2020EP12" "2020EP13" "2020EP14" "2020EP15" "2020EP16" "2020EP17" "2020EP18" "2020EP19" "2020EP20" "2020EP21" "2016WP01" "2016WP02" "2016WP03" "2016WP04" "2016WP05" "2016WP06" "2016WP07" "2016WP08" "2016WP09" "2016WP10" "2016WP11" "2016WP12")
+set i=1
+
+while ($i <= ${#CYCLONE_ID_STRINGS})
+    python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+    --input_model_file_name="${model_dir_name}/model.h5" \
+    --input_satellite_dir_name="${EXAMPLE_DIR_NAME}" \
+    --cyclone_id_string="${CYCLONE_ID_STRINGS[$i]}" \
+    --num_bnn_iterations=1 \
+    --max_ensemble_size=100 \
+    --data_aug_num_translations=8 \
+    --output_dir_name="${model_dir_name}/training"
+    
+    @ i = $i + 1
+end
