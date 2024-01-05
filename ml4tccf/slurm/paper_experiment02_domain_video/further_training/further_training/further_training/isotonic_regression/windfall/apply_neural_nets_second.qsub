@@ -21,7 +21,8 @@
 #SBATCH --output=apply_neural_nets_second_%A_%a.out
 
 module load cuda/10.1
-source /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+# source /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+source /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/conda.csh
 conda activate base
 
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
