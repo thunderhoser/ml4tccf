@@ -6,6 +6,7 @@ import time
 import pickle
 import numpy
 import keras
+import keras.layers as layers
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -25,6 +26,12 @@ import cnn_architecture
 import u_net_architecture
 import temporal_cnn_architecture
 import accum_grad_optimizer
+
+try:
+    input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
+except:
+    import tensorflow.keras as keras
+    # import tensorflow.keras.layers as layers
 
 TOLERANCE = 1e-6
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
