@@ -433,16 +433,16 @@ def plot_2d_grid_latlng(
                     longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
                     data_matrix_to_plot,
                     cmap=colour_map_object, norm=colour_norm_object,
-                    vmin=min_colour_value, vmax=max_colour_value, shading='flat',
-                    edgecolors='None', zorder=-1e11, alpha=opacity
+                    shading='flat', edgecolors='None', zorder=-1e11,
+                    alpha=opacity
                 )
             except:
                 axes_object.pcolormesh(
                     longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
                     data_matrix_to_plot[:-1, :-1],
                     cmap=colour_map_object, norm=colour_norm_object,
-                    vmin=min_colour_value, vmax=max_colour_value, shading='flat',
-                    edgecolors='None', zorder=-1e11, alpha=opacity
+                    shading='flat', edgecolors='None', zorder=-1e11,
+                    alpha=opacity
                 )
         else:
             axes_object.pcolor(
