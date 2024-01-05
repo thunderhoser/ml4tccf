@@ -391,6 +391,8 @@ def plot_2d_grid_latlng(
         lat_spacing_deg=1e-6, lng_spacing_deg=1e-6
     )[0]
 
+    data_matrix_to_plot = data_matrix_to_plot.astype(numpy.float64)
+
     # Do actual plotting.
     data_matrix_to_plot = numpy.ma.masked_where(
         numpy.isnan(data_matrix_to_plot), data_matrix_to_plot
@@ -422,6 +424,10 @@ def plot_2d_grid_latlng(
         )
     else:
         if regular_grid:
+            print(longitudes_to_plot_deg_e.shape)
+            print(latitudes_to_plot_deg_n.shape)
+            print(data_matrix_to_plot.shape)
+
             axes_object.pcolormesh(
                 longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
                 data_matrix_to_plot,
