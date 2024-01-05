@@ -3,7 +3,7 @@
 import os
 import sys
 import numpy
-import keras.layers
+import keras.layers as layers
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -11,6 +11,11 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import error_checking
+
+try:
+    input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
+except:
+    import tensorflow.keras.layers as layers
 
 KERNEL_INITIALIZER_NAME = 'glorot_uniform'
 BIAS_INITIALIZER_NAME = 'zeros'
@@ -297,7 +302,7 @@ def get_1d_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_filters, num_kernel_dimensions=1)
 
-    return keras.layers.Conv1D(
+    return layers.Conv1D(
         filters=num_filters, kernel_size=(num_kernel_rows,),
         strides=(num_rows_per_stride,), padding=padding_type_string,
         dilation_rate=(1,), activation=None, use_bias=True,
@@ -337,7 +342,7 @@ def get_1d_separable_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_total_filters, num_kernel_dimensions=1)
 
-    return keras.layers.SeparableConv1D(
+    return layers.SeparableConv1D(
         filters=num_total_filters, kernel_size=num_kernel_rows,
         strides=num_rows_per_stride, depth_multiplier=num_non_spatial_filters,
         padding=padding_type_string, dilation_rate=(1,),
@@ -375,7 +380,7 @@ def get_2d_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_filters, num_kernel_dimensions=2)
 
-    return keras.layers.Conv2D(
+    return layers.Conv2D(
         filters=num_filters, kernel_size=(num_kernel_rows, num_kernel_columns),
         strides=(num_rows_per_stride, num_columns_per_stride),
         padding=padding_type_string, dilation_rate=(1, 1),
@@ -417,7 +422,7 @@ def get_2d_separable_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_total_filters, num_kernel_dimensions=2)
 
-    return keras.layers.SeparableConv2D(
+    return layers.SeparableConv2D(
         filters=num_total_filters,
         kernel_size=(num_kernel_rows, num_kernel_columns),
         strides=(num_rows_per_stride, num_columns_per_stride),
@@ -461,7 +466,7 @@ def get_3d_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_filters, num_kernel_dimensions=2)
 
-    return keras.layers.Conv3D(
+    return layers.Conv3D(
         filters=num_filters,
         kernel_size=(num_kernel_rows, num_kernel_columns, num_kernel_heights),
         strides=(num_rows_per_stride, num_columns_per_stride,
@@ -495,12 +500,12 @@ def get_1d_pooling_layer(
         pooling_type_string=pooling_type_string, num_dimensions=1)
 
     if pooling_type_string == MAX_POOLING_STRING:
-        return keras.layers.MaxPooling1D(
+        return layers.MaxPooling1D(
             pool_size=num_rows_in_window, strides=num_rows_per_stride,
             padding=NO_PADDING_STRING, name=layer_name
         )
 
-    return keras.layers.AveragePooling1D(
+    return layers.AveragePooling1D(
         pool_size=num_rows_in_window, strides=num_rows_per_stride,
         padding=NO_PADDING_STRING, name=layer_name
     )
@@ -530,13 +535,13 @@ def get_2d_pooling_layer(
         pooling_type_string=pooling_type_string, num_dimensions=2)
 
     if pooling_type_string == MAX_POOLING_STRING:
-        return keras.layers.MaxPooling2D(
+        return layers.MaxPooling2D(
             pool_size=(num_rows_in_window, num_columns_in_window),
             strides=(num_rows_per_stride, num_columns_per_stride),
             padding=NO_PADDING_STRING, name=layer_name
         )
 
-    return keras.layers.AveragePooling2D(
+    return layers.AveragePooling2D(
         pool_size=(num_rows_in_window, num_columns_in_window),
         strides=(num_rows_per_stride, num_columns_per_stride),
         padding=NO_PADDING_STRING, name=layer_name
@@ -571,7 +576,7 @@ def get_3d_pooling_layer(
         pooling_type_string=pooling_type_string, num_dimensions=3)
 
     if pooling_type_string == MAX_POOLING_STRING:
-        return keras.layers.MaxPooling3D(
+        return layers.MaxPooling3D(
             pool_size=(num_rows_in_window, num_columns_in_window,
                        num_heights_in_window),
             strides=(num_rows_per_stride, num_columns_per_stride,
@@ -579,7 +584,7 @@ def get_3d_pooling_layer(
             padding=NO_PADDING_STRING, name=layer_name
         )
 
-    return keras.layers.AveragePooling3D(
+    return layers.AveragePooling3D(
         pool_size=(num_rows_in_window, num_columns_in_window,
                    num_heights_in_window),
         strides=(num_rows_per_stride, num_columns_per_stride,
@@ -602,7 +607,7 @@ def get_dense_layer(num_output_units, weight_regularizer=None, layer_name=None):
     error_checking.assert_is_integer(num_output_units)
     error_checking.assert_is_greater(num_output_units, 0)
 
-    return keras.layers.Dense(
+    return layers.Dense(
         num_output_units, activation=None, use_bias=True,
         kernel_initializer=KERNEL_INITIALIZER_NAME,
         bias_initializer=BIAS_INITIALIZER_NAME,
@@ -631,15 +636,15 @@ def get_activation_layer(
     )
 
     if activation_function_string == ELU_FUNCTION_STRING:
-        return keras.layers.ELU(alpha=alpha_for_elu, name=layer_name)
+        return layers.ELU(alpha=alpha_for_elu, name=layer_name)
 
     if activation_function_string == RELU_FUNCTION_STRING:
         if alpha_for_relu == 0:
-            return keras.layers.ReLU(name=layer_name)
+            return layers.ReLU(name=layer_name)
 
-        return keras.layers.LeakyReLU(alpha=alpha_for_relu, name=layer_name)
+        return layers.LeakyReLU(alpha=alpha_for_relu, name=layer_name)
 
-    return keras.layers.Activation(activation_function_string, name=layer_name)
+    return layers.Activation(activation_function_string, name=layer_name)
 
 
 def get_dropout_layer(dropout_fraction, layer_name=None):
@@ -654,7 +659,7 @@ def get_dropout_layer(dropout_fraction, layer_name=None):
     error_checking.assert_is_greater(dropout_fraction, 0.)
     error_checking.assert_is_less_than(dropout_fraction, 1.)
 
-    return keras.layers.Dropout(rate=dropout_fraction, name=layer_name)
+    return layers.Dropout(rate=dropout_fraction, name=layer_name)
 
 
 def get_batch_norm_layer(layer_name=None):
@@ -664,7 +669,7 @@ def get_batch_norm_layer(layer_name=None):
     :return: Instance of `keras.layers.BatchNormalization`.
     """
 
-    return keras.layers.BatchNormalization(
+    return layers.BatchNormalization(
         axis=-1, momentum=0.99, epsilon=0.001, center=True, scale=True,
         name=layer_name
     )
@@ -676,4 +681,4 @@ def get_flattening_layer():
     :return: layer_object: Instance of `keras.layers.Flatten`.
     """
 
-    return keras.layers.Flatten()
+    return layers.Flatten()
