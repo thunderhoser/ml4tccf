@@ -1,9 +1,9 @@
 #!/bin/sh
 
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set SATELLITE_DIR_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper"
-set NORMALIZATION_FILE_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalization_params_for_paper.zarr"
-set OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/waf2024/satellite_overview"
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+SATELLITE_DIR_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper"
+NORMALIZATION_FILE_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalization_params_for_paper.zarr"
+OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/waf2024/satellite_overview"
 
 python3 -u "${CODE_DIR_NAME}/plot_satellite.py" \
 --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
