@@ -1,0 +1,34 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="waf2024_make_by_intensity_eval_figure"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=waf2024_make_by_intensity_eval_figure_%A.out
+
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_ensemble/tropical_only"
+
+set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_intensity_cutoffs=50-80"
+set output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/waf2024/by_intensity_eval_figure_cutoffs=50-80"
+
+set this_directory_name=`pwd`
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh waf2024_make_by_intensity_eval_figure.sh ${evaluation_dir_name} ${output_dir_name}"
+
+set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_intensity_cutoffs=64-83"
+set output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/waf2024/by_intensity_eval_figure_cutoffs=64-83"
+
+set this_directory_name=`pwd`
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh waf2024_make_by_intensity_eval_figure.sh ${evaluation_dir_name} ${output_dir_name}"
