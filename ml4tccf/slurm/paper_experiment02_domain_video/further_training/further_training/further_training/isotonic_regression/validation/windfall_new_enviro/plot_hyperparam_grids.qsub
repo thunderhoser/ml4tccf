@@ -19,13 +19,5 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=plot_hyperparam_grids_%A.out
 
-module load cuda/10.1
-source /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/conda.csh
-conda activate base
-
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_domain_video/further_training/further_training/further_training"
-
-python3 -u "${CODE_DIR_NAME}/waf2024_plot_hyperparam_grids.py" \
---experiment_dir_name="${TOP_MODEL_DIR_NAME}" \
---use_isotonic_regression=1
+set this_directory_name=`pwd`
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh plot_hyperparam_grids.sh ${model_dir_name} ${cyclone_id_string}"
