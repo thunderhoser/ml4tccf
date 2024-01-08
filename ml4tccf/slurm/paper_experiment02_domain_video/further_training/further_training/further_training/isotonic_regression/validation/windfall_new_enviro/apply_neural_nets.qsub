@@ -44,7 +44,7 @@ set i=1
 
 while ($i <= ${#CYCLONE_ID_STRINGS})
     set this_directory_name=`pwd`
-    singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh apply_neural_nets.sh ${model_dir_name} ${cyclone_id_string}"
+    singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh apply_neural_nets.sh ${model_dir_name} ${CYCLONE_ID_STRINGS[$i]}"
     
     @ i = $i + 1
 end
