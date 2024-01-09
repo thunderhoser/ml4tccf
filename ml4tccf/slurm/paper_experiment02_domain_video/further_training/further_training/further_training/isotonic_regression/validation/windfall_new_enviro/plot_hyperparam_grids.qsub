@@ -20,4 +20,4 @@
 #SBATCH --output=plot_hyperparam_grids_%A.out
 
 set this_directory_name=`pwd`
-singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh plot_hyperparam_grids.sh ${model_dir_name} ${cyclone_id_string}"
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh plot_hyperparam_grids.sh"
