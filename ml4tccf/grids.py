@@ -357,14 +357,14 @@ def find_events_in_grid_cell(
         grid cell.
     """
 
-    error_checking.assert_is_numpy_array_without_nan(event_x_coords_metres)
+    # error_checking.assert_is_numpy_array_without_nan(event_x_coords_metres)
     error_checking.assert_is_numpy_array(
         event_x_coords_metres, num_dimensions=1)
 
     num_events = len(event_x_coords_metres)
     these_expected_dim = numpy.array([num_events], dtype=int)
 
-    error_checking.assert_is_numpy_array_without_nan(event_y_coords_metres)
+    # error_checking.assert_is_numpy_array_without_nan(event_y_coords_metres)
     error_checking.assert_is_numpy_array(
         event_y_coords_metres, exact_dimensions=these_expected_dim)
 
