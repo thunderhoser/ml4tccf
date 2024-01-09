@@ -110,10 +110,16 @@ def concat_over_time(satellite_tables_xarray, allow_different_cyclones=False):
         if t[BRIGHTNESS_TEMPERATURE_KEY].values.size > 0
     ]
 
-    satellite_table_xarray = xarray.concat(
-        satellite_tables_xarray, dim=TIME_DIM, data_vars='all',
-        coords='minimal', compat='identical', join='exact'
-    )
+    try:
+        satellite_table_xarray = xarray.concat(
+            satellite_tables_xarray, dim=TIME_DIM, data_vars='all',
+            coords='minimal', compat='identical', join='exact'
+        )
+    except:
+        satellite_table_xarray = xarray.concat(
+            satellite_tables_xarray, dim=TIME_DIM, data_vars='all',
+            coords='minimal', compat='identical'
+        )
 
     if allow_different_cyclones:
         return satellite_table_xarray
@@ -714,17 +720,29 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
         new_table_xarray = satellite_table_xarray.isel(
             indexers={TIME_DIM: desired_indices}
         )
-        return new_table_xarray.assign_coords({
-            TIME_DIM: desired_times_unix_sec
-        })
+
+        try:
+            return new_table_xarray.assign_coords({
+                TIME_DIM: desired_times_unix_sec
+            })
+        except:
+            return new_table_xarray.assign_coords(
+                TIME_DIM=desired_times_unix_sec
+            )
 
     new_table_xarray = copy.deepcopy(satellite_table_xarray)
     new_table_xarray = new_table_xarray.isel(
         indexers={TIME_DIM: desired_indices}
     )
-    new_table_xarray = new_table_xarray.assign_coords({
-        TIME_DIM: desired_times_unix_sec
-    })
+
+    try:
+        new_table_xarray = new_table_xarray.assign_coords({
+            TIME_DIM: desired_times_unix_sec
+        })
+    except:
+        new_table_xarray = new_table_xarray.assign_coords(
+            TIME_DIM=desired_times_unix_sec
+        )
 
     low_res_wavelengths_microns = (
         METRES_TO_MICRONS *

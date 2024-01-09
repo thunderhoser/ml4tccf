@@ -33,9 +33,15 @@ def get_ensemble_mean(prediction_table_xarray):
     """
 
     t = prediction_table_xarray
-    t = t.assign_coords({
-        DUMMY_ENSEMBLE_MEMBER_DIM_KEY: numpy.array([0], dtype=int)
-    })
+
+    try:
+        t = t.assign_coords({
+            DUMMY_ENSEMBLE_MEMBER_DIM_KEY: numpy.array([0], dtype=int)
+        })
+    except:
+        t = t.assign_coords(
+            DUMMY_ENSEMBLE_MEMBER_DIM_KEY=numpy.array([0], dtype=int)
+        )
 
     these_dim_keys = (EXAMPLE_DIM_KEY, DUMMY_ENSEMBLE_MEMBER_DIM_KEY)
 
@@ -97,10 +103,16 @@ def concat_over_examples(prediction_tables_xarray):
 
         raise ValueError(error_string)
 
-    return xarray.concat(
-        prediction_tables_xarray, dim=EXAMPLE_DIM_KEY, data_vars='all',
-        coords='minimal', compat='identical', join='exact'
-    )
+    try:
+        return xarray.concat(
+            prediction_tables_xarray, dim=EXAMPLE_DIM_KEY, data_vars='all',
+            coords='minimal', compat='identical', join='exact'
+        )
+    except:
+        return xarray.concat(
+            prediction_tables_xarray, dim=EXAMPLE_DIM_KEY, data_vars='all',
+            coords='minimal', compat='identical'
+        )
 
 
 def concat_over_ensemble_members(prediction_tables_xarray,
@@ -119,11 +131,17 @@ def concat_over_ensemble_members(prediction_tables_xarray,
     error_checking.assert_is_boolean(use_only_common_examples)
 
     if not use_only_common_examples:
-        return xarray.concat(
-            prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
-            data_vars='minimal', coords='minimal', compat='identical',
-            join='exact'
-        )
+        try:
+            return xarray.concat(
+                prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
+                data_vars='minimal', coords='minimal', compat='identical',
+                join='exact'
+            )
+        except:
+            return xarray.concat(
+                prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
+                data_vars='minimal', coords='minimal', compat='identical'
+            )
 
     enhanced_cyclone_id_strings = [
         '{0:s}_{1:s}_{2:d}_{3:d}'.format(
@@ -208,8 +226,14 @@ def concat_over_ensemble_members(prediction_tables_xarray,
             )
         })
 
-    return xarray.concat(
-        prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
-        data_vars='minimal', coords='minimal', compat='identical',
-        join='exact'
-    )
+    try:
+        return xarray.concat(
+            prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
+            data_vars='minimal', coords='minimal', compat='identical',
+            join='exact'
+        )
+    except:
+        return xarray.concat(
+            prediction_tables_xarray, dim=ENSEMBLE_MEMBER_DIM_KEY,
+            data_vars='minimal', coords='minimal', compat='identical'
+        )

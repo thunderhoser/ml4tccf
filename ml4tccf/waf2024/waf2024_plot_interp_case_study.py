@@ -333,16 +333,16 @@ def _run(satellite_dir_name, cyclone_id_string,
 
     if generic_legend_handle is not None:
         legend_handles.append(generic_legend_handle)
-        legend_strings.append('Estimated center at\ntime w/out BT center')
+        legend_strings.append('Interp center using all\nanchor points')
     if synoptic_legend_handle is not None:
         legend_handles.append(synoptic_legend_handle)
-        legend_strings.append('BT center')
+        legend_strings.append('Synoptic BT center')
     if correct_legend_handle is not None:
         legend_handles.append(correct_legend_handle)
-        legend_strings.append('BT center at special time')
+        legend_strings.append('Special BT center')
     if interp_legend_handle is not None:
         legend_handles.append(interp_legend_handle)
-        legend_strings.append('Estimated center\nat special time')
+        legend_strings.append('Interp center using only\nsynoptic anchor points')
 
     all_latitudes_deg_n = numpy.concatenate((
         center_latitudes_deg_n, special_latitudes_deg_n

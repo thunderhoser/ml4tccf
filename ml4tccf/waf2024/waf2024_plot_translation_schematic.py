@@ -42,7 +42,7 @@ NUM_BINS = 100
 DEFAULT_FONT_SIZE = 40
 IMAGE_CENTER_MARKER = '*'
 IMAGE_CENTER_MARKER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
-IMAGE_CENTER_MARKER_SIZE = 50
+IMAGE_CENTER_MARKER_SIZE = 75
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -226,8 +226,7 @@ def _run(satellite_dir_name, normalization_file_name, cyclone_id_string,
     )
     axes_object.imshow(
         bin_frequency_matrix, origin='lower',
-        cmap=pyplot.get_cmap('cividis'), norm=colour_norm_object,
-        vmin=min_colour_value, vmax=max_colour_value
+        cmap=pyplot.get_cmap('cividis'), norm=colour_norm_object
     )
 
     axes_object.set_title(

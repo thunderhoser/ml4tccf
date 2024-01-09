@@ -383,6 +383,8 @@ def plot_2d_grid_latlng(
         lat_spacing_deg=1e-6, lng_spacing_deg=1e-6
     )[0]
 
+    data_matrix_to_plot = data_matrix_to_plot.astype(numpy.float64)
+
     # Do actual plotting.
     data_matrix_to_plot = numpy.ma.masked_where(
         numpy.isnan(data_matrix_to_plot), data_matrix_to_plot
@@ -398,35 +400,35 @@ def plot_2d_grid_latlng(
                 get_colour_scheme_for_bdrf()
             )
 
-    if hasattr(colour_norm_object, 'boundaries'):
-        min_colour_value = colour_norm_object.boundaries[0]
-        max_colour_value = colour_norm_object.boundaries[-1]
-    else:
-        min_colour_value = colour_norm_object.vmin
-        max_colour_value = colour_norm_object.vmax
-
     if use_contourf:
         axes_object.contourf(
             longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
             data_matrix_to_plot,
-            cmap=colour_map_object, norm=colour_norm_object,
-            vmin=min_colour_value, vmax=max_colour_value
+            cmap=colour_map_object, norm=colour_norm_object
         )
     else:
         if regular_grid:
-            axes_object.pcolormesh(
-                longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
-                data_matrix_to_plot,
-                cmap=colour_map_object, norm=colour_norm_object,
-                vmin=min_colour_value, vmax=max_colour_value, shading='flat',
-                edgecolors='None', zorder=-1e11, alpha=opacity
-            )
+            try:
+                axes_object.pcolormesh(
+                    longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
+                    data_matrix_to_plot,
+                    cmap=colour_map_object, norm=colour_norm_object,
+                    shading='flat', edgecolors='None', zorder=-1e11,
+                    alpha=opacity
+                )
+            except:
+                axes_object.pcolormesh(
+                    longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
+                    data_matrix_to_plot[:-1, :-1],
+                    cmap=colour_map_object, norm=colour_norm_object,
+                    shading='flat', edgecolors='None', zorder=-1e11,
+                    alpha=opacity
+                )
         else:
             axes_object.pcolor(
                 longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
                 data_matrix_to_plot,
                 cmap=colour_map_object, norm=colour_norm_object,
-                vmin=min_colour_value, vmax=max_colour_value,
                 edgecolors='None', zorder=-1e11, alpha=opacity
             )
 
@@ -482,17 +484,9 @@ def plot_2d_grid_no_coords(
                 get_colour_scheme_for_bdrf()
             )
 
-    if hasattr(colour_norm_object, 'boundaries'):
-        min_colour_value = colour_norm_object.boundaries[0]
-        max_colour_value = colour_norm_object.boundaries[-1]
-    else:
-        min_colour_value = colour_norm_object.vmin
-        max_colour_value = colour_norm_object.vmax
-
     axes_object.imshow(
         data_matrix_to_plot, origin='lower',
         cmap=colour_map_object, norm=colour_norm_object,
-        vmin=min_colour_value, vmax=max_colour_value,
         zorder=-1e11, alpha=opacity
     )
 

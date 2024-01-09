@@ -334,8 +334,7 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
     )
     axes_object.imshow(
         bin_frequency_matrix, origin='lower', cmap=colour_map_object,
-        norm=colour_norm_object,
-        vmin=these_colour_map_limits[0], vmax=these_colour_map_limits[1]
+        norm=colour_norm_object
     )
 
     title_string = (
@@ -445,8 +444,7 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
     )
     axes_object.imshow(
         bin_frequency_matrix, origin='lower', cmap=colour_map_object,
-        norm=colour_norm_object,
-        vmin=these_colour_map_limits[0], vmax=these_colour_map_limits[1]
+        norm=colour_norm_object
     )
 
     title_string = (

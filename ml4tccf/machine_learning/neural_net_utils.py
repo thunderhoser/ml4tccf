@@ -5,6 +5,7 @@ import time
 import pickle
 import numpy
 import keras
+import keras.layers as layers
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -18,6 +19,12 @@ from ml4tccf.machine_learning import cnn_architecture
 from ml4tccf.machine_learning import u_net_architecture
 from ml4tccf.machine_learning import temporal_cnn_architecture
 from ml4tccf.outside_code import accum_grad_optimizer
+
+try:
+    input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
+except:
+    import tensorflow.keras as keras
+    # import tensorflow.keras.layers as layers
 
 TOLERANCE = 1e-6
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600

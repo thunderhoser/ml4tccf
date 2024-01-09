@@ -639,7 +639,7 @@ def _run(experiment_dir_name, use_isotonic_regression):
                 figure_object.get_size_inches()[0] * figure_object.dpi
             )
 
-            if best_indices[2] == k:
+            if best_indices[2] == k and METRIC_NAMES[m] != 'mono_fraction':
                 marker_size_px = figure_width_px * (
                     BEST_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
                 )

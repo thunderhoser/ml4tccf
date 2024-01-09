@@ -6,10 +6,16 @@ different lag times.
 
 import numpy
 import keras
-import keras.layers
+import keras.layers as layers
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4tccf.machine_learning import neural_net_utils
+
+try:
+    input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
+except:
+    import tensorflow.keras as keras
+    import tensorflow.keras.layers as layers
 
 INPUT_DIMENSIONS_LOW_RES_KEY = 'input_dimensions_low_res'
 INPUT_DIMENSIONS_HIGH_RES_KEY = 'input_dimensions_high_res'
@@ -279,10 +285,10 @@ def create_model(option_dict):
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
     start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
 
-    input_layer_object_low_res = keras.layers.Input(
+    input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
     )
-    layer_object_low_res = keras.layers.Permute(
+    layer_object_low_res = layers.Permute(
         dims=(3, 1, 2, 4), name='low_res_put-time-first'
     )(input_layer_object_low_res)
 
@@ -299,10 +305,10 @@ def create_model(option_dict):
 
     if include_high_res_data:
         input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
-        input_layer_object_high_res = keras.layers.Input(
+        input_layer_object_high_res = layers.Input(
             shape=tuple(input_dimensions_high_res.tolist())
         )
-        layer_object_high_res = keras.layers.Permute(
+        layer_object_high_res = layers.Permute(
             dims=(3, 1, 2, 4), name='high_res_put-time-first'
         )(input_layer_object_high_res)
 
@@ -320,7 +326,7 @@ def create_model(option_dict):
 
     if include_scalar_data:
         input_dimensions_scalar = option_dict[INPUT_DIMENSIONS_SCALAR_KEY]
-        input_layer_object_scalar = keras.layers.Input(
+        input_layer_object_scalar = layers.Input(
             shape=tuple(input_dimensions_scalar.tolist())
         )
     else:
@@ -345,11 +351,11 @@ def create_model(option_dict):
                     weight_regularizer=l2_function
                 )
                 if k == 0:
-                    layer_object = keras.layers.TimeDistributed(
+                    layer_object = layers.TimeDistributed(
                         this_conv_layer_object
                     )(layer_object_high_res)
                 else:
-                    layer_object = keras.layers.TimeDistributed(
+                    layer_object = layers.TimeDistributed(
                         this_conv_layer_object
                     )(layer_object)
 
@@ -376,11 +382,11 @@ def create_model(option_dict):
                 num_columns_per_stride=pooling_size_by_block_px[block_index],
                 pooling_type_string=architecture_utils.MAX_POOLING_STRING
             )
-            layer_object = keras.layers.TimeDistributed(
+            layer_object = layers.TimeDistributed(
                 this_pooling_layer_object
             )(layer_object)
 
-        layer_object = keras.layers.Concatenate(axis=-1)([
+        layer_object = layers.Concatenate(axis=-1)([
             layer_object, layer_object_low_res
         ])
     else:
@@ -402,7 +408,7 @@ def create_model(option_dict):
                 architecture_utils.YES_PADDING_STRING,
                 weight_regularizer=l2_function
             )
-            layer_object = keras.layers.TimeDistributed(
+            layer_object = layers.TimeDistributed(
                 this_conv_layer_object
             )(layer_object)
 
@@ -430,11 +436,11 @@ def create_model(option_dict):
                 num_columns_per_stride=pooling_size_by_block_px[block_index],
                 pooling_type_string=architecture_utils.MAX_POOLING_STRING
             )
-            layer_object = keras.layers.TimeDistributed(
+            layer_object = layers.TimeDistributed(
                 this_pooling_layer_object
             )(layer_object)
 
-    forecast_module_layer_object = keras.layers.Permute(
+    forecast_module_layer_object = layers.Permute(
         dims=(2, 3, 1, 4), name='fcst_module_put-time-last'
     )(layer_object)
 
@@ -442,7 +448,7 @@ def create_model(option_dict):
         orig_dims = forecast_module_layer_object.get_shape()
         new_dims = orig_dims[1:-2] + [orig_dims[-2] * orig_dims[-1]]
 
-        forecast_module_layer_object = keras.layers.Reshape(
+        forecast_module_layer_object = layers.Reshape(
             target_shape=new_dims, name='fcst_module_remove-time-dim'
         )(forecast_module_layer_object)
 
@@ -466,7 +472,7 @@ def create_model(option_dict):
                     forecast_module_layer_object.shape[1:-2] +
                     [forecast_module_layer_object.shape[-1]]
                 )
-                forecast_module_layer_object = keras.layers.Reshape(
+                forecast_module_layer_object = layers.Reshape(
                     target_shape=new_dims, name='fcst_module_remove-time-dim'
                 )(forecast_module_layer_object)
             else:
@@ -511,7 +517,7 @@ def create_model(option_dict):
         forecast_module_layer_object
     )
     if include_scalar_data:
-        layer_object = keras.layers.Concatenate(axis=-1)([
+        layer_object = layers.Concatenate(axis=-1)([
             layer_object, input_layer_object_scalar
         ])
 
@@ -547,7 +553,7 @@ def create_model(option_dict):
     )
 
     num_target_vars = int(numpy.round(num_target_vars))
-    layer_object = keras.layers.Reshape(
+    layer_object = layers.Reshape(
         target_shape=(num_target_vars, ensemble_size)
     )(layer_object)
 

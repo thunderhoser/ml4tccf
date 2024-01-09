@@ -278,7 +278,9 @@ def plot_spread_vs_skill(
     axes_object.plot(
         mean_prediction_stdevs[real_indices],
         rmse_values[real_indices],
-        color=line_colour, linestyle=line_style, linewidth=line_width
+        color=line_colour, linestyle=line_style, linewidth=line_width,
+        marker='o', markersize=12, markeredgewidth=0,
+        markerfacecolor=line_colour, markeredgecolor=line_colour
     )
 
     unit_string = TARGET_NAME_TO_UNITS[target_var_name]
@@ -325,28 +327,29 @@ def plot_spread_vs_skill(
     )
     axes_object.set_ylim(0, max_value_to_plot)
 
-    inset_axes_object = _plot_means_as_inset(
-        figure_object=figure_object, bin_centers=mean_prediction_stdevs,
-        bin_mean_predictions=mean_mean_predictions,
-        bin_mean_target_values=mean_target_values,
-        plotting_corner_string='bottom_right',
-        for_spread_skill_plot=True
-    )
-    inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
+    if target_var_name != OFFSET_DISTANCE_NAME:
+        inset_axes_object = _plot_means_as_inset(
+            figure_object=figure_object, bin_centers=mean_prediction_stdevs,
+            bin_mean_predictions=mean_mean_predictions,
+            bin_mean_target_values=mean_target_values,
+            plotting_corner_string='bottom_right',
+            for_spread_skill_plot=True
+        )
+        inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
 
-    inset_axes_object.set_xticks(axes_object.get_xticks())
-    inset_axes_object.set_xlim(axes_object.get_xlim())
-    inset_axes_object.set_xlabel(
-        'Spread ({0:s})'.format(unit_string),
-        fontsize=INSET_FONT_SIZE
-    )
-    inset_axes_object.set_ylabel(
-        'Avg target or pred ({0:s})'.format(unit_string),
-        fontsize=INSET_FONT_SIZE
-    )
-    inset_axes_object.set_title(
-        'Avgs by model spread', fontsize=INSET_FONT_SIZE
-    )
+        inset_axes_object.set_xticks(axes_object.get_xticks())
+        inset_axes_object.set_xlim(axes_object.get_xlim())
+        inset_axes_object.set_xlabel(
+            'Spread ({0:s})'.format(unit_string),
+            fontsize=INSET_FONT_SIZE
+        )
+        inset_axes_object.set_ylabel(
+            'Mean target or pred ({0:s})'.format(unit_string),
+            fontsize=INSET_FONT_SIZE
+        )
+        inset_axes_object.set_title(
+            'Means by model spread', fontsize=INSET_FONT_SIZE
+        )
 
     title_string = (
         'Spread vs. skill for {0:s}\n'
@@ -425,29 +428,30 @@ def plot_discard_test(
             'Mean absolute error ({0:s})'.format(unit_string)
         )
 
-    inset_axes_object = _plot_means_as_inset(
-        figure_object=figure_object, bin_centers=discard_fractions,
-        bin_mean_predictions=mean_mean_predictions,
-        bin_mean_target_values=mean_target_values,
-        plotting_corner_string='top_right',
-        for_spread_skill_plot=False
-    )
-    inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
+    if target_var_name != OFFSET_DISTANCE_NAME:
+        inset_axes_object = _plot_means_as_inset(
+            figure_object=figure_object, bin_centers=discard_fractions,
+            bin_mean_predictions=mean_mean_predictions,
+            bin_mean_target_values=mean_target_values,
+            plotting_corner_string='top_right',
+            for_spread_skill_plot=False
+        )
+        inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
 
-    inset_axes_object.set_xticks(axes_object.get_xticks())
-    inset_axes_object.set_xlim(axes_object.get_xlim())
-    inset_axes_object.set_xlabel(
-        'Discard fraction',
-        fontsize=INSET_FONT_SIZE
-    )
-    unit_string = TARGET_NAME_TO_UNITS[target_var_name]
-    inset_axes_object.set_ylabel(
-        'Avg target or pred ({0:s})'.format(unit_string),
-        fontsize=INSET_FONT_SIZE
-    )
-    inset_axes_object.set_title(
-        'Avgs by discard fraction', fontsize=INSET_FONT_SIZE
-    )
+        inset_axes_object.set_xticks(axes_object.get_xticks())
+        inset_axes_object.set_xlim(axes_object.get_xlim())
+        inset_axes_object.set_xlabel(
+            'Discard fraction',
+            fontsize=INSET_FONT_SIZE
+        )
+        unit_string = TARGET_NAME_TO_UNITS[target_var_name]
+        inset_axes_object.set_ylabel(
+            'Mean target or pred ({0:s})'.format(unit_string),
+            fontsize=INSET_FONT_SIZE
+        )
+        inset_axes_object.set_title(
+            'Means by discard fraction', fontsize=INSET_FONT_SIZE
+        )
 
     title_string = (
         'Discard test for {0:s}\n'
