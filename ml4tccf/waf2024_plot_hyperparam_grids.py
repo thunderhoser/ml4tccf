@@ -205,7 +205,7 @@ def _plot_scores_2d(
     y_tick_values = numpy.linspace(
         0, score_matrix.shape[0] - 1, num=score_matrix.shape[0], dtype=float
     )
-    pyplot.xticks(x_tick_values, x_tick_labels)
+    pyplot.xticks(x_tick_values, x_tick_labels, rotation=90.)
     pyplot.yticks(y_tick_values, y_tick_labels)
 
     colour_bar_object = gg_plotting_utils.plot_colour_bar(
@@ -497,10 +497,10 @@ def _run(experiment_dir_name, use_isotonic_regression):
     num_metrics = len(METRIC_NAMES)
 
     y_tick_labels = ['{0:d}'.format(l) for l in LAG_TIME_COUNTS_AXIS1]
-    x_tick_labels = ['{0:d}'.format(g) for g in GRID_ROW_COUNTS_AXIS2]
+    x_tick_labels = ['{0:d} x {0:d}'.format(2 * g) for g in GRID_ROW_COUNTS_AXIS2]
 
     y_axis_label = 'Video length (number of lag times)'
-    x_axis_label = 'Domain size (number of pixels)'
+    x_axis_label = 'Domain size (km)'
 
     metric_matrix = numpy.full(
         (length_axis1, length_axis2, length_axis3, num_metrics),
