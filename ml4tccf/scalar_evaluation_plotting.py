@@ -465,12 +465,21 @@ def plot_metric_by_latlng(
     colour_norm_object = pyplot.Normalize(
         vmin=min_colour_value, vmax=max_colour_value
     )
-    axes_object.pcolormesh(
-        grid_edge_longitudes_deg_e, grid_edge_latitudes_deg_n,
-        metric_matrix_to_plot,
-        cmap=colour_map_object, norm=colour_norm_object,
-        shading='flat', edgecolors='None', zorder=-1e11
-    )
+
+    try:
+        axes_object.pcolormesh(
+            grid_edge_longitudes_deg_e, grid_edge_latitudes_deg_n,
+            metric_matrix_to_plot,
+            cmap=colour_map_object, norm=colour_norm_object,
+            shading='flat', edgecolors='None', zorder=-1e11
+        )
+    except:
+        axes_object.pcolormesh(
+            grid_edge_longitudes_deg_e, grid_edge_latitudes_deg_n,
+            metric_matrix_to_plot[:-1, :-1],
+            cmap=colour_map_object, norm=colour_norm_object,
+            shading='flat', edgecolors='None', zorder=-1e11
+        )
 
     if plot_satellite_subpoints:
         if metric_name == scalar_evaluation.BIAS_KEY:
