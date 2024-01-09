@@ -23,4 +23,4 @@ set eval_file_names_string="${model_dir_name}/isotonic_regression/testing_by_xy_
 set output_dir_name="${model_dir_name}/isotonic_regression/testing_by_xy_coords"
 
 set this_directory_name=`pwd`
-singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh plot_evaluation_by_xy_coords.sh ${eval_file_names_string} ${output_dir_name}"
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh plot_evaluation_by_xy_coords.sh '${eval_file_names_string}' ${output_dir_name}"
