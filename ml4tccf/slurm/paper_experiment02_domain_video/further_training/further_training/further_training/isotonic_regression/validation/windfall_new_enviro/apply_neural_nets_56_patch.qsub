@@ -20,10 +20,6 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=apply_neural_nets_56_patch_%A_%a.out
 
-module load cuda/10.1
-source /scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/conda.csh
-conda activate base
-
 set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_domain_video/further_training/further_training/further_training"
 set EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/800x800_grids"
