@@ -42,4 +42,4 @@ end
 set output_file_name="${OUTPUT_DIR_NAME}/isotonic_regression/testing/predictions_${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}.nc"
 
 set this_directory_name=`pwd`
-singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh create_dumb_ensemble.sh ${input_file_names_string} ${output_file_name}"
+singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh create_dumb_ensemble.sh \"${input_file_names_string}\" ${output_file_name}"
