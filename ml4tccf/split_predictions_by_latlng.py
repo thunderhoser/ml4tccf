@@ -227,6 +227,8 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
 
     for i in range(num_grid_rows):
         for j in range(num_grid_columns):
+            print(numpy.sum(numpy.isnan(prediction_latitudes_deg_n)))
+
             these_indices = grids.find_events_in_grid_cell(
                 event_x_coords_metres=prediction_longitudes_deg_e,
                 event_y_coords_metres=prediction_latitudes_deg_n,
