@@ -1,0 +1,35 @@
+#!/bin/tcsh
+
+#SBATCH --job-name="waf2024_find_cases_high_lat_low_error"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=waf2024_find_cases_high_lat_low_error_%A.out
+
+module use /scratch2/BMC/gsd-hpcs/bass/modulefiles
+module load Anaconda3/2019.07
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+set EXTENDED_BEST_TRACK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/extended_best_track_data_including2022.nc"
+set A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/including_western_pacific_a-decks_not-b-decks/processed_a_decks_2016-2022.nc"
+set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_ensemble/tropical_and_nontropical"
+
+python3 -u "${CODE_DIR_NAME}/waf2024_find_case_studies.py" \
+--input_prediction_file_pattern="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/testing_by_storm_type/storm-type=non_tropical/predictions_*.nc" \
+--input_ebtrk_file_name="${EXTENDED_BEST_TRACK_FILE_NAME}" \
+--input_a_deck_file_name="${A_DECK_FILE_NAME}" \
+--latitude_limits_deg_n 40 90 \
+--euclidean_error_limits_km 0 15
