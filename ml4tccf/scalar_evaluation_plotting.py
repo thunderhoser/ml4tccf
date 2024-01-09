@@ -469,8 +469,7 @@ def plot_metric_by_latlng(
         grid_edge_longitudes_deg_e, grid_edge_latitudes_deg_n,
         metric_matrix_to_plot,
         cmap=colour_map_object, norm=colour_norm_object,
-        vmin=min_colour_value, vmax=max_colour_value, shading='flat',
-        edgecolors='None', zorder=-1e11
+        shading='flat', edgecolors='None', zorder=-1e11
     )
 
     if plot_satellite_subpoints:
@@ -672,8 +671,7 @@ def plot_metric_by_2categories(
     )
     axes_object.imshow(
         metric_matrix_to_plot, origin='lower',
-        cmap=colour_map_object, norm=colour_norm_object,
-        vmin=min_colour_value, vmax=max_colour_value
+        cmap=colour_map_object, norm=colour_norm_object
     )
 
     x_coords = numpy.linspace(
