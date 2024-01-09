@@ -41,9 +41,15 @@ def get_ensemble_mean(prediction_table_xarray):
     """
 
     t = prediction_table_xarray
-    t = t.assign_coords({
-        DUMMY_ENSEMBLE_MEMBER_DIM_KEY: numpy.array([0], dtype=int)
-    })
+
+    try:
+        t = t.assign_coords({
+            DUMMY_ENSEMBLE_MEMBER_DIM_KEY: numpy.array([0], dtype=int)
+        })
+    except:
+        t = t.assign_coords(
+            DUMMY_ENSEMBLE_MEMBER_DIM_KEY=numpy.array([0], dtype=int)
+        )
 
     these_dim_keys = (EXAMPLE_DIM_KEY, DUMMY_ENSEMBLE_MEMBER_DIM_KEY)
 
