@@ -182,8 +182,8 @@ def _plot_x_error_histogram(
             this_percentile
         )
         axes_object.plot(
-            x=numpy.array([x_coord, x_coord]),
-            y=axes_object.get_ylim(),
+            numpy.array([x_coord, x_coord]),
+            axes_object.get_ylim(),
             color=PERCENTILE_LINE_COLOUR, linewidth=PERCENTILE_LINE_WIDTH,
             linestyle=PERCENTILE_LINE_STYLE
         )
@@ -283,8 +283,8 @@ def _plot_y_error_histogram(
             this_percentile
         )
         axes_object.plot(
-            x=numpy.array([x_coord, x_coord]),
-            y=axes_object.get_ylim(),
+            numpy.array([x_coord, x_coord]),
+            axes_object.get_ylim(),
             color=PERCENTILE_LINE_COLOUR, linewidth=PERCENTILE_LINE_WIDTH,
             linestyle=PERCENTILE_LINE_STYLE
         )
@@ -392,8 +392,8 @@ def _plot_euclidean_error_histogram(
     for this_percentile in PERCENTILES_TO_MARK:
         x_coord = numpy.percentile(euclidean_errors_km, this_percentile)
         axes_object.plot(
-            x=numpy.array([x_coord, x_coord]),
-            y=axes_object.get_ylim(),
+            numpy.array([x_coord, x_coord]),
+            axes_object.get_ylim(),
             color=PERCENTILE_LINE_COLOUR, linewidth=PERCENTILE_LINE_WIDTH,
             linestyle=PERCENTILE_LINE_STYLE
         )
@@ -505,8 +505,8 @@ def _plot_direction_error_histogram(
     for this_percentile in PERCENTILES_TO_MARK:
         x_coord = numpy.percentile(angular_diffs_deg, this_percentile)
         axes_object.plot(
-            x=numpy.array([x_coord, x_coord]),
-            y=axes_object.get_ylim(),
+            numpy.array([x_coord, x_coord]),
+            axes_object.get_ylim(),
             color=PERCENTILE_LINE_COLOUR, linewidth=PERCENTILE_LINE_WIDTH,
             linestyle=PERCENTILE_LINE_STYLE
         )
