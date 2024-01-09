@@ -30,6 +30,12 @@ MAX_ANGULAR_DIFF_DEG = 180.
 
 SAMPLE_SIZE_FOR_DATA_AUG = int(1e7)
 
+PERCENTILES_TO_MARK = numpy.array([90, 95, 99], dtype=float)
+PERCENTILE_LINE_COLOUR = numpy.full(3, 152. / 255)
+PERCENTILE_LINE_WIDTH = 4
+PERCENTILE_LINE_STYLE = 'dashed'
+PERCENTILE_FONT_SIZE = 30
+
 HISTOGRAM_FACE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
 HISTOGRAM_EDGE_COLOUR = numpy.full(3, 0.)
 HISTOGRAM_EDGE_WIDTH = 1.5
@@ -169,6 +175,27 @@ def _plot_x_error_histogram(
         edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
+    
+    for this_percentile in PERCENTILES_TO_MARK:
+        x_coord = numpy.percentile(
+            predicted_x_offsets_km - actual_x_offsets_km,
+            this_percentile
+        )
+        axes_object.plot(
+            x=numpy.array([x_coord, x_coord]),
+            y=axes_object.get_ylim(),
+            color=PERCENTILE_LINE_COLOUR, linewidth=PERCENTILE_LINE_WIDTH,
+            linestyle=PERCENTILE_LINE_STYLE
+        )
+
+        y_coord = numpy.mean(numpy.array(axes_object.get_ylim()))
+        axes_object.text(
+            x_coord, y_coord,
+            '{0:.0f}th percentile'.format(this_percentile),
+            color=numpy.full(3, 0.), rotation=90.,
+            fontsize=PERCENTILE_FONT_SIZE, fontweight='bold',
+            verticalalignment='center', horizontalalignment='center'
+        )
 
     if plotting_orig_error:
         title_string = r'Histogram of uncorrected errors for $x$-coord'
@@ -249,6 +276,27 @@ def _plot_y_error_histogram(
         edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
+
+    for this_percentile in PERCENTILES_TO_MARK:
+        x_coord = numpy.percentile(
+            predicted_y_offsets_km - actual_y_offsets_km,
+            this_percentile
+        )
+        axes_object.plot(
+            x=numpy.array([x_coord, x_coord]),
+            y=axes_object.get_ylim(),
+            color=PERCENTILE_LINE_COLOUR, linewidth=PERCENTILE_LINE_WIDTH,
+            linestyle=PERCENTILE_LINE_STYLE
+        )
+
+        y_coord = numpy.mean(numpy.array(axes_object.get_ylim()))
+        axes_object.text(
+            x_coord, y_coord,
+            '{0:.0f}th percentile'.format(this_percentile),
+            color=numpy.full(3, 0.), rotation=90.,
+            fontsize=PERCENTILE_FONT_SIZE, fontweight='bold',
+            verticalalignment='center', horizontalalignment='center'
+        )
 
     if plotting_orig_error:
         title_string = r'Histogram of uncorrected errors for $y$-coord'
@@ -340,6 +388,24 @@ def _plot_euclidean_error_histogram(
         edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
+
+    for this_percentile in PERCENTILES_TO_MARK:
+        x_coord = numpy.percentile(euclidean_errors_km, this_percentile)
+        axes_object.plot(
+            x=numpy.array([x_coord, x_coord]),
+            y=axes_object.get_ylim(),
+            color=PERCENTILE_LINE_COLOUR, linewidth=PERCENTILE_LINE_WIDTH,
+            linestyle=PERCENTILE_LINE_STYLE
+        )
+
+        y_coord = numpy.mean(numpy.array(axes_object.get_ylim()))
+        axes_object.text(
+            x_coord, y_coord,
+            '{0:.0f}th percentile'.format(this_percentile),
+            color=numpy.full(3, 0.), rotation=90.,
+            fontsize=PERCENTILE_FONT_SIZE, fontweight='bold',
+            verticalalignment='center', horizontalalignment='center'
+        )
 
     if plotting_orig_error:
         title_string = 'Histogram of uncorrected Euclidean errors'
@@ -435,6 +501,24 @@ def _plot_direction_error_histogram(
         edgecolor=HISTOGRAM_EDGE_COLOUR,
         linewidth=HISTOGRAM_EDGE_WIDTH
     )
+
+    for this_percentile in PERCENTILES_TO_MARK:
+        x_coord = numpy.percentile(angular_diffs_deg, this_percentile)
+        axes_object.plot(
+            x=numpy.array([x_coord, x_coord]),
+            y=axes_object.get_ylim(),
+            color=PERCENTILE_LINE_COLOUR, linewidth=PERCENTILE_LINE_WIDTH,
+            linestyle=PERCENTILE_LINE_STYLE
+        )
+
+        y_coord = numpy.mean(numpy.array(axes_object.get_ylim()))
+        axes_object.text(
+            x_coord, y_coord,
+            '{0:.0f}th percentile'.format(this_percentile),
+            color=numpy.full(3, 0.), rotation=90.,
+            fontsize=PERCENTILE_FONT_SIZE, fontweight='bold',
+            verticalalignment='center', horizontalalignment='center'
+        )
 
     if plotting_orig_error:
         title_string = 'Histogram of uncorrected direction errors'

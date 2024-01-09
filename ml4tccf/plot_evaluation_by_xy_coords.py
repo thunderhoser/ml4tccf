@@ -251,9 +251,9 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
                 metric_name=metric_name,
                 target_field_name=target_field_name,
                 y_category_description_strings=y_description_strings,
-                y_label_string=r'$y$-distance from nadir (km)',
+                y_label_string='Meridional distance from nadir (km)',
                 x_category_description_strings=x_description_strings,
-                x_label_string=r'$x$-distance from nadir (km)',
+                x_label_string='Zonal distance from nadir (km)',
                 colour_map_name=(
                     BIAS_COLOUR_MAP_NAME
                     if metric_name == scalar_evaluation.BIAS_KEY
@@ -303,9 +303,9 @@ def _run(x_coord_cutoffs_metres, y_coord_cutoffs_metres, evaluation_file_names,
             metric_name=metric_name,
             target_field_name=scalar_evaluation.OFFSET_DISTANCE_NAME,
             y_category_description_strings=y_description_strings,
-            y_label_string=r'$y$-distance from nadir (km)',
+            y_label_string='Meridional distance from nadir (km)',
             x_category_description_strings=x_description_strings,
-            x_label_string=r'$x$-distance from nadir (km)',
+            x_label_string='Zonal distance from nadir (km)',
             colour_map_name=(
                 BIAS_COLOUR_MAP_NAME
                 if metric_name == scalar_evaluation.BIAS_KEY

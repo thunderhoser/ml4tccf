@@ -408,13 +408,6 @@ def plot_2d_grid_latlng(
                 get_colour_scheme_for_bdrf()
             )
 
-    if hasattr(colour_norm_object, 'boundaries'):
-        min_colour_value = colour_norm_object.boundaries[0]
-        max_colour_value = colour_norm_object.boundaries[-1]
-    else:
-        min_colour_value = colour_norm_object.vmin
-        max_colour_value = colour_norm_object.vmax
-
     if use_contourf:
         axes_object.contourf(
             longitudes_to_plot_deg_e, latitudes_to_plot_deg_n,
@@ -498,13 +491,6 @@ def plot_2d_grid_no_coords(
             colour_map_object, colour_norm_object = (
                 get_colour_scheme_for_bdrf()
             )
-
-    if hasattr(colour_norm_object, 'boundaries'):
-        min_colour_value = colour_norm_object.boundaries[0]
-        max_colour_value = colour_norm_object.boundaries[-1]
-    else:
-        min_colour_value = colour_norm_object.vmin
-        max_colour_value = colour_norm_object.vmax
 
     axes_object.imshow(
         data_matrix_to_plot, origin='lower',
