@@ -19,10 +19,12 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=waf2024_make_by_latlng_eval_figure_%A.out
 
+module use /scratch2/BMC/gsd-hpcs/bass/modulefiles
+module load Anaconda3/2019.07
+
+set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_ensemble/tropical_only"
 
-set evaluation_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_latlng"
-set output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/waf2024/by_latlng_eval_figure"
-
-set this_directory_name=`pwd`
-singularity exec --nv /scratch1/RDARCH/rda-ghpcs/Jebb.Q.Stewart/ml-ryan.simg /bin/sh -c "cd ${this_directory_name}; sh waf2024_make_by_latlng_eval_figure.sh ${evaluation_dir_name} ${output_dir_name}"
+python3 -u "${CODE_DIR_NAME}/waf2024_make_2category_eval_figure.py" \
+--input_evaluation_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_latlng" \
+--output_figure_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation/waf2024/by_latlng_eval_figure"
