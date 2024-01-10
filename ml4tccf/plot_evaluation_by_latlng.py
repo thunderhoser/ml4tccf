@@ -235,11 +235,12 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             )
 
             axes_object.set_ylim(
-                bottom=split_predictions.MIN_LATITUDE_DEG_N - 1.
+                bottom=
+                split_predictions.MIN_LATITUDE_DEG_N - latitude_spacing_deg / 2
             )
             axes_object.set_ylim(
-                top=split_predictions.MAX_LATITUDE_DEG_N +
-                    latitude_spacing_deg / 2
+                top=
+                split_predictions.MAX_LATITUDE_DEG_N + latitude_spacing_deg / 2
             )
 
             output_file_name = '{0:s}/{1:s}_{2:s}_by-latlng.jpg'.format(
@@ -307,10 +308,12 @@ def _run(evaluation_dir_name, latitude_spacing_deg, longitude_spacing_deg,
             parallel_spacing_deg=10., meridian_spacing_deg=20.
         )
 
-        axes_object.set_ylim(bottom=split_predictions.MIN_LATITUDE_DEG_N - 1.)
         axes_object.set_ylim(
-            top=split_predictions.MAX_LATITUDE_DEG_N +
-                latitude_spacing_deg / 2
+            bottom=
+            split_predictions.MIN_LATITUDE_DEG_N - latitude_spacing_deg / 2
+        )
+        axes_object.set_ylim(
+            top=split_predictions.MAX_LATITUDE_DEG_N + latitude_spacing_deg / 2
         )
 
         output_file_name = '{0:s}/{1:s}_by-latlng.jpg'.format(
