@@ -29,7 +29,7 @@ set NORMALIZATION_FILE_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_proj
 set TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_ensemble/tropical_and_nontropical"
 
 python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" \
---input_prediction_file_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_storm_type/storm-type=tropical/predictions_2021WP19.nc" \
+--input_prediction_file_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/testing_by_storm_type/storm-type=tropical/predictions_2021WP19.nc" \
 --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
 --input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
 --target_time_strings "2021-09-08-00" "2021-09-08-18" "2021-09-09-00" "2021-09-09-06" "2021-09-09-12" "2021-09-10-00" "2021-09-10-12" "2021-09-10-18" "2021-09-11-00" "2021-09-11-00" \
@@ -39,4 +39,4 @@ python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" \
 --prob_colour_map_name="BuGn" \
 --prob_contour_smoothing_radius_px=5 \
 --point_prediction_marker_size=36 \
---output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/validation_by_storm_type/storm-type=tropical/waf2024/case_study_2021WP19/selected_times"
+--output_dir_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/testing_by_storm_type/storm-type=tropical/waf2024/case_study_2021WP19/selected_times"
