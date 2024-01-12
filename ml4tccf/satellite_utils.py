@@ -221,9 +221,9 @@ def quality_control_low_res(
         )
 
         print(log_string)
-        brightness_temp_matrix_kelvins[i, ..., k] = misc_utils.fill_nans(
-            brightness_temp_matrix_kelvins[i, ..., k]
-        )
+        # brightness_temp_matrix_kelvins[i, ..., k] = misc_utils.fill_nans(
+        #     brightness_temp_matrix_kelvins[i, ..., k]
+        # )
 
     satellite_table_xarray = t
     satellite_table_xarray = satellite_table_xarray.assign({
@@ -304,9 +304,9 @@ def quality_control_high_res(
         )
 
         print(log_string)
-        bidirectional_reflectance_matrix[i, ..., k] = misc_utils.fill_nans(
-            bidirectional_reflectance_matrix[i, ..., k]
-        )
+        # bidirectional_reflectance_matrix[i, ..., k] = misc_utils.fill_nans(
+        #     bidirectional_reflectance_matrix[i, ..., k]
+        # )
 
     satellite_table_xarray = t
     satellite_table_xarray = satellite_table_xarray.assign({
