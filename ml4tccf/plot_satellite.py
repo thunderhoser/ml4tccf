@@ -694,6 +694,8 @@ def _run(satellite_dir_name, normalization_file_name, cyclone_id_string,
             stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values > 20.
         )
 
+        print(low_res_wavelengths_microns)
+        print(satellite_table_xarray)
         satellite_table_xarray = satellite_utils.subset_wavelengths(
             satellite_table_xarray=satellite_table_xarray,
             wavelengths_to_keep_microns=low_res_wavelengths_microns,
