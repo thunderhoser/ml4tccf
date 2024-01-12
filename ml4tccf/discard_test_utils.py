@@ -180,7 +180,6 @@ def run_discard_test(prediction_file_names, discard_fractions):
     t = result_table_xarray
 
     for k in range(num_discard_fractions):
-        print(euclidean_uncertainty_values[k])
         this_percentile_level = 100 * (1 - discard_fractions[k])
         this_inverted_mask = (
             euclidean_uncertainty_values >
@@ -188,6 +187,11 @@ def run_discard_test(prediction_file_names, discard_fractions):
                 euclidean_uncertainty_values, this_percentile_level
             )
         )
+
+        print(numpy.percentile(
+            euclidean_uncertainty_values, this_percentile_level
+        ))
+
         use_example_flags[this_inverted_mask] = False
         use_example_indices = numpy.where(use_example_flags)[0]
 
