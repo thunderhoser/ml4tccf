@@ -221,9 +221,9 @@ def quality_control_low_res(
         )
 
         print(log_string)
-        # brightness_temp_matrix_kelvins[i, ..., k] = misc_utils.fill_nans(
-        #     brightness_temp_matrix_kelvins[i, ..., k]
-        # )
+        brightness_temp_matrix_kelvins[i, ..., k] = misc_utils.fill_nans(
+            brightness_temp_matrix_kelvins[i, ..., k]
+        )
 
     satellite_table_xarray = t
     satellite_table_xarray = satellite_table_xarray.assign({
@@ -304,9 +304,9 @@ def quality_control_high_res(
         )
 
         print(log_string)
-        # bidirectional_reflectance_matrix[i, ..., k] = misc_utils.fill_nans(
-        #     bidirectional_reflectance_matrix[i, ..., k]
-        # )
+        bidirectional_reflectance_matrix[i, ..., k] = misc_utils.fill_nans(
+            bidirectional_reflectance_matrix[i, ..., k]
+        )
 
     satellite_table_xarray = t
     satellite_table_xarray = satellite_table_xarray.assign({
@@ -518,16 +518,18 @@ def subset_wavelengths(satellite_table_xarray, wavelengths_to_keep_microns,
 
     if len(good_indices) == 0:
         if for_high_res:
-            satellite_table_xarray = satellite_table_xarray.drop_vars(
-                names=BIDIRECTIONAL_REFLECTANCE_KEY
-            )
+            pass
+            # satellite_table_xarray = satellite_table_xarray.drop_vars(
+            #     names=BIDIRECTIONAL_REFLECTANCE_KEY
+            # )
             # satellite_table_xarray = satellite_table_xarray.drop_dims(
             #     HIGH_RES_WAVELENGTH_DIM
             # )
         else:
-            satellite_table_xarray = satellite_table_xarray.drop_vars(
-                names=BRIGHTNESS_TEMPERATURE_KEY
-            )
+            pass
+            # satellite_table_xarray = satellite_table_xarray.drop_vars(
+            #     names=BRIGHTNESS_TEMPERATURE_KEY
+            # )
             # satellite_table_xarray = satellite_table_xarray.drop_dims(
             #     LOW_RES_WAVELENGTH_DIM
             # )
