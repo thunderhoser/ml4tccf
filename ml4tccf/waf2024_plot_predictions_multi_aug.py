@@ -924,21 +924,15 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
                     dummy_dim_keys, this_dummy_bdrf_matrix
                 )
             }
-            print(wavelength_microns)
-            print(MICRONS_TO_METRES * wavelength_microns)
-
             coord_dict = {
                 satellite_utils.HIGH_RES_WAVELENGTH_DIM: numpy.array([]),
                 satellite_utils.LOW_RES_WAVELENGTH_DIM: numpy.array(
-                    [MICRONS_TO_METRES * wavelength_microns], dtype=int
+                    [MICRONS_TO_METRES * wavelength_microns], dtype=float
                 )
             }
             satellite_table_xarray = xarray.Dataset(
                 data_vars=main_data_dict, coords=coord_dict
             )
-
-            print(satellite_table_xarray)
-            print(norm_param_table_xarray)
 
             satellite_table_xarray = normalization.denormalize_data(
                 satellite_table_xarray=satellite_table_xarray,
