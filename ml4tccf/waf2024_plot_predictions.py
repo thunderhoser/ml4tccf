@@ -493,6 +493,11 @@ def _make_figure_one_example(
         prob_colour_map_object = None
 
     grid_spacing_km = target_values[2]
+
+    print(grid_spacing_km)
+    print(prediction_matrix[0, :])
+    print(target_values[0])
+
     y_error_km = grid_spacing_km * (
         numpy.mean(prediction_matrix[0, :]) - target_values[0]
     )
