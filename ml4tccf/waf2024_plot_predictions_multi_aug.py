@@ -630,7 +630,7 @@ def _make_figure_one_example(
         gg_plotting_utils.label_axes(
             axes_object=axes_object,
             label_string='({0:s})'.format(panel_letter),
-            y_coord_normalized=1.1
+            y_coord_normalized=1.13
         )
 
         axes_object.plot(

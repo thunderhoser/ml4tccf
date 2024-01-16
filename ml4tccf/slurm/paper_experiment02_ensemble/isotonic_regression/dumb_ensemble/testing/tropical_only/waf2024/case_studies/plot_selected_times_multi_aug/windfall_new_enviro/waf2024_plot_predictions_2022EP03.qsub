@@ -32,6 +32,7 @@ python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions_multi_aug.py" \
 --input_prediction_file_name="${TOP_MODEL_DIR_NAME}/dumb_ensemble/isotonic_regression/testing_by_storm_type/storm-type=tropical/predictions_2022EP03.nc" \
 --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
 --input_normalization_file_name="${NORMALIZATION_FILE_NAME}" \
+--target_time_strings "2022-06-20-0000" "2022-06-21-1200" "2022-06-22-0000" "2022-06-25-1200" "2022-06-26-1800" "2022-06-27-0600" "2022-06-28-0000" \
 --wavelength_microns=8.5 \
 --prediction_plotting_format_string="probability_contours" \
 --prob_colour_map_name="BuGn" \
