@@ -924,6 +924,9 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
                     dummy_dim_keys, this_dummy_bdrf_matrix
                 )
             }
+            print(wavelength_microns)
+            print(MICRONS_TO_METRES * wavelength_microns)
+
             coord_dict = {
                 satellite_utils.HIGH_RES_WAVELENGTH_DIM: numpy.array([]),
                 satellite_utils.LOW_RES_WAVELENGTH_DIM: numpy.array(
