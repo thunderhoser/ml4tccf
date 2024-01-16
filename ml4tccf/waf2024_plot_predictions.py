@@ -45,6 +45,7 @@ INPUT_ARG_TIME_FORMAT = '%Y-%m-%d-%H%M'
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 
 MICRONS_TO_METRES = 1e-6
+METRES_TO_MICRONS = 1e6
 
 GOES_WAVELENGTHS_METRES = 1e-6 * numpy.array([
     3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
@@ -1062,16 +1063,20 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
     basin_id_string = misc_utils.parse_cyclone_id(cyclone_id_string)[1]
     if basin_id_string == misc_utils.NORTHWEST_PACIFIC_ID_STRING:
         vod = model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
-        wavelengths_microns = vod[nn_utils.LOW_RES_WAVELENGTHS_KEY]
+        wavelengths_metres = (
+            MICRONS_TO_METRES * vod[nn_utils.LOW_RES_WAVELENGTHS_KEY]
+        )
 
-        wavelengths_microns = numpy.array([
+        wavelengths_metres = numpy.array([
             HIMAWARI_WAVELENGTHS_METRES[
                 numpy.argmin(numpy.absolute(GOES_WAVELENGTHS_METRES - w))
             ]
-            for w in wavelengths_microns
+            for w in wavelengths_metres
         ])
 
-        vod[nn_utils.LOW_RES_WAVELENGTHS_KEY] = wavelengths_microns
+        vod[nn_utils.LOW_RES_WAVELENGTHS_KEY] = (
+            METRES_TO_MICRONS * wavelengths_metres
+        )
         model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY] = vod
 
     for i in range(num_examples):
