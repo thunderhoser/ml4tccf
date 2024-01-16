@@ -626,7 +626,7 @@ def _make_figure_one_example(
         gg_plotting_utils.label_axes(
             axes_object=axes_object,
             label_string='({0:s})'.format(panel_letter),
-            y_coord_normalized=1.1
+            y_coord_normalized=1.13
         )
 
         axes_object.plot(
@@ -923,7 +923,7 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
             coord_dict = {
                 satellite_utils.HIGH_RES_WAVELENGTH_DIM: numpy.array([]),
                 satellite_utils.LOW_RES_WAVELENGTH_DIM: numpy.array(
-                    [MICRONS_TO_METRES * wavelength_microns], dtype=int
+                    [MICRONS_TO_METRES * wavelength_microns], dtype=float
                 )
             }
             satellite_table_xarray = xarray.Dataset(
