@@ -490,11 +490,6 @@ def _make_figure_one_example(
         actual_y_center_transaxes = 0.5 + these_target_values[0] / num_grid_rows
 
         grid_spacing_km = these_target_values[2]
-
-        print(grid_spacing_km)
-        print(this_prediction_matrix[0, :])
-        print(these_target_values[0])
-
         y_error_km = grid_spacing_km * (
             numpy.mean(this_prediction_matrix[0, :]) - these_target_values[0]
         )

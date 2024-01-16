@@ -46,6 +46,13 @@ TIME_FORMAT = '%Y-%m-%d-%H%M'
 
 MICRONS_TO_METRES = 1e-6
 
+GOES_WAVELENGTHS_METRES = 1e-6 * numpy.array([
+    3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
+])
+HIMAWARI_WAVELENGTHS_METRES = 1e-6 * numpy.array([
+    3.9, 6.200, 6.90, 7.30, 8.6, 9.60, 10.40, 11.2, 12.4, 13.3
+])
+
 PREDICTED_CENTER_MARKER = 'o'
 PREDICTED_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
 PREDICTED_CENTER_MARKER_EDGE_WIDTH = 0
@@ -493,11 +500,6 @@ def _make_figure_one_example(
         prob_colour_map_object = None
 
     grid_spacing_km = target_values[2]
-
-    print(grid_spacing_km)
-    print(prediction_matrix[0, :])
-    print(target_values[0])
-
     y_error_km = grid_spacing_km * (
         numpy.mean(prediction_matrix[0, :]) - target_values[0]
     )
@@ -1056,6 +1058,21 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
 
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
     num_examples = brightness_temp_matrix_kelvins.shape[0]
+
+    basin_id_string = misc_utils.parse_cyclone_id(cyclone_id_string)[1]
+    if basin_id_string == misc_utils.NORTHWEST_PACIFIC_ID_STRING:
+        vod = model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
+        wavelengths_microns = vod[nn_utils.LOW_RES_WAVELENGTHS_KEY]
+
+        wavelengths_microns = numpy.array([
+            HIMAWARI_WAVELENGTHS_METRES[
+                numpy.argmin(numpy.absolute(GOES_WAVELENGTHS_METRES - w))
+            ]
+            for w in wavelengths_microns
+        ])
+
+        vod[nn_utils.LOW_RES_WAVELENGTHS_KEY] = wavelengths_microns
+        model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY] = vod
 
     for i in range(num_examples):
         same_time_indices = numpy.where(
