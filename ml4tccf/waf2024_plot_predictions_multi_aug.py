@@ -934,6 +934,9 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
                 data_vars=main_data_dict, coords=coord_dict
             )
 
+            print(satellite_table_xarray)
+            print(norm_param_table_xarray)
+
             satellite_table_xarray = normalization.denormalize_data(
                 satellite_table_xarray=satellite_table_xarray,
                 normalization_param_table_xarray=norm_param_table_xarray
