@@ -147,22 +147,20 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
     target_times_unix_sec = (
         prediction_table_xarray[scalar_prediction_utils.TARGET_TIME_KEY].values
     )
+    num_examples = len(target_times_unix_sec)
+    solar_altitude_angles_deg = numpy.full(num_examples, numpy.nan)
 
-    solar_altitude_angles_deg = [
-        misc_utils.get_solar_altitude_angles(
-            valid_time_unix_sec=t,
-            latitudes_deg_n=numpy.array([y], dtype=float),
-            longitudes_deg_e=numpy.array([x], dtype=float),
+    for i in range(num_examples):
+        if numpy.isnan(latitudes_deg_n[i]) or numpy.isnan(longitudes_deg_e[i]):
+            continue
+
+        solar_altitude_angles_deg[i] = misc_utils.get_solar_altitude_angles(
+            valid_time_unix_sec=target_times_unix_sec[i],
+            latitudes_deg_n=numpy.array([latitudes_deg_n[i]], dtype=float),
+            longitudes_deg_e=numpy.array([longitudes_deg_e[i]], dtype=float),
             temporary_dir_name=temporary_dir_name,
             fortran_exe_name=altitude_angle_exe_name
         )[0]
-        for t, y, x in
-        zip(target_times_unix_sec, latitudes_deg_n, longitudes_deg_e)
-    ]
-
-    solar_altitude_angles_deg = numpy.array(
-        solar_altitude_angles_deg, dtype=int
-    )
 
     day_indices = numpy.where(solar_altitude_angles_deg > 0)[0]
     this_output_dir_name = '{0:s}/day'.format(top_output_prediction_dir_name)
