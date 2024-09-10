@@ -90,6 +90,10 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
     :raises: ValueError: if no prediction files could be found.
     """
 
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=temporary_dir_name
+    )
+
     # Read prediction files.
     input_prediction_file_names = glob.glob(input_prediction_file_pattern)
     if len(input_prediction_file_names) == 0:
