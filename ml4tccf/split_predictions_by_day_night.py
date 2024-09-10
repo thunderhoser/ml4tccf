@@ -147,11 +147,11 @@ def _run(input_prediction_file_pattern, ebtrk_file_name,
     solar_altitude_angles_deg = [
         misc_utils.get_solar_altitude_angles(
             valid_time_unix_sec=t,
-            latitudes_deg_n=y,
-            longitudes_deg_e=x,
+            latitudes_deg_n=numpy.array([y], dtype=float),
+            longitudes_deg_e=numpy.array([x], dtype=float),
             temporary_dir_name=temporary_dir_name,
             fortran_exe_name=altitude_angle_exe_name
-        )
+        )[0]
         for t, y, x in
         zip(target_times_unix_sec, latitudes_deg_n, longitudes_deg_e)
     ]
