@@ -283,8 +283,10 @@ def _run(raw_prediction_file_name, bc_prediction_file_name, num_examples,
     pyplot.close(figure_object)
 
     # Create plot to show how IR affects full ensemble distribution.
-    i = numpy.random.choice(example_indices, size=1, replace=False)[0]
-    i = int(i)
+    # i = numpy.random.choice(example_indices, size=1, replace=False)[0]
+    # i = int(i)
+
+    i = numpy.argmin(numpy.absolute(actual_offsets_km + 70.))
     raw_predicted_offsets_km = raw_predicted_offset_matrix_km[i, :]
     bc_predicted_offsets_km = bc_predicted_offset_matrix_km[i, :]
     actual_offset_km = actual_offsets_km[i]
