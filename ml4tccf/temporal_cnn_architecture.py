@@ -454,7 +454,7 @@ def create_model(option_dict):
 
     if not forecast_module_use_3d_conv:
         orig_dims = forecast_module_layer_object.get_shape()
-        new_dims = orig_dims[1:-2] + [orig_dims[-2] * orig_dims[-1]]
+        new_dims = orig_dims[1:-2] + (orig_dims[-2] * orig_dims[-1],)
 
         forecast_module_layer_object = layers.Reshape(
             target_shape=new_dims, name='fcst_module_remove-time-dim'
@@ -478,7 +478,7 @@ def create_model(option_dict):
 
                 new_dims = (
                     forecast_module_layer_object.shape[1:-2] +
-                    [forecast_module_layer_object.shape[-1]]
+                    (forecast_module_layer_object.shape[-1],)
                 )
                 forecast_module_layer_object = layers.Reshape(
                     target_shape=new_dims, name='fcst_module_remove-time-dim'
