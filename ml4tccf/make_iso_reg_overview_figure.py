@@ -289,6 +289,11 @@ def _run(raw_prediction_file_name, bc_prediction_file_name, num_examples,
     bc_predicted_offsets_km = bc_predicted_offset_matrix_km[i, :]
     actual_offset_km = actual_offsets_km[i]
 
+    print(numpy.std(raw_predicted_offsets_km))
+    print(numpy.std(bc_predicted_offsets_km))
+    print(raw_predicted_offsets_km[:5])
+    print(bc_predicted_offsets_km[:5])
+
     raw_kde_object = gaussian_kde(raw_predicted_offsets_km, bw_method='scott')
     raw_x_values = numpy.linspace(
         numpy.min(raw_predicted_offsets_km) - 2.,
