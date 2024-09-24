@@ -22,6 +22,7 @@ NUM_EXAMPLES_PER_BATCH = 10
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
+A_DECK_FILE_ARG_NAME = 'input_a_deck_file_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 NUM_BNN_ITERATIONS_ARG_NAME = 'num_bnn_iterations'
 MAX_ENSEMBLE_SIZE_ARG_NAME = 'max_ensemble_size'
@@ -36,6 +37,10 @@ MODEL_FILE_HELP_STRING = (
 SATELLITE_DIR_HELP_STRING = (
     'Name of directory with satellite (predictor) data.  Files therein will be '
     'found by `satellite_io.find_file` and read by `satellite_io.read_file`.'
+)
+A_DECK_FILE_HELP_STRING = (
+    'Name of file with ATCF (A-deck) scalars.  This file will be read by '
+    '`a_deck_io.read_file`.'
 )
 CYCLONE_ID_HELP_STRING = (
     'Will apply neural net to data from this cyclone.  Cyclone ID must be in '
@@ -83,6 +88,10 @@ INPUT_ARG_PARSER.add_argument(
     help=SATELLITE_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + A_DECK_FILE_ARG_NAME, type=str, required=True,
+    help=A_DECK_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
     help=CYCLONE_ID_HELP_STRING
 )
@@ -112,15 +121,17 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(model_file_name, satellite_dir_name, cyclone_id_string,
-         num_bnn_iterations, max_ensemble_size, data_aug_num_translations,
-         random_seed, remove_tropical_systems, output_dir_name):
+def _run(model_file_name, satellite_dir_name, a_deck_file_name,
+         cyclone_id_string, num_bnn_iterations, max_ensemble_size,
+         data_aug_num_translations, random_seed, remove_tropical_systems,
+         output_dir_name):
     """Applies trained neural net -- inference time!
 
     This is effectively the main method.
 
     :param model_file_name: See documentation at top of file.
     :param satellite_dir_name: Same.
+    :param a_deck_file_name: Same.
     :param cyclone_id_string: Same.
     :param num_bnn_iterations: Same.
     :param max_ensemble_size: Same.
@@ -156,6 +167,7 @@ def _run(model_file_name, satellite_dir_name, cyclone_id_string,
     validation_option_dict[nn_utils.SATELLITE_DIRECTORY_KEY] = (
         satellite_dir_name
     )
+    validation_option_dict[nn_utils.A_DECK_FILE_KEY] = a_deck_file_name
     validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
         data_aug_num_translations
     )
@@ -282,6 +294,7 @@ if __name__ == '__main__':
     _run(
         model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, SATELLITE_DIR_ARG_NAME),
+        a_deck_file_name=getattr(INPUT_ARG_OBJECT, A_DECK_FILE_ARG_NAME),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
         num_bnn_iterations=getattr(
             INPUT_ARG_OBJECT, NUM_BNN_ITERATIONS_ARG_NAME
