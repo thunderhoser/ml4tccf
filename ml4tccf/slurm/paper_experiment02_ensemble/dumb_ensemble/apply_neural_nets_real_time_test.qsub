@@ -1,0 +1,38 @@
+#!/bin/bash
+
+#SBATCH --job-name="apply_neural_nets_real_time_test"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=02:00:00
+#SBATCH --array=0-3
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_real_time_test_%A_%a.out
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_ensemble/tropical_and_nontropical"
+TESTING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/800x800_grids"
+
+WAVELENGTH_GROUP_STRINGS_MICRONS=("8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200")
+wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$SLURM_ARRAY_TASK_ID]}
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}"
+echo $model_dir_name
+
+python3 -u "${CODE_DIR_NAME}/apply_neural_net_real_time.py" \
+--input_model_file_name="${model_dir_name}/model.h5" \
+--input_satellite_dir_name="${TESTING_DIR_NAME}" \
+--input_a_deck_file="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/including_western_pacific_a-decks_not-b-decks/processed_a_decks_2016-2022_norm_params_for_paper.nc" \
+--cyclone_id_string="2022EP01" \
+--output_dir_name="${model_dir_name}/testing/real_time_test"
