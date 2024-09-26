@@ -1702,6 +1702,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         directory_name=satellite_dir_name, cyclone_id_string=cyclone_id_string,
         raise_error_if_all_missing=True
     )
+    satellite_file_names = [satellite_file_names[0]]
 
     (
         all_target_times_unix_sec, all_scalar_predictor_matrix
