@@ -124,7 +124,7 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
         ),
         actual_values_training=numpy.absolute(
             adt[a_deck_io.EXTRAP_LATITUDE_KEY].values[
-                training_row_indices
+                training_row_indices[real_subindices]
             ]
         )
     )
@@ -158,7 +158,7 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
     norm_central_pressures = normalization._normalize_one_variable(
         actual_values_new=adt[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values,
         actual_values_training=adt[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values[
-            training_row_indices
+            training_row_indices[real_subindices]
         ]
     )
 
@@ -190,7 +190,7 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
     norm_eastward_motions_m_s01 = normalization._normalize_one_variable(
         actual_values_new=orig_eastward_motions_m_s01,
         actual_values_training=orig_eastward_motions_m_s01[
-            training_row_indices
+            training_row_indices[real_subindices]
         ]
     )
 
@@ -201,7 +201,7 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
     norm_northward_motions_m_s01 = normalization._normalize_one_variable(
         actual_values_new=orig_northward_motions_m_s01,
         actual_values_training=
-        orig_northward_motions_m_s01[training_row_indices]
+        orig_northward_motions_m_s01[training_row_indices[real_subindices]]
     )
 
     num_storm_objects = len(norm_northward_motions_m_s01)
@@ -216,19 +216,19 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
     these_dim = (a_deck_io.STORM_OBJECT_DIM,)
     main_data_dict = {
         a_deck_io.CYCLONE_ID_KEY: (
-            these_dim, adt[a_deck_io.CYCLONE_ID_KEY].values[training_row_indices]
+            these_dim, adt[a_deck_io.CYCLONE_ID_KEY].values
         ),
         a_deck_io.VALID_TIME_KEY: (
-            these_dim, adt[a_deck_io.VALID_TIME_KEY].values[training_row_indices]
+            these_dim, adt[a_deck_io.VALID_TIME_KEY].values
         ),
         a_deck_io.STORM_TYPE_KEY: (
-            these_dim, adt[a_deck_io.STORM_TYPE_KEY].values[training_row_indices]
+            these_dim, adt[a_deck_io.STORM_TYPE_KEY].values
         ),
         a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY: (
-            these_dim, adt[a_deck_io.EXTRAP_LATITUDE_KEY].values[training_row_indices]
+            these_dim, adt[a_deck_io.EXTRAP_LATITUDE_KEY].values
         ),
         a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY: (
-            these_dim, adt[a_deck_io.EXTRAP_LONGITUDE_KEY].values[training_row_indices]
+            these_dim, adt[a_deck_io.EXTRAP_LONGITUDE_KEY].values
         ),
         a_deck_io.ABSOLUTE_LATITUDE_KEY: (
             these_dim, norm_absolute_latitudes
@@ -246,7 +246,7 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
             these_dim, norm_intensities
         ),
         a_deck_io.UNNORM_INTENSITY_KEY: (
-            these_dim, adt[a_deck_io.INTENSITY_KEY].values[training_row_indices]
+            these_dim, adt[a_deck_io.INTENSITY_KEY].values
         ),
         a_deck_io.SEA_LEVEL_PRESSURE_KEY: (
             these_dim, norm_central_pressures
