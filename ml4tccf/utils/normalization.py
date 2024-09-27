@@ -112,27 +112,29 @@ def _normalize_one_variable(actual_values_new, actual_values_training):
         `actual_values_new`) with normalized values (z-scores).
     """
 
-    uniform_values_new = _actual_to_uniform_dist(
-        actual_values_new=actual_values_new,
-        actual_values_training=actual_values_training
-    )
+    return actual_values_training
 
-    uniform_values_new_1d = numpy.ravel(uniform_values_new)
-    real_indices = numpy.where(
-        numpy.invert(numpy.isnan(uniform_values_new_1d))
-    )[0]
-
-    uniform_values_new_1d[real_indices] = numpy.maximum(
-        uniform_values_new_1d[real_indices], MIN_CUMULATIVE_DENSITY
-    )
-    uniform_values_new_1d[real_indices] = numpy.minimum(
-        uniform_values_new_1d[real_indices], MAX_CUMULATIVE_DENSITY
-    )
-    uniform_values_new_1d[real_indices] = scipy.stats.norm.ppf(
-        uniform_values_new_1d[real_indices], loc=0., scale=1.
-    )
-
-    return numpy.reshape(uniform_values_new_1d, uniform_values_new.shape)
+    # uniform_values_new = _actual_to_uniform_dist(
+    #     actual_values_new=actual_values_new,
+    #     actual_values_training=actual_values_training
+    # )
+    #
+    # uniform_values_new_1d = numpy.ravel(uniform_values_new)
+    # real_indices = numpy.where(
+    #     numpy.invert(numpy.isnan(uniform_values_new_1d))
+    # )[0]
+    #
+    # uniform_values_new_1d[real_indices] = numpy.maximum(
+    #     uniform_values_new_1d[real_indices], MIN_CUMULATIVE_DENSITY
+    # )
+    # uniform_values_new_1d[real_indices] = numpy.minimum(
+    #     uniform_values_new_1d[real_indices], MAX_CUMULATIVE_DENSITY
+    # )
+    # uniform_values_new_1d[real_indices] = scipy.stats.norm.ppf(
+    #     uniform_values_new_1d[real_indices], loc=0., scale=1.
+    # )
+    #
+    # return numpy.reshape(uniform_values_new_1d, uniform_values_new.shape)
 
 
 def _denorm_one_variable(normalized_values_new, actual_values_training):
