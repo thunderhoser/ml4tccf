@@ -484,7 +484,6 @@ def _make_figure_one_example(
     actual_x_center_transaxes = 0.5 + target_values[1] / num_grid_columns
     actual_y_center_transaxes = 0.5 + target_values[0] / num_grid_rows
 
-    # TODO(thunderhoser): Is this correct?
     center_row_index = 0.5 * float(num_grid_rows + 1)
     center_column_index = 0.5 * float(num_grid_columns + 1)
 
@@ -908,7 +907,7 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
         validation_option_dict
     )
 
-    # TODO(thunderhoser): This works as long as I have one TC per pred'n file.
+    # TODO(thunderhoser): This works as long as I have one TC per prediction file.
     target_times_unix_sec = ptx[prediction_utils.TARGET_TIME_KEY].values
     cyclone_id_string = ptx[prediction_utils.CYCLONE_ID_KEY].values[0]
 
