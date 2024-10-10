@@ -3,7 +3,7 @@
 conda activate base
 
 CODE_DIR_NAME="/home/lagerquist/ml4tccf/ml4tccf/scripts"
-INPUT_DIR_NAME="/mnt/shceph/users2/tccdb/nrt_geocenter/g16/0.0.7"
+INPUT_DIR_NAME="/mnt/shceph/users2/tccdb/nrt_geocenter/g16/0.0.7/2024"
 OUTPUT_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/processed"
 
 CYCLONE_ID_STRING="2024AL09"
