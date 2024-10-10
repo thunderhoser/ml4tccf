@@ -5,6 +5,7 @@ import glob
 import gzip
 import shutil
 import tempfile
+import subprocess
 import numpy
 import xarray
 import pyproj
@@ -116,7 +117,10 @@ def find_file(
     valid_date_string = valid_time_string[:10]
 
     try:
-        host_name = os.system('hostname')
+        command_result = subprocess.run(
+            'hostname', stdout=subprocess.PIPE, text=True
+        )
+        host_name = command_result.stdout.strip()
     except:
         host_name = 'hera'
 
@@ -185,7 +189,10 @@ def find_files_one_tc(
     orig_cyclone_id_string = _cyclone_id_new_to_orig(cyclone_id_string)
 
     try:
-        host_name = os.system('hostname')
+        command_result = subprocess.run(
+            'hostname', stdout=subprocess.PIPE, text=True
+        )
+        host_name = command_result.stdout.strip()
     except:
         host_name = 'hera'
 
