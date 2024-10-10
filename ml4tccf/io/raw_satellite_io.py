@@ -115,6 +115,16 @@ def find_file(
     )
     valid_date_string = valid_time_string[:10]
 
+    try:
+        host_name = os.system('hostname')
+    except:
+        host_name = 'hera'
+
+    if 'sh7.' in host_name:
+        resolution_string = 'vis_0500m' if look_for_high_res else 'ir_2000m'
+    else:
+        resolution_string = '0500m' if look_for_high_res else '2000m'
+
     satellite_file_name = (
         '{0:s}/{1:s}/{2:s}/{3:s}/{4:s}_{3:s}_{1:s}.nc{5:s}'
     ).format(
@@ -122,7 +132,7 @@ def find_file(
         orig_cyclone_id_string,
         valid_date_string,
         valid_time_string,
-        '0500m' if look_for_high_res else '2000m',
+        resolution_string,
         GZIP_FILE_EXTENSION if prefer_zipped_format else ''
     )
 
@@ -174,6 +184,16 @@ def find_files_one_tc(
     error_checking.assert_is_boolean(test_mode)
     orig_cyclone_id_string = _cyclone_id_new_to_orig(cyclone_id_string)
 
+    try:
+        host_name = os.system('hostname')
+    except:
+        host_name = 'hera'
+
+    if 'sh7.' in host_name:
+        resolution_string = 'vis_0500m' if look_for_high_res else 'ir_2000m'
+    else:
+        resolution_string = '0500m' if look_for_high_res else '2000m'
+
     satellite_file_pattern = (
         '{0:s}/{1:s}/{2:s}/{3:s}/{4:s}_{3:s}_{1:s}.nc{5:s}'
     ).format(
@@ -181,10 +201,9 @@ def find_files_one_tc(
         orig_cyclone_id_string,
         DATE_REGEX,
         TIME_REGEX,
-        '0500m' if look_for_high_res else '2000m',
+        resolution_string,
         GZIP_FILE_EXTENSION if prefer_zipped_format else ''
     )
-    print(satellite_file_pattern)
 
     if test_mode:
         satellite_file_names = [satellite_file_pattern]
