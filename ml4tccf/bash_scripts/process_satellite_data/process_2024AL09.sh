@@ -2,7 +2,7 @@
 
 conda activate base
 
-CODE_DIR_NAME="/home/lagerquist/ml4tccf/ml4tccf"
+CODE_DIR_NAME="/home/lagerquist/ml4tccf/ml4tccf/scripts"
 INPUT_DIR_NAME="/mnt/shceph/users2/tccdb/nrt_geocenter/g16/0.0.7"
 OUTPUT_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/processed"
 
