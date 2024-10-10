@@ -184,6 +184,7 @@ def find_files_one_tc(
         '0500m' if look_for_high_res else '2000m',
         GZIP_FILE_EXTENSION if prefer_zipped_format else ''
     )
+    print(satellite_file_pattern)
 
     if test_mode:
         satellite_file_names = [satellite_file_pattern]
