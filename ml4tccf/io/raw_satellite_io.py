@@ -268,6 +268,9 @@ def file_name_to_time(satellite_file_name):
     extensionless_file_name = pathless_file_name.split('.')[0]
     valid_time_string = extensionless_file_name.split('_')[1]
 
+    if valid_time_string in ['0500m', '2000m']:
+        valid_time_string = extensionless_file_name.split('_')[2]
+
     return time_conversion.string_to_unix_sec(valid_time_string, TIME_FORMAT)
 
 
