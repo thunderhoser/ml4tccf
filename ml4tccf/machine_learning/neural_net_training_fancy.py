@@ -706,6 +706,8 @@ def get_target_times_and_scalar_predictors(
             xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
             for f in satellite_file_names_by_cyclone[i]
         ])
+        print('FOO1')
+        print([time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in target_times_by_cyclone_unix_sec[i]])
 
         if predictor_lag_times_sec is not None:
             this_num_times = len(target_times_by_cyclone_unix_sec[i])
