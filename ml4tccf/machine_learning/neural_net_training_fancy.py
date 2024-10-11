@@ -747,6 +747,7 @@ def get_target_times_and_scalar_predictors(
 
         import sys
         numpy.set_printoptions(threshold=sys.maxsize)
+        print('scalar_predictor_matrix_by_cyclone[i]')
         print(scalar_predictor_matrix_by_cyclone[i])
 
         good_indices = numpy.where(numpy.all(
