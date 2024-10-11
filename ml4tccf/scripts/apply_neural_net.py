@@ -319,7 +319,7 @@ if __name__ == '__main__':
             getattr(INPUT_ARG_OBJECT, SYNOPTIC_TIMES_ONLY_ARG_NAME)
         ),
         disable_gpus=bool(
-            getattr(INPUT_ARG_OBJECT, SYNOPTIC_TIMES_ONLY_ARG_NAME)
+            getattr(INPUT_ARG_OBJECT, DISABLE_GPUS_ARG_NAME)
         ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
