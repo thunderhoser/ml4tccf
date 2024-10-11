@@ -14,14 +14,26 @@ LOG_FILE_NAME="apply_neural_nets_${CYCLONE_ID_STRING}.out"
 
 for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
     for valid_date_string in "${VALID_DATE_STRINGS[@]}"; do
-        python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" &> ${LOG_FILE_NAME} \
-        --input_model_file_name="${model_dir_name}/model.h5" \
-        --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
-        --input_a_deck_file="${A_DECK_FILE_NAME}" \
-        --cyclone_id_string="${CYCLONE_ID_STRING}" \
-        --valid_date_string="${valid_date_string}" \
-        --data_aug_num_translations=8 \
-        --random_seed=6695 \
-        --output_file_name="${model_dir_name}/predictions/predictions_${CYCLONE_ID_STRING}_${valid_date_string}.nc"
+        if [[ "$model_dir_name" == "${MODEL_DIR_NAMES[0]}" && "$valid_date_string" == "${VALID_DATE_STRINGS[0]}" ]]; then
+            python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" &> ${LOG_FILE_NAME} \
+            --input_model_file_name="${model_dir_name}/model.h5" \
+            --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
+            --input_a_deck_file="${A_DECK_FILE_NAME}" \
+            --cyclone_id_string="${CYCLONE_ID_STRING}" \
+            --valid_date_string="${valid_date_string}" \
+            --data_aug_num_translations=8 \
+            --random_seed=6695 \
+            --output_file_name="${model_dir_name}/predictions/predictions_${CYCLONE_ID_STRING}_${valid_date_string}.nc"
+        else
+            python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" &>> ${LOG_FILE_NAME} \
+            --input_model_file_name="${model_dir_name}/model.h5" \
+            --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
+            --input_a_deck_file="${A_DECK_FILE_NAME}" \
+            --cyclone_id_string="${CYCLONE_ID_STRING}" \
+            --valid_date_string="${valid_date_string}" \
+            --data_aug_num_translations=8 \
+            --random_seed=6695 \
+            --output_file_name="${model_dir_name}/predictions/predictions_${CYCLONE_ID_STRING}_${valid_date_string}.nc"
+        fi
     done
 done

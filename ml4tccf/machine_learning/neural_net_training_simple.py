@@ -1727,7 +1727,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
 
-    all_target_time_strings = [time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in all_target_times_unix_sec]
+    all_target_time_strings = [time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in all_target_times_unix_sec[0]]
     for t in all_target_time_strings:
         print(t)
 
