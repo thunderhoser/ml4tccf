@@ -29,6 +29,7 @@ NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 RANDOM_SEED_ARG_NAME = 'random_seed'
 REMOVE_TROPICAL_SYSTEMS_ARG_NAME = 'remove_tropical_systems'
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
+DISABLE_GPUS_ARG_NAME = 'disable_gpus'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
@@ -73,6 +74,12 @@ REMOVE_TROPICAL_SYSTEMS_HELP_STRING = (
 SYNOPTIC_TIMES_ONLY_HELP_STRING = (
     'Boolean flag.  If 1, only synoptic times can be target times.  If 0, any '
     '10-min time step can be a target time.'
+)
+DISABLE_GPUS_HELP_STRING = (
+    'Boolean flag.  If 1, will disable GPUs and use only CPUs.  This argument '
+    'is HIGHLY RECOMMENDED in any environment, besides Hera (or some machine '
+    'where every job runs on a different node), where this script could be '
+    'running multiple times at once.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Results will be written by '
@@ -126,6 +133,10 @@ INPUT_ARG_PARSER.add_argument(
     default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + DISABLE_GPUS_ARG_NAME, type=int, required=False,
+    default=0, help=DISABLE_GPUS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=False, default='',
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -138,7 +149,7 @@ INPUT_ARG_PARSER.add_argument(
 def _run(model_file_name, satellite_dir_name, a_deck_file_name,
          cyclone_id_string, valid_date_string, data_aug_num_translations,
          random_seed, remove_tropical_systems, synoptic_times_only,
-         output_dir_name, output_file_name):
+         disable_gpus, output_dir_name, output_file_name):
     """Applies trained neural net -- inference time!
 
     This is effectively the main method.
@@ -152,9 +163,13 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param random_seed: Same.
     :param remove_tropical_systems: Same.
     :param synoptic_times_only: Same.
+    :param disable_gpus: Same.
     :param output_dir_name: Same.
     :param output_file_name: Same.
     """
+
+    if disable_gpus:
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     if random_seed != -1:
         numpy.random.seed(random_seed)
@@ -301,6 +316,9 @@ if __name__ == '__main__':
             getattr(INPUT_ARG_OBJECT, REMOVE_TROPICAL_SYSTEMS_ARG_NAME)
         ),
         synoptic_times_only=bool(
+            getattr(INPUT_ARG_OBJECT, SYNOPTIC_TIMES_ONLY_ARG_NAME)
+        ),
+        disable_gpus=bool(
             getattr(INPUT_ARG_OBJECT, SYNOPTIC_TIMES_ONLY_ARG_NAME)
         ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),

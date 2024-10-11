@@ -23,6 +23,7 @@ for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
         --data_aug_num_translations=8 \
         --random_seed=6695 \
         --synoptic_times_only=0 \
+        --disable_gpus=1 \
         --output_file_name="${model_dir_name}/predictions/predictions_${CYCLONE_ID_STRING}_${VALID_DATE_STRING}.nc"
     else
         python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" &>> ${LOG_FILE_NAME} \
@@ -34,6 +35,7 @@ for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
         --data_aug_num_translations=8 \
         --random_seed=6695 \
         --synoptic_times_only=0 \
+        --disable_gpus=1 \
         --output_file_name="${model_dir_name}/predictions/predictions_${CYCLONE_ID_STRING}_${VALID_DATE_STRING}.nc"
     fi
 done

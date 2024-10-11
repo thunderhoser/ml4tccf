@@ -7,6 +7,7 @@ import keras
 import xarray
 from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import grids
+from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
@@ -25,6 +26,7 @@ TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
 METRES_TO_KM = 0.001
 MINUTES_TO_SECONDS = 60
+DAYS_TO_SECONDS = 86400
 
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
 
@@ -1702,18 +1704,6 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         raise_error_if_all_missing=True
     )
 
-    if valid_date_string is not None:
-        all_valid_date_strings = [
-            satellite_io.file_name_to_date(f) for f in satellite_file_names
-        ]
-        all_valid_date_strings = [
-            v[:4] + v[5:7] + v[8:] for v in all_valid_date_strings
-        ]
-        i = all_valid_date_strings.index(valid_date_string)
-        satellite_file_names = [satellite_file_names[i]]
-
-    print(satellite_file_names)
-
     (
         all_target_times_unix_sec, all_scalar_predictor_matrix
     ) = nn_training_fancy.get_target_times_and_scalar_predictors(
@@ -1727,12 +1717,33 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
     )
 
+    all_target_times_unix_sec = all_target_times_unix_sec[0]
+    all_scalar_predictor_matrix = all_scalar_predictor_matrix[0]
+
+    if valid_date_string is not None:
+        all_target_dates_unix_sec = number_rounding.floor_to_nearest(
+            all_target_times_unix_sec, DAYS_TO_SECONDS
+        )
+        all_target_dates_unix_sec = numpy.round(
+            all_target_dates_unix_sec
+        ).astype(int)
+
+        valid_date_unix_sec = time_conversion.string_to_unix_sec(
+            valid_date_string, DATE_FORMAT
+        )
+        good_indices = numpy.where(
+            all_target_dates_unix_sec == valid_date_unix_sec
+        )[0]
+
+        all_target_times_unix_sec = all_target_times_unix_sec[good_indices]
+        all_scalar_predictor_matrix = (
+            all_scalar_predictor_matrix[good_indices, :]
+        )
+
     all_target_time_strings = [time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in all_target_times_unix_sec[0]]
     for t in all_target_time_strings:
         print(t)
 
-    all_target_times_unix_sec = all_target_times_unix_sec[0]
-    all_scalar_predictor_matrix = all_scalar_predictor_matrix[0]
     conservative_num_target_times = max([
         int(numpy.round(num_target_times * 1.25)),
         num_target_times + 2
