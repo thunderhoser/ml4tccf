@@ -470,7 +470,7 @@ def create_model(option_dict):
 
                 new_dims = (
                     forecast_module_layer_object.shape[1:-2] +
-                    [forecast_module_layer_object.shape[-1]]
+                    (forecast_module_layer_object.shape[-1],)
                 )
                 forecast_module_layer_object = layers.Reshape(
                     target_shape=new_dims, name='fcst_module_remove-time-dim'
