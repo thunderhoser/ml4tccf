@@ -1712,6 +1712,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         i = all_valid_date_strings.index(valid_date_string)
         satellite_file_names = [satellite_file_names[i]]
 
+    print(satellite_file_names)
+
     (
         all_target_times_unix_sec, all_scalar_predictor_matrix
     ) = nn_training_fancy.get_target_times_and_scalar_predictors(
