@@ -9,7 +9,7 @@ A_DECK_FILE_NAME="/mnt/shnas10/users/lagerquist/ml4tccf_project/a_decks/processe
 MODEL_DIR_NAMES=("/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/wavelengths-microns=3.900-6.185-6.950" "/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/wavelengths-microns=3.900-7.340-13.300" "/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/wavelengths-microns=6.950-10.350-11.200" "/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/wavelengths-microns=8.500-9.610-12.300")
 
 CYCLONE_ID_STRING="2024AL12"
-VALID_DATE_STRING="20240929"
+VALID_DATE_STRING="20241004"
 LOG_FILE_NAME="apply_neural_nets_${CYCLONE_ID_STRING}_${VALID_DATE_STRING}.out"
 
 for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
