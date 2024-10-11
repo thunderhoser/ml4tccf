@@ -719,11 +719,15 @@ def get_target_times_and_scalar_predictors(
                     predictor_lag_times_sec=predictor_lag_times_sec
                 )
             )
+            print('FOO2')
+            print([time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in target_times_by_cyclone_unix_sec[i]])
 
         if synoptic_times_only:
             target_times_by_cyclone_unix_sec[i] = get_synoptic_target_times(
                 all_target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
             )
+            print('FOO3')
+            print([time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in target_times_by_cyclone_unix_sec[i]])
 
     if a_deck_file_name is None:
         scalar_predictor_matrix_by_cyclone = [None] * num_cyclones
@@ -737,7 +741,6 @@ def get_target_times_and_scalar_predictors(
 
     for i in range(num_cyclones):
         this_num_times = len(target_times_by_cyclone_unix_sec[i])
-        print([time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in target_times_by_cyclone_unix_sec[i]])
 
         scalar_predictor_matrix_by_cyclone[i] = nn_utils.read_scalar_data(
             a_deck_file_name=a_deck_file_name,
