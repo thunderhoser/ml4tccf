@@ -492,7 +492,6 @@ def _read_satellite_data_1cyclone(
             wavelengths_to_keep_microns=low_res_wavelengths_microns,
             for_high_res=False
         )
-        satellite_utils.
 
         orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
             satellite_table_xarray=orig_satellite_tables_xarray[i],

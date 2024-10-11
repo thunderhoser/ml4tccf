@@ -685,7 +685,6 @@ def subset_times(satellite_table_xarray, desired_times_unix_sec,
     orig_times_with_dummy_unix_sec = (
         satellite_table_xarray.coords[TIME_DIM].values + 0
     )
-    print(satellite_table_xarray)
     bad_time_flags = _find_times_with_all_nan_maps(satellite_table_xarray)
     orig_times_with_dummy_unix_sec[bad_time_flags] = DUMMY_TIME_UNIX_SEC
 
