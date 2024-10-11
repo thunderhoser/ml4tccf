@@ -1740,7 +1740,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
             all_scalar_predictor_matrix[good_indices, :]
         )
 
-    all_target_time_strings = [time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in all_target_times_unix_sec[0]]
+    all_target_time_strings = [time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in all_target_times_unix_sec]
     for t in all_target_time_strings:
         print(t)
 
