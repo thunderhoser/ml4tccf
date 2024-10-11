@@ -27,6 +27,7 @@ import neural_net_utils as nn_utils
 import neural_net_training_fancy as nn_training_fancy
 import data_augmentation
 
+DATE_FORMAT = '%Y%m%d'
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
 METRES_TO_KM = 0.001
@@ -1628,7 +1629,8 @@ def train_model(
     )
 
 
-def create_data(option_dict, cyclone_id_string, num_target_times):
+def create_data(option_dict, cyclone_id_string, num_target_times,
+                valid_date_string=None):
     """Creates, rather than generates, neural-net inputs.
 
     E = batch size = number of examples after data augmentation
@@ -1641,6 +1643,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     :param cyclone_id_string: Will create data for this cyclone.
     :param num_target_times: Will create data for this number of target times
         for the given cyclone.
+    :param valid_date_string: Valid date (format "yyyymmdd").  If you want to
+        create data for every time step in the cyclone, regardless of date,
+        leave this argument alone.
 
     :return: data_dict: Dictionary with the following keys.
     data_dict["predictor_matrices"]: See doc for `data_generator`.
@@ -1699,10 +1704,20 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
     num_columns_low_res += num_extra_rowcols
 
     satellite_file_names = satellite_io.find_files_one_cyclone(
-        directory_name=satellite_dir_name, cyclone_id_string=cyclone_id_string,
+        directory_name=satellite_dir_name,
+        cyclone_id_string=cyclone_id_string,
         raise_error_if_all_missing=True
     )
-    satellite_file_names = [satellite_file_names[0]]
+
+    if valid_date_string is not None:
+        all_valid_date_strings = [
+            satellite_io.file_name_to_date(f) for f in satellite_file_names
+        ]
+        all_valid_date_strings = [
+            v[:4] + v[5:7] + v[8:] for v in all_valid_date_strings
+        ]
+        i = all_valid_date_strings.index(valid_date_string)
+        satellite_file_names = [satellite_file_names[i]]
 
     (
         all_target_times_unix_sec, all_scalar_predictor_matrix
@@ -1987,6 +2002,9 @@ def create_data_specific_trans(
     #     numpy.absolute(column_translations_low_res_px),
     #     0
     # )
+
+    if valid_date_string is not None:
+        _ = time_conversion.string_to_unix_sec(valid_date_string, DATE_FORMAT)
 
     option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
     option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
