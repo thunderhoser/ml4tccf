@@ -6,6 +6,7 @@ import glob
 import gzip
 import shutil
 import tempfile
+import subprocess
 import numpy
 import xarray
 import pyproj
@@ -122,6 +123,19 @@ def find_file(
     )
     valid_date_string = valid_time_string[:10]
 
+    try:
+        command_result = subprocess.run(
+            'hostname', stdout=subprocess.PIPE, text=True
+        )
+        host_name = command_result.stdout.strip()
+    except:
+        host_name = 'hera'
+
+    if 'sh7.' in host_name:
+        resolution_string = 'vis_0500m' if look_for_high_res else 'ir_2000m'
+    else:
+        resolution_string = '0500m' if look_for_high_res else '2000m'
+
     satellite_file_name = (
         '{0:s}/{1:s}/{2:s}/{3:s}/{4:s}_{3:s}_{1:s}.nc{5:s}'
     ).format(
@@ -129,7 +143,7 @@ def find_file(
         orig_cyclone_id_string,
         valid_date_string,
         valid_time_string,
-        '0500m' if look_for_high_res else '2000m',
+        resolution_string,
         GZIP_FILE_EXTENSION if prefer_zipped_format else ''
     )
 
@@ -181,6 +195,19 @@ def find_files_one_tc(
     error_checking.assert_is_boolean(test_mode)
     orig_cyclone_id_string = _cyclone_id_new_to_orig(cyclone_id_string)
 
+    try:
+        command_result = subprocess.run(
+            'hostname', stdout=subprocess.PIPE, text=True
+        )
+        host_name = command_result.stdout.strip()
+    except:
+        host_name = 'hera'
+
+    if 'sh7.' in host_name:
+        resolution_string = 'vis_0500m' if look_for_high_res else 'ir_2000m'
+    else:
+        resolution_string = '0500m' if look_for_high_res else '2000m'
+
     satellite_file_pattern = (
         '{0:s}/{1:s}/{2:s}/{3:s}/{4:s}_{3:s}_{1:s}.nc{5:s}'
     ).format(
@@ -188,7 +215,7 @@ def find_files_one_tc(
         orig_cyclone_id_string,
         DATE_REGEX,
         TIME_REGEX,
-        '0500m' if look_for_high_res else '2000m',
+        resolution_string,
         GZIP_FILE_EXTENSION if prefer_zipped_format else ''
     )
 
@@ -247,6 +274,9 @@ def file_name_to_time(satellite_file_name):
     pathless_file_name = os.path.split(satellite_file_name)[1]
     extensionless_file_name = pathless_file_name.split('.')[0]
     valid_time_string = extensionless_file_name.split('_')[1]
+
+    if valid_time_string in ['0500m', '2000m']:
+        valid_time_string = extensionless_file_name.split('_')[2]
 
     return time_conversion.string_to_unix_sec(valid_time_string, TIME_FORMAT)
 
