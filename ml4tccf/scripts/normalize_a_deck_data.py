@@ -20,27 +20,32 @@ FIELD_NAMES_TO_NORMALIZE = [
     a_deck_io.MOTION_SPEED_KEY, a_deck_io.MOTION_HEADING_KEY
 ]
 
-INPUT_FILE_ARG_NAME = 'input_a_deck_file_name'
-TRAINING_YEARS_ARG_NAME = 'training_years'
-TRAINING_CYCLONES_ARG_NAME = 'training_cyclone_id_strings'
-OUTPUT_FILE_ARG_NAME = 'output_a_deck_file_name'
+INPUT_FILE_ARG_NAME = 'input_new_a_deck_file_name'
+REFERENCE_FILE_ARG_NAME = 'input_reference_a_deck_file_name'
+REFERENCE_YEARS_ARG_NAME = 'reference_years'
+REFERENCE_CYCLONES_ARG_NAME = 'reference_cyclone_id_strings'
+OUTPUT_FILE_ARG_NAME = 'output_new_a_deck_file_name'
 
 INPUT_FILE_HELP_STRING = (
-    'Path to input file, containing unnormalized data.  Will be read by '
+    'Path to file with A-decks to be normalized.  Will be read by '
     '`a_deck_io.read_file`.'
 )
-TRAINING_YEARS_HELP_STRING = (
-    'List of training years.  Normalization parameters will be computed only '
-    'from these years.  If you would rather specify cyclone IDs, leave this '
+REFERENCE_FILE_HELP_STRING = (
+    'Path to file with reference A-decks (in physical units, i.e., not '
+    'normalized).  Normalization params will be taken from these reference '
+    'samples.'
+)
+REFERENCE_YEARS_HELP_STRING = (
+    'List of reference years, used to compute normalization params.  If you '
+    'would rather specify cyclone IDs, leave this argument alone.'
+)
+REFERENCE_CYCLONES_HELP_STRING = (
+    'List of reference cyclones (format "yyyyBBnn"), used to compute '
+    'normalization params.  If you would rather specify years, leave this '
     'argument alone.'
 )
-TRAINING_CYCLONES_HELP_STRING = (
-    'List of training cyclones (IDs in format "yyyyBBnn").  Normalization '
-    'parameters will be computed only from these cyclones.  If you would '
-    'rather specify years, leave this argument alone.'
-)
 OUTPUT_FILE_HELP_STRING = (
-    'Path to output file.  Normalized data will be written here by '
+    'Path to file for normalized A-decks, which will be written here by '
     '`a_deck_io.write_file`.'
 )
 
@@ -50,12 +55,16 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + TRAINING_YEARS_ARG_NAME, type=int, nargs='+', required=False,
-    default=[-1], help=TRAINING_YEARS_HELP_STRING
+    '--' + REFERENCE_FILE_ARG_NAME, type=str, required=True,
+    help=REFERENCE_FILE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + TRAINING_CYCLONES_ARG_NAME, type=str, nargs='+', required=False,
-    default=[''], help=TRAINING_CYCLONES_HELP_STRING
+    '--' + REFERENCE_YEARS_ARG_NAME, type=int, nargs='+', required=False,
+    default=[-1], help=REFERENCE_YEARS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + REFERENCE_CYCLONES_ARG_NAME, type=str, nargs='+', required=False,
+    default=[''], help=REFERENCE_CYCLONES_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
@@ -63,145 +72,179 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _run(input_file_name, training_years, training_cyclone_id_strings,
-         output_file_name):
+def _run(input_new_a_deck_file_name, reference_a_deck_file_name,
+         reference_years, reference_cyclone_id_strings,
+         output_new_a_deck_file_name):
     """Normalizes A-deck data.
 
     This is effectively the main method.
 
-    :param input_file_name: See documentation at top of file.
-    :param training_years: Same.
-    :param training_cyclone_id_strings: Same.
-    :param output_file_name: Same.
+    :param input_new_a_deck_file_name: See documentation at top of this script.
+    :param reference_a_deck_file_name: Same.
+    :param reference_years: Same.
+    :param reference_cyclone_id_strings: Same.
+    :param output_new_a_deck_file_name: Same.
     """
 
-    if len(training_years) == 1 and training_years[0] < 1900:
-        training_years = None
+    # Check input args.
+    if len(reference_years) == 1 and reference_years[0] < 1900:
+        reference_years = None
+
     if (
-            len(training_cyclone_id_strings) == 1 and
-            training_cyclone_id_strings[0] == ''
+            len(reference_cyclone_id_strings) == 1 and
+            reference_cyclone_id_strings[0] == ''
     ):
-        training_cyclone_id_strings = None
+        reference_cyclone_id_strings = None
 
-    assert not (training_years is None and training_cyclone_id_strings is None)
-
-    print('Reading data from: "{0:s}"...'.format(input_file_name))
-    a_deck_table_xarray = a_deck_io.read_file(input_file_name)
-
-    if training_cyclone_id_strings is None:
-        a_deck_years = numpy.array([
-            int(time_conversion.unix_sec_to_string(t, '%Y'))
-            for t in a_deck_table_xarray[a_deck_io.VALID_TIME_KEY].values
-        ], dtype=int)
-
-        training_row_flags = numpy.isin(
-            element=a_deck_years, test_elements=training_years
-        )
-        training_row_indices = numpy.where(training_row_flags)[0]
-    else:
-        training_row_flags = numpy.isin(
-            element=a_deck_table_xarray[a_deck_io.CYCLONE_ID_KEY].values,
-            test_elements=numpy.array(training_cyclone_id_strings)
-        )
-        training_row_indices = numpy.where(training_row_flags)[0]
-
-    adt = a_deck_table_xarray
-
-    norm_absolute_latitudes = normalization._normalize_one_variable(
-        actual_values_new=numpy.absolute(adt[a_deck_io.LATITUDE_KEY].values),
-        actual_values_training=numpy.absolute(
-            adt[a_deck_io.LATITUDE_KEY].values[training_row_indices]
-        )
+    assert not (
+        reference_years is None and reference_cyclone_id_strings is None
     )
 
-    real_subindices = numpy.where(numpy.invert(numpy.isnan(
-        adt[a_deck_io.EXTRAP_LATITUDE_KEY].values[training_row_indices]
+    # Do actual stuff.
+    print('Reading reference A-decks from: "{0:s}"...'.format(
+        reference_a_deck_file_name
+    ))
+    reference_table_xarray = a_deck_io.read_file(reference_a_deck_file_name)
+
+    if reference_cyclone_id_strings is None:
+        all_years = numpy.array([
+            int(time_conversion.unix_sec_to_string(t, '%Y'))
+            for t in reference_table_xarray[a_deck_io.VALID_TIME_KEY].values
+        ], dtype=int)
+
+        good_flags = numpy.isin(
+            element=all_years, test_elements=reference_years
+        )
+    else:
+        good_flags = numpy.isin(
+            element=reference_table_xarray[a_deck_io.CYCLONE_ID_KEY].values,
+            test_elements=numpy.array(reference_cyclone_id_strings)
+        )
+
+    good_indices = numpy.where(good_flags)[0]
+    reference_table_xarray = reference_table_xarray.isel(
+        {a_deck_io.STORM_OBJECT_DIM: good_indices}
+    )
+
+    print((
+        'Reading new A-decks (those to be normalized) from: "{0:s}"...'
+    ).format(
+        input_new_a_deck_file_name
+    ))
+    new_table_xarray = a_deck_io.read_file(input_new_a_deck_file_name)
+
+    ref_table = reference_table_xarray
+    new_table = new_table_xarray
+
+    norm_absolute_latitudes = normalization._normalize_one_variable(
+        actual_values_new=
+        numpy.absolute(new_table[a_deck_io.LATITUDE_KEY].values),
+        actual_values_training=
+        numpy.absolute(ref_table[a_deck_io.LATITUDE_KEY].values)
+    )
+
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_table[a_deck_io.EXTRAP_LATITUDE_KEY].values
     )))[0]
 
     norm_abs_extrap_latitudes = normalization._normalize_one_variable(
         actual_values_new=numpy.absolute(
-            adt[a_deck_io.EXTRAP_LATITUDE_KEY].values
+            new_table[a_deck_io.EXTRAP_LATITUDE_KEY].values + 0.
         ),
         actual_values_training=numpy.absolute(
-            adt[a_deck_io.EXTRAP_LATITUDE_KEY].values[
-                training_row_indices[real_subindices]
-            ]
+            ref_table[a_deck_io.EXTRAP_LATITUDE_KEY].values[real_ref_indices]
         )
     )
 
-    orig_longitude_sines = numpy.sin(
-        DEGREES_TO_RADIANS * adt[a_deck_io.LONGITUDE_KEY].values
-    )
     norm_longitude_sines = normalization._normalize_one_variable(
-        actual_values_new=orig_longitude_sines,
-        actual_values_training=orig_longitude_sines[training_row_indices]
+        actual_values_new=numpy.sin(
+            DEGREES_TO_RADIANS * new_table[a_deck_io.LONGITUDE_KEY].values
+        ),
+        actual_values_training=numpy.sin(
+            DEGREES_TO_RADIANS * ref_table[a_deck_io.LONGITUDE_KEY].values
+        )
     )
 
-    orig_longitude_cosines = numpy.cos(
-        DEGREES_TO_RADIANS * adt[a_deck_io.LONGITUDE_KEY].values
-    )
     norm_longitude_cosines = normalization._normalize_one_variable(
-        actual_values_new=orig_longitude_cosines,
-        actual_values_training=orig_longitude_cosines[training_row_indices]
+        actual_values_new=numpy.cos(
+            DEGREES_TO_RADIANS * new_table[a_deck_io.LONGITUDE_KEY].values
+        ),
+        actual_values_training=numpy.cos(
+            DEGREES_TO_RADIANS * ref_table[a_deck_io.LONGITUDE_KEY].values
+        )
     )
 
     norm_intensities = normalization._normalize_one_variable(
-        actual_values_new=adt[a_deck_io.INTENSITY_KEY].values + 0.,
-        actual_values_training=
-        adt[a_deck_io.INTENSITY_KEY].values[training_row_indices]
+        actual_values_new=new_table[a_deck_io.INTENSITY_KEY].values + 0.,
+        actual_values_training=ref_table[a_deck_io.INTENSITY_KEY].values
     )
 
-    real_subindices = numpy.where(numpy.invert(numpy.isnan(
-        adt[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values[training_row_indices]
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_table[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values
     )))[0]
 
     norm_central_pressures = normalization._normalize_one_variable(
-        actual_values_new=adt[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values,
-        actual_values_training=adt[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values[
-            training_row_indices[real_subindices]
-        ]
+        actual_values_new=new_table[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values,
+        actual_values_training=
+        ref_table[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values[real_ref_indices]
     )
 
-    orig_motion_headings_standard_deg = numpy.full(
-        len(adt[a_deck_io.MOTION_HEADING_KEY].values), numpy.nan
+    ref_motion_headings_standard_deg = numpy.full(
+        len(ref_table[a_deck_io.MOTION_HEADING_KEY].values), numpy.nan
     )
-    real_indices = numpy.where(numpy.invert(numpy.isnan(
-        orig_motion_headings_standard_deg
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_motion_headings_standard_deg
     )))[0]
-    orig_motion_headings_standard_deg[real_indices] = (
+    ref_motion_headings_standard_deg[real_ref_indices] = (
         misc_utils.geodetic_to_standard_angles(
-            adt[a_deck_io.MOTION_HEADING_KEY].values[real_indices]
+            ref_table[a_deck_io.MOTION_HEADING_KEY].values[real_ref_indices]
         )
     )
 
-    orig_eastward_motions_m_s01 = (
-        adt[a_deck_io.MOTION_SPEED_KEY].values *
-        numpy.cos(DEGREES_TO_RADIANS * orig_motion_headings_standard_deg)
+    ref_eastward_motions_m_s01 = (
+        ref_table[a_deck_io.MOTION_SPEED_KEY].values *
+        numpy.cos(DEGREES_TO_RADIANS * ref_motion_headings_standard_deg)
     )
-    orig_northward_motions_m_s01 = (
-        adt[a_deck_io.MOTION_SPEED_KEY].values *
-        numpy.sin(DEGREES_TO_RADIANS * orig_motion_headings_standard_deg)
+    ref_northward_motions_m_s01 = (
+        ref_table[a_deck_io.MOTION_SPEED_KEY].values *
+        numpy.sin(DEGREES_TO_RADIANS * ref_motion_headings_standard_deg)
     )
 
-    real_subindices = numpy.where(numpy.invert(numpy.isnan(
-        orig_eastward_motions_m_s01[training_row_indices]
+    new_motion_headings_standard_deg = numpy.full(
+        len(new_table[a_deck_io.MOTION_HEADING_KEY].values), numpy.nan
+    )
+    real_new_indices = numpy.where(numpy.invert(numpy.isnan(
+        new_motion_headings_standard_deg
     )))[0]
+    new_motion_headings_standard_deg[real_new_indices] = (
+        misc_utils.geodetic_to_standard_angles(
+            new_table[a_deck_io.MOTION_HEADING_KEY].values[real_new_indices]
+        )
+    )
 
+    new_eastward_motions_m_s01 = (
+        new_table[a_deck_io.MOTION_SPEED_KEY].values *
+        numpy.cos(DEGREES_TO_RADIANS * new_motion_headings_standard_deg)
+    )
+    new_northward_motions_m_s01 = (
+        new_table[a_deck_io.MOTION_SPEED_KEY].values *
+        numpy.sin(DEGREES_TO_RADIANS * new_motion_headings_standard_deg)
+    )
+
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_eastward_motions_m_s01
+    )))[0]
     norm_eastward_motions_m_s01 = normalization._normalize_one_variable(
-        actual_values_new=orig_eastward_motions_m_s01,
-        actual_values_training=orig_eastward_motions_m_s01[
-            training_row_indices[real_subindices]
-        ]
+        actual_values_new=new_eastward_motions_m_s01,
+        actual_values_training=ref_eastward_motions_m_s01[real_ref_indices]
     )
 
-    real_subindices = numpy.where(numpy.invert(numpy.isnan(
-        orig_northward_motions_m_s01[training_row_indices]
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_northward_motions_m_s01
     )))[0]
-
     norm_northward_motions_m_s01 = normalization._normalize_one_variable(
-        actual_values_new=orig_northward_motions_m_s01,
-        actual_values_training=
-        orig_northward_motions_m_s01[training_row_indices[real_subindices]]
+        actual_values_new=new_northward_motions_m_s01,
+        actual_values_training=ref_northward_motions_m_s01[real_ref_indices]
     )
 
     num_storm_objects = len(norm_northward_motions_m_s01)
@@ -212,23 +255,22 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
         a_deck_io.STORM_OBJECT_DIM: storm_object_indices
     }
 
-    # Process actual data.
     these_dim = (a_deck_io.STORM_OBJECT_DIM,)
     main_data_dict = {
         a_deck_io.CYCLONE_ID_KEY: (
-            these_dim, adt[a_deck_io.CYCLONE_ID_KEY].values
+            these_dim, new_table[a_deck_io.CYCLONE_ID_KEY].values
         ),
         a_deck_io.VALID_TIME_KEY: (
-            these_dim, adt[a_deck_io.VALID_TIME_KEY].values
+            these_dim, new_table[a_deck_io.VALID_TIME_KEY].values
         ),
         a_deck_io.STORM_TYPE_KEY: (
-            these_dim, adt[a_deck_io.STORM_TYPE_KEY].values
+            these_dim, new_table[a_deck_io.STORM_TYPE_KEY].values
         ),
         a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY: (
-            these_dim, adt[a_deck_io.EXTRAP_LATITUDE_KEY].values
+            these_dim, new_table[a_deck_io.EXTRAP_LATITUDE_KEY].values
         ),
         a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY: (
-            these_dim, adt[a_deck_io.EXTRAP_LONGITUDE_KEY].values
+            these_dim, new_table[a_deck_io.EXTRAP_LONGITUDE_KEY].values
         ),
         a_deck_io.ABSOLUTE_LATITUDE_KEY: (
             these_dim, norm_absolute_latitudes
@@ -246,7 +288,7 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
             these_dim, norm_intensities
         ),
         a_deck_io.UNNORM_INTENSITY_KEY: (
-            these_dim, adt[a_deck_io.INTENSITY_KEY].values
+            these_dim, new_table[a_deck_io.INTENSITY_KEY].values
         ),
         a_deck_io.SEA_LEVEL_PRESSURE_KEY: (
             these_dim, norm_central_pressures
@@ -261,23 +303,25 @@ def _run(input_file_name, training_years, training_cyclone_id_strings,
 
     attribute_dict = {
         a_deck_io.TRAINING_YEARS_FOR_NORM_KEY:
-            [] if training_years is None else training_years,
+            [] if reference_years is None else reference_years,
         a_deck_io.TRAINING_CYCLONES_FOR_NORM_KEY:
-            '' if training_cyclone_id_strings is None
-            else ' '.join([c for c in training_cyclone_id_strings])
+            '' if reference_cyclone_id_strings is None
+            else ' '.join(reference_cyclone_id_strings)
     }
 
-    a_deck_table_xarray = xarray.Dataset(
+    new_normalized_table_xarray = xarray.Dataset(
         data_vars=main_data_dict, coords=metadata_dict, attrs=attribute_dict
     )
-    a_deck_table_xarray = a_deck_io.storm_types_to_1hot_encoding(
-        a_deck_table_xarray
+    new_normalized_table_xarray = a_deck_io.storm_types_to_1hot_encoding(
+        new_normalized_table_xarray
     )
 
-    print('Writing normalized data to: "{0:s}"...'.format(output_file_name))
+    print('Writing normalized A-decks to: "{0:s}"...'.format(
+        new_normalized_table_xarray
+    ))
     a_deck_io.write_file(
-        netcdf_file_name=output_file_name,
-        a_deck_table_xarray=a_deck_table_xarray
+        netcdf_file_name=output_new_a_deck_file_name,
+        a_deck_table_xarray=new_normalized_table_xarray
     )
 
 
@@ -285,12 +329,19 @@ if __name__ == '__main__':
     INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
 
     _run(
-        input_file_name=getattr(INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME),
-        training_years=numpy.array(
-            getattr(INPUT_ARG_OBJECT, TRAINING_YEARS_ARG_NAME), dtype=int
+        input_new_a_deck_file_name=getattr(
+            INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME
         ),
-        training_cyclone_id_strings=getattr(
-            INPUT_ARG_OBJECT, TRAINING_CYCLONES_ARG_NAME
+        reference_a_deck_file_name=getattr(
+            INPUT_ARG_OBJECT, REFERENCE_FILE_ARG_NAME
         ),
-        output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
+        reference_years=numpy.array(
+            getattr(INPUT_ARG_OBJECT, REFERENCE_YEARS_ARG_NAME), dtype=int
+        ),
+        reference_cyclone_id_strings=getattr(
+            INPUT_ARG_OBJECT, REFERENCE_CYCLONES_ARG_NAME
+        ),
+        output_new_a_deck_file_name=getattr(
+            INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME
+        )
     )
