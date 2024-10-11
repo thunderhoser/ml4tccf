@@ -317,7 +317,7 @@ def _run(input_new_a_deck_file_name, reference_a_deck_file_name,
     )
 
     print('Writing normalized A-decks to: "{0:s}"...'.format(
-        new_normalized_table_xarray
+        output_new_a_deck_file_name
     ))
     a_deck_io.write_file(
         netcdf_file_name=output_new_a_deck_file_name,
