@@ -24,12 +24,13 @@ MODEL_FILE_ARG_NAME = 'input_model_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
 A_DECK_FILE_ARG_NAME = 'input_a_deck_file_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
-NUM_BNN_ITERATIONS_ARG_NAME = 'num_bnn_iterations'
-MAX_ENSEMBLE_SIZE_ARG_NAME = 'max_ensemble_size'
+VALID_DATE_ARG_NAME = 'valid_date_string'
 NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 RANDOM_SEED_ARG_NAME = 'random_seed'
 REMOVE_TROPICAL_SYSTEMS_ARG_NAME = 'remove_tropical_systems'
+SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
+OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 MODEL_FILE_HELP_STRING = (
     'Path to trained model (will be read by `nn_utils.read_model`).'
@@ -46,21 +47,18 @@ CYCLONE_ID_HELP_STRING = (
     'Will apply neural net to data from this cyclone.  Cyclone ID must be in '
     'format "yyyyBBnn".'
 )
-NUM_BNN_ITERATIONS_HELP_STRING = (
-    '[used only if the model is a Bayesian neural net (BNN)] Number of times '
-    'to run the BNN.'
+VALID_DATE_HELP_STRING = (
+    'Valid date (format "yyyymmdd").  Will apply neural net to all valid times '
+    'on this date.  If you want to apply the NN to all valid times for the '
+    'cyclone, leave this argument alone.'
 )
-MAX_ENSEMBLE_SIZE_HELP_STRING = (
-    'Max ensemble size.  If final ensemble size ends up being larger, it will '
-    'be randomly subset to equal {0:s}.'
-).format(MAX_ENSEMBLE_SIZE_ARG_NAME)
-
 NUM_TRANSLATIONS_HELP_STRING = (
     'Number of translations for each cyclone snapshot (one snapshot = one '
     'cyclone at one target time).  Total number of data samples will be '
     'num_snapshots * {0:s}.'
-).format(NUM_TRANSLATIONS_ARG_NAME)
-
+).format(
+    NUM_TRANSLATIONS_ARG_NAME
+)
 RANDOM_SEED_HELP_STRING = (
     'Random seed.  This will determine, among other things, the exact '
     'translations used in data augmentation.  For example, suppose you want to '
@@ -72,10 +70,22 @@ REMOVE_TROPICAL_SYSTEMS_HELP_STRING = (
     'Boolean flag.  If 1, the NN will be applied only to non-tropical systems, '
     'regardless of how it was trained.'
 )
+SYNOPTIC_TIMES_ONLY_HELP_STRING = (
+    'Boolean flag.  If 1, only synoptic times can be target times.  If 0, any '
+    '10-min time step can be a target time.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Results will be written by '
     '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`, '
-    'to a location in this directory determined by `prediction_io.find_file`.'
+    'to a location in this directory determined by `prediction_io.find_file`.  '
+    'If you would rather specify the file path directly, leave this argument '
+    'alone.'
+)
+OUTPUT_FILE_HELP_STRING = (
+    'Path to output file.  Results will be written here by '
+    '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`.  '
+    'If you would rather just specify the output directory and not the total '
+    'path, leave this argument alone.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -96,12 +106,8 @@ INPUT_ARG_PARSER.add_argument(
     help=CYCLONE_ID_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_BNN_ITERATIONS_ARG_NAME, type=int, required=False, default=1,
-    help=NUM_BNN_ITERATIONS_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + MAX_ENSEMBLE_SIZE_ARG_NAME, type=int, required=False,
-    default=LARGE_INTEGER, help=MAX_ENSEMBLE_SIZE_HELP_STRING
+    '--' + VALID_DATE_ARG_NAME, type=str, required=False, default='',
+    help=VALID_DATE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_TRANSLATIONS_ARG_NAME, type=int, required=True,
@@ -116,15 +122,23 @@ INPUT_ARG_PARSER.add_argument(
     default=0, help=REMOVE_TROPICAL_SYSTEMS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + SYNOPTIC_TIMES_ONLY_ARG_NAME, type=int, required=False,
+    default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
+    help=OUTPUT_FILE_HELP_STRING
 )
 
 
 def _run(model_file_name, satellite_dir_name, a_deck_file_name,
-         cyclone_id_string, num_bnn_iterations, max_ensemble_size,
-         data_aug_num_translations, random_seed, remove_tropical_systems,
-         output_dir_name):
+         cyclone_id_string, valid_date_string, data_aug_num_translations,
+         random_seed, remove_tropical_systems, synoptic_times_only,
+         output_dir_name, output_file_name):
     """Applies trained neural net -- inference time!
 
     This is effectively the main method.
@@ -133,16 +147,31 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param satellite_dir_name: Same.
     :param a_deck_file_name: Same.
     :param cyclone_id_string: Same.
-    :param num_bnn_iterations: Same.
-    :param max_ensemble_size: Same.
+    :param valid_date_string: Same.
     :param data_aug_num_translations: Same.
     :param random_seed: Same.
     :param remove_tropical_systems: Same.
+    :param synoptic_times_only: Same.
     :param output_dir_name: Same.
+    :param output_file_name: Same.
     """
 
     if random_seed != -1:
         numpy.random.seed(random_seed)
+    if valid_date_string == '':
+        valid_date_string = None
+
+    if output_dir_name == '':
+        output_dir_name = None
+    else:
+        output_file_name = None
+
+    if output_file_name == '':
+        output_file_name = None
+    else:
+        output_dir_name = None
+
+    assert not (output_dir_name is None and output_file_name is None)
 
     error_checking.assert_is_geq(data_aug_num_translations, 1)
 
@@ -155,11 +184,6 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
 
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = nn_utils.read_metafile(model_metafile_name)
-
-    if not model_metadata_dict[nn_utils.IS_MODEL_BNN_KEY]:
-        num_bnn_iterations = 1
-
-    error_checking.assert_is_geq(num_bnn_iterations, 1)
 
     validation_option_dict = (
         model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
@@ -176,17 +200,15 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         validation_option_dict[nn_utils.REMOVE_TROPICAL_KEY] = True
         validation_option_dict[nn_utils.REMOVE_NONTROPICAL_KEY] = False
 
-    # TODO(thunderhoser): I might want to make this an input arg to the script.
-    validation_option_dict[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = True
-
-    # TODO(thunderhoser): With many target times and many translations, I might
-    # get out-of-memory errors.  In this case, I will write a new version of
-    # this script, which calls `create_data` once without data augmentation and
-    # then augments each example many times.
+    validation_option_dict[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = (
+        synoptic_times_only
+    )
 
     data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
 
     if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
+        assert valid_date_string is None
+
         data_dict = nn_training_cira_ir.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
@@ -196,9 +218,12 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         data_dict = nn_training_simple.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
+            valid_date_string=valid_date_string,
             num_target_times=LARGE_INTEGER
         )
     else:
+        assert valid_date_string is None
+
         data_dict = nn_training_fancy.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
@@ -217,49 +242,26 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     if len(target_matrix.shape) == 4:
         target_matrix = target_matrix[..., 0]
 
-    prediction_matrix = None
-    inner_ensemble_size = -1
     print(SEPARATOR_STRING)
 
-    for k in range(num_bnn_iterations):
-        this_prediction_matrix = nn_utils.apply_model(
-            model_object=model_object, predictor_matrices=predictor_matrices,
-            num_examples_per_batch=NUM_EXAMPLES_PER_BATCH, verbose=True
-        )
+    prediction_matrix = nn_utils.apply_model(
+        model_object=model_object, predictor_matrices=predictor_matrices,
+        num_examples_per_batch=NUM_EXAMPLES_PER_BATCH, verbose=True
+    )
 
-        if prediction_matrix is None:
-            inner_ensemble_size = this_prediction_matrix.shape[-1]
-            total_ensemble_size = inner_ensemble_size * num_bnn_iterations
-            dimensions = (
-                this_prediction_matrix.shape[:-1] + (total_ensemble_size,)
-            )
-            prediction_matrix = numpy.full(dimensions, numpy.nan)
-
-        first_index = k * inner_ensemble_size
-        last_index = first_index + inner_ensemble_size
-        prediction_matrix[..., first_index:last_index] = this_prediction_matrix
-
-        print(SEPARATOR_STRING)
-
+    print(SEPARATOR_STRING)
     del predictor_matrices
 
-    total_ensemble_size = prediction_matrix.shape[-1]
-    if total_ensemble_size > max_ensemble_size:
-        ensemble_indices = numpy.linspace(
-            0, total_ensemble_size - 1, num=total_ensemble_size, dtype=int
-        )
-        ensemble_indices = numpy.random.choice(
-            ensemble_indices, size=max_ensemble_size, replace=False
-        )
-        prediction_matrix = prediction_matrix[..., ensemble_indices]
-
-    if validation_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY]:
+    if output_file_name is None:
         output_file_name = prediction_io.find_file(
-            directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
+            directory_name=output_dir_name,
+            cyclone_id_string=cyclone_id_string,
             raise_error_if_missing=False
         )
 
-        print('Writing results to: "{0:s}"...'.format(output_file_name))
+    print('Writing results to: "{0:s}"...'.format(output_file_name))
+
+    if validation_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY]:
         gridded_prediction_io.write_file(
             netcdf_file_name=output_file_name,
             target_matrix=target_matrix,
@@ -271,12 +273,6 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
             model_file_name=model_file_name
         )
     else:
-        output_file_name = prediction_io.find_file(
-            directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
-            raise_error_if_missing=False
-        )
-
-        print('Writing results to: "{0:s}"...'.format(output_file_name))
         scalar_prediction_io.write_file(
             netcdf_file_name=output_file_name,
             target_matrix=target_matrix,
@@ -296,10 +292,7 @@ if __name__ == '__main__':
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, SATELLITE_DIR_ARG_NAME),
         a_deck_file_name=getattr(INPUT_ARG_OBJECT, A_DECK_FILE_ARG_NAME),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
-        num_bnn_iterations=getattr(
-            INPUT_ARG_OBJECT, NUM_BNN_ITERATIONS_ARG_NAME
-        ),
-        max_ensemble_size=getattr(INPUT_ARG_OBJECT, MAX_ENSEMBLE_SIZE_ARG_NAME),
+        valid_date_string=getattr(INPUT_ARG_OBJECT, VALID_DATE_ARG_NAME),
         data_aug_num_translations=getattr(
             INPUT_ARG_OBJECT, NUM_TRANSLATIONS_ARG_NAME
         ),
@@ -307,5 +300,9 @@ if __name__ == '__main__':
         remove_tropical_systems=bool(
             getattr(INPUT_ARG_OBJECT, REMOVE_TROPICAL_SYSTEMS_ARG_NAME)
         ),
-        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
+        synoptic_times_only=bool(
+            getattr(INPUT_ARG_OBJECT, SYNOPTIC_TIMES_ONLY_ARG_NAME)
+        ),
+        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),
+        output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
