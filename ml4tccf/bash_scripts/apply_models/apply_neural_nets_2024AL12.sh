@@ -21,6 +21,7 @@ for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
         --cyclone_id_string="${CYCLONE_ID_STRING}" \
         --valid_date_string="${valid_date_string}" \
         --data_aug_num_translations=8 \
+        --random_seed=6695 \
         --output_file_name="${model_dir_name}/predictions/predictions_${CYCLONE_ID_STRING}_${valid_date_string}.nc"
     done
 done

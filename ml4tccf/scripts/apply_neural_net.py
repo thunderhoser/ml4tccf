@@ -126,11 +126,11 @@ INPUT_ARG_PARSER.add_argument(
     default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
+    '--' + OUTPUT_DIR_ARG_NAME, type=str, required=False, default='',
     help=OUTPUT_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
+    '--' + OUTPUT_FILE_ARG_NAME, type=str, required=False, default='',
     help=OUTPUT_FILE_HELP_STRING
 )
 
