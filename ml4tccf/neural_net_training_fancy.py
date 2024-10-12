@@ -714,6 +714,8 @@ def get_target_times_and_scalar_predictors(
             xarray.open_zarr(f).coords[satellite_utils.TIME_DIM].values
             for f in satellite_file_names_by_cyclone[i]
         ])
+        print('FOO1')
+        print([time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in target_times_by_cyclone_unix_sec[i]])
 
         if predictor_lag_times_sec is not None:
             this_num_times = len(target_times_by_cyclone_unix_sec[i])
@@ -725,11 +727,15 @@ def get_target_times_and_scalar_predictors(
                     predictor_lag_times_sec=predictor_lag_times_sec
                 )
             )
+            print('FOO2')
+            print([time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in target_times_by_cyclone_unix_sec[i]])
 
         if synoptic_times_only:
             target_times_by_cyclone_unix_sec[i] = get_synoptic_target_times(
                 all_target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
             )
+            print('FOO3')
+            print([time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in target_times_by_cyclone_unix_sec[i]])
 
     if a_deck_file_name is None:
         scalar_predictor_matrix_by_cyclone = [None] * num_cyclones
@@ -752,6 +758,11 @@ def get_target_times_and_scalar_predictors(
             cyclone_id_strings=[cyclone_id_strings[i]] * this_num_times,
             target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
         )
+
+        import sys
+        numpy.set_printoptions(threshold=sys.maxsize)
+        print('scalar_predictor_matrix_by_cyclone[i]')
+        print(scalar_predictor_matrix_by_cyclone[i])
 
         good_indices = numpy.where(numpy.all(
             numpy.isfinite(scalar_predictor_matrix_by_cyclone[i]), axis=1

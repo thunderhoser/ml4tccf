@@ -201,7 +201,7 @@ def _run(input_new_a_deck_file_name, reference_a_deck_file_name,
         len(ref_table[a_deck_io.MOTION_HEADING_KEY].values), numpy.nan
     )
     real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
-        ref_motion_headings_standard_deg
+        ref_table[a_deck_io.MOTION_HEADING_KEY].values
     )))[0]
     ref_motion_headings_standard_deg[real_ref_indices] = (
         misc_utils.geodetic_to_standard_angles(
@@ -222,7 +222,7 @@ def _run(input_new_a_deck_file_name, reference_a_deck_file_name,
         len(new_table[a_deck_io.MOTION_HEADING_KEY].values), numpy.nan
     )
     real_new_indices = numpy.where(numpy.invert(numpy.isnan(
-        new_motion_headings_standard_deg
+        new_table[a_deck_io.MOTION_HEADING_KEY].values
     )))[0]
     new_motion_headings_standard_deg[real_new_indices] = (
         misc_utils.geodetic_to_standard_angles(

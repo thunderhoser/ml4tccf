@@ -518,18 +518,16 @@ def subset_wavelengths(satellite_table_xarray, wavelengths_to_keep_microns,
 
     if len(good_indices) == 0:
         if for_high_res:
-            pass
-            # satellite_table_xarray = satellite_table_xarray.drop_vars(
-            #     names=BIDIRECTIONAL_REFLECTANCE_KEY
-            # )
+            satellite_table_xarray = satellite_table_xarray.drop_vars(
+                names=BIDIRECTIONAL_REFLECTANCE_KEY
+            )
             # satellite_table_xarray = satellite_table_xarray.drop_dims(
             #     HIGH_RES_WAVELENGTH_DIM
             # )
         else:
-            pass
-            # satellite_table_xarray = satellite_table_xarray.drop_vars(
-            #     names=BRIGHTNESS_TEMPERATURE_KEY
-            # )
+            satellite_table_xarray = satellite_table_xarray.drop_vars(
+                names=BRIGHTNESS_TEMPERATURE_KEY
+            )
             # satellite_table_xarray = satellite_table_xarray.drop_dims(
             #     LOW_RES_WAVELENGTH_DIM
             # )
