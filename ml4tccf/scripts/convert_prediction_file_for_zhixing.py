@@ -109,6 +109,10 @@ def _convert_predictions_one_sample(
     )
 
     ptx = prediction_table_xarray
+    print(ptx[prediction_utils.CYCLONE_ID_KEY].values)
+    print(ptx[prediction_utils.TARGET_TIME_KEY].values)
+
+
     sample_idxs = numpy.where(numpy.logical_and(
         ptx[prediction_utils.CYCLONE_ID_KEY].values == cyclone_id_string,
         ptx[prediction_utils.TARGET_TIME_KEY].values == target_time_unix_sec
