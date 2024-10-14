@@ -19,7 +19,7 @@ for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
     for valid_date_string in "${VALID_DATE_STRINGS[@]}"; do
         log_file_name="apply_isotonic_regression_${CYCLONE_ID_STRING}_${MODEL_DESCRIPTION_STRINGS[$i]}_${valid_date_string}.out"
     
-        python3 -u "${CODE_DIR_NAME}/apply_scalar_iso_regression.py" &> ${log_file_name} \
+        python3 -u "${CODE_DIR_NAME}/create_multimodel_ensemble.py" &> ${log_file_name} \
         --input_model_file_name="${model_dir_name}/isotonic_regression/isotonic_regression.dill" \
         --input_prediction_file_name="${model_dir_name}/predictions/predictions_${CYCLONE_ID_STRING}_${valid_date_string}.nc" \
         --output_prediction_file_name="${model_dir_name}/predictions/isotonic_regression/${CYCLONE_ID_STRING}_${valid_date_string}.nc"
