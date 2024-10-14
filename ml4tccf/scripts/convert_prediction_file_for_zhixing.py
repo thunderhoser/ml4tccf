@@ -192,7 +192,7 @@ def _run(input_prediction_file_name, satellite_dir_name,
     ]))
     unique_id_time_matrix = numpy.unique(cyclone_id_time_matrix, axis=0)
 
-    for i in range(len(unique_id_time_matrix.shape[0])):
+    for i in range(unique_id_time_matrix.shape[0]):
         _convert_predictions_one_sample(
             prediction_table_xarray=prediction_table_xarray,
             cyclone_id_string=unique_id_time_matrix[i, 0],
