@@ -199,7 +199,7 @@ def _run(input_prediction_file_name, satellite_dir_name,
     for i in range(unique_id_time_matrix.shape[0]):
         _convert_predictions_one_sample(
             prediction_table_xarray=prediction_table_xarray,
-            cyclone_id_string=unique_id_time_matrix[i, 0].decode('utf-8'),
+            cyclone_id_string=unique_id_time_matrix[i, 0],
             target_time_unix_sec=int(unique_id_time_matrix[i, 1]),
             satellite_dir_name=satellite_dir_name,
             output_prediction_dir_name=output_prediction_dir_name
