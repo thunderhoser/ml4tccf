@@ -91,6 +91,8 @@ def _convert_predictions_one_sample(
 
     num_grid_rows = len(grid_latitudes_deg_n)
     num_grid_columns = len(grid_longitudes_deg_e)
+    center_row_index = 0.5 * float(num_grid_rows + 1)
+    center_column_index = 0.5 * float(num_grid_columns + 1)
 
     all_row_indices = numpy.linspace(
         0, num_grid_rows - 1, num=num_grid_rows, dtype=float
@@ -109,10 +111,6 @@ def _convert_predictions_one_sample(
     )
 
     ptx = prediction_table_xarray
-    print(ptx[prediction_utils.CYCLONE_ID_KEY].values)
-    print(ptx[prediction_utils.TARGET_TIME_KEY].values)
-
-
     sample_idxs = numpy.where(numpy.logical_and(
         ptx[prediction_utils.CYCLONE_ID_KEY].values == cyclone_id_string,
         ptx[prediction_utils.TARGET_TIME_KEY].values == target_time_unix_sec
@@ -133,10 +131,10 @@ def _convert_predictions_one_sample(
     new_ptx = ptx.isel({prediction_utils.EXAMPLE_DIM_KEY: sample_idxs})
     print(new_ptx)
 
-    predicted_row_index = numpy.mean(
+    predicted_row_index = center_row_index + numpy.mean(
         ptx[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[sample_idxs, :]
     )
-    predicted_column_index = numpy.mean(
+    predicted_column_index = center_column_index + numpy.mean(
         ptx[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[sample_idxs, :]
     )
     predicted_latitude_deg_n = latitude_interp_object(predicted_row_index)
