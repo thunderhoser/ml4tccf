@@ -314,7 +314,7 @@ def _plot_predictors_1panel(
     )
 
     axes_object.plot(
-        273.55, 23.39, linestyle='None',
+        272.97, 22.89, linestyle='None',
         marker='d',
         markersize=25,
         markerfacecolor='k',
@@ -323,7 +323,7 @@ def _plot_predictors_1panel(
         zorder=2e12
     )
     axes_object.plot(
-        -86.45, 23.39, linestyle='None',
+        -87.03, 22.89, linestyle='None',
         marker='d',
         markersize=25,
         markerfacecolor='k',
