@@ -2227,8 +2227,8 @@ def create_data_specific_trans(
         data_augmentation.augment_data_specific_trans(
             bidirectional_reflectance_matrix=None,
             brightness_temp_matrix_kelvins=low_res_latitude_matrix_deg_n,
-            row_translations_low_res_px=-row_translations_low_res_px,
-            column_translations_low_res_px=-column_translations_low_res_px,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
             sentinel_value=-10.
         )
     )
@@ -2236,8 +2236,8 @@ def create_data_specific_trans(
         data_augmentation.augment_data_specific_trans(
             bidirectional_reflectance_matrix=None,
             brightness_temp_matrix_kelvins=low_res_longitude_matrix_deg_e,
-            row_translations_low_res_px=-row_translations_low_res_px,
-            column_translations_low_res_px=-column_translations_low_res_px,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
             sentinel_value=-10.
         )
     )
