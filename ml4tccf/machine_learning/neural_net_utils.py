@@ -6,6 +6,7 @@ import pickle
 import numpy
 import keras
 import keras.layers as layers
+from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -658,14 +659,13 @@ def grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
         [
             numpy.stack(
                 [
-                    numpy.meshgrid(
-                        longitude_matrix_deg_e[i, :, j],
-                        latitude_matrix_deg_n[i, :, j]
-                    )[1]
+                    grids.latlng_vectors_to_matrices(
+                        unique_latitudes_deg=latitude_matrix_deg_n[i, :, j],
+                        unique_longitudes_deg=longitude_matrix_deg_e[i, :, j]
+                    )[0]
                     for j in range(num_lag_times)
                 ],
-                axis=-1
-            )
+                axis=-1)
             for i in range(num_target_times)
         ],
         axis=0
@@ -675,10 +675,10 @@ def grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
         [
             numpy.stack(
                 [
-                    numpy.meshgrid(
-                        longitude_matrix_deg_e[i, :, j],
-                        latitude_matrix_deg_n[i, :, j]
-                    )[0]
+                    grids.latlng_vectors_to_matrices(
+                        unique_latitudes_deg=latitude_matrix_deg_n[i, :, j],
+                        unique_longitudes_deg=longitude_matrix_deg_e[i, :, j]
+                    )[1]
                     for j in range(num_lag_times)
                 ],
                 axis=-1

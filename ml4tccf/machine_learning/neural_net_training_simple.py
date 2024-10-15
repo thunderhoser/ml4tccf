@@ -2206,10 +2206,6 @@ def create_data_specific_trans(
         for_high_res=False
     )
 
-    print(low_res_latitude_matrix_deg_n.shape)
-    print(low_res_longitude_matrix_deg_e.shape)
-    print('\n\n')
-
     low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
         nn_utils.grid_coords_3d_to_4d(
             latitude_matrix_deg_n=low_res_latitude_matrix_deg_n,
