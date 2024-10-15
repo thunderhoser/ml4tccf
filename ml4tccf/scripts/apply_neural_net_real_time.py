@@ -113,10 +113,6 @@ INPUT_ARG_PARSER.add_argument(
     default=0, help=DISABLE_GPUS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
-    help=OUTPUT_DIR_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=False, default='',
     help=OUTPUT_DIR_HELP_STRING
 )
