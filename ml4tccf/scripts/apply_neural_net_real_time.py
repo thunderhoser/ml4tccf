@@ -42,7 +42,10 @@ MODEL_FILE_ARG_NAME = 'input_model_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
 A_DECK_FILE_ARG_NAME = 'input_a_deck_file_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
+VALID_DATE_ARG_NAME = 'valid_date_string'
+DISABLE_GPUS_ARG_NAME = 'disable_gpus'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
+OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 MODEL_FILE_HELP_STRING = (
     'Path to trained model (will be read by `nn_utils.read_model`).'
@@ -59,10 +62,29 @@ CYCLONE_ID_HELP_STRING = (
     'Will apply neural net to data from this cyclone.  Cyclone ID must be in '
     'format "yyyyBBnn".'
 )
+VALID_DATE_HELP_STRING = (
+    'Valid date (format "yyyymmdd").  Will apply neural net to all valid times '
+    'on this date.  If you want to apply the NN to all valid times for the '
+    'cyclone, leave this argument alone.'
+)
+DISABLE_GPUS_HELP_STRING = (
+    'Boolean flag.  If 1, will disable GPUs and use only CPUs.  This argument '
+    'is HIGHLY RECOMMENDED in any environment, besides Hera (or some machine '
+    'where every job runs on a different node), where this script could be '
+    'running multiple times at once.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Results will be written by '
     '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`, '
-    'to a location in this directory determined by `prediction_io.find_file`.'
+    'to a location in this directory determined by `prediction_io.find_file`.  '
+    'If you would rather specify the file path directly, leave this argument '
+    'alone.'
+)
+OUTPUT_FILE_HELP_STRING = (
+    'Path to output file.  Results will be written here by '
+    '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`.  '
+    'If you would rather just specify the output directory and not the total '
+    'path, leave this argument alone.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -83,13 +105,30 @@ INPUT_ARG_PARSER.add_argument(
     help=CYCLONE_ID_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + VALID_DATE_ARG_NAME, type=str, required=False, default='',
+    help=VALID_DATE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + DISABLE_GPUS_ARG_NAME, type=int, required=False,
+    default=0, help=DISABLE_GPUS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + OUTPUT_DIR_ARG_NAME, type=str, required=False, default='',
+    help=OUTPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + OUTPUT_FILE_ARG_NAME, type=str, required=False, default='',
+    help=OUTPUT_FILE_HELP_STRING
 )
 
 
 def _run(model_file_name, satellite_dir_name, a_deck_file_name,
-         cyclone_id_string, output_dir_name):
+         cyclone_id_string, valid_date_string, disable_gpus,
+         output_dir_name, output_file_name):
     """Real-time version of apply_neural_net.py.
 
     This is effectively the main method.
@@ -98,8 +137,28 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param satellite_dir_name: Same.
     :param a_deck_file_name: Same.
     :param cyclone_id_string: Same.
+    :param valid_date_string: Same.
+    :param disable_gpus: Same.
     :param output_dir_name: Same.
+    :param output_file_name: Same.
     """
+
+    if disable_gpus:
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    if valid_date_string == '':
+        valid_date_string = None
+
+    if output_dir_name == '':
+        output_dir_name = None
+    else:
+        output_file_name = None
+
+    if output_file_name == '':
+        output_file_name = None
+    else:
+        output_dir_name = None
+
+    assert not (output_dir_name is None and output_file_name is None)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = nn_utils.read_model(model_file_name)
@@ -130,6 +189,8 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
 
     if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
+        assert valid_date_string is None
+
         data_dict = nn_training_cira_ir.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
@@ -139,9 +200,12 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         data_dict = nn_training_simple.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
+            valid_date_string=valid_date_string,
             num_target_times=LARGE_INTEGER
         )
     else:
+        assert valid_date_string is None
+
         data_dict = nn_training_fancy.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
@@ -169,13 +233,16 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
 
     del predictor_matrices
 
-    if validation_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY]:
+    if output_file_name is None:
         output_file_name = prediction_io.find_file(
-            directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
+            directory_name=output_dir_name,
+            cyclone_id_string=cyclone_id_string,
             raise_error_if_missing=False
         )
 
-        print('Writing results to: "{0:s}"...'.format(output_file_name))
+    print('Writing results to: "{0:s}"...'.format(output_file_name))
+
+    if validation_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY]:
         gridded_prediction_io.write_file(
             netcdf_file_name=output_file_name,
             target_matrix=target_matrix,
@@ -187,11 +254,6 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
             model_file_name=model_file_name
         )
     else:
-        output_file_name = prediction_io.find_file(
-            directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
-            raise_error_if_missing=False
-        )
-
         print('Writing results to: "{0:s}"...'.format(output_file_name))
         scalar_prediction_io.write_file(
             netcdf_file_name=output_file_name,
@@ -212,5 +274,10 @@ if __name__ == '__main__':
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, SATELLITE_DIR_ARG_NAME),
         a_deck_file_name=getattr(INPUT_ARG_OBJECT, A_DECK_FILE_ARG_NAME),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
-        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
+        valid_date_string=getattr(INPUT_ARG_OBJECT, VALID_DATE_ARG_NAME),
+        disable_gpus=bool(
+            getattr(INPUT_ARG_OBJECT, DISABLE_GPUS_ARG_NAME)
+        ),
+        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),
+        output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )

@@ -1853,6 +1853,15 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         for_high_res=False
     )
 
+    # TODO(thunderhoser): This should work, but I'm not 100% sure yet.
+    low_res_latitude_matrix_deg_n = numpy.repeat(
+        low_res_latitude_matrix_deg_n, repeats=data_aug_num_translations,
+        axis=0
+    )
+    low_res_longitude_matrix_deg_e = numpy.repeat(
+        low_res_longitude_matrix_deg_e, repeats=data_aug_num_translations,
+        axis=0
+    )
     low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
         nn_utils.grid_coords_3d_to_4d(
             latitude_matrix_deg_n=low_res_latitude_matrix_deg_n,
@@ -1905,14 +1914,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     target_times_unix_sec = numpy.repeat(
         target_times_unix_sec, repeats=data_aug_num_translations
     )
-    # low_res_latitude_matrix_deg_n = numpy.repeat(
-    #     low_res_latitude_matrix_deg_n, repeats=data_aug_num_translations,
-    #     axis=0
-    # )
-    # low_res_longitude_matrix_deg_e = numpy.repeat(
-    #     low_res_longitude_matrix_deg_e, repeats=data_aug_num_translations,
-    #     axis=0
-    # )
+
     if scalar_predictor_matrix is not None:
         scalar_predictor_matrix = numpy.repeat(
             scalar_predictor_matrix, axis=0,
@@ -2213,16 +2215,6 @@ def create_data_specific_trans(
         )
     )
 
-    print(low_res_latitude_matrix_deg_n.shape)
-    print(low_res_longitude_matrix_deg_e.shape)
-    print('\n\n')
-
-    print(low_res_latitude_matrix_deg_n[0, 5:10, 5:10, -1])
-    print(low_res_longitude_matrix_deg_e[0, 5:10, 5:10, -1])
-
-    print(numpy.mean(low_res_latitude_matrix_deg_n[..., -1], axis=(1, 2)))
-    print(numpy.mean(low_res_longitude_matrix_deg_e[..., -1], axis=(1, 2)))
-
     _, low_res_latitude_matrix_deg_n = (
         data_augmentation.augment_data_specific_trans(
             bidirectional_reflectance_matrix=None,
@@ -2258,11 +2250,6 @@ def create_data_specific_trans(
             for_high_res=False
         )[:, 0, :, :]
     )
-
-    print(row_translations_low_res_px)
-    print(column_translations_low_res_px)
-    print(numpy.mean(low_res_latitude_matrix_deg_n[..., -1], axis=1))
-    print(numpy.mean(low_res_longitude_matrix_deg_e[..., -1], axis=1))
 
     # TODO(thunderhoser): This is a HACK.  Should be controlled by an input arg.
     final_axis_length = (

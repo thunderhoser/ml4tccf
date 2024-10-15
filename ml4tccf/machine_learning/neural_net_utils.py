@@ -688,7 +688,7 @@ def grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
         axis=0
     )
 
-    return latitude_matrix_deg_n_4d, longitude_matrix_deg_e_4d
+    return latitude_matrix_deg_n_4d, longitude_matrix_deg_e
 
 
 def make_targets_for_semantic_seg(
