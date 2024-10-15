@@ -2013,9 +2013,6 @@ def create_data_specific_trans(
     #     0
     # )
 
-    if valid_date_string is not None:
-        _ = time_conversion.string_to_unix_sec(valid_date_string, DATE_FORMAT)
-
     option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
     option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
     option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
