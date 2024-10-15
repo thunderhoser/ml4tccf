@@ -293,7 +293,7 @@ def _plot_predictors_1panel(
         plot_latitudes_deg_n=numpy.ravel(grid_latitudes_deg_n),
         plot_longitudes_deg_e=numpy.ravel(grid_longitudes_deg_e),
         axes_object=axes_object,
-        parallel_spacing_deg=2., meridian_spacing_deg=2.
+        parallel_spacing_deg=0.5, meridian_spacing_deg=0.5
     )
     axes_object.set_xticklabels(
         axes_object.get_xticklabels(),
