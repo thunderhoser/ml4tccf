@@ -655,7 +655,7 @@ def grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
     )
 
     # Do actual stuff.
-    latitude_matrix_deg_n = numpy.stack(
+    latitude_matrix_deg_n_4d = numpy.stack(
         [
             numpy.stack(
                 [
@@ -671,7 +671,7 @@ def grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
         axis=0
     )
 
-    longitude_matrix_deg_e = numpy.stack(
+    longitude_matrix_deg_e_4d = numpy.stack(
         [
             numpy.stack(
                 [
@@ -688,7 +688,7 @@ def grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
         axis=0
     )
 
-    return latitude_matrix_deg_n, longitude_matrix_deg_e
+    return latitude_matrix_deg_n_4d, longitude_matrix_deg_e_4d
 
 
 def make_targets_for_semantic_seg(
