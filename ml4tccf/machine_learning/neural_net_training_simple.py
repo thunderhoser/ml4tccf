@@ -1860,6 +1860,25 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         )
     )
 
+    _, low_res_latitude_matrix_deg_n = (
+        data_augmentation.augment_data_specific_trans(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=low_res_latitude_matrix_deg_n,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
+            sentinel_value=-10.
+        )
+    )
+    _, low_res_longitude_matrix_deg_e = (
+        data_augmentation.augment_data_specific_trans(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=low_res_longitude_matrix_deg_e,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
+            sentinel_value=-10.
+        )
+    )
+
     low_res_latitude_matrix_deg_n = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_latitude_matrix_deg_n,
@@ -1868,7 +1887,6 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
             for_high_res=False
         )[:, :, 0, :]
     )
-
     low_res_longitude_matrix_deg_e = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_longitude_matrix_deg_e,
@@ -2195,6 +2213,25 @@ def create_data_specific_trans(
         )
     )
 
+    _, low_res_latitude_matrix_deg_n = (
+        data_augmentation.augment_data_specific_trans(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=low_res_latitude_matrix_deg_n,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
+            sentinel_value=-10.
+        )
+    )
+    _, low_res_longitude_matrix_deg_e = (
+        data_augmentation.augment_data_specific_trans(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=low_res_longitude_matrix_deg_e,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
+            sentinel_value=-10.
+        )
+    )
+
     low_res_latitude_matrix_deg_n = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_latitude_matrix_deg_n,
@@ -2203,7 +2240,6 @@ def create_data_specific_trans(
             for_high_res=False
         )[:, :, 0, :]
     )
-
     low_res_longitude_matrix_deg_e = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_longitude_matrix_deg_e,
