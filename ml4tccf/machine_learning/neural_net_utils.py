@@ -912,6 +912,17 @@ def read_metafile(pickle_file_name):
     training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
     validation_option_dict = metadata_dict[VALIDATION_OPTIONS_KEY]
 
+    # TODO(thunderhoser): This is a HACK.
+    a_deck_file_name = training_option_dict[A_DECK_FILE_KEY]
+    if not os.path.isfile(a_deck_file_name):
+        a_deck_file_name = (
+            '/mnt/shnas10/users/lagerquist/ml4tccf_project/a_decks/processed/'
+            'a_decks_2024_normalized.nc'
+        )
+
+    training_option_dict[A_DECK_FILE_KEY] = a_deck_file_name
+    validation_option_dict[A_DECK_FILE_KEY] = a_deck_file_name
+
     if USE_XY_COORDS_KEY not in training_option_dict:
         training_option_dict[USE_XY_COORDS_KEY] = False
         validation_option_dict[USE_XY_COORDS_KEY] = False
