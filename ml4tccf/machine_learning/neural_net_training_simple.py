@@ -2213,6 +2213,9 @@ def create_data_specific_trans(
         )
     )
 
+    print(low_res_latitude_matrix_deg_n[0, 5:10, 5:10, -1])
+    print(low_res_longitude_matrix_deg_e[0, 5:10, 5:10, -1])
+
     print(numpy.mean(low_res_latitude_matrix_deg_n[..., -1], axis=(1, 2)))
     print(numpy.mean(low_res_longitude_matrix_deg_e[..., -1], axis=(1, 2)))
 
