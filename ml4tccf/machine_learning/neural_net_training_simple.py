@@ -2254,8 +2254,8 @@ def create_data_specific_trans(
 
     print(row_translations_low_res_px)
     print(column_translations_low_res_px)
-    print(numpy.mean(low_res_latitude_matrix_deg_n[..., -1], axis=(1, 2)))
-    print(numpy.mean(low_res_longitude_matrix_deg_e[..., -1], axis=(1, 2)))
+    print(numpy.mean(low_res_latitude_matrix_deg_n[..., -1], axis=1))
+    print(numpy.mean(low_res_longitude_matrix_deg_e[..., -1], axis=1))
 
     # TODO(thunderhoser): This is a HACK.  Should be controlled by an input arg.
     final_axis_length = (
