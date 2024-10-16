@@ -35,8 +35,8 @@ pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
 LINE_WIDTH = 3.
 MARKER_TYPE = 'o'
 MARKER_SIZE = 12
-MEAN_ERROR_COLOUR = numpy.array([217, 95, 2], dtype=float)
-MEDIAN_ERROR_COLOUR = numpy.array([117, 112, 179], dtype=float)
+MEAN_ERROR_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
+MEDIAN_ERROR_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
@@ -238,7 +238,9 @@ def _run(input_dir_name, raw_best_track_file_name, output_figure_file_name):
             DATE_PATTERN_STRING,
             HOUR_MINUTE_PATTERN_STRING
         )
+        print(prediction_file_pattern)
         prediction_file_names = glob.glob(prediction_file_pattern)
+        assert len(prediction_file_names) > 0
 
         prediction_file_names.sort()
         num_files = len(prediction_file_names)
