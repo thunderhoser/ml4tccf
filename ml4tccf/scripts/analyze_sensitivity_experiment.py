@@ -17,7 +17,7 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import misc_utils
 
-CYCLONE_ID_STRING = '2014AL14'
+CYCLONE_ID_STRING = '2024AL14'
 TRANSLATION_DISTANCES_PX = numpy.linspace(1, 98, num=98, dtype=int)
 
 DATE_PATTERN_STRING = '[0-9][0-9][0-9][0-9][0-1][0-9][0-3][0-9]'
