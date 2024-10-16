@@ -51,15 +51,15 @@ HIMAWARI_WAVELENGTHS_METRES = 1e-6 * numpy.array([
 ])
 
 PREDICTED_CENTER_MARKER = 'o'
-PREDICTED_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
+PREDICTED_CENTER_MARKER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
 PREDICTED_CENTER_MARKER_EDGE_WIDTH = 0
 PREDICTED_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
 ACTUAL_CENTER_MARKER = '*'
-ACTUAL_CENTER_MARKER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+ACTUAL_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
 ACTUAL_CENTER_MARKER_SIZE_MULT = 4. / 3
 ACTUAL_CENTER_MARKER_EDGE_WIDTH = 2
-ACTUAL_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
+ACTUAL_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 1.)
 
 IMAGE_CENTER_MARKER = 's'
 IMAGE_CENTER_MARKER_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
@@ -72,7 +72,7 @@ TICK_LABEL_FONT_SIZE = 40
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
-FIGURE_RESOLUTION_DPI = 300
+FIGURE_RESOLUTION_DPI = 600
 PANEL_SIZE_PX = int(2.5e6)
 CONCAT_FIGURE_SIZE_PX = int(1e7)
 
@@ -95,6 +95,7 @@ WAVELENGTHS_ARG_NAME = 'wavelengths_microns'
 PREDICTION_PLOTTING_FORMAT_ARG_NAME = 'prediction_plotting_format_string'
 PROB_COLOUR_MAP_ARG_NAME = 'prob_colour_map_name'
 PROB_CONTOUR_SMOOTHING_RADIUS_ARG_NAME = 'prob_contour_smoothing_radius_px'
+PROB_CONTOUR_OPACITY_ARG_NAME = 'prob_contour_opacity'
 POINT_PREDICTION_MARKER_SIZE_ARG_NAME = 'point_prediction_marker_size'
 POINT_PREDICTION_OPACITY_ARG_NAME = 'point_prediction_opacity'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
@@ -142,6 +143,10 @@ PROB_COLOUR_MAP_HELP_STRING = (
 PROB_CONTOUR_SMOOTHING_RADIUS_HELP_STRING = (
     '[used only if predictions are plotted as probability contours] Smoothing '
     'radius for probability grid -- will be applied before plotting contours.'
+)
+PROB_CONTOUR_OPACITY_HELP_STRING = (
+    '[used only if predictions are plotted as probability contours] Opacity '
+    '(in range 0...1) for contours.'
 )
 POINT_PREDICTION_MARKER_SIZE_HELP_STRING = (
     '[used only if predictions are plotted as point(s)] Marker size -- will be '
@@ -195,6 +200,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + PROB_CONTOUR_SMOOTHING_RADIUS_ARG_NAME, type=float, required=False,
     default=-1., help=PROB_CONTOUR_SMOOTHING_RADIUS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + PROB_CONTOUR_OPACITY_ARG_NAME, type=float, required=False,
+    default=1., help=PROB_CONTOUR_OPACITY_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + POINT_PREDICTION_MARKER_SIZE_ARG_NAME, type=int, required=False,
@@ -339,7 +348,7 @@ def _plot_predictors_1panel(
 def _plot_prob_contours_1panel(
         figure_object, axes_object, prob_matrix,
         grid_latitudes_deg_n, grid_longitudes_deg_e,
-        colour_map_object, colour_norm_object, contour_levels,
+        colour_map_object, colour_norm_object, contour_levels, contour_opacity,
         output_file_name):
     """Plots predictions as probability contours for one panel.
 
@@ -361,6 +370,7 @@ def _plot_prob_contours_1panel(
         0...1).  This is an instance of `matplotlib.colors.Normalize`.
     :param contour_levels: 1-D numpy array of probabilities corresponding to
         contour lines.
+    :param contour_opacity: Contour opacity in range 0...1.
     :param output_file_name: Path to output file.  Figure will be saved here.
     """
 
@@ -368,7 +378,7 @@ def _plot_prob_contours_1panel(
         grid_longitudes_deg_e, grid_latitudes_deg_n, prob_matrix,
         contour_levels,
         cmap=colour_map_object, norm=colour_norm_object,
-        linewidths=4, linestyles='solid', zorder=1e12
+        linewidths=2.5, linestyles='solid', alpha=contour_opacity, zorder=1e12
     )
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
@@ -442,8 +452,9 @@ def _make_figure_one_example(
         btemp_latitude_matrix_deg_n, btemp_longitude_matrix_deg_e,
         border_latitudes_deg_n, border_longitudes_deg_e,
         prediction_plotting_format_string, prob_colour_map_name,
-        prob_contour_smoothing_radius_px, point_prediction_marker_size,
-        point_prediction_opacity, output_file_name):
+        prob_contour_smoothing_radius_px, prob_contour_opacity,
+        point_prediction_marker_size, point_prediction_opacity,
+        output_file_name):
     """Makes complete figure for one TC sample.
 
     M = number of rows in grid
@@ -474,6 +485,7 @@ def _make_figure_one_example(
         script.
     :param prob_colour_map_name: Same.
     :param prob_contour_smoothing_radius_px: Same.
+    :param prob_contour_opacity: Same.
     :param point_prediction_marker_size: Same.
     :param point_prediction_opacity: Same.
     :param output_file_name: Path to output file.  Figure will be saved here.
@@ -718,6 +730,7 @@ def _make_figure_one_example(
                     colour_map_object=prob_colour_map_object,
                     colour_norm_object=prob_colour_norm_object,
                     contour_levels=prob_contour_levels,
+                    contour_opacity=prob_contour_opacity,
                     output_file_name=panel_file_names[-1]
                 )
             else:
@@ -812,8 +825,9 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
          target_time_strings, num_samples_per_target_time,
          lag_times_minutes, wavelengths_microns,
          prediction_plotting_format_string, prob_colour_map_name,
-         prob_contour_smoothing_radius_px, point_prediction_marker_size,
-         point_prediction_opacity, output_dir_name):
+         prob_contour_smoothing_radius_px, prob_contour_opacity,
+         point_prediction_marker_size, point_prediction_opacity,
+         output_dir_name):
     """Plots predicted TC centers on top of satellite images for 2024 WAF paper.
 
     This is effectively the main method.
@@ -828,6 +842,7 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
     :param prediction_plotting_format_string: Same.
     :param prob_colour_map_name: Same.
     :param prob_contour_smoothing_radius_px: Same.
+    :param prob_contour_opacity: Same.
     :param point_prediction_marker_size: Same.
     :param point_prediction_opacity: Same.
     :param output_dir_name: Same.
@@ -1121,6 +1136,7 @@ def _run(prediction_file_name, satellite_dir_name, normalization_file_name,
             prediction_plotting_format_string=prediction_plotting_format_string,
             prob_colour_map_name=prob_colour_map_name,
             prob_contour_smoothing_radius_px=prob_contour_smoothing_radius_px,
+            prob_contour_opacity=prob_contour_opacity,
             point_prediction_marker_size=point_prediction_marker_size,
             point_prediction_opacity=point_prediction_opacity,
             output_file_name=output_file_name
@@ -1156,6 +1172,9 @@ if __name__ == '__main__':
         ),
         prob_contour_smoothing_radius_px=getattr(
             INPUT_ARG_OBJECT, PROB_CONTOUR_SMOOTHING_RADIUS_ARG_NAME
+        ),
+        prob_contour_opacity=getattr(
+            INPUT_ARG_OBJECT, PROB_CONTOUR_OPACITY_ARG_NAME
         ),
         point_prediction_marker_size=getattr(
             INPUT_ARG_OBJECT, POINT_PREDICTION_MARKER_SIZE_ARG_NAME

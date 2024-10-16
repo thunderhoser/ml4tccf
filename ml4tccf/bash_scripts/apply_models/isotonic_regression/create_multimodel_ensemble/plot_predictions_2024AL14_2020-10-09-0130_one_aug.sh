@@ -21,4 +21,5 @@ python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" &> ${log_file_name} \
 --prediction_plotting_format_string="probability_contours" \
 --prob_colour_map_name="BuGn" \
 --prob_contour_smoothing_radius_px=2 \
+--prob_contour_opacity=0.7 \
 --output_dir_name="${ENSEMBLE_DIR_NAME}/predictions/isotonic_regression/2024AL14_20241009/one_aug"
