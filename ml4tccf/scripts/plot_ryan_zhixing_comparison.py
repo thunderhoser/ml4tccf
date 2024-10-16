@@ -134,10 +134,15 @@ def _compute_errors(
             (pred_latitudes_deg_n[match_idx], pred_longitudes_deg_e[match_idx])
         ).kilometers
 
+    good_indices = numpy.where(
+        numpy.invert(numpy.isnan(distance_errors_km))
+    )[0]
+    num_samples = len(numpy.unique(bt_times_unix_sec[good_indices]))
+
     return (
         numpy.nanmean(distance_errors_km),
         numpy.nanmedian(distance_errors_km),
-        numpy.sum(numpy.invert(numpy.isnan(distance_errors_km)))
+        num_samples
     )
 
 
