@@ -313,24 +313,24 @@ def _plot_predictors_1panel(
         transform=axes_object.transAxes, zorder=2e12
     )
 
-    axes_object.plot(
-        272.97, 22.89, linestyle='None',
-        marker='d',
-        markersize=25,
-        markerfacecolor='k',
-        markeredgecolor='k',
-        markeredgewidth=0,
-        zorder=2e12
-    )
-    axes_object.plot(
-        -87.03, 22.89, linestyle='None',
-        marker='d',
-        markersize=25,
-        markerfacecolor='k',
-        markeredgecolor='k',
-        markeredgewidth=0,
-        zorder=2e12
-    )
+    # axes_object.plot(
+    #     272.97, 22.89, linestyle='None',
+    #     marker='d',
+    #     markersize=25,
+    #     markerfacecolor='k',
+    #     markeredgecolor='k',
+    #     markeredgewidth=0,
+    #     zorder=2e12
+    # )
+    # axes_object.plot(
+    #     -87.03, 22.89, linestyle='None',
+    #     marker='d',
+    #     markersize=25,
+    #     markerfacecolor='k',
+    #     markeredgecolor='k',
+    #     markeredgewidth=0,
+    #     zorder=2e12
+    # )
 
     axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
     return figure_object, axes_object
