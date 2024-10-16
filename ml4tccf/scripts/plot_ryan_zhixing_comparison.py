@@ -259,18 +259,28 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
     for i in range(num_files_zhixing):
         print('Reading data from: "{0:s}"...'.format(zhixing_file_names[i]))
 
-        with open(zhixing_file_names[i], 'r') as file_handle:
-            csv_reader_object = csv.reader(file_handle)
-            these_words = next(csv_reader_object)
-            zhixing_latitudes_deg_n[i] = float(these_words[-3])
-            zhixing_longitudes_deg_e[i] = float(these_words[-2])
+        try:
+            with open(zhixing_file_names[i], 'r') as file_handle:
+                csv_reader_object = csv.reader(file_handle)
+                these_words = next(csv_reader_object)
+                zhixing_latitudes_deg_n[i] = float(these_words[-3])
+                zhixing_longitudes_deg_e[i] = float(these_words[-2])
 
-            this_time_string = '{0:s}{1:s}'.format(
-                these_words[-5].strip(), these_words[-4].strip()
-            )
-            zhixing_times_unix_sec[i] = time_conversion.string_to_unix_sec(
-                this_time_string, '%Y%m%d%H%M'
-            )
+                this_time_string = '{0:s}{1:s}'.format(
+                    these_words[-5].strip(), these_words[-4].strip()
+                )
+                zhixing_times_unix_sec[i] = time_conversion.string_to_unix_sec(
+                    this_time_string, '%Y%m%d%H%M'
+                )
+        except:
+            pass
+
+    good_indices = numpy.where(
+        numpy.invert(numpy.isnan(zhixing_latitudes_deg_n))
+    )[0]
+    zhixing_times_unix_sec = zhixing_times_unix_sec[good_indices]
+    zhixing_latitudes_deg_n = zhixing_latitudes_deg_n[good_indices]
+    zhixing_longitudes_deg_e = zhixing_longitudes_deg_e[good_indices]
 
     sort_indices = numpy.argsort(zhixing_times_unix_sec)
     zhixing_times_unix_sec = zhixing_times_unix_sec[sort_indices]
