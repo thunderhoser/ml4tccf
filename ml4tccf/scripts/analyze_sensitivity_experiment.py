@@ -248,21 +248,21 @@ def _run(input_dir_name, raw_best_track_file_name, output_figure_file_name):
         pred_longitudes_deg_e = numpy.full(num_files, numpy.nan)
         pred_times_unix_sec = numpy.full(num_files, -1, dtype=int)
 
-        for i in range(num_files):
+        for j in range(num_files):
             print('Reading data from: "{0:s}"...'.format(
-                prediction_file_names[i]
+                prediction_file_names[j]
             ))
 
-            with open(prediction_file_names[i], 'r') as file_handle:
+            with open(prediction_file_names[j], 'r') as file_handle:
                 csv_reader_object = csv.reader(file_handle)
                 these_words = next(csv_reader_object)
-                pred_latitudes_deg_n[i] = float(these_words[-2])
-                pred_longitudes_deg_e[i] = float(these_words[-1])
+                pred_latitudes_deg_n[j] = float(these_words[-2])
+                pred_longitudes_deg_e[j] = float(these_words[-1])
 
                 this_time_string = '{0:s}{1:s}'.format(
                     these_words[-4].strip(), these_words[-3].strip()
                 )
-                pred_times_unix_sec[i] = time_conversion.string_to_unix_sec(
+                pred_times_unix_sec[j] = time_conversion.string_to_unix_sec(
                     this_time_string, '%Y%m%d%H%M'
                 )
 
