@@ -5,7 +5,7 @@ conda activate base
 CODE_DIR_NAME="/home/lagerquist/ml4tccf/ml4tccf/scripts"
 
 CYCLONE_ID_STRING="2024AL93"
-FAKE_CYCLONE_ID_STRING="al932014"
+FAKE_CYCLONE_ID_STRING="al932024"
 ENSEMBLE_DIR_NAME="/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/ensemble"
 
 log_file_name="compare_with_zhixing_${CYCLONE_ID_STRING}.out"
