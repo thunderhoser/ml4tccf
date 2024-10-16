@@ -16,6 +16,7 @@ VALID_DATE_STRING="20241007"
 
 for mean_translation_distance_px in "${MEAN_TRANSLATION_DISTANCES_PX[@]}"; do
     log_file_name="create_ensemble_mean-trans-dist-px=${mean_translation_distance_px}.out"
+    echo "${ENSEMBLE_DIR_NAME}/sensitivity_analysis_to_trans_dist/mean_translation_distance_px=${mean_translation_distance_px}/isotonic_regression/predictions_${CYCLONE_ID_STRING}_${VALID_DATE_STRING}.nc"
 
     python3 -u "${CODE_DIR_NAME}/create_multimodel_ensemble.py" &> ${log_file_name} \
     --input_prediction_file_names "${MODEL_DIR_NAMES[0]}/sensitivity_analysis_to_trans_dist/mean_translation_distance_px=${mean_translation_distance_px}/isotonic_regression/predictions_${CYCLONE_ID_STRING}_${VALID_DATE_STRING}.nc" "${MODEL_DIR_NAMES[1]}/sensitivity_analysis_to_trans_dist/mean_translation_distance_px=${mean_translation_distance_px}/isotonic_regression/predictions_${CYCLONE_ID_STRING}_${VALID_DATE_STRING}.nc" "${MODEL_DIR_NAMES[2]}/sensitivity_analysis_to_trans_dist/mean_translation_distance_px=${mean_translation_distance_px}/isotonic_regression/predictions_${CYCLONE_ID_STRING}_${VALID_DATE_STRING}.nc" "${MODEL_DIR_NAMES[3]}/sensitivity_analysis_to_trans_dist/mean_translation_distance_px=${mean_translation_distance_px}/isotonic_regression/predictions_${CYCLONE_ID_STRING}_${VALID_DATE_STRING}.nc" \
