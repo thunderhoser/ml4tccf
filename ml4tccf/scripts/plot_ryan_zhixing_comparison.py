@@ -228,7 +228,9 @@ def _run(ryan_dir_name, zhixing_dir_name, cyclone_id_string, output_file_name):
         s=ZHIXING_MARKER_SIZE, marker=ZHIXING_MARKER_TYPE,
         linewidths=ZHIXING_MARKER_EDGE_WIDTH,
         edgecolors=ZHIXING_MARKER_EDGE_COLOUR,
-        c=ryan_times_unix_sec, cmap=COLOUR_MAP_OBJECT, norm=colour_norm_object
+        c=zhixing_times_unix_sec,
+        cmap=COLOUR_MAP_OBJECT,
+        norm=colour_norm_object
     )
 
     plotting_utils.plot_grid_lines(
