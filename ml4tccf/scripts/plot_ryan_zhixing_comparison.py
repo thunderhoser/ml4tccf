@@ -7,6 +7,7 @@ import numpy
 import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
+from geopy.distance import geodesic
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import time_periods
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
@@ -38,6 +39,7 @@ BEST_TRACK_MARKER_TYPE = '*'
 BEST_TRACK_MARKER_EDGE_WIDTH = 1.5
 BEST_TRACK_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
+TITLE_FONT_SIZE = 20
 TICK_LABEL_FONT_SIZE = 40
 COLOUR_MAP_OBJECT = pyplot.get_cmap('gist_ncar')
 
@@ -91,6 +93,52 @@ INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
     help=OUTPUT_FILE_HELP_STRING
 )
+
+
+def _compute_errors(
+        bt_latitudes_deg_n, bt_longitudes_deg_e, bt_times_unix_sec,
+        pred_latitudes_deg_n, pred_longitudes_deg_e, pred_times_unix_sec):
+    """Computes errors between best track and GeoCenter.
+
+    The GeoCenter predictions may come from either Ryan or Zhixing here.
+
+    B = number of best-track points
+    G = number of predicted GeoCenter points
+
+    :param bt_latitudes_deg_n: length-B numpy array of latitudes (deg north).
+    :param bt_longitudes_deg_e: length-B numpy array of longitudes (deg east).
+    :param bt_times_unix_sec: length-B numpy array of times.
+    :param pred_latitudes_deg_n: length-G numpy array of latitudes (deg north).
+    :param pred_longitudes_deg_e: length-G numpy array of longitudes (deg east).
+    :param pred_times_unix_sec: length-G numpy array of times.
+    :return: mean_error_km: Mean error.
+    :return: median_error_km: Median error.
+    :return: num_samples: Number of samples in estimate.
+    """
+
+    num_best_track_points = len(bt_times_unix_sec)
+    distance_errors_km = numpy.full(num_best_track_points, numpy.nan)
+
+    for i in range(num_best_track_points):
+        match_indices = numpy.where(
+            pred_times_unix_sec == bt_times_unix_sec[i]
+        )[0]
+        if len(match_indices) == 0:
+            continue
+
+        assert len(match_indices) == 1
+        match_idx = match_indices[0]
+
+        distance_errors_km[i] = geodesic(
+            (bt_latitudes_deg_n[i], bt_longitudes_deg_e[i]),
+            (pred_latitudes_deg_n[match_idx], pred_longitudes_deg_e[match_idx])
+        ).kilometers
+
+    return (
+        numpy.nanmean(distance_errors_km),
+        numpy.nanmedian(distance_errors_km),
+        numpy.sum(numpy.invert(numpy.isnan(distance_errors_km)))
+    )
 
 
 def _read_raw_best_track_file(csv_file_name, cyclone_id_string):
@@ -382,12 +430,42 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
     axes_object.set_yticklabels(
         axes_object.get_yticklabels(), fontsize=TICK_LABEL_FONT_SIZE
     )
-    title_string = (
-        'Track comparison for {0:s}\n'
-        'Ryan = no outline; Zhixing = grey; BT = black'
-    ).format(cyclone_id_string)
 
-    axes_object.set_title(title_string)
+    ryan_mean_error_km, ryan_median_error_km, ryan_num_samples = (
+        _compute_errors(
+            bt_latitudes_deg_n=bt_latitudes_deg_n,
+            bt_longitudes_deg_e=bt_longitudes_deg_e,
+            bt_times_unix_sec=bt_times_unix_sec,
+            pred_latitudes_deg_n=ryan_latitudes_deg_n,
+            pred_longitudes_deg_e=ryan_longitudes_deg_e,
+            pred_times_unix_sec=ryan_times_unix_sec
+        )
+    )
+
+    zhixing_mean_error_km, zhixing_median_error_km, zhixing_num_samples = (
+        _compute_errors(
+            bt_latitudes_deg_n=bt_latitudes_deg_n,
+            bt_longitudes_deg_e=bt_longitudes_deg_e,
+            bt_times_unix_sec=bt_times_unix_sec,
+            pred_latitudes_deg_n=zhixing_latitudes_deg_n,
+            pred_longitudes_deg_e=zhixing_longitudes_deg_e,
+            pred_times_unix_sec=zhixing_times_unix_sec
+        )
+    )
+
+    title_string = (
+        'Track comparison for {0:s}; BT = black outline\n'
+        'Ryan (no outline): mean err = {1:.1f} km; '
+        'median err = {2:.1f} km; err sample size = {3:d}\n'
+        'Zhixing (grey outline): mean err = {4:.1f} km; '
+        'median err = {5:.1f} km; err sample size = {6:d}'
+    ).format(
+        cyclone_id_string,
+        ryan_mean_error_km, ryan_median_error_km, ryan_num_samples,
+        zhixing_mean_error_km, zhixing_median_error_km, zhixing_num_samples
+    )
+
+    axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
 
     colour_bar_object = gg_plotting_utils.plot_colour_bar(
         axes_object_or_matrix=axes_object,
