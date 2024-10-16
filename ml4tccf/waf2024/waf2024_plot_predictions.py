@@ -73,8 +73,8 @@ TICK_LABEL_FONT_SIZE = 40
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 600
-PANEL_SIZE_PX = int(2.5e6)
-CONCAT_FIGURE_SIZE_PX = int(1e7)
+PANEL_SIZE_PX = int(5e6)
+CONCAT_FIGURE_SIZE_PX = int(3e7)
 
 PROB_CONTOURS_FORMAT_STRING = 'probability_contours'
 MEAN_POINT_FORMAT_STRING = 'one_point_for_ensemble_mean'
@@ -718,19 +718,15 @@ def _make_figure_one_example(
             )
 
             if prediction_plotting_format_string == PROB_CONTOURS_FORMAT_STRING:
-                this_marker_colour = matplotlib.colors.to_rgba(
-                    c=PREDICTED_CENTER_MARKER_COLOUR,
-                    alpha=prob_contour_opacity
-                )
                 axes_object.plot(
                     numpy.mean(predicted_x_centers_transaxes),
                     numpy.mean(predicted_y_centers_transaxes),
                     linestyle='None', marker=PREDICTED_CENTER_MARKER,
                     markersize=point_prediction_marker_size,
-                    markerfacecolor=this_marker_colour,
+                    markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
                     markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
                     markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
-                    transform=axes_object.transAxes, zorder=1e10
+                    transform=axes_object.transAxes, zorder=5e13
                 )
 
                 _plot_prob_contours_1panel(
