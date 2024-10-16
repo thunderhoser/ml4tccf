@@ -26,6 +26,8 @@ A_DECK_FILE_ARG_NAME = 'input_a_deck_file_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 VALID_DATE_ARG_NAME = 'valid_date_string'
 NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
+MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
+STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
 RANDOM_SEED_ARG_NAME = 'random_seed'
 REMOVE_TROPICAL_SYSTEMS_ARG_NAME = 'remove_tropical_systems'
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
@@ -59,6 +61,16 @@ NUM_TRANSLATIONS_HELP_STRING = (
     'num_snapshots * {0:s}.'
 ).format(
     NUM_TRANSLATIONS_ARG_NAME
+)
+MEAN_TRANSLATION_DIST_HELP_STRING = (
+    'Mean translation distance (units of IR pixels or low-res pixels).  If you '
+    'want to keep the same mean translation distance used in training, leave '
+    'this argument alone.'
+)
+STDEV_TRANSLATION_DIST_HELP_STRING = (
+    'Standard deviation of translation distance (units of IR pixels or low-res '
+    'pixels).  If you want to keep the same stdev translation distance used in '
+    'training, leave this argument alone.'
 )
 RANDOM_SEED_HELP_STRING = (
     'Random seed.  This will determine, among other things, the exact '
@@ -121,6 +133,14 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_TRANSLATIONS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + MEAN_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
+    default=1., help=MEAN_TRANSLATION_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + STDEV_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
+    default=1., help=STDEV_TRANSLATION_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + RANDOM_SEED_ARG_NAME, type=int, required=False, default=-1,
     help=RANDOM_SEED_HELP_STRING
 )
@@ -148,6 +168,8 @@ INPUT_ARG_PARSER.add_argument(
 
 def _run(model_file_name, satellite_dir_name, a_deck_file_name,
          cyclone_id_string, valid_date_string, data_aug_num_translations,
+         data_aug_mean_translation_low_res_px,
+         data_aug_stdev_translation_low_res_px,
          random_seed, remove_tropical_systems, synoptic_times_only,
          disable_gpus, output_dir_name, output_file_name):
     """Applies trained neural net -- inference time!
@@ -160,6 +182,8 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param cyclone_id_string: Same.
     :param valid_date_string: Same.
     :param data_aug_num_translations: Same.
+    :param data_aug_mean_translation_low_res_px: Same.
+    :param data_aug_stdev_translation_low_res_px: Same.
     :param random_seed: Same.
     :param remove_tropical_systems: Same.
     :param synoptic_times_only: Same.
@@ -188,6 +212,11 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
 
     assert not (output_dir_name is None and output_file_name is None)
 
+    if data_aug_mean_translation_low_res_px < 0:
+        data_aug_mean_translation_low_res_px = None
+    if data_aug_stdev_translation_low_res_px < 0:
+        data_aug_stdev_translation_low_res_px = None
+
     error_checking.assert_is_geq(data_aug_num_translations, 1)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
@@ -199,25 +228,26 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
 
     print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = nn_utils.read_metafile(model_metafile_name)
+    vod = model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
 
-    validation_option_dict = (
-        model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
-    )
-    validation_option_dict[nn_utils.SATELLITE_DIRECTORY_KEY] = (
-        satellite_dir_name
-    )
-    validation_option_dict[nn_utils.A_DECK_FILE_KEY] = a_deck_file_name
-    validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
-        data_aug_num_translations
-    )
+    vod[nn_utils.SATELLITE_DIRECTORY_KEY] = satellite_dir_name
+    vod[nn_utils.A_DECK_FILE_KEY] = a_deck_file_name
+    vod[nn_utils.DATA_AUG_NUM_TRANS_KEY] = data_aug_num_translations
 
+    if data_aug_mean_translation_low_res_px is not None:
+        vod[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = (
+            data_aug_mean_translation_low_res_px
+        )
+    if data_aug_stdev_translation_low_res_px is not None:
+        vod[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = (
+            data_aug_stdev_translation_low_res_px
+        )
     if remove_tropical_systems:
-        validation_option_dict[nn_utils.REMOVE_TROPICAL_KEY] = True
-        validation_option_dict[nn_utils.REMOVE_NONTROPICAL_KEY] = False
+        vod[nn_utils.REMOVE_TROPICAL_KEY] = True
+        vod[nn_utils.REMOVE_NONTROPICAL_KEY] = False
 
-    validation_option_dict[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = (
-        synoptic_times_only
-    )
+    vod[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = synoptic_times_only
+    validation_option_dict = vod
 
     data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
 
@@ -310,6 +340,12 @@ if __name__ == '__main__':
         valid_date_string=getattr(INPUT_ARG_OBJECT, VALID_DATE_ARG_NAME),
         data_aug_num_translations=getattr(
             INPUT_ARG_OBJECT, NUM_TRANSLATIONS_ARG_NAME
+        ),
+        data_aug_mean_translation_low_res_px=getattr(
+            INPUT_ARG_OBJECT, MEAN_TRANSLATION_DIST_ARG_NAME
+        ),
+        data_aug_stdev_translation_low_res_px=getattr(
+            INPUT_ARG_OBJECT, STDEV_TRANSLATION_DIST_ARG_NAME
         ),
         random_seed=getattr(INPUT_ARG_OBJECT, RANDOM_SEED_ARG_NAME),
         remove_tropical_systems=bool(

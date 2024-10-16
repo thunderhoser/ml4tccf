@@ -250,7 +250,6 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
             model_file_name=model_file_name
         )
     else:
-        print('Writing results to: "{0:s}"...'.format(output_file_name))
         scalar_prediction_io.write_file(
             netcdf_file_name=output_file_name,
             target_matrix=target_matrix,
