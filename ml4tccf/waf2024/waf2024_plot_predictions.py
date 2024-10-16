@@ -608,20 +608,17 @@ def _make_figure_one_example(
         prob_contour_levels = numpy.linspace(
             min_colour_value, max_colour_value, num=10
         )
-
-        predicted_x_centers_transaxes = None
-        predicted_y_centers_transaxes = None
     else:
-        predicted_x_centers_transaxes = (
-            0.5 + prediction_matrix[1, :] / num_grid_columns
-        )
-        predicted_y_centers_transaxes = (
-            0.5 + prediction_matrix[0, :] / num_grid_rows
-        )
-
         prob_matrix = None
         prob_colour_norm_object = None
         prob_contour_levels = None
+
+    predicted_x_centers_transaxes = (
+        0.5 + prediction_matrix[1, :] / num_grid_columns
+    )
+    predicted_y_centers_transaxes = (
+        0.5 + prediction_matrix[0, :] / num_grid_rows
+    )
 
     # Do actual stuff.
     vod = model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
@@ -721,6 +718,21 @@ def _make_figure_one_example(
             )
 
             if prediction_plotting_format_string == PROB_CONTOURS_FORMAT_STRING:
+                this_marker_colour = matplotlib.colors.to_rgba(
+                    c=PREDICTED_CENTER_MARKER_COLOUR,
+                    alpha=prob_contour_opacity
+                )
+                axes_object.plot(
+                    numpy.mean(predicted_x_centers_transaxes),
+                    numpy.mean(predicted_y_centers_transaxes),
+                    linestyle='None', marker=PREDICTED_CENTER_MARKER,
+                    markersize=point_prediction_marker_size,
+                    markerfacecolor=this_marker_colour,
+                    markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
+                    markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
+                    transform=axes_object.transAxes, zorder=1e10
+                )
+
                 _plot_prob_contours_1panel(
                     figure_object=figure_object,
                     axes_object=axes_object,
