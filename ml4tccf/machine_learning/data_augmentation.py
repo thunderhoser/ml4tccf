@@ -430,6 +430,9 @@ def subset_grid_after_data_aug(data_matrix, num_rows_to_keep,
     num_columns = data_matrix.shape[2]
     num_wavelengths = data_matrix.shape[3]
 
+    if num_rows_to_keep == num_rows and num_columns_to_keep == num_columns:
+        return data_matrix
+
     row_dim = (
         satellite_utils.HIGH_RES_ROW_DIM if for_high_res
         else satellite_utils.LOW_RES_ROW_DIM

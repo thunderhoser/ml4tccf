@@ -2193,9 +2193,6 @@ def create_data_specific_trans(
     else:
         vector_predictor_matrix = brightness_temp_matrix_kelvins
 
-    print(row_translations_low_res_px)
-    print(column_translations_low_res_px)
-
     _, vector_predictor_matrix = data_augmentation.augment_data_specific_trans(
         bidirectional_reflectance_matrix=None,
         brightness_temp_matrix_kelvins=vector_predictor_matrix,
