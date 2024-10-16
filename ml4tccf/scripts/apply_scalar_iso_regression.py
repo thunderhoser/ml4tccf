@@ -94,9 +94,10 @@ def _run(input_prediction_file_name, model_file_name,
 
     cyclone_id_strings = pt[scalar_prediction_utils.CYCLONE_ID_KEY].values
     assert len(numpy.unique(cyclone_id_strings)) == 1
+    cyclone_id_string = cyclone_id_strings[0]
 
     try:
-        cyclone_id_string = cyclone_id_strings[0].decode('utf-8')
+        cyclone_id_string = cyclone_id_string.decode('utf-8')
     except:
         pass
 
