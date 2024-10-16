@@ -8,24 +8,28 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 from gewittergefahr.gg_utils import time_conversion
+from gewittergefahr.gg_utils import time_periods
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
+from gewittergefahr.plotting import plotting_utils as gg_plotting_utils
 from ml4tccf.io import border_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.plotting import plotting_utils
 
 # TODO(thunderhoser): Get prelim best track in here somehow.
+HOURS_TO_SECONDS = 3600
+COLOUR_BAR_TIME_FORMAT = '%H %b %d'
 
 DATE_PATTERN_STRING = '[0-9][0-9][0-9][0-9][0-1][0-9][0-3][0-9]'
 HOUR_MINUTE_PATTERN_STRING = '[0-2][0-9][0-5][0-9]'
 
-RYAN_MARKER_SIZE = 20
+RYAN_MARKER_SIZE = 30
 RYAN_MARKER_TYPE = 's'
 RYAN_MARKER_EDGE_WIDTH = 1.5
 RYAN_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
-ZHIXING_MARKER_SIZE = 20
+ZHIXING_MARKER_SIZE = 30
 ZHIXING_MARKER_TYPE = 'o'
 ZHIXING_MARKER_EDGE_WIDTH = 1.5
 ZHIXING_MARKER_EDGE_COLOUR = numpy.full(3, 152. / 255)
@@ -236,17 +240,29 @@ def _run(ryan_dir_name, zhixing_dir_name, cyclone_id_string, output_file_name):
         norm=colour_norm_object
     )
 
+    all_latitudes_deg_n = numpy.concatenate(
+        [ryan_latitudes_deg_n, zhixing_latitudes_deg_n]
+    )
+    all_longitudes_deg_e = numpy.concatenate(
+        [ryan_longitudes_deg_e, zhixing_longitudes_deg_e]
+    )
     plotting_utils.plot_grid_lines(
-        plot_latitudes_deg_n=numpy.ravel(
-            numpy.concatenate([ryan_latitudes_deg_n, zhixing_latitudes_deg_n])
-        ),
-        plot_longitudes_deg_e=numpy.ravel(
-            numpy.concatenate([ryan_longitudes_deg_e, zhixing_longitudes_deg_e])
-        ),
+        plot_latitudes_deg_n=all_latitudes_deg_n,
+        plot_longitudes_deg_e=all_longitudes_deg_e,
         axes_object=axes_object,
         parallel_spacing_deg=1.,
         meridian_spacing_deg=1.
     )
+
+    axes_object.set_xlim([
+        numpy.min(all_longitudes_deg_e) - 0.5,
+        numpy.max(all_longitudes_deg_e) + 0.5
+    ])
+    axes_object.set_ylim([
+        numpy.min(all_latitudes_deg_n) - 0.5,
+        numpy.max(all_latitudes_deg_n) + 0.5
+    ])
+
     axes_object.set_xticklabels(
         axes_object.get_xticklabels(),
         fontsize=TICK_LABEL_FONT_SIZE, rotation=90.
@@ -254,15 +270,39 @@ def _run(ryan_dir_name, zhixing_dir_name, cyclone_id_string, output_file_name):
     axes_object.set_yticklabels(
         axes_object.get_yticklabels(), fontsize=TICK_LABEL_FONT_SIZE
     )
-
     axes_object.set_title(
         'Ryan (black) and Zhixing (grey) tracks for {0:s}'.format(
             cyclone_id_string
         )
     )
 
-    file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
+    colour_bar_object = gg_plotting_utils.plot_colour_bar(
+        axes_object_or_matrix=axes_object,
+        data_matrix=ryan_times_unix_sec.astype(float),
+        colour_map_object=COLOUR_MAP_OBJECT,
+        colour_norm_object=colour_norm_object,
+        orientation_string='vertical',
+        extend_min=False,
+        extend_max=False
+    )
 
+    all_times_unix_sec = numpy.concatenate([
+        ryan_times_unix_sec, zhixing_times_unix_sec
+    ])
+    tick_times_unix_sec = time_periods.range_and_interval_to_list(
+        start_time_unix_sec=numpy.min(all_times_unix_sec),
+        end_time_unix_sec=numpy.max(all_times_unix_sec),
+        time_interval_sec=12 * HOURS_TO_SECONDS,
+        include_endpoint=True
+    )
+    tick_time_strings = [
+        time_conversion.unix_sec_to_string(t, COLOUR_BAR_TIME_FORMAT)
+        for t in tick_times_unix_sec
+    ]
+    colour_bar_object.set_ticks(tick_times_unix_sec)
+    colour_bar_object.set_ticklabels(tick_time_strings)
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
     print('Saving figure to file: "{0:s}"...'.format(output_file_name))
     figure_object.savefig(
         output_file_name,
