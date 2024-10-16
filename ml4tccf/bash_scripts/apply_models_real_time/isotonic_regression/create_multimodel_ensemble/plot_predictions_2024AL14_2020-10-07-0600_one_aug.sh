@@ -11,7 +11,7 @@ ENSEMBLE_DIR_NAME="/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_model
 log_file_name="plot_predictions_2024AL14_2020-10-07-0600_one_aug.out"
 
 python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" &> ${log_file_name} \
---input_prediction_file_name="${ENSEMBLE_DIR_NAME}/real_time_predictions/isotonic_regression/2024AL14_20241009.nc" \
+--input_prediction_file_name="${ENSEMBLE_DIR_NAME}/real_time_predictions/isotonic_regression/2024AL14_20241007.nc" \
 --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
 --input_normalization_file_name="${SATELLITE_NORM_FILE_NAME}" \
 --target_time_strings "2024-10-07-0600" \
