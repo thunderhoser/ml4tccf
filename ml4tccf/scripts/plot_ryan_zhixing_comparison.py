@@ -372,11 +372,12 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
     axes_object.set_yticklabels(
         axes_object.get_yticklabels(), fontsize=TICK_LABEL_FONT_SIZE
     )
-    axes_object.set_title(
-        'Ryan (black) and Zhixing (grey) tracks for {0:s}'.format(
-            cyclone_id_string
-        )
-    )
+    title_string = (
+        'Track comparison for {0:s}\n'
+        'Ryan = no outline; Zhixing = grey; BT = black'
+    ).format(cyclone_id_string)
+
+    axes_object.set_title(title_string)
 
     colour_bar_object = gg_plotting_utils.plot_colour_bar(
         axes_object_or_matrix=axes_object,
