@@ -131,7 +131,7 @@ def _read_raw_best_track_file(csv_file_name, cyclone_id_string):
             this_latitude_string.endswith('N') or
             this_latitude_string.endswith('S')
         )
-        this_latitude_deg_n = int(this_latitude_string[:-1])
+        this_latitude_deg_n = 0.1 * int(this_latitude_string[:-1])
         if this_latitude_string.endswith('S'):
             this_latitude_deg_n *= -1.
 
@@ -140,7 +140,7 @@ def _read_raw_best_track_file(csv_file_name, cyclone_id_string):
             this_longitude_string.endswith('E') or
             this_longitude_string.endswith('W')
         )
-        this_longitude_deg_e = int(this_longitude_string[:-1])
+        this_longitude_deg_e = 0.1 * int(this_longitude_string[:-1])
         if this_longitude_string.endswith('W'):
             this_longitude_deg_e *= -1.
 
