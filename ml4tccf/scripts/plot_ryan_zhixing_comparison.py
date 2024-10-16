@@ -158,7 +158,7 @@ def _run(ryan_dir_name, zhixing_dir_name, cyclone_id_string, output_file_name):
     error_checking.assert_is_valid_lat_numpy_array(
         ryan_latitudes_deg_n, allow_nan=False
     )
-    ryan_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+    ryan_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
         ryan_longitudes_deg_e, allow_nan=False
     )
 
@@ -191,7 +191,7 @@ def _run(ryan_dir_name, zhixing_dir_name, cyclone_id_string, output_file_name):
     error_checking.assert_is_valid_lat_numpy_array(
         zhixing_latitudes_deg_n, allow_nan=False
     )
-    zhixing_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
+    zhixing_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
         zhixing_longitudes_deg_e, allow_nan=False
     )
 
@@ -199,6 +199,9 @@ def _run(ryan_dir_name, zhixing_dir_name, cyclone_id_string, output_file_name):
         1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
     )
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
+    border_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        border_longitudes_deg_e
+    )
     plotting_utils.plot_borders(
         border_latitudes_deg_n=border_latitudes_deg_n,
         border_longitudes_deg_e=border_longitudes_deg_e,
