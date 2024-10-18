@@ -134,11 +134,11 @@ INPUT_ARG_PARSER.add_argument(
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + MEAN_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
-    default=1., help=MEAN_TRANSLATION_DIST_HELP_STRING
+    default=-1., help=MEAN_TRANSLATION_DIST_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + STDEV_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
-    default=1., help=STDEV_TRANSLATION_DIST_HELP_STRING
+    default=-1., help=STDEV_TRANSLATION_DIST_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + RANDOM_SEED_ARG_NAME, type=int, required=False, default=-1,
