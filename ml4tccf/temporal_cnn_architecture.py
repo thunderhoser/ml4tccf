@@ -139,6 +139,11 @@ class PhysicalConstraintLayer(layers.Layer):
             new_rmw_tensor
         )
 
+        print(new_r34_tensor.shape)
+        print(new_r50_tensor.shape)
+        print(new_r64_tensor.shape)
+        print(new_rmw_tensor.shape)
+
         new_inputs = tensorflow.tensor_scatter_nd_update(
             inputs,
             tensorflow.expand_dims(self.r34_index, axis=-1),
