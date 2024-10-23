@@ -176,7 +176,7 @@ def _run():
         tcnn_architecture.OPTIMIZER_FUNCTION_KEY: keras.optimizers.Adam()
     })
 
-    model_object = tcnn_architecture.create_model(option_dict)
+    model_object = tcnn_architecture.create_model_for_structure(option_dict)
 
     output_file_name = '{0:s}/tropical_and_nontropical/model.h5'.format(
         OUTPUT_DIR_NAME
