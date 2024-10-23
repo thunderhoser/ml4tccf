@@ -376,15 +376,15 @@ def check_input_args(option_dict):
         return option_dict
 
     error_checking.assert_is_integer(option_dict[INTENSITY_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[INTENSITY_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[INTENSITY_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[R34_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[R34_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[R34_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[R50_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[R50_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[R50_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[R64_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[R64_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[R64_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[RMW_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[RMW_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[RMW_INDEX_KEY], 0)
 
     return option_dict
 
