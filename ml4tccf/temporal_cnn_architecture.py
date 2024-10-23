@@ -161,13 +161,24 @@ class PhysicalConstraintLayer(layers.Layer):
         #     new_rmw_tensor
         # )
 
-        new_inputs = K.concatenate([
+        new_tensors = [
             K.expand_dims(inputs[..., self.intensity_index], axis=-1),
             K.expand_dims(new_r34_tensor, axis=-1),
             K.expand_dims(new_r50_tensor, axis=-1),
             K.expand_dims(new_r64_tensor, axis=-1),
             K.expand_dims(new_rmw_tensor, axis=-1)
-        ], axis=-1)
+        ]
+        new_indices = numpy.array([
+            self.intensity_index,
+            self.r34_index,
+            self.r50_index,
+            self.r64_index,
+            self.rmw_index
+        ], dtype=int)
+
+        sort_indices = numpy.argsort(new_indices)
+        new_tensors = [new_tensors[i] for i in numpy.argsort(new_indices)]
+        new_inputs = K.concatenate(new_tensors, axis=-1)
 
         return new_inputs
 
@@ -394,6 +405,14 @@ def check_input_args(option_dict):
     error_checking.assert_is_geq(option_dict[R64_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[RMW_INDEX_KEY])
     error_checking.assert_is_geq(option_dict[RMW_INDEX_KEY], 0)
+
+    all_indices = numpy.array([
+        option_dict[INTENSITY_INDEX_KEY], option_dict[R34_INDEX_KEY],
+        option_dict[R50_INDEX_KEY], option_dict[R64_INDEX_KEY],
+        option_dict[RMW_INDEX_KEY]
+    ], dtype=int)
+
+    error_checking.assert_equals(len(numpy.unique(all_indices)), 1)
 
     return option_dict
 
