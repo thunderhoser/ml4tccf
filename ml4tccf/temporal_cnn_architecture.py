@@ -4,21 +4,13 @@ This is a CNN with TimeDistributed layers to handle inputs (satellite images) at
 different lag times.
 """
 
-import os
-import sys
 import numpy
 import keras
 import tensorflow
 import keras.layers as layers
-
-THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
-    os.path.join(os.getcwd(), os.path.expanduser(__file__))
-))
-sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
-
-import error_checking
-import architecture_utils
-import neural_net_utils
+from gewittergefahr.gg_utils import error_checking
+from gewittergefahr.deep_learning import architecture_utils
+from ml4tccf.machine_learning import neural_net_utils
 
 try:
     input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
@@ -98,8 +90,6 @@ class PhysicalConstraintLayer(layers.Layer):
         self.rmw_index = rmw_index
 
     def call(self, inputs):
-        print(inputs.shape)
-        
         new_r50_tensor = (
             inputs[..., self.r50_index] + inputs[..., self.r64_index]
         )
@@ -141,30 +131,36 @@ class PhysicalConstraintLayer(layers.Layer):
             new_rmw_tensor
         )
 
-        print(new_r34_tensor.shape)
-        print(new_r50_tensor.shape)
-        print(new_r64_tensor.shape)
-        print(new_rmw_tensor.shape)
+        batch_size = inputs.shape[0]
+        indices = tensorflow.stack(tensorflow.meshgrid(tensorflow.range(batch_size), tensorflow.range(50), indexing='ij'), axis=-1)
+        indices = tensorflow.reshape(indices, [-1, 2])  # Shape (batch_size * 50, 2)
+        indices = tensorflow.concat([indices, tensorflow.ones([tensorflow.shape(indices)[0], 1], dtype=tensorflow.int32) * 2], axis=-1)  # Channel 2
+        print(indices)
 
+        # Flatten rmw_tensor so it matches the number of indices
+        new_values = tensorflow.reshape(new_r34_tensor, [-1])
+        new_inputs = tensorflow.tensor_scatter_nd_update(inputs, indices, new_values)
+
+
+        # new_inputs = tensorflow.tensor_scatter_nd_update(
+        #     inputs,
+        #     tensorflow.expand_dims(self.r34_index, axis=-1),
+        #     new_r34_tensor
+        # )
         new_inputs = tensorflow.tensor_scatter_nd_update(
-            inputs,
-            tensorflow.expand_dims(self.r34_index, axis=0),
-            tensorflow.expand_dims(new_r34_tensor, axis=-1)
+            new_inputs,
+            tensorflow.expand_dims(self.r50_index, axis=-1),
+            new_r50_tensor
         )
         new_inputs = tensorflow.tensor_scatter_nd_update(
             new_inputs,
-            tensorflow.expand_dims(self.r50_index, axis=0),
-            tensorflow.expand_dims(new_r50_tensor, axis=-1)
+            tensorflow.expand_dims(self.r64_index, axis=-1),
+            new_r64_tensor
         )
         new_inputs = tensorflow.tensor_scatter_nd_update(
             new_inputs,
-            tensorflow.expand_dims(self.r64_index, axis=0),
-            tensorflow.expand_dims(new_r64_tensor, axis=-1)
-        )
-        new_inputs = tensorflow.tensor_scatter_nd_update(
-            new_inputs,
-            tensorflow.expand_dims(self.rmw_index, axis=-0),
-            tensorflow.expand_dims(new_rmw_tensor, axis=-1)
+            tensorflow.expand_dims(self.rmw_index, axis=-1),
+            new_rmw_tensor
         )
 
         return new_inputs
@@ -1038,12 +1034,10 @@ def create_model_for_structure(option_dict):
     layer_object = layers.Reshape(
         target_shape=(num_target_vars, ensemble_size)
     )(layer_object)
-    print(layer_object.shape)
 
     layer_object = layers.Permute(
-        dims=(2, 1), name='output_channels_last'
+        dims=(1, 2), name='output_channels_last'
     )(layer_object)
-    print(layer_object.shape)
 
     # r64_layer_object = layers.Lambda(
     #     lambda x: x[..., r64_index], name='output_slice_r64'
