@@ -25,7 +25,7 @@ import custom_losses_gridded
 import custom_metrics_gridded
 import cnn_architecture
 import u_net_architecture
-import temporal_cnn_architecture
+import temporal_cnn_architecture as tcnn_architecture
 import accum_grad_optimizer
 
 try:
@@ -1102,7 +1102,16 @@ def read_model(hdf5_file_name):
                     )
 
             # TODO(thunderhoser): HACK
-            model_object = temporal_cnn_architecture.create_model(architecture_dict)
+            if (
+                    tcnn_architecture.INTENSITY_INDEX_KEY in architecture_dict
+                    and architecture_dict[tcnn_architecture.INTENSITY_INDEX_KEY]
+                    is not None
+            ):
+                model_object = tcnn_architecture.create_model_for_structure(
+                    architecture_dict
+                )
+            else:
+                model_object = tcnn_architecture.create_model(architecture_dict)
 
             # if temporal_cnn_architecture.FC_MODULE_USE_3D_CONV in architecture_dict:
             #     model_object = temporal_cnn_architecture.create_model(architecture_dict)
