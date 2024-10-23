@@ -1042,7 +1042,7 @@ def create_model_for_structure(option_dict):
     )(layer_object)
 
     layer_object = layers.Permute(
-        dims=(1, 2), name='output_channels_last'
+        dims=(2, 1), name='output_channels_last'
     )(layer_object)
 
     # r64_layer_object = layers.Lambda(
@@ -1072,7 +1072,7 @@ def create_model_for_structure(option_dict):
     )(layer_object)
 
     layer_object = layers.Permute(
-        dims=(1, 2), name='output_channels_first'
+        dims=(2, 1), name='output_channels_first'
     )(layer_object)
 
     if include_high_res_data:
