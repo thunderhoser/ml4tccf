@@ -208,11 +208,13 @@ def _run():
         num_epochs=100,
         num_training_batches_per_epoch=32,
         training_option_dict={
-            neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False
+            neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
+            neural_net_utils.A_DECK_FILE_KEY: ''
         },
         num_validation_batches_per_epoch=16,
         validation_option_dict={
-            neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False
+            neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
+            neural_net_utils.A_DECK_FILE_KEY: ''
         },
         loss_function_string=LOSS_FUNCTION_STRING,
         optimizer_function_string=OPTIMIZER_STRING,
