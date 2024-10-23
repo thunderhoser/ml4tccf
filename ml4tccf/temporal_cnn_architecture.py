@@ -412,7 +412,10 @@ def check_input_args(option_dict):
         option_dict[RMW_INDEX_KEY]
     ], dtype=int)
 
-    error_checking.assert_equals(len(numpy.unique(all_indices)), 1)
+    error_checking.assert_equals(
+        len(numpy.unique(all_indices)),
+        len(all_indices)
+    )
 
     return option_dict
 
