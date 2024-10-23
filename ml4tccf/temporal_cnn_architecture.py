@@ -1041,7 +1041,7 @@ def create_model_for_structure(option_dict):
     print(layer_object.shape)
 
     layer_object = layers.Permute(
-        dims=(1, 2), name='output_channels_last'
+        dims=(2, 1), name='output_channels_last'
     )(layer_object)
     print(layer_object.shape)
 
