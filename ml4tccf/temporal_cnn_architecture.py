@@ -148,23 +148,23 @@ class PhysicalConstraintLayer(layers.Layer):
 
         new_inputs = tensorflow.tensor_scatter_nd_update(
             inputs,
-            tensorflow.expand_dims(self.r34_index, axis=-1),
-            new_r34_tensor
+            tensorflow.expand_dims(self.r34_index, axis=0),
+            tensorflow.expand_dims(new_r34_tensor, axis=-1)
         )
         new_inputs = tensorflow.tensor_scatter_nd_update(
             new_inputs,
-            tensorflow.expand_dims(self.r50_index, axis=-1),
-            new_r50_tensor
+            tensorflow.expand_dims(self.r50_index, axis=0),
+            tensorflow.expand_dims(new_r50_tensor, axis=-1)
         )
         new_inputs = tensorflow.tensor_scatter_nd_update(
             new_inputs,
-            tensorflow.expand_dims(self.r64_index, axis=-1),
-            new_r64_tensor
+            tensorflow.expand_dims(self.r64_index, axis=0),
+            tensorflow.expand_dims(new_r64_tensor, axis=-1)
         )
         new_inputs = tensorflow.tensor_scatter_nd_update(
             new_inputs,
-            tensorflow.expand_dims(self.rmw_index, axis=-1),
-            new_rmw_tensor
+            tensorflow.expand_dims(self.rmw_index, axis=-0),
+            tensorflow.expand_dims(new_rmw_tensor, axis=-1)
         )
 
         return new_inputs
