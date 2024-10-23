@@ -121,7 +121,7 @@ def _run():
         tcnn_architecture.NUM_NEURONS_KEY: dense_neuron_counts
     })
 
-    model_object = tcnn_architecture.create_model(option_dict)
+    model_object = tcnn_architecture.create_model_for_structure(option_dict)
 
     output_file_name = '{0:s}/model.h5'.format(OUTPUT_DIR_NAME)
     file_system_utils.mkdir_recursive_if_necessary(
@@ -156,65 +156,6 @@ def _run():
         num_validation_batches_per_epoch=16,
         validation_option_dict={
             neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False
-        },
-        loss_function_string=LOSS_FUNCTION_STRING,
-        optimizer_function_string=OPTIMIZER_STRING,
-        plateau_patience_epochs=10,
-        plateau_learning_rate_multiplier=0.6,
-        early_stopping_patience_epochs=50,
-        architecture_dict=option_dict,
-        is_model_bnn=False,
-        data_type_string=neural_net_utils.RG_SIMPLE_DATA_TYPE_STRING,
-        train_with_shuffled_data=True
-    )
-
-    option_dict.update({
-        tcnn_architecture.INPUT_DIMENSIONS_SCALAR_KEY:
-            numpy.array([9], dtype=int),
-        tcnn_architecture.LOSS_FUNCTION_KEY:
-            custom_losses_scalar.coord_avg_crps_kilometres,
-        tcnn_architecture.OPTIMIZER_FUNCTION_KEY: keras.optimizers.Adam()
-    })
-
-    model_object = tcnn_architecture.create_model_for_structure(option_dict)
-
-    output_file_name = '{0:s}/tropical_and_nontropical/model.h5'.format(
-        OUTPUT_DIR_NAME
-    )
-    file_system_utils.mkdir_recursive_if_necessary(
-        file_name=output_file_name
-    )
-
-    print('Writing model to: "{0:s}"...'.format(output_file_name))
-    model_object.save(
-        filepath=output_file_name, overwrite=True,
-        include_optimizer=True
-    )
-
-    metafile_name = neural_net_utils.find_metafile(
-        model_dir_name=os.path.split(output_file_name)[0],
-        raise_error_if_missing=False
-    )
-
-    option_dict[tcnn_architecture.LOSS_FUNCTION_KEY] = (
-        LOSS_FUNCTION_STRING
-    )
-    option_dict[tcnn_architecture.OPTIMIZER_FUNCTION_KEY] = (
-        OPTIMIZER_STRING
-    )
-
-    neural_net_utils.write_metafile(
-        pickle_file_name=metafile_name,
-        num_epochs=100,
-        num_training_batches_per_epoch=32,
-        training_option_dict={
-            neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
-            neural_net_utils.A_DECK_FILE_KEY: ''
-        },
-        num_validation_batches_per_epoch=16,
-        validation_option_dict={
-            neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
-            neural_net_utils.A_DECK_FILE_KEY: ''
         },
         loss_function_string=LOSS_FUNCTION_STRING,
         optimizer_function_string=OPTIMIZER_STRING,

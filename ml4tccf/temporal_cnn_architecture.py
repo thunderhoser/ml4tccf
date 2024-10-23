@@ -98,6 +98,8 @@ class PhysicalConstraintLayer(layers.Layer):
         self.rmw_index = rmw_index
 
     def call(self, inputs):
+        print(inputs.shape)
+        
         new_r50_tensor = (
             inputs[..., self.r50_index] + inputs[..., self.r64_index]
         )
