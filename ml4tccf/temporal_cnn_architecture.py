@@ -4,13 +4,21 @@ This is a CNN with TimeDistributed layers to handle inputs (satellite images) at
 different lag times.
 """
 
+import os
+import sys
 import numpy
 import keras
 import tensorflow
 import keras.layers as layers
-from gewittergefahr.gg_utils import error_checking
-from gewittergefahr.deep_learning import architecture_utils
-from ml4tccf.machine_learning import neural_net_utils
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import error_checking
+import architecture_utils
+import neural_net_utils
 
 try:
     input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
