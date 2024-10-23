@@ -102,7 +102,7 @@ def _run():
         )[1]
     )
 
-    dense_neuron_counts[-1] = 2 * ENSEMBLE_SIZE
+    dense_neuron_counts[-1] = 5 * ENSEMBLE_SIZE
     dense_neuron_counts[-2] = max([
         dense_neuron_counts[-1], dense_neuron_counts[-2]
     ])
