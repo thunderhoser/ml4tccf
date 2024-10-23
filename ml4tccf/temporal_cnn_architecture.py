@@ -10,6 +10,7 @@ import numpy
 import keras
 import tensorflow
 import keras.layers as layers
+from tensorflow.keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -139,37 +140,34 @@ class PhysicalConstraintLayer(layers.Layer):
             new_rmw_tensor
         )
 
-        batch_size = inputs.shape[0]
-        indices = tensorflow.stack(tensorflow.meshgrid(tensorflow.range(batch_size), tensorflow.range(50), indexing='ij'), axis=-1)
-        indices = tensorflow.reshape(indices, [-1, 2])  # Shape (batch_size * 50, 2)
-        indices = tensorflow.concat([indices, tensorflow.ones([tensorflow.shape(indices)[0], 1], dtype=tensorflow.int32) * 2], axis=-1)  # Channel 2
-        print(indices)
-
-        # Flatten rmw_tensor so it matches the number of indices
-        new_values = tensorflow.reshape(new_r34_tensor, [-1])
-        new_inputs = tensorflow.tensor_scatter_nd_update(inputs, indices, new_values)
-
-
         # new_inputs = tensorflow.tensor_scatter_nd_update(
         #     inputs,
         #     tensorflow.expand_dims(self.r34_index, axis=-1),
         #     new_r34_tensor
         # )
-        new_inputs = tensorflow.tensor_scatter_nd_update(
-            new_inputs,
-            tensorflow.expand_dims(self.r50_index, axis=-1),
-            new_r50_tensor
-        )
-        new_inputs = tensorflow.tensor_scatter_nd_update(
-            new_inputs,
-            tensorflow.expand_dims(self.r64_index, axis=-1),
-            new_r64_tensor
-        )
-        new_inputs = tensorflow.tensor_scatter_nd_update(
-            new_inputs,
-            tensorflow.expand_dims(self.rmw_index, axis=-1),
-            new_rmw_tensor
-        )
+        # new_inputs = tensorflow.tensor_scatter_nd_update(
+        #     new_inputs,
+        #     tensorflow.expand_dims(self.r50_index, axis=-1),
+        #     new_r50_tensor
+        # )
+        # new_inputs = tensorflow.tensor_scatter_nd_update(
+        #     new_inputs,
+        #     tensorflow.expand_dims(self.r64_index, axis=-1),
+        #     new_r64_tensor
+        # )
+        # new_inputs = tensorflow.tensor_scatter_nd_update(
+        #     new_inputs,
+        #     tensorflow.expand_dims(self.rmw_index, axis=-1),
+        #     new_rmw_tensor
+        # )
+
+        new_inputs = K.concatenate([
+            K.expand_dims(inputs[..., self.intensity_index], axis=-1),
+            K.expand_dims(new_r34_tensor, axis=-1),
+            K.expand_dims(new_r50_tensor, axis=-1),
+            K.expand_dims(new_r64_tensor, axis=-1),
+            K.expand_dims(new_rmw_tensor, axis=-1)
+        ], axis=-1)
 
         return new_inputs
 
