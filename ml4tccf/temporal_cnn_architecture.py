@@ -1038,10 +1038,12 @@ def create_model_for_structure(option_dict):
     layer_object = layers.Reshape(
         target_shape=(num_target_vars, ensemble_size)
     )(layer_object)
+    print(layer_object.shape)
 
     layer_object = layers.Permute(
         dims=(1, 2), name='output_channels_last'
     )(layer_object)
+    print(layer_object.shape)
 
     # r64_layer_object = layers.Lambda(
     #     lambda x: x[..., r64_index], name='output_slice_r64'
