@@ -1013,6 +1013,11 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         grids, this array has shape E x m x n x L.
     """
 
+    raise ValueError(
+        'This method does not properly handle lat/long matrices yet.  See '
+        'equivalent method in neural_net_training_simple.py.'
+    )
+
     error_checking.assert_is_integer(num_target_times)
     error_checking.assert_is_greater(num_target_times, 0)
 
@@ -1255,6 +1260,11 @@ def create_data_specific_trans(
 
     :return: data_dict: See documentation for `create_data`.
     """
+
+    raise ValueError(
+        'This method does not properly handle lat/long matrices yet.  See '
+        'equivalent method in neural_net_training_simple.py.'
+    )
 
     # Check input args.
     error_checking.assert_is_integer_numpy_array(target_times_unix_sec)

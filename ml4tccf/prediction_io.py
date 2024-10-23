@@ -76,17 +76,29 @@ def read_file(netcdf_file_name):
     """
 
     prediction_table_xarray = xarray.open_dataset(netcdf_file_name)
-    pt = prediction_table_xarray
+    ptx = prediction_table_xarray
 
-    if gridded_prediction_utils.PREDICTION_MATRIX_KEY in pt:
-        pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY] = numpy.minimum(
-            pt[gridded_prediction_utils.PREDICTION_MATRIX_KEY], 1.
+    cyclone_id_strings = [
+        c.decode('utf-8')
+        for c in ptx[scalar_prediction_utils.CYCLONE_ID_KEY].values
+    ]
+
+    ptx = ptx.assign({
+        scalar_prediction_utils.CYCLONE_ID_KEY: (
+            ptx[scalar_prediction_utils.CYCLONE_ID_KEY].dims,
+            cyclone_id_strings
+        )
+    })
+
+    if gridded_prediction_utils.PREDICTION_MATRIX_KEY in ptx:
+        ptx[gridded_prediction_utils.PREDICTION_MATRIX_KEY] = numpy.minimum(
+            ptx[gridded_prediction_utils.PREDICTION_MATRIX_KEY], 1.
         )
     else:
-        if scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY not in pt.attrs:
-            pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] = None
-        elif pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] == '':
-            pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] = None
+        if scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY not in ptx.attrs:
+            ptx.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] = None
+        elif ptx.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] == '':
+            ptx.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] = None
 
-    prediction_table_xarray = pt
+    prediction_table_xarray = ptx
     return prediction_table_xarray

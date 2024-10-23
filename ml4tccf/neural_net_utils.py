@@ -13,6 +13,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import grids
 import number_rounding
 import file_system_utils
 import error_checking
@@ -661,13 +662,29 @@ def grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
     )
 
     # Do actual stuff.
-    latitude_matrix_deg_n = numpy.stack(
+    latitude_matrix_deg_n_4d = numpy.stack(
         [
             numpy.stack(
                 [
-                    numpy.meshgrid(
-                        longitude_matrix_deg_e[i, :, j],
-                        latitude_matrix_deg_n[i, :, j]
+                    grids.latlng_vectors_to_matrices(
+                        unique_latitudes_deg=latitude_matrix_deg_n[i, :, j],
+                        unique_longitudes_deg=longitude_matrix_deg_e[i, :, j]
+                    )[0]
+                    for j in range(num_lag_times)
+                ],
+                axis=-1)
+            for i in range(num_target_times)
+        ],
+        axis=0
+    )
+
+    longitude_matrix_deg_e_4d = numpy.stack(
+        [
+            numpy.stack(
+                [
+                    grids.latlng_vectors_to_matrices(
+                        unique_latitudes_deg=latitude_matrix_deg_n[i, :, j],
+                        unique_longitudes_deg=longitude_matrix_deg_e[i, :, j]
                     )[1]
                     for j in range(num_lag_times)
                 ],
@@ -678,24 +695,7 @@ def grid_coords_3d_to_4d(latitude_matrix_deg_n, longitude_matrix_deg_e):
         axis=0
     )
 
-    longitude_matrix_deg_e = numpy.stack(
-        [
-            numpy.stack(
-                [
-                    numpy.meshgrid(
-                        longitude_matrix_deg_e[i, :, j],
-                        latitude_matrix_deg_n[i, :, j]
-                    )[0]
-                    for j in range(num_lag_times)
-                ],
-                axis=-1
-            )
-            for i in range(num_target_times)
-        ],
-        axis=0
-    )
-
-    return latitude_matrix_deg_n, longitude_matrix_deg_e
+    return latitude_matrix_deg_n_4d, longitude_matrix_deg_e_4d
 
 
 def make_targets_for_semantic_seg(
@@ -918,6 +918,17 @@ def read_metafile(pickle_file_name):
 
     training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
     validation_option_dict = metadata_dict[VALIDATION_OPTIONS_KEY]
+
+    # TODO(thunderhoser): This is a HACK.
+    a_deck_file_name = training_option_dict[A_DECK_FILE_KEY]
+    if not os.path.isfile(a_deck_file_name):
+        a_deck_file_name = (
+            '/mnt/shnas10/users/lagerquist/ml4tccf_project/a_decks/processed/'
+            'a_decks_2024_normalized.nc'
+        )
+
+    training_option_dict[A_DECK_FILE_KEY] = a_deck_file_name
+    validation_option_dict[A_DECK_FILE_KEY] = a_deck_file_name
 
     if USE_XY_COORDS_KEY not in training_option_dict:
         training_option_dict[USE_XY_COORDS_KEY] = False

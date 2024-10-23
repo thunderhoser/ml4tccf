@@ -18,6 +18,10 @@ There are two differences between the real-time (here) and development
     (0000, 0600, 1200, 1800 UTC), since these are the times with the best
     "ground truth".  But in real time, we want the ability to produce neural-net
     estimates whenever.
+
+UPDATE: I added back the "data augmentation" input args, since there are some
+situations where we want to add random translations to the first-guess center,
+even in real time.
 """
 
 import os
@@ -46,7 +50,13 @@ MODEL_FILE_ARG_NAME = 'input_model_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
 A_DECK_FILE_ARG_NAME = 'input_a_deck_file_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
+VALID_DATE_ARG_NAME = 'valid_date_string'
+DISABLE_GPUS_ARG_NAME = 'disable_gpus'
+NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
+MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
+STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
+OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 MODEL_FILE_HELP_STRING = (
     'Path to trained model (will be read by `nn_utils.read_model`).'
@@ -63,10 +73,54 @@ CYCLONE_ID_HELP_STRING = (
     'Will apply neural net to data from this cyclone.  Cyclone ID must be in '
     'format "yyyyBBnn".'
 )
+VALID_DATE_HELP_STRING = (
+    'Valid date (format "yyyymmdd").  Will apply neural net to all valid times '
+    'on this date.  If you want to apply the NN to all valid times for the '
+    'cyclone, leave this argument alone.'
+)
+DISABLE_GPUS_HELP_STRING = (
+    'Boolean flag.  If 1, will disable GPUs and use only CPUs.  This argument '
+    'is HIGHLY RECOMMENDED in any environment, besides Hera (or some machine '
+    'where every job runs on a different node), where this script could be '
+    'running multiple times at once.'
+)
+NUM_TRANSLATIONS_HELP_STRING = (
+    'Number of random translations to apply to each TC snapshot (one snapshot '
+    '= one TC at one time).  Total number of TC samples will be num_snapshots '
+    '* {0:s}.  WARNING: Use this argument only if you want to add random '
+    'translations to the first-guess TC center.  If you want to just leave the '
+    'first-guess TC center alone and use this as the image center (which is '
+    'the default behaviour for the real-time version of GeoCenter), then make '
+    'this argument 0.'
+).format(
+    NUM_TRANSLATIONS_ARG_NAME
+)
+MEAN_TRANSLATION_DIST_HELP_STRING = (
+    '[used only if {0:s} > 0] Mean translation distance (units of IR pixels).  '
+    'If you want to keep the same mean translation distance used in training, '
+    'leave this argument alone.'
+).format(
+    NUM_TRANSLATIONS_ARG_NAME
+)
+STDEV_TRANSLATION_DIST_HELP_STRING = (
+    '[used only if {0:s} > 0] Standard deviation of translation distance '
+    '(units of IR pixels).  If you want to keep the same stdev translation '
+    'distance used in training, leave this argument alone.'
+).format(
+    NUM_TRANSLATIONS_ARG_NAME
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Results will be written by '
     '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`, '
-    'to a location in this directory determined by `prediction_io.find_file`.'
+    'to a location in this directory determined by `prediction_io.find_file`.  '
+    'If you would rather specify the file path directly, leave this argument '
+    'alone.'
+)
+OUTPUT_FILE_HELP_STRING = (
+    'Path to output file.  Results will be written here by '
+    '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`.  '
+    'If you would rather just specify the output directory and not the total '
+    'path, leave this argument alone.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -87,13 +141,40 @@ INPUT_ARG_PARSER.add_argument(
     help=CYCLONE_ID_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
+    '--' + VALID_DATE_ARG_NAME, type=str, required=False, default='',
+    help=VALID_DATE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + DISABLE_GPUS_ARG_NAME, type=int, required=False,
+    default=0, help=DISABLE_GPUS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_TRANSLATIONS_ARG_NAME, type=int, required=False, default=-1,
+    help=NUM_TRANSLATIONS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MEAN_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
+    default=-1., help=MEAN_TRANSLATION_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + STDEV_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
+    default=-1., help=STDEV_TRANSLATION_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + OUTPUT_DIR_ARG_NAME, type=str, required=False, default='',
     help=OUTPUT_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + OUTPUT_FILE_ARG_NAME, type=str, required=False, default='',
+    help=OUTPUT_FILE_HELP_STRING
 )
 
 
 def _run(model_file_name, satellite_dir_name, a_deck_file_name,
-         cyclone_id_string, output_dir_name):
+         cyclone_id_string, valid_date_string, disable_gpus,
+         data_aug_num_translations, data_aug_mean_translation_low_res_px,
+         data_aug_stdev_translation_low_res_px,
+         output_dir_name, output_file_name):
     """Real-time version of apply_neural_net.py.
 
     This is effectively the main method.
@@ -102,8 +183,38 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param satellite_dir_name: Same.
     :param a_deck_file_name: Same.
     :param cyclone_id_string: Same.
+    :param valid_date_string: Same.
+    :param disable_gpus: Same.
+    :param data_aug_num_translations: Same.
+    :param data_aug_mean_translation_low_res_px: Same.
+    :param data_aug_stdev_translation_low_res_px: Same.
     :param output_dir_name: Same.
+    :param output_file_name: Same.
     """
+
+    if disable_gpus:
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    if valid_date_string == '':
+        valid_date_string = None
+
+    if output_dir_name == '':
+        output_dir_name = None
+    else:
+        output_file_name = None
+
+    if output_file_name == '':
+        output_file_name = None
+    else:
+        output_dir_name = None
+
+    assert not (output_dir_name is None and output_file_name is None)
+
+    if data_aug_num_translations < 0:
+        data_aug_num_translations = None
+    if data_aug_mean_translation_low_res_px < 0:
+        data_aug_mean_translation_low_res_px = None
+    if data_aug_stdev_translation_low_res_px < 0:
+        data_aug_stdev_translation_low_res_px = None
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = nn_utils.read_model(model_file_name)
@@ -122,9 +233,27 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     validation_option_dict[nn_utils.REMOVE_NONTROPICAL_KEY] = False
     validation_option_dict[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = False
 
-    validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 1
-    validation_option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = 1e-6
-    validation_option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = 1e-6
+    if data_aug_num_translations is None:
+
+        # First-guess TC center will be left alone.
+        validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 1
+        validation_option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = 1e-6
+        validation_option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = 1e-6
+    else:
+
+        # First-guess TC center will be perturbed.
+        validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
+            data_aug_num_translations
+        )
+
+        if data_aug_mean_translation_low_res_px is not None:
+            validation_option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = (
+                data_aug_mean_translation_low_res_px
+            )
+        if data_aug_stdev_translation_low_res_px is not None:
+            validation_option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = (
+                data_aug_stdev_translation_low_res_px
+            )
 
     validation_option_dict[nn_utils.SATELLITE_DIRECTORY_KEY] = (
         satellite_dir_name
@@ -134,6 +263,8 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
 
     if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
+        assert valid_date_string is None
+
         data_dict = nn_training_cira_ir.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
@@ -143,9 +274,12 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         data_dict = nn_training_simple.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
+            valid_date_string=valid_date_string,
             num_target_times=LARGE_INTEGER
         )
     else:
+        assert valid_date_string is None
+
         data_dict = nn_training_fancy.create_data(
             option_dict=validation_option_dict,
             cyclone_id_string=cyclone_id_string,
@@ -173,13 +307,16 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
 
     del predictor_matrices
 
-    if validation_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY]:
+    if output_file_name is None:
         output_file_name = prediction_io.find_file(
-            directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
+            directory_name=output_dir_name,
+            cyclone_id_string=cyclone_id_string,
             raise_error_if_missing=False
         )
 
-        print('Writing results to: "{0:s}"...'.format(output_file_name))
+    print('Writing results to: "{0:s}"...'.format(output_file_name))
+
+    if validation_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY]:
         gridded_prediction_io.write_file(
             netcdf_file_name=output_file_name,
             target_matrix=target_matrix,
@@ -191,12 +328,6 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
             model_file_name=model_file_name
         )
     else:
-        output_file_name = prediction_io.find_file(
-            directory_name=output_dir_name, cyclone_id_string=cyclone_id_string,
-            raise_error_if_missing=False
-        )
-
-        print('Writing results to: "{0:s}"...'.format(output_file_name))
         scalar_prediction_io.write_file(
             netcdf_file_name=output_file_name,
             target_matrix=target_matrix,
@@ -216,5 +347,19 @@ if __name__ == '__main__':
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, SATELLITE_DIR_ARG_NAME),
         a_deck_file_name=getattr(INPUT_ARG_OBJECT, A_DECK_FILE_ARG_NAME),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
-        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
+        valid_date_string=getattr(INPUT_ARG_OBJECT, VALID_DATE_ARG_NAME),
+        disable_gpus=bool(
+            getattr(INPUT_ARG_OBJECT, DISABLE_GPUS_ARG_NAME)
+        ),
+        data_aug_num_translations=getattr(
+            INPUT_ARG_OBJECT, NUM_TRANSLATIONS_ARG_NAME
+        ),
+        data_aug_mean_translation_low_res_px=getattr(
+            INPUT_ARG_OBJECT, MEAN_TRANSLATION_DIST_ARG_NAME
+        ),
+        data_aug_stdev_translation_low_res_px=getattr(
+            INPUT_ARG_OBJECT, STDEV_TRANSLATION_DIST_ARG_NAME
+        ),
+        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),
+        output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )

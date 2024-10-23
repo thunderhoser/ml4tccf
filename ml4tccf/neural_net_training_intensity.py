@@ -1044,6 +1044,11 @@ def create_data(option_dict, ebtrk_file_name, center_fixing_model_object,
         longitudes (deg east).
     """
 
+    raise ValueError(
+        'This method does not properly handle lat/long matrices yet.  See '
+        'equivalent method in neural_net_training_simple.py.'
+    )
+
     error_checking.assert_is_integer(num_target_times)
     error_checking.assert_is_greater(num_target_times, 0)
 
@@ -1405,6 +1410,11 @@ def create_data_no_trans(
     data_dict["low_res_longitude_matrix_deg_e"]: E-by-n-by-L numpy array of
         longitudes (deg east).
     """
+
+    raise ValueError(
+        'This method does not properly handle lat/long matrices yet.  See '
+        'equivalent method in neural_net_training_simple.py.'
+    )
 
     error_checking.assert_is_integer(num_target_times)
     error_checking.assert_is_greater(num_target_times, 0)

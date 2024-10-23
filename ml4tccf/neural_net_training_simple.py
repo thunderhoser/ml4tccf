@@ -1860,10 +1860,38 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         for_high_res=False
     )
 
+    # TODO(thunderhoser): This should work, but I'm not 100% sure yet.
+    low_res_latitude_matrix_deg_n = numpy.repeat(
+        low_res_latitude_matrix_deg_n, repeats=data_aug_num_translations,
+        axis=0
+    )
+    low_res_longitude_matrix_deg_e = numpy.repeat(
+        low_res_longitude_matrix_deg_e, repeats=data_aug_num_translations,
+        axis=0
+    )
     low_res_latitude_matrix_deg_n, low_res_longitude_matrix_deg_e = (
         nn_utils.grid_coords_3d_to_4d(
             latitude_matrix_deg_n=low_res_latitude_matrix_deg_n,
             longitude_matrix_deg_e=low_res_longitude_matrix_deg_e
+        )
+    )
+
+    _, low_res_latitude_matrix_deg_n = (
+        data_augmentation.augment_data_specific_trans(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=low_res_latitude_matrix_deg_n,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
+            sentinel_value=-10.
+        )
+    )
+    _, low_res_longitude_matrix_deg_e = (
+        data_augmentation.augment_data_specific_trans(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=low_res_longitude_matrix_deg_e,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
+            sentinel_value=-10.
         )
     )
 
@@ -1875,7 +1903,6 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
             for_high_res=False
         )[:, :, 0, :]
     )
-
     low_res_longitude_matrix_deg_e = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_longitude_matrix_deg_e,
@@ -1894,14 +1921,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     target_times_unix_sec = numpy.repeat(
         target_times_unix_sec, repeats=data_aug_num_translations
     )
-    low_res_latitude_matrix_deg_n = numpy.repeat(
-        low_res_latitude_matrix_deg_n, repeats=data_aug_num_translations,
-        axis=0
-    )
-    low_res_longitude_matrix_deg_e = numpy.repeat(
-        low_res_longitude_matrix_deg_e, repeats=data_aug_num_translations,
-        axis=0
-    )
+
     if scalar_predictor_matrix is not None:
         scalar_predictor_matrix = numpy.repeat(
             scalar_predictor_matrix, axis=0,
@@ -2019,9 +2039,6 @@ def create_data_specific_trans(
     #     numpy.absolute(column_translations_low_res_px),
     #     0
     # )
-
-    if valid_date_string is not None:
-        _ = time_conversion.string_to_unix_sec(valid_date_string, DATE_FORMAT)
 
     option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
     option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
@@ -2205,6 +2222,25 @@ def create_data_specific_trans(
         )
     )
 
+    _, low_res_latitude_matrix_deg_n = (
+        data_augmentation.augment_data_specific_trans(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=low_res_latitude_matrix_deg_n,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
+            sentinel_value=-10.
+        )
+    )
+    _, low_res_longitude_matrix_deg_e = (
+        data_augmentation.augment_data_specific_trans(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=low_res_longitude_matrix_deg_e,
+            row_translations_low_res_px=row_translations_low_res_px,
+            column_translations_low_res_px=column_translations_low_res_px,
+            sentinel_value=-10.
+        )
+    )
+
     low_res_latitude_matrix_deg_n = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_latitude_matrix_deg_n,
@@ -2213,7 +2249,6 @@ def create_data_specific_trans(
             for_high_res=False
         )[:, :, 0, :]
     )
-
     low_res_longitude_matrix_deg_e = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_longitude_matrix_deg_e,

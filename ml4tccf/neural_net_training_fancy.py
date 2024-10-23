@@ -812,6 +812,11 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         longitudes (deg east).
     """
 
+    raise ValueError(
+        'This method does not properly handle lat/long matrices yet.  See '
+        'equivalent method in neural_net_training_simple.py.'
+    )
+
     option_dict = nn_utils.check_generator_args(option_dict)
     error_checking.assert_is_integer(num_target_times)
     error_checking.assert_is_greater(num_target_times, 0)
@@ -1125,6 +1130,11 @@ def create_data_specific_trans(
 
     :return: data_dict: See documentation for `create_data`.
     """
+
+    raise ValueError(
+        'This method does not properly handle lat/long matrices yet.  See '
+        'equivalent method in neural_net_training_simple.py.'
+    )
 
     # Check input args.
     option_dict = nn_utils.check_generator_args(option_dict)

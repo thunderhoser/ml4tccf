@@ -202,9 +202,9 @@ def augment_data(
     N = number of columns in high-res grid
     n = number of columns in low-res grid = M/4
 
-    :param bidirectional_reflectance_matrix: E-by-M-by-N-by-LW numpy array
+    :param bidirectional_reflectance_matrix: E-by-M-by-N-by-L-by-W numpy array
         of reflectance values (unitless).  This may also be None.
-    :param brightness_temp_matrix_kelvins: E-by-m-by-n-by-Lw numpy array
+    :param brightness_temp_matrix_kelvins: E-by-m-by-n-by-L-by-w numpy array
         of brightness temperatures.
     :param num_translations_per_example: T in the above discussion.
     :param mean_translation_low_res_px: Mean translation distance (in units of
@@ -212,9 +212,9 @@ def augment_data(
     :param stdev_translation_low_res_px: Standard deviation of translation
         distance (in units of low-resolution pixels).
     :param sentinel_value: Sentinel value (used for padded pixels around edge).
-    :return: bidirectional_reflectance_matrix: ET-by-M-by-N-by-LW numpy
+    :return: bidirectional_reflectance_matrix: ET-by-M-by-N-by-L-by-W numpy
         array of reflectance values (unitless).  This may also be None.
-    :return: brightness_temp_matrix_kelvins: ET-by-m-by-n-by-Lw numpy array
+    :return: brightness_temp_matrix_kelvins: ET-by-m-by-n-by-L-by-w numpy array
         of brightness temperatures.
     :return: row_translations_low_res_px: length-(ET) numpy array of translation
         distances applied (in units of low-resolution pixels).
@@ -437,6 +437,9 @@ def subset_grid_after_data_aug(data_matrix, num_rows_to_keep,
     num_rows = data_matrix.shape[1]
     num_columns = data_matrix.shape[2]
     num_wavelengths = data_matrix.shape[3]
+
+    if num_rows_to_keep == num_rows and num_columns_to_keep == num_columns:
+        return data_matrix
 
     row_dim = (
         satellite_utils.HIGH_RES_ROW_DIM if for_high_res
