@@ -2,8 +2,11 @@
 
 import random
 import numpy
+import keras
+import pandas
 from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import number_rounding
+from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import a_deck_io
 from ml4tccf.io import satellite_io
@@ -560,3 +563,137 @@ def data_generator_shuffled(option_dict):
         ))
 
         yield predictor_matrices, target_matrix
+
+
+def train_model(
+        model_object, output_dir_name, num_epochs,
+        num_training_batches_per_epoch, training_option_dict,
+        num_validation_batches_per_epoch, validation_option_dict,
+        loss_function_string, optimizer_function_string,
+        plateau_patience_epochs, plateau_learning_rate_multiplier,
+        early_stopping_patience_epochs, architecture_dict):
+    """Trains neural net.
+
+    :param model_object: See doc for `neural_net_training_fancy.train_model`.
+    :param output_dir_name: Same.
+    :param num_epochs: Same.
+    :param num_training_batches_per_epoch: Same.
+    :param training_option_dict: Same.
+    :param num_validation_batches_per_epoch: Same.
+    :param validation_option_dict: Same.
+    :param loss_function_string: Same.
+    :param optimizer_function_string: Same.
+    :param plateau_patience_epochs: Same.
+    :param plateau_learning_rate_multiplier: Same.
+    :param early_stopping_patience_epochs: Same.
+    :param architecture_dict: Same.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=output_dir_name
+    )
+
+    backup_dir_name = '{0:s}/backup_and_restore'.format(output_dir_name)
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=backup_dir_name
+    )
+
+    error_checking.assert_is_integer(num_epochs)
+    error_checking.assert_is_geq(num_epochs, 2)
+    error_checking.assert_is_integer(num_training_batches_per_epoch)
+    error_checking.assert_is_geq(num_training_batches_per_epoch, 2)
+    error_checking.assert_is_integer(num_validation_batches_per_epoch)
+    error_checking.assert_is_geq(num_validation_batches_per_epoch, 2)
+    error_checking.assert_is_integer(plateau_patience_epochs)
+    error_checking.assert_is_geq(plateau_patience_epochs, 2)
+    error_checking.assert_is_greater(plateau_learning_rate_multiplier, 0.)
+    error_checking.assert_is_less_than(plateau_learning_rate_multiplier, 1.)
+    error_checking.assert_is_integer(early_stopping_patience_epochs)
+    error_checking.assert_is_geq(early_stopping_patience_epochs, 5)
+
+    validation_keys_to_keep = [SATELLITE_DIRECTORY_KEY, YEARS_KEY]
+    for this_key in list(training_option_dict.keys()):
+        if this_key in validation_keys_to_keep:
+            continue
+
+        validation_option_dict[this_key] = training_option_dict[this_key]
+
+    training_option_dict = check_generator_args(training_option_dict)
+    validation_option_dict = check_generator_args(validation_option_dict)
+
+    model_file_name = '{0:s}/model.weights.h5'.format(output_dir_name)
+    history_file_name = '{0:s}/history.csv'.format(output_dir_name)
+
+    try:
+        history_table_pandas = pandas.read_csv(history_file_name)
+        initial_epoch = history_table_pandas['epoch'].max() + 1
+        best_validation_loss = history_table_pandas['val_loss'].min()
+    except:
+        initial_epoch = 0
+        best_validation_loss = numpy.inf
+
+    history_object = keras.callbacks.CSVLogger(
+        filename=history_file_name, separator=',', append=True
+    )
+    checkpoint_object = keras.callbacks.ModelCheckpoint(
+        filepath=model_file_name, monitor='val_loss', verbose=1,
+        save_best_only=True, save_weights_only=True, mode='min',
+        save_freq='epoch'
+    )
+    checkpoint_object.best = best_validation_loss
+
+    early_stopping_object = keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=0.,
+        patience=early_stopping_patience_epochs, verbose=1, mode='min'
+    )
+    plateau_object = keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss', factor=plateau_learning_rate_multiplier,
+        patience=plateau_patience_epochs, verbose=1, mode='min',
+        min_delta=0., cooldown=0
+    )
+    backup_object = keras.callbacks.BackupAndRestore(
+        backup_dir_name, save_freq='epoch', delete_checkpoint=False
+    )
+
+    list_of_callback_objects = [
+        history_object, checkpoint_object,
+        early_stopping_object, plateau_object,
+        backup_object
+    ]
+
+    training_generator = data_generator_shuffled(training_option_dict)
+    validation_generator = data_generator_shuffled(validation_option_dict)
+
+    metafile_name = nn_utils.find_metafile(
+        model_dir_name=output_dir_name, raise_error_if_missing=False
+    )
+    print('Writing metadata to: "{0:s}"...'.format(metafile_name))
+
+    nn_utils.write_metafile(
+        pickle_file_name=metafile_name,
+        num_epochs=num_epochs,
+        num_training_batches_per_epoch=num_training_batches_per_epoch,
+        training_option_dict=training_option_dict,
+        num_validation_batches_per_epoch=num_validation_batches_per_epoch,
+        validation_option_dict=validation_option_dict,
+        loss_function_string=loss_function_string,
+        optimizer_function_string=optimizer_function_string,
+        plateau_patience_epochs=plateau_patience_epochs,
+        plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
+        early_stopping_patience_epochs=early_stopping_patience_epochs,
+        architecture_dict=architecture_dict,
+        is_model_bnn=False,
+        data_type_string=nn_utils.RG_SIMPLE_DATA_TYPE_STRING,
+        train_with_shuffled_data=True
+    )
+
+    model_object.fit(
+        x=training_generator,
+        steps_per_epoch=num_training_batches_per_epoch,
+        epochs=num_epochs,
+        initial_epoch=initial_epoch,
+        verbose=1,
+        callbacks=list_of_callback_objects,
+        validation_data=validation_generator,
+        validation_steps=num_validation_batches_per_epoch
+    )
