@@ -13,6 +13,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import time_conversion
 import number_rounding
 import file_system_utils
 import error_checking
@@ -418,6 +419,10 @@ def data_generator_shuffled(option_dict):
                 file_index += 1
                 continue
 
+            print(these_cyclone_id_strings)
+            these_target_time_strings = [time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M') for t in these_target_times_unix_sec]
+            print(these_target_time_strings)
+
             target_values_by_sample = [
                 _get_target_variables(
                     ebtrk_table_xarray=ebtrk_table_xarray,
@@ -430,6 +435,7 @@ def data_generator_shuffled(option_dict):
                 )
             ]
 
+            # TODO(thunderhoser): Left off here.  Something is fucked with reading target vars.
             print(target_field_names)
             print(target_values_by_sample)
             print(target_values_by_sample[0].shape)
