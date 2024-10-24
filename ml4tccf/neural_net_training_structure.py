@@ -24,6 +24,7 @@ import extended_best_track_utils as ebtrk_utils
 import neural_net_training_simple as nn_training_simple
 import neural_net_utils as nn_utils
 
+HOURS_TO_SECONDS = 3600
 MINUTES_TO_SECONDS = 60
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
 
@@ -110,12 +111,14 @@ def _get_target_variables(ebtrk_table_xarray, target_field_names,
     later_synoptic_time_unix_sec = int(number_rounding.ceiling_to_nearest(
         target_time_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC
     ))
+    all_valid_times_unix_sec = (
+        ebtrk_table_xarray[ebtrk_utils.VALID_TIME_KEY].values * HOURS_TO_SECONDS
+    )
 
     earlier_indices = numpy.where(numpy.logical_and(
         ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values ==
         cyclone_id_string,
-        ebtrk_table_xarray[ebtrk_utils.VALID_TIME_KEY].values ==
-        earlier_synoptic_time_unix_sec
+        all_valid_times_unix_sec == earlier_synoptic_time_unix_sec
     ))[0]
     if len(earlier_indices) == 0:
         return None
@@ -123,8 +126,7 @@ def _get_target_variables(ebtrk_table_xarray, target_field_names,
     later_indices = numpy.where(numpy.logical_and(
         ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values ==
         cyclone_id_string,
-        ebtrk_table_xarray[ebtrk_utils.VALID_TIME_KEY].values ==
-        later_synoptic_time_unix_sec
+        all_valid_times_unix_sec == later_synoptic_time_unix_sec
     ))[0]
     if len(later_indices) == 0:
         return None
