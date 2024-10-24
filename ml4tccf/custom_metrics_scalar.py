@@ -84,6 +84,8 @@ def mean_distance_kilometres(target_tensor, prediction_tensor):
     :return: mean_distance_km: Mean distance.
     """
 
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
+
     mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
     row_distances_km = (
         target_tensor[:, 2] *
@@ -107,6 +109,8 @@ def discretized_mean_dist_kilometres(target_tensor, prediction_tensor):
     :param prediction_tensor: Same.
     :return: discretized_mean_distance_km: Discretized mean distance.
     """
+
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
     mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
     row_distances_km = (
@@ -139,6 +143,8 @@ def crps_kilometres(target_tensor, prediction_tensor):
     :param prediction_tensor: Same.
     :return: crps_km: CRPS.
     """
+
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
     mean_row_error_by_example_km = K.mean(
         K.expand_dims(target_tensor[:, 2], axis=-1) *
@@ -195,6 +201,8 @@ def discretized_crps_kilometres(target_tensor, prediction_tensor):
     :param prediction_tensor: Same.
     :return: discretized_crps_km: Discretized CRPS.
     """
+
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
     mean_row_error_by_example_km = K.mean(
         K.expand_dims(target_tensor[:, 2], axis=-1) *

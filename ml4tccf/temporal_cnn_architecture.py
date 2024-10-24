@@ -20,6 +20,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import error_checking
 import architecture_utils
 import neural_net_utils
+import custom_metrics_structure
 
 try:
     input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
@@ -1112,12 +1113,31 @@ def create_model_for_structure(option_dict):
         else:
             input_layer_objects = input_layer_object_low_res
 
+    metric_functions = [
+        custom_metrics_structure.mean_squared_error(
+            channel_index=intensity_index,
+            function_name='mean_sq_error_intensity_kt2'
+        ),
+        custom_metrics_structure.mean_squared_error(
+            channel_index=r34_index, function_name='mean_sq_error_r34_km2'
+        ),
+        custom_metrics_structure.mean_squared_error(
+            channel_index=r50_index, function_name='mean_sq_error_r50_km2'
+        ),
+        custom_metrics_structure.mean_squared_error(
+            channel_index=r64_index, function_name='mean_sq_error_r64_km2'
+        ),
+        custom_metrics_structure.mean_squared_error(
+            channel_index=rmw_index, function_name='mean_sq_error_rmw_km2'
+        )
+    ]
+
     model_object = keras.models.Model(
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
         loss=loss_function, optimizer=optimizer_function,
-        metrics=neural_net_utils.METRIC_FUNCTION_LIST_SCALAR
+        metrics=metric_functions
     )
     model_object.summary()
 

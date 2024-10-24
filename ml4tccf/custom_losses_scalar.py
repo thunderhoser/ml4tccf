@@ -72,6 +72,8 @@ def mean_squared_distance_kilometres2(target_tensor, prediction_tensor):
     :return: mean_squared_distance_km2: Mean squared distance.
     """
 
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
+
     mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
     row_distances_km = (
         target_tensor[:, 2] *
@@ -98,6 +100,8 @@ def discretized_mean_sq_dist_kilometres2(target_tensor, prediction_tensor):
     :return: discretized_mean_squared_distance_km2: Discretized mean squared
         distance.
     """
+
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
     mean_prediction_tensor = K.mean(prediction_tensor, axis=-1)
     row_distances_km = (
@@ -127,6 +131,8 @@ def weird_crps_kilometres2(target_tensor, prediction_tensor):
     :param prediction_tensor: Same.
     :return: weird_crps_km2: Weird CRPS.
     """
+
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
     mean_row_error_by_example_km = K.mean(
         K.expand_dims(target_tensor[:, 2], axis=-1) *
@@ -182,6 +188,8 @@ def discretized_weird_crps_kilometres2(target_tensor, prediction_tensor):
     :param prediction_tensor: Same.
     :return: discretized_weird_crps_km2: Discretized weird CRPS.
     """
+
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
     mean_row_error_by_example_km = K.mean(
         K.expand_dims(target_tensor[:, 2], axis=-1) *
@@ -245,6 +253,8 @@ def coord_avg_crps_kilometres(target_tensor, prediction_tensor):
     :return: coord_averaged_crps_km: Coord-averaged CRPS.
     """
 
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
+
     mean_row_error_by_example_km = K.mean(
         K.expand_dims(target_tensor[:, 2], axis=-1) *
         K.abs(
@@ -301,6 +311,8 @@ def discretized_coord_avg_crps_kilometres(target_tensor, prediction_tensor):
     :return: discretized_coord_averaged_crps_km: Discretized coord-averaged
         CRPS.
     """
+
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
     mean_row_error_by_example_km = K.mean(
         K.expand_dims(target_tensor[:, 2], axis=-1) *
@@ -384,6 +396,8 @@ def dwcrps_for_structure_params(channel_weights, function_name,
         :param prediction_tensor: E-by-C-by-S numpy array of predicted values.
         :return: dwcrps: DWCRPS (scalar float).
         """
+
+        target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
         # Compute dual weights (E-by-C-by-S tensor).
         relevant_target_tensor = K.expand_dims(target_tensor, axis=-1)
