@@ -10,6 +10,7 @@ import numpy
 import keras
 import tensorflow
 import keras.layers as layers
+from tensorflow.keras import backend as K
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -139,37 +140,46 @@ class PhysicalConstraintLayer(layers.Layer):
             new_rmw_tensor
         )
 
-        batch_size = inputs.shape[0]
-        indices = tensorflow.stack(tensorflow.meshgrid(tensorflow.range(batch_size), tensorflow.range(50), indexing='ij'), axis=-1)
-        indices = tensorflow.reshape(indices, [-1, 2])  # Shape (batch_size * 50, 2)
-        indices = tensorflow.concat([indices, tensorflow.ones([tensorflow.shape(indices)[0], 1], dtype=tensorflow.int32) * 2], axis=-1)  # Channel 2
-        print(indices)
-
-        # Flatten rmw_tensor so it matches the number of indices
-        new_values = tensorflow.reshape(new_r34_tensor, [-1])
-        new_inputs = tensorflow.tensor_scatter_nd_update(inputs, indices, new_values)
-
-
         # new_inputs = tensorflow.tensor_scatter_nd_update(
         #     inputs,
         #     tensorflow.expand_dims(self.r34_index, axis=-1),
         #     new_r34_tensor
         # )
-        new_inputs = tensorflow.tensor_scatter_nd_update(
-            new_inputs,
-            tensorflow.expand_dims(self.r50_index, axis=-1),
-            new_r50_tensor
-        )
-        new_inputs = tensorflow.tensor_scatter_nd_update(
-            new_inputs,
-            tensorflow.expand_dims(self.r64_index, axis=-1),
-            new_r64_tensor
-        )
-        new_inputs = tensorflow.tensor_scatter_nd_update(
-            new_inputs,
-            tensorflow.expand_dims(self.rmw_index, axis=-1),
-            new_rmw_tensor
-        )
+        # new_inputs = tensorflow.tensor_scatter_nd_update(
+        #     new_inputs,
+        #     tensorflow.expand_dims(self.r50_index, axis=-1),
+        #     new_r50_tensor
+        # )
+        # new_inputs = tensorflow.tensor_scatter_nd_update(
+        #     new_inputs,
+        #     tensorflow.expand_dims(self.r64_index, axis=-1),
+        #     new_r64_tensor
+        # )
+        # new_inputs = tensorflow.tensor_scatter_nd_update(
+        #     new_inputs,
+        #     tensorflow.expand_dims(self.rmw_index, axis=-1),
+        #     new_rmw_tensor
+        # )
+
+        new_tensors = [
+            K.expand_dims(inputs[..., self.intensity_index], axis=-1),
+            K.expand_dims(new_r34_tensor, axis=-1),
+            K.expand_dims(new_r50_tensor, axis=-1),
+            K.expand_dims(new_r64_tensor, axis=-1),
+            K.expand_dims(new_rmw_tensor, axis=-1)
+        ]
+
+        new_indices = numpy.array([
+            self.intensity_index,
+            self.r34_index,
+            self.r50_index,
+            self.r64_index,
+            self.rmw_index
+        ], dtype=int)
+
+        sort_indices = numpy.argsort(new_indices)
+        new_tensors = [new_tensors[i] for i in numpy.argsort(new_indices)]
+        new_inputs = K.concatenate(new_tensors, axis=-1)
 
         return new_inputs
 
@@ -396,6 +406,17 @@ def check_input_args(option_dict):
     error_checking.assert_is_geq(option_dict[R64_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[RMW_INDEX_KEY])
     error_checking.assert_is_geq(option_dict[RMW_INDEX_KEY], 0)
+
+    all_indices = numpy.array([
+        option_dict[INTENSITY_INDEX_KEY], option_dict[R34_INDEX_KEY],
+        option_dict[R50_INDEX_KEY], option_dict[R64_INDEX_KEY],
+        option_dict[RMW_INDEX_KEY]
+    ], dtype=int)
+
+    error_checking.assert_equals(
+        len(numpy.unique(all_indices)),
+        len(all_indices)
+    )
 
     return option_dict
 
@@ -1044,7 +1065,7 @@ def create_model_for_structure(option_dict):
     )(layer_object)
 
     layer_object = layers.Permute(
-        dims=(1, 2), name='output_channels_last'
+        dims=(2, 1), name='output_channels_last'
     )(layer_object)
 
     # r64_layer_object = layers.Lambda(
@@ -1074,7 +1095,7 @@ def create_model_for_structure(option_dict):
     )(layer_object)
 
     layer_object = layers.Permute(
-        dims=(1, 2), name='output_channels_first'
+        dims=(2, 1), name='output_channels_first'
     )(layer_object)
 
     if include_high_res_data:
