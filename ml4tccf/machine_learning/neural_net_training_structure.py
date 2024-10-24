@@ -5,6 +5,7 @@ import numpy
 import keras
 import pandas
 from scipy.interpolate import interp1d
+from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
@@ -16,6 +17,7 @@ from ml4tccf.machine_learning import \
     neural_net_training_simple as nn_training_simple
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
 
+HOURS_TO_SECONDS = 3600
 MINUTES_TO_SECONDS = 60
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
 
@@ -102,12 +104,14 @@ def _get_target_variables(ebtrk_table_xarray, target_field_names,
     later_synoptic_time_unix_sec = int(number_rounding.ceiling_to_nearest(
         target_time_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC
     ))
+    all_valid_times_unix_sec = (
+        ebtrk_table_xarray[ebtrk_utils.VALID_TIME_KEY].values * HOURS_TO_SECONDS
+    )
 
     earlier_indices = numpy.where(numpy.logical_and(
         ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values ==
         cyclone_id_string,
-        ebtrk_table_xarray[ebtrk_utils.VALID_TIME_KEY].values ==
-        earlier_synoptic_time_unix_sec
+        all_valid_times_unix_sec == earlier_synoptic_time_unix_sec
     ))[0]
     if len(earlier_indices) == 0:
         return None
@@ -115,8 +119,7 @@ def _get_target_variables(ebtrk_table_xarray, target_field_names,
     later_indices = numpy.where(numpy.logical_and(
         ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values ==
         cyclone_id_string,
-        ebtrk_table_xarray[ebtrk_utils.VALID_TIME_KEY].values ==
-        later_synoptic_time_unix_sec
+        all_valid_times_unix_sec == later_synoptic_time_unix_sec
     ))[0]
     if len(later_indices) == 0:
         return None
@@ -411,6 +414,13 @@ def data_generator_shuffled(option_dict):
                 file_index += 1
                 continue
 
+            print(these_cyclone_id_strings)
+            these_target_time_strings = [
+                time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M')
+                for t in these_target_times_unix_sec
+            ]
+            print(these_target_time_strings)
+
             target_values_by_sample = [
                 _get_target_variables(
                     ebtrk_table_xarray=ebtrk_table_xarray,
@@ -423,9 +433,13 @@ def data_generator_shuffled(option_dict):
                 )
             ]
 
-            good_indices = numpy.array(
+            print(target_field_names)
+            print(target_values_by_sample)
+
+            good_flags = numpy.array(
                 [tv is not None for tv in target_values_by_sample], dtype=int
             )
+            good_indices = numpy.where(good_flags)[0]
             if len(good_indices) == 0:
                 file_index += 1
                 continue
@@ -562,7 +576,7 @@ def data_generator_shuffled(option_dict):
             numpy.nanmax(target_matrix)
         ))
 
-        yield predictor_matrices, target_matrix
+        yield tuple(predictor_matrices), target_matrix
 
 
 def train_model(

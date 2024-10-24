@@ -428,8 +428,10 @@ def subset_grid(satellite_table_xarray, num_rows_to_keep, num_columns_to_keep,
     assert numpy.mod(num_rows_orig, 2) == 0
     assert numpy.mod(num_columns_orig, 2) == 0
 
-    error_checking.assert_is_less_than(num_rows_to_keep, num_rows_orig)
-    error_checking.assert_is_less_than(num_columns_to_keep, num_columns_orig)
+    # error_checking.assert_is_less_than(num_rows_to_keep, num_rows_orig)
+    # error_checking.assert_is_less_than(num_columns_to_keep, num_columns_orig)
+    error_checking.assert_is_leq(num_rows_to_keep, num_rows_orig)
+    error_checking.assert_is_leq(num_columns_to_keep, num_columns_orig)
 
     # Do actual stuff.
     first_index = int(numpy.round(
