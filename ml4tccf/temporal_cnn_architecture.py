@@ -1132,6 +1132,9 @@ def create_model_for_structure(option_dict):
         )
     ]
 
+    print(loss_function)
+    print(metric_functions)
+
     model_object = keras.models.Model(
         inputs=input_layer_objects, outputs=layer_object
     )
