@@ -3,8 +3,6 @@
 from ml4tccf.machine_learning import \
     neural_net_training_structure as nn_training
 
-# TODO(thunderhoser): Add sentinel_value?
-
 TEMPLATE_FILE_ARG_NAME = 'input_template_file_name'
 OUTPUT_DIR_ARG_NAME = 'output_model_dir_name'
 LAG_TIMES_ARG_NAME = 'lag_times_minutes'
