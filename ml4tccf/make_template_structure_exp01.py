@@ -1,4 +1,4 @@
-"""Tests making CNN template for TC structure."""
+"""Makes CNN template for Structure Experiment 1."""
 
 import os
 import sys
@@ -16,18 +16,32 @@ import architecture_utils
 import neural_net_utils
 import temporal_cnn_architecture as tcnn_architecture
 import custom_losses_scalar
-import accum_grad_optimizer
 
 OUTPUT_DIR_NAME = (
     '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/'
-    'test_structure_template/template'
+    'structure_experiment01/template'
 )
 
-NUM_SCALAR_PREDICTORS = 5
-# NUM_CONV_BLOCKS = 7
+NUM_SCALAR_PREDICTORS = 9
 ENSEMBLE_SIZE = 50
-OPTIMIZER_STRING = 'keras.optimizers.Adam()'
-LOSS_FUNCTION_STRING = 'custom_losses_scalar.coord_avg_crps_kilometres'
+
+OPTIMIZER_FUNCTION = keras.optimizers.Nadam(gradient_accumulation_steps=20)
+OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Nadam(gradient_accumulation_steps=20)'
+
+# Intensity (kt), R34 (km), R50 (km), R64 (km), RMW (km)
+CHANNEL_WEIGHTS = numpy.array(
+    [0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]
+)
+LOSS_FUNCTION = custom_losses_scalar.dwcrps_for_structure_params(
+    channel_weights=CHANNEL_WEIGHTS,
+    function_name='loss_dwcrps'
+)
+LOSS_FUNCTION_STRING = (
+    'custom_losses_scalar.dwcrps_for_structure_params('
+    'channel_weights=numpy.array([0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]), '
+    'function_name="loss_dwcrps"'
+    ')'
+)
 
 DEFAULT_OPTION_DICT = {
     # tcnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
@@ -53,9 +67,8 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.L2_WEIGHT_KEY: 1e-6,
     tcnn_architecture.USE_BATCH_NORM_KEY: True,
     tcnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
-    tcnn_architecture.LOSS_FUNCTION_KEY:
-        custom_losses_scalar.coord_avg_crps_kilometres,
-    tcnn_architecture.OPTIMIZER_FUNCTION_KEY: keras.optimizers.Adam(),
+    tcnn_architecture.LOSS_FUNCTION_KEY: LOSS_FUNCTION,
+    tcnn_architecture.OPTIMIZER_FUNCTION_KEY: OPTIMIZER_FUNCTION,
     tcnn_architecture.INTENSITY_INDEX_KEY: 0,
     tcnn_architecture.R34_INDEX_KEY: 1,
     tcnn_architecture.R50_INDEX_KEY: 2,
@@ -65,7 +78,7 @@ DEFAULT_OPTION_DICT = {
 
 
 def _run():
-    """Tests making CNN template for TC structure.
+    """Makes CNN template for Structure Experiment 1.
 
     This is effectively the main method.
     """
@@ -93,8 +106,8 @@ def _run():
     dense_neuron_counts = (
         architecture_utils.get_dense_layer_dimensions(
             num_input_units=(
-                NUM_SCALAR_PREDICTORS +
-                num_pixels_coarsest * num_channels_by_conv_layer[-1]
+                    NUM_SCALAR_PREDICTORS +
+                    num_pixels_coarsest * num_channels_by_conv_layer[-1]
             ),
             num_classes=2,
             num_dense_layers=num_dense_layers,
@@ -143,7 +156,7 @@ def _run():
         LOSS_FUNCTION_STRING
     )
     option_dict[tcnn_architecture.OPTIMIZER_FUNCTION_KEY] = (
-        OPTIMIZER_STRING
+        OPTIMIZER_FUNCTION_STRING
     )
 
     neural_net_utils.write_metafile(
@@ -160,7 +173,7 @@ def _run():
             neural_net_utils.A_DECK_FILE_KEY: ''
         },
         loss_function_string=LOSS_FUNCTION_STRING,
-        optimizer_function_string=OPTIMIZER_STRING,
+        optimizer_function_string=OPTIMIZER_FUNCTION_STRING,
         plateau_patience_epochs=10,
         plateau_learning_rate_multiplier=0.6,
         early_stopping_patience_epochs=50,
