@@ -519,7 +519,8 @@ def get_high_res_data_from_predictors(predictor_matrices):
 
 def read_scalar_data(
         a_deck_file_name, field_names, remove_nontropical_systems,
-        remove_tropical_systems, cyclone_id_strings, target_times_unix_sec):
+        remove_tropical_systems, cyclone_id_strings, target_times_unix_sec,
+        a_decks_at_least_6h_old=False):
     """Reads scalar data for the given cyclone objects.
 
     One cyclone object = one cyclone and one target time
@@ -537,6 +538,7 @@ def read_scalar_data(
         NaN for tropical systems.
     :param cyclone_id_strings: length-T list of cyclone IDs.
     :param target_times_unix_sec: length-T numpy array of target times.
+    :param a_decks_at_least_6h_old: Boolean flag.
     :return: scalar_predictor_matrix: T-by-F numpy array.
     """
 
@@ -555,6 +557,8 @@ def read_scalar_data(
         target_times_unix_sec, exact_dimensions=expected_dim
     )
 
+    error_checking.assert_is_boolean(a_decks_at_least_6h_old)
+
     # Do actual stuff.
     print('Reading data from: "{0:s}"...'.format(a_deck_file_name))
     a_deck_table_xarray = a_deck_io.read_file(a_deck_file_name)
@@ -562,6 +566,9 @@ def read_scalar_data(
     predictor_times_unix_sec = number_rounding.floor_to_nearest(
         target_times_unix_sec, SYNOPTIC_TIME_INTERVAL_SEC
     )
+    if a_decks_at_least_6h_old:
+        predictor_times_unix_sec -= SYNOPTIC_TIME_INTERVAL_SEC
+
     id_predictor_time_matrix = numpy.transpose(numpy.vstack((
         numpy.array(cyclone_id_strings), predictor_times_unix_sec
     )))

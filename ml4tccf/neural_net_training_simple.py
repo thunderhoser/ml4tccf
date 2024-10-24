@@ -744,7 +744,8 @@ def choose_random_cyclone_objects(
 def get_times_and_scalar_preds_shuffled(
         satellite_file_names, a_deck_file_name,
         scalar_a_deck_field_names, remove_nontropical_systems,
-        remove_tropical_systems, desired_years, predictor_lag_times_sec):
+        remove_tropical_systems, desired_years, predictor_lag_times_sec,
+        a_decks_at_least_6h_old=False):
     """Returns cyclone objects and scalar predictors for each shuffled file.
 
     One cyclone object = one tropical cyclone and one target time
@@ -762,6 +763,7 @@ def get_times_and_scalar_preds_shuffled(
     :param remove_tropical_systems: Same.
     :param desired_years: 1-D numpy array of desired years.
     :param predictor_lag_times_sec: 1-D numpy array of lag times for predictors.
+    :param a_decks_at_least_6h_old: Boolean flag.
     :return: cyclone_id_strings_by_file: length-S list, where the [i]th
         item is a list (length O_i) of cyclone IDs.
     :return: target_times_by_file_unix_sec: length-S list, where the [i]th
@@ -778,6 +780,7 @@ def get_times_and_scalar_preds_shuffled(
         predictor_lag_times_sec, num_dimensions=1
     )
     error_checking.assert_is_geq_numpy_array(predictor_lag_times_sec, 0)
+    error_checking.assert_is_boolean(a_decks_at_least_6h_old)
 
     num_files = len(satellite_file_names)
     cyclone_id_strings_by_file = [[]] * num_files
@@ -841,7 +844,8 @@ def get_times_and_scalar_preds_shuffled(
             remove_nontropical_systems=remove_nontropical_systems,
             remove_tropical_systems=remove_tropical_systems,
             cyclone_id_strings=cyclone_id_strings_by_file[i],
-            target_times_unix_sec=target_times_by_file_unix_sec[i]
+            target_times_unix_sec=target_times_by_file_unix_sec[i],
+            a_decks_at_least_6h_old=a_decks_at_least_6h_old
         )
 
         good_indices = numpy.where(numpy.all(
