@@ -430,6 +430,10 @@ def data_generator_shuffled(option_dict):
                 )
             ]
 
+            print(target_field_names)
+            print(target_values_by_sample)
+            print(target_values_by_sample[0].shape)
+
             good_indices = numpy.array(
                 [tv is not None for tv in target_values_by_sample], dtype=int
             )
