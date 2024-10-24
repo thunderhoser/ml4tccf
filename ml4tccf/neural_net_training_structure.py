@@ -422,7 +422,10 @@ def data_generator_shuffled(option_dict):
                 continue
 
             print(these_cyclone_id_strings)
-            these_target_time_strings = [time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M') for t in these_target_times_unix_sec]
+            these_target_time_strings = [
+                time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M')
+                for t in these_target_times_unix_sec
+            ]
             print(these_target_time_strings)
 
             target_values_by_sample = [
@@ -437,14 +440,13 @@ def data_generator_shuffled(option_dict):
                 )
             ]
 
-            # TODO(thunderhoser): Left off here.  Something is fucked with reading target vars.
             print(target_field_names)
             print(target_values_by_sample)
-            print(target_values_by_sample[0].shape)
 
-            good_indices = numpy.array(
+            good_flags = numpy.array(
                 [tv is not None for tv in target_values_by_sample], dtype=int
             )
+            good_indices = numpy.where(good_flags)[0]
             if len(good_indices) == 0:
                 file_index += 1
                 continue
@@ -581,7 +583,7 @@ def data_generator_shuffled(option_dict):
             numpy.nanmax(target_matrix)
         ))
 
-        yield predictor_matrices, target_matrix
+        yield tuple(predictor_matrices), target_matrix
 
 
 def train_model(
