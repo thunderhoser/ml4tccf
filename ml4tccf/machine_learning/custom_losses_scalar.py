@@ -3,6 +3,7 @@
 import numpy
 import tensorflow
 from tensorflow.keras import backend as K
+from gewittergefahr.gg_utils import error_checking
 
 DEGREES_TO_RADIANS = numpy.pi / 180
 TARGET_DISCRETIZATION_DEG = 0.1
@@ -345,3 +346,82 @@ def discretized_coord_avg_crps_kilometres(target_tensor, prediction_tensor):
     )
 
     return (row_crps_kilometres + column_crps_kilometres) / 2
+
+
+def dwcrps_for_structure_params(channel_weights, function_name,
+                                test_mode=False):
+    """Creates DWCRPS loss function for TC-structure parameters.
+
+    DWCRPS = dual-weighted continuous ranked probability score
+
+    E = number of examples
+    C = number of channels = number of target variables
+    S = ensemble size = number of ensemble members
+
+    :param channel_weights: length-C numpy array of weights.
+    :param function_name: Name of function.
+    :param test_mode: Leave this alone.
+    :return: loss: Loss function (defined below).
+    """
+
+    error_checking.assert_is_numpy_array(channel_weights, num_dimensions=1)
+    error_checking.assert_is_greater_numpy_array(channel_weights, 0.)
+    error_checking.assert_is_string(function_name)
+    error_checking.assert_is_boolean(test_mode)
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (DWCRPS).
+
+        :param target_tensor: E-by-C numpy array of correct values.
+        :param prediction_tensor: E-by-C-by-S numpy array of predicted values.
+        :return: dwcrps: DWCRPS (scalar float).
+        """
+
+        # Compute dual weights (E-by-C-by-S tensor).
+        relevant_target_tensor = K.expand_dims(target_tensor, axis=-1)
+        relevant_prediction_tensor = prediction_tensor
+        dual_weight_tensor = K.maximum(
+            K.abs(relevant_target_tensor),
+            K.abs(relevant_prediction_tensor)
+        )
+
+        # Turn channel weights into E-by-C tensor.
+        channel_weight_tensor = K.cast(
+            K.constant(channel_weights), target_tensor.dtype
+        )
+        channel_weight_tensor = K.expand_dims(channel_weight_tensor, axis=0)
+
+        # Compute mean absolute errors (E-by-C tensor).
+        absolute_error_tensor = K.abs(
+            relevant_prediction_tensor - relevant_target_tensor
+        )
+        mean_prediction_error_tensor = K.mean(
+            dual_weight_tensor * absolute_error_tensor, axis=-1
+        )
+
+        # Compute mean absolute pairwise differences (E-by-C tensor).
+        mean_prediction_diff_tensor = K.map_fn(
+            fn=lambda p: K.mean(
+                K.maximum(
+                    K.abs(K.expand_dims(p, axis=-1)),
+                    K.abs(K.expand_dims(p, axis=-2))
+                ) *
+                K.abs(
+                    K.expand_dims(p, axis=-1) -
+                    K.expand_dims(p, axis=-2)
+                ),
+                axis=(-2, -1)
+            ),
+            elems=prediction_tensor
+        )
+
+        # Compute DWCRPS.
+        error_tensor = channel_weight_tensor * (
+            mean_prediction_error_tensor -
+            0.5 * mean_prediction_diff_tensor
+        )
+
+        return K.mean(error_tensor)
+
+    loss.__name__ = function_name
+    return loss

@@ -131,11 +131,22 @@ class PhysicalConstraintLayer(layers.Layer):
             new_rmw_tensor
         )
 
-        new_inputs = tensorflow.tensor_scatter_nd_update(
-            inputs,
-            tensorflow.expand_dims(self.r34_index, axis=-1),
-            new_r34_tensor
-        )
+        batch_size = inputs.shape[0]
+        indices = tensorflow.stack(tensorflow.meshgrid(tensorflow.range(batch_size), tensorflow.range(50), indexing='ij'), axis=-1)
+        indices = tensorflow.reshape(indices, [-1, 2])  # Shape (batch_size * 50, 2)
+        indices = tensorflow.concat([indices, tensorflow.ones([tensorflow.shape(indices)[0], 1], dtype=tensorflow.int32) * 2], axis=-1)  # Channel 2
+        print(indices)
+
+        # Flatten rmw_tensor so it matches the number of indices
+        new_values = tensorflow.reshape(new_r34_tensor, [-1])
+        new_inputs = tensorflow.tensor_scatter_nd_update(inputs, indices, new_values)
+
+
+        # new_inputs = tensorflow.tensor_scatter_nd_update(
+        #     inputs,
+        #     tensorflow.expand_dims(self.r34_index, axis=-1),
+        #     new_r34_tensor
+        # )
         new_inputs = tensorflow.tensor_scatter_nd_update(
             new_inputs,
             tensorflow.expand_dims(self.r50_index, axis=-1),
@@ -368,15 +379,15 @@ def check_input_args(option_dict):
         return option_dict
 
     error_checking.assert_is_integer(option_dict[INTENSITY_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[INTENSITY_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[INTENSITY_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[R34_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[R34_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[R34_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[R50_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[R50_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[R50_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[R64_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[R64_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[R64_INDEX_KEY], 0)
     error_checking.assert_is_integer(option_dict[RMW_INDEX_KEY])
-    error_checking.assert_is_greater(option_dict[RMW_INDEX_KEY], 0)
+    error_checking.assert_is_geq(option_dict[RMW_INDEX_KEY], 0)
 
     return option_dict
 
