@@ -1,0 +1,73 @@
+#!/bin/bash
+
+#SBATCH --job-name="train_neural_nets"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
+#SBATCH --nodes=1
+#SBATCH --ntasks=8           # 8 tasks per node
+#SBATCH --cpus-per-task=2
+#SBATCH --ntasks-per-node=8  # 8 GPUs per node
+#SBATCH --exclusive
+#SBATCH --time=120:00:00
+#SBATCH --array=0-3
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=train_neural_nets_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/test_structure_template/template"
+TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/structure_experiment01"
+
+TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/shuffled_8hour_chunks/training/800x800_grids"
+VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/shuffled_8hour_chunks/validation/800x800_grids"
+A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/including_western_pacific_a-decks_not-b-decks/processed_a_decks_2016-2022_norm_params_for_paper.nc"
+
+WAVELENGTH_GROUP_STRINGS_MICRONS=("8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200")
+wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$SLURM_ARRAY_TASK_ID]}
+
+template_file_name="${TEMPLATE_DIR_NAME}/model.h5"
+output_dir_name="${TOP_OUTPUT_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}"
+echo $output_dir_name
+
+wavelength_group_string_microns="${wavelength_group_string_microns//-/ }"
+
+python3 -u "${CODE_DIR_NAME}/train_neural_net_structure.py" \
+--input_template_file_name="${template_file_name}" \
+--output_model_dir_name="${output_dir_name}" \
+--lag_times_minutes 0 30 60 90 120 150 180 \
+--low_res_wavelengths_microns ${wavelength_group_string_microns} \
+--num_examples_per_batch=20 \
+--num_rows_low_res=800 \
+--num_columns_low_res=800 \
+--synoptic_times_only=0 \
+--a_deck_file_name="${A_DECK_FILE_NAME}" \
+--scalar_a_deck_field_names "absolute_latitude_deg_n" "longitude_cosine" "longitude_sine" "intensity_m_s01" "sea_level_pressure_pa" "unnorm_tropical_flag_int" "unnorm_subtropical_flag_int" "unnorm_extratropical_flag_int" "unnorm_disturbance_flag_int" \
+--remove_nontropical_systems=0 \
+--remove_tropical_systems=0 \
+--target_field_names "intensity_kt" "radius_of_34kt_wind_km" "radius_of_50kt_wind_km" "radius_of_64kt_wind_km" "radius_of_max_wind_km" \
+--target_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/extended_best_track_thru_nov2023.nc" \
+--satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
+--training_years 2016 2017 2018 2019 2020 2021 2022 \
+--satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
+--validation_years 2016 2017 2018 2019 2020 2021 2022 \
+--num_epochs=1000 \
+--num_training_batches_per_epoch=36 \
+--num_validation_batches_per_epoch=12 \
+--plateau_patience_epochs=20 \
+--plateau_learning_rate_multiplier=0.6 \
+--early_stopping_patience_epochs=500
