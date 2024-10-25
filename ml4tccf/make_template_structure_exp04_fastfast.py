@@ -35,16 +35,19 @@ OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Nadam()'
 CHANNEL_WEIGHTS = numpy.array(
     [0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]
 )
-LOSS_FUNCTION = custom_losses_scalar.dwmse_for_structure_params(
-    channel_weights=CHANNEL_WEIGHTS,
-    function_name='loss_dwmse'
-)
-LOSS_FUNCTION_STRING = (
-    'custom_losses_scalar.dwmse_for_structure_params('
-    'channel_weights=numpy.array([0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]), '
-    'function_name="loss_dwmse"'
-    ')'
-)
+LOSS_FUNCTION = keras.losses.mean_squared_error
+LOSS_FUNCTION_STRING = 'keras.losses.mean_squared_error'
+
+# LOSS_FUNCTION = custom_losses_scalar.dwmse_for_structure_params(
+#     channel_weights=CHANNEL_WEIGHTS,
+#     function_name='loss_dwmse'
+# )
+# LOSS_FUNCTION_STRING = (
+#     'custom_losses_scalar.dwmse_for_structure_params('
+#     'channel_weights=numpy.array([0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]), '
+#     'function_name="loss_dwmse"'
+#     ')'
+# )
 
 DEFAULT_OPTION_DICT = {
     # tcnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
