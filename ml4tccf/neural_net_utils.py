@@ -1116,6 +1116,7 @@ def read_model(hdf5_file_name):
             ):
                 print('LOSS FUNCTION:')
                 print(architecture_dict[tcnn_architecture.LOSS_FUNCTION_KEY])
+                print(architecture_dict[tcnn_architecture.OPTIMIZER_FUNCTION_KEY])
                 model_object = tcnn_architecture.create_model_for_structure(
                     architecture_dict
                 )
