@@ -490,21 +490,21 @@ def apply_physical_constraints(
 
     predicted_r50_tensor = predicted_r50_tensor + predicted_r64_tensor
     predicted_r34_tensor = predicted_r34_tensor + predicted_r50_tensor
-    predicted_r34_tensor = tensorflow.where(
-        predicted_intensity_tensor < 34.,
-        tensorflow.zeros_like(predicted_r34_tensor),
-        predicted_r34_tensor
-    )
-    predicted_r50_tensor = tensorflow.where(
-        predicted_intensity_tensor < 50.,
-        tensorflow.zeros_like(predicted_r50_tensor),
-        predicted_r50_tensor
-    )
-    predicted_r64_tensor = tensorflow.where(
-        predicted_intensity_tensor < 64.,
-        tensorflow.zeros_like(predicted_r64_tensor),
-        predicted_r64_tensor
-    )
+    # predicted_r34_tensor = tensorflow.where(
+    #     predicted_intensity_tensor < 34.,
+    #     tensorflow.zeros_like(predicted_r34_tensor),
+    #     predicted_r34_tensor
+    # )
+    # predicted_r50_tensor = tensorflow.where(
+    #     predicted_intensity_tensor < 50.,
+    #     tensorflow.zeros_like(predicted_r50_tensor),
+    #     predicted_r50_tensor
+    # )
+    # predicted_r64_tensor = tensorflow.where(
+    #     predicted_intensity_tensor < 64.,
+    #     tensorflow.zeros_like(predicted_r64_tensor),
+    #     predicted_r64_tensor
+    # )
 
     new_prediction_tensors = [
         K.expand_dims(predicted_intensity_tensor, axis=-2),
@@ -664,8 +664,14 @@ def constrained_dwmse_for_structure_params(
             K.abs(relevant_prediction_tensor)
         )
 
+        # Turn channel weights into E-by-C tensor.
+        channel_weight_tensor = K.cast(
+            K.constant(channel_weights), target_tensor.dtype
+        )
+        channel_weight_tensor = K.expand_dims(channel_weight_tensor, axis=0)
+
         return K.mean(
-            dual_weight_tensor *
+            channel_weight_tensor * dual_weight_tensor *
             (relevant_target_tensor - relevant_prediction_tensor) ** 2
         )
 
@@ -705,8 +711,14 @@ def dwmse_for_structure_params(channel_weights, function_name, test_mode=False):
             K.abs(relevant_prediction_tensor)
         )
 
+        # Turn channel weights into E-by-C tensor.
+        channel_weight_tensor = K.cast(
+            K.constant(channel_weights), target_tensor.dtype
+        )
+        channel_weight_tensor = K.expand_dims(channel_weight_tensor, axis=0)
+
         return K.mean(
-            dual_weight_tensor *
+            channel_weight_tensor * dual_weight_tensor *
             (relevant_target_tensor - relevant_prediction_tensor) ** 2
         )
 
