@@ -498,21 +498,21 @@ def apply_physical_constraints(
 
     predicted_r50_tensor = predicted_r50_tensor + predicted_r64_tensor
     predicted_r34_tensor = predicted_r34_tensor + predicted_r50_tensor
-    predicted_r34_tensor = tensorflow.where(
-        predicted_intensity_tensor < 34.,
-        tensorflow.zeros_like(predicted_r34_tensor),
-        predicted_r34_tensor
-    )
-    predicted_r50_tensor = tensorflow.where(
-        predicted_intensity_tensor < 50.,
-        tensorflow.zeros_like(predicted_r50_tensor),
-        predicted_r50_tensor
-    )
-    predicted_r64_tensor = tensorflow.where(
-        predicted_intensity_tensor < 64.,
-        tensorflow.zeros_like(predicted_r64_tensor),
-        predicted_r64_tensor
-    )
+    # predicted_r34_tensor = tensorflow.where(
+    #     predicted_intensity_tensor < 34.,
+    #     tensorflow.zeros_like(predicted_r34_tensor),
+    #     predicted_r34_tensor
+    # )
+    # predicted_r50_tensor = tensorflow.where(
+    #     predicted_intensity_tensor < 50.,
+    #     tensorflow.zeros_like(predicted_r50_tensor),
+    #     predicted_r50_tensor
+    # )
+    # predicted_r64_tensor = tensorflow.where(
+    #     predicted_intensity_tensor < 64.,
+    #     tensorflow.zeros_like(predicted_r64_tensor),
+    #     predicted_r64_tensor
+    # )
 
     new_prediction_tensors = [
         K.expand_dims(predicted_intensity_tensor, axis=-2),

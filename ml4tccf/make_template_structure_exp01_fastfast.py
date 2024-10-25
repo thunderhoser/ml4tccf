@@ -1,4 +1,4 @@
-"""Makes CNN template for fast version of Structure Experiment 1."""
+"""Makes CNN template for fastfast version of Structure Experiment 1."""
 
 import os
 import sys
@@ -19,18 +19,18 @@ import custom_losses_scalar
 
 OUTPUT_DIR_NAME = (
     '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/'
-    'structure_experiment01_fast/template'
+    'structure_experiment01_fastfast/template'
 )
 
 NUM_SCALAR_PREDICTORS = 9
 ENSEMBLE_SIZE = 50
 
 OPTIMIZER_FUNCTION = keras.optimizers.Nadam(
-    gradient_accumulation_steps=10, learning_rate=0.01, clipnorm=1.0
+    gradient_accumulation_steps=5, learning_rate=0.01, clipnorm=1.0
 )
 OPTIMIZER_FUNCTION_STRING = (
     'keras.optimizers.Nadam('
-    'gradient_accumulation_steps=10, learning_rate=0.01, clipnorm=1.0'
+    'gradient_accumulation_steps=5, learning_rate=0.01, clipnorm=1.0'
     ')'
 )
 
@@ -87,7 +87,7 @@ DEFAULT_OPTION_DICT = {
 
 
 def _run():
-    """Makes CNN template for fast version of Structure Experiment 1.
+    """Makes CNN template for fastfast version of Structure Experiment 1.
 
     This is effectively the main method.
     """

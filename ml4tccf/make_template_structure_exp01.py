@@ -25,21 +25,29 @@ OUTPUT_DIR_NAME = (
 NUM_SCALAR_PREDICTORS = 9
 ENSEMBLE_SIZE = 50
 
-OPTIMIZER_FUNCTION = keras.optimizers.Nadam(gradient_accumulation_steps=20)
-OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Nadam(gradient_accumulation_steps=20)'
+OPTIMIZER_FUNCTION = keras.optimizers.Nadam(
+    gradient_accumulation_steps=20, learning_rate=0.01, clipnorm=1.0
+)
+OPTIMIZER_FUNCTION_STRING = (
+    'keras.optimizers.Nadam('
+        'gradient_accumulation_steps=20, learning_rate=0.01, clipnorm=1.0'
+    ')'
+)
 
 # Intensity (kt), R34 (km), R50 (km), R64 (km), RMW (km)
 CHANNEL_WEIGHTS = numpy.array(
     [0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]
 )
-LOSS_FUNCTION = custom_losses_scalar.dwcrps_for_structure_params(
+LOSS_FUNCTION = custom_losses_scalar.constrained_dwcrps_for_structure_params(
     channel_weights=CHANNEL_WEIGHTS,
-    function_name='loss_dwcrps'
+    intensity_index=0, r34_index=1, r50_index=2, r64_index=3, rmw_index=4,
+    function_name='loss_constrained_dwcrps'
 )
 LOSS_FUNCTION_STRING = (
-    'custom_losses_scalar.dwcrps_for_structure_params('
+    'custom_losses_scalar.constrained_dwcrps_for_structure_params('
     'channel_weights=numpy.array([0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]), '
-    'function_name="loss_dwcrps"'
+    'intensity_index=0, r34_index=1, r50_index=2, r64_index=3, rmw_index=4, '
+    'function_name="loss_constrained_dwcrps"'
     ')'
 )
 
@@ -73,7 +81,8 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.R34_INDEX_KEY: 1,
     tcnn_architecture.R50_INDEX_KEY: 2,
     tcnn_architecture.R64_INDEX_KEY: 3,
-    tcnn_architecture.RMW_INDEX_KEY: 4
+    tcnn_architecture.RMW_INDEX_KEY: 4,
+    tcnn_architecture.USE_PHYSICAL_CONSTRAINTS_KEY: False
 }
 
 
@@ -87,12 +96,12 @@ def _run():
     input_dimensions = numpy.array([800, 800, 7, 3], dtype=int)
 
     pooling_size_by_conv_block_px = numpy.full(
-        7, 2, dtype=int
+        8, 2, dtype=int
     )
     num_channels_multipliers = numpy.array([
-        1, 2, 3, 4, 5, 6, 7
+        1, 2, 3, 4, 5, 6, 7, 8
     ])
-    num_pixels_coarsest = 49
+    num_pixels_coarsest = 36
 
     num_conv_blocks = len(pooling_size_by_conv_block_px)
     num_channels_by_conv_layer = numpy.round(
@@ -106,10 +115,10 @@ def _run():
     dense_neuron_counts = (
         architecture_utils.get_dense_layer_dimensions(
             num_input_units=(
-                    NUM_SCALAR_PREDICTORS +
-                    num_pixels_coarsest * num_channels_by_conv_layer[-1]
+                NUM_SCALAR_PREDICTORS +
+                num_pixels_coarsest * num_channels_by_conv_layer[-1]
             ),
-            num_classes=2,
+            num_classes=5,
             num_dense_layers=num_dense_layers,
             for_classification=False
         )[1]

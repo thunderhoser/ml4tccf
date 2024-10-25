@@ -175,6 +175,53 @@ def _get_target_variables(ebtrk_table_xarray, target_field_names,
         )
         target_values[f] = interp_object(target_time_unix_sec)
 
+    if (
+            R64_FIELD_NAME in target_field_names and
+            R50_FIELD_NAME in target_field_names
+    ):
+        r64_index = target_field_names.index(R64_FIELD_NAME)
+        r50_index = target_field_names.index(R50_FIELD_NAME)
+        target_values[r50_index] = max([
+            target_values[r50_index], target_values[r64_index]
+        ])
+
+    if (
+            R50_FIELD_NAME in target_field_names and
+            R34_FIELD_NAME in target_field_names
+    ):
+        r50_index = target_field_names.index(R50_FIELD_NAME)
+        r34_index = target_field_names.index(R34_FIELD_NAME)
+        target_values[r34_index] = max([
+            target_values[r34_index], target_values[r50_index]
+        ])
+
+    if (
+            INTENSITY_FIELD_NAME in target_field_names and
+            R34_FIELD_NAME in target_field_names
+    ):
+        intensity_index = target_field_names.index(INTENSITY_FIELD_NAME)
+        r34_index = target_field_names.index(R34_FIELD_NAME)
+        if target_values[intensity_index] < 34:
+            target_values[r34_index] = 0.
+
+    if (
+            INTENSITY_FIELD_NAME in target_field_names and
+            R50_FIELD_NAME in target_field_names
+    ):
+        intensity_index = target_field_names.index(INTENSITY_FIELD_NAME)
+        r50_index = target_field_names.index(R50_FIELD_NAME)
+        if target_values[intensity_index] < 50:
+            target_values[r50_index] = 0.
+
+    if (
+            INTENSITY_FIELD_NAME in target_field_names and
+            R64_FIELD_NAME in target_field_names
+    ):
+        intensity_index = target_field_names.index(INTENSITY_FIELD_NAME)
+        r64_index = target_field_names.index(R64_FIELD_NAME)
+        if target_values[intensity_index] < 64:
+            target_values[r64_index] = 0.
+
     return target_values
 
 
