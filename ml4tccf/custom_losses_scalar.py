@@ -490,56 +490,86 @@ def apply_physical_constraints(
         len(numpy.unique(all_indices))
     )
 
-    target_tensor[..., r50_index] = (
-        target_tensor[..., r50_index] +
-        target_tensor[..., r64_index]
+    target_intensity_tensor = target_tensor[..., intensity_index]
+    target_r34_tensor = target_tensor[..., r34_index]
+    target_r50_tensor = target_tensor[..., r50_index]
+    target_r64_tensor = target_tensor[..., r64_index]
+    target_rmw_tensor = target_tensor[..., rmw_index]
+
+    predicted_intensity_tensor = prediction_tensor[..., intensity_index, :]
+    predicted_r34_tensor = prediction_tensor[..., r34_index, :]
+    predicted_r50_tensor = prediction_tensor[..., r50_index, :]
+    predicted_r64_tensor = prediction_tensor[..., r64_index, :]
+    predicted_rmw_tensor = prediction_tensor[..., rmw_index, :]
+
+    target_r50_tensor = target_r50_tensor + target_r64_tensor
+    predicted_r50_tensor = predicted_r50_tensor + predicted_r64_tensor
+
+    target_r34_tensor = target_r34_tensor + target_r50_tensor
+    predicted_r34_tensor = predicted_r34_tensor + predicted_r50_tensor
+
+    target_r34_tensor = tensorflow.where(
+        target_intensity_tensor < 34.,
+        tensorflow.zeros_like(target_r34_tensor),
+        target_r34_tensor
     )
-    prediction_tensor[..., r50_index, :] = (
-        prediction_tensor[..., r50_index, :] +
-        prediction_tensor[..., r64_index, :]
+    predicted_r34_tensor = tensorflow.where(
+        predicted_intensity_tensor < 34.,
+        tensorflow.zeros_like(predicted_r34_tensor),
+        predicted_r34_tensor
     )
 
-    target_tensor[..., r34_index] = (
-        target_tensor[..., r34_index] +
-        target_tensor[..., r50_index]
+    target_r50_tensor = tensorflow.where(
+        target_intensity_tensor < 50.,
+        tensorflow.zeros_like(target_r50_tensor),
+        target_r50_tensor
     )
-    prediction_tensor[..., r34_index, :] = (
-        prediction_tensor[..., r34_index, :] +
-        prediction_tensor[..., r50_index, :]
-    )
-
-    target_tensor[..., r34_index] = tensorflow.where(
-        target_tensor[..., intensity_index] < 34.,
-        tensorflow.zeros_like(target_tensor[..., r34_index]),
-        target_tensor[..., r34_index]
-    )
-    prediction_tensor[..., r34_index, :] = tensorflow.where(
-        prediction_tensor[..., intensity_index, :] < 34.,
-        tensorflow.zeros_like(prediction_tensor[..., r34_index, :]),
-        prediction_tensor[..., r34_index, :]
+    predicted_r50_tensor = tensorflow.where(
+        predicted_intensity_tensor < 50.,
+        tensorflow.zeros_like(predicted_r50_tensor),
+        predicted_r50_tensor
     )
 
-    target_tensor[..., r50_index] = tensorflow.where(
-        target_tensor[..., intensity_index] < 50.,
-        tensorflow.zeros_like(target_tensor[..., r50_index]),
-        target_tensor[..., r50_index]
+    target_r64_tensor = tensorflow.where(
+        target_intensity_tensor < 64.,
+        tensorflow.zeros_like(target_r64_tensor),
+        target_r64_tensor
     )
-    prediction_tensor[..., r50_index, :] = tensorflow.where(
-        prediction_tensor[..., intensity_index, :] < 50.,
-        tensorflow.zeros_like(prediction_tensor[..., r50_index, :]),
-        prediction_tensor[..., r50_index, :]
+    predicted_r64_tensor = tensorflow.where(
+        predicted_intensity_tensor < 64.,
+        tensorflow.zeros_like(predicted_r64_tensor),
+        predicted_r64_tensor
     )
 
-    target_tensor[..., r64_index] = tensorflow.where(
-        target_tensor[..., intensity_index] < 64.,
-        tensorflow.zeros_like(target_tensor[..., r64_index]),
-        target_tensor[..., r64_index]
-    )
-    prediction_tensor[..., r64_index, :] = tensorflow.where(
-        prediction_tensor[..., intensity_index, :] < 64.,
-        tensorflow.zeros_like(prediction_tensor[..., r64_index, :]),
-        prediction_tensor[..., r64_index, :]
-    )
+    new_target_tensors = [
+        K.expand_dims(target_intensity_tensor, axis=-1),
+        K.expand_dims(target_r34_tensor, axis=-1),
+        K.expand_dims(target_r50_tensor, axis=-1),
+        K.expand_dims(target_r64_tensor, axis=-1),
+        K.expand_dims(target_rmw_tensor, axis=-1)
+    ]
+
+    new_prediction_tensors = [
+        K.expand_dims(predicted_intensity_tensor, axis=-2),
+        K.expand_dims(predicted_r34_tensor, axis=-2),
+        K.expand_dims(predicted_r50_tensor, axis=-2),
+        K.expand_dims(predicted_r64_tensor, axis=-2),
+        K.expand_dims(predicted_rmw_tensor, axis=-2)
+    ]
+
+    new_indices = numpy.array([
+        intensity_index, r34_index, r50_index, r64_index, rmw_index
+    ], dtype=int)
+
+    new_target_tensors = [
+        new_target_tensors[i] for i in numpy.argsort(new_indices)
+    ]
+    target_tensor = K.concatenate(new_target_tensors, axis=-1)
+
+    new_prediction_tensors = [
+        new_prediction_tensors[i] for i in numpy.argsort(new_indices)
+    ]
+    prediction_tensor = K.concatenate(new_prediction_tensors, axis=-2)
 
     return target_tensor, prediction_tensor
 
