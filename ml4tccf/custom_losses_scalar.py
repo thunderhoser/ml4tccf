@@ -490,23 +490,25 @@ def apply_physical_constraints(
         len(numpy.unique(all_indices))
     )
 
-    print('PREDICTION SHAPE:')
-    print(prediction_tensor.shape)
-
     predicted_intensity_tensor = K.maximum(
-        prediction_tensor[..., intensity_index, :], 0.
+        tensorflow.gather(prediction_tensor, indices=intensity_index, axis=-2),
+        0.
     )
     predicted_r34_tensor = K.maximum(
-        prediction_tensor[..., r34_index, :], 0.
+        tensorflow.gather(prediction_tensor, indices=r34_index, axis=-2),
+        0.
     )
     predicted_r50_tensor = K.maximum(
-        prediction_tensor[..., r50_index, :], 0.
+        tensorflow.gather(prediction_tensor, indices=r50_index, axis=-2),
+        0.
     )
     predicted_r64_tensor = K.maximum(
-        prediction_tensor[..., r64_index, :], 0.
+        tensorflow.gather(prediction_tensor, indices=r64_index, axis=-2),
+        0.
     )
     predicted_rmw_tensor = K.maximum(
-        prediction_tensor[..., rmw_index, :], 0.
+        tensorflow.gather(prediction_tensor, indices=rmw_index, axis=-2),
+        0.
     )
 
     predicted_r50_tensor = K.maximum(
