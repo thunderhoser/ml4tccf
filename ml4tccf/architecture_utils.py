@@ -4,23 +4,15 @@ import os
 import sys
 import numpy
 import keras
-import keras.layers as layers
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
-import error_checking
+from gewittergefahr.gg_utils import error_checking
 
-try:
-    input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
-except:
-    import tensorflow.keras as keras
-    import tensorflow.keras.layers as layers
-
-# KERNEL_INITIALIZER_NAME = 'glorot_uniform'
-KERNEL_INITIALIZER_NAME = 'he_uniform'
+KERNEL_INITIALIZER_NAME = 'glorot_uniform'
 BIAS_INITIALIZER_NAME = 'zeros'
 
 MAX_POOLING_STRING = 'max'
@@ -284,7 +276,8 @@ def get_weight_regularizer(l1_weight=DEFAULT_L1_WEIGHT,
 def get_1d_conv_layer(
         num_kernel_rows, num_rows_per_stride, num_filters,
         padding_type_string=NO_PADDING_STRING, weight_regularizer=None,
-        layer_name=None):
+        layer_name=None, kernel_init_name=KERNEL_INITIALIZER_NAME,
+        bias_init_name=BIAS_INITIALIZER_NAME):
     """Creates layer for 1-D convolution.
 
     :param num_kernel_rows: See doc for `_check_convolution_options`.
@@ -296,8 +289,14 @@ def get_1d_conv_layer(
         want no regularization).
     :param layer_name: Layer name (string).  If None, will use default name in
         Keras.
+    :param kernel_init_name: Name of initialization method for kernel weights
+        (string).
+    :param bias_init_name: Name of initialization method for biases (string).
     :return: layer_object: Instance of `keras.layers.Conv1D`.
     """
+
+    error_checking.assert_is_string(kernel_init_name)
+    error_checking.assert_is_string(bias_init_name)
 
     _check_convolution_options(
         num_kernel_rows=num_kernel_rows,
@@ -305,12 +304,12 @@ def get_1d_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_filters, num_kernel_dimensions=1)
 
-    return layers.Conv1D(
+    return keras.layers.Conv1D(
         filters=num_filters, kernel_size=(num_kernel_rows,),
         strides=(num_rows_per_stride,), padding=padding_type_string,
         dilation_rate=(1,), activation=None, use_bias=True,
-        kernel_initializer=KERNEL_INITIALIZER_NAME,
-        bias_initializer=BIAS_INITIALIZER_NAME,
+        kernel_initializer=kernel_init_name,
+        bias_initializer=bias_init_name,
         kernel_regularizer=weight_regularizer,
         bias_regularizer=weight_regularizer, name=layer_name
     )
@@ -319,7 +318,8 @@ def get_1d_conv_layer(
 def get_1d_separable_conv_layer(
         num_kernel_rows, num_rows_per_stride, num_spatial_filters,
         num_non_spatial_filters, padding_type_string=NO_PADDING_STRING,
-        weight_regularizer=None):
+        weight_regularizer=None, kernel_init_name=KERNEL_INITIALIZER_NAME,
+        bias_init_name=BIAS_INITIALIZER_NAME):
     """Creates layer for 1-D convolution.
 
     Total number of filters = `num_spatial_filters * num_non_spatial_filters`
@@ -332,9 +332,13 @@ def get_1d_separable_conv_layer(
         independently to each spatial position).
     :param padding_type_string: See doc for `_check_convolution_options`.
     :param weight_regularizer: See doc for `get_1d_conv_layer`.
+    :param kernel_init_name: Same.
+    :param bias_init_name: Same.
     :return: layer_object: Instance of `keras.layers.SeparableConv1D`.
     """
 
+    error_checking.assert_is_string(kernel_init_name)
+    error_checking.assert_is_string(bias_init_name)
     error_checking.assert_is_integer(num_spatial_filters)
     error_checking.assert_is_greater(num_non_spatial_filters, 0)
     num_total_filters = num_spatial_filters * num_non_spatial_filters
@@ -345,14 +349,14 @@ def get_1d_separable_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_total_filters, num_kernel_dimensions=1)
 
-    return layers.SeparableConv1D(
+    return keras.layers.SeparableConv1D(
         filters=num_total_filters, kernel_size=num_kernel_rows,
         strides=num_rows_per_stride, depth_multiplier=num_non_spatial_filters,
         padding=padding_type_string, dilation_rate=(1,),
         activation=None, use_bias=True,
-        depthwise_initializer=KERNEL_INITIALIZER_NAME,
-        pointwise_initializer=KERNEL_INITIALIZER_NAME,
-        bias_initializer=BIAS_INITIALIZER_NAME,
+        depthwise_initializer=kernel_init_name,
+        pointwise_initializer=kernel_init_name,
+        bias_initializer=bias_init_name,
         depthwise_regularizer=weight_regularizer,
         pointwise_regularizer=weight_regularizer,
         bias_regularizer=weight_regularizer)
@@ -362,7 +366,8 @@ def get_2d_conv_layer(
         num_kernel_rows, num_kernel_columns, num_rows_per_stride,
         num_columns_per_stride, num_filters,
         padding_type_string=NO_PADDING_STRING, weight_regularizer=None,
-        layer_name=None):
+        layer_name=None, kernel_init_name=KERNEL_INITIALIZER_NAME,
+        bias_init_name=BIAS_INITIALIZER_NAME):
     """Creates layer for 2-D convolution.
 
     :param num_kernel_rows: See doc for `_check_convolution_options`.
@@ -373,8 +378,13 @@ def get_2d_conv_layer(
     :param padding_type_string: Same.
     :param weight_regularizer: See doc for `get_1d_conv_layer`.
     :param layer_name: Same.
+    :param kernel_init_name: Same.
+    :param bias_init_name: Same.
     :return: layer_object: Instance of `keras.layers.Conv2D`.
     """
+
+    error_checking.assert_is_string(kernel_init_name)
+    error_checking.assert_is_string(bias_init_name)
 
     _check_convolution_options(
         num_kernel_rows=num_kernel_rows, num_kernel_columns=num_kernel_columns,
@@ -383,13 +393,13 @@ def get_2d_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_filters, num_kernel_dimensions=2)
 
-    return layers.Conv2D(
+    return keras.layers.Conv2D(
         filters=num_filters, kernel_size=(num_kernel_rows, num_kernel_columns),
         strides=(num_rows_per_stride, num_columns_per_stride),
         padding=padding_type_string, dilation_rate=(1, 1),
         activation=None, use_bias=True,
-        kernel_initializer=KERNEL_INITIALIZER_NAME,
-        bias_initializer=BIAS_INITIALIZER_NAME,
+        kernel_initializer=kernel_init_name,
+        bias_initializer=bias_init_name,
         kernel_regularizer=weight_regularizer,
         bias_regularizer=weight_regularizer, name=layer_name
     )
@@ -398,7 +408,9 @@ def get_2d_conv_layer(
 def get_2d_separable_conv_layer(
         num_kernel_rows, num_kernel_columns, num_rows_per_stride,
         num_columns_per_stride, num_spatial_filters, num_non_spatial_filters,
-        padding_type_string=NO_PADDING_STRING, weight_regularizer=None):
+        padding_type_string=NO_PADDING_STRING, weight_regularizer=None,
+        kernel_init_name=KERNEL_INITIALIZER_NAME,
+        bias_init_name=BIAS_INITIALIZER_NAME):
     """Creates layer for 2-D convolution.
 
     Total number of filters = `num_spatial_filters * num_non_spatial_filters`
@@ -411,9 +423,13 @@ def get_2d_separable_conv_layer(
     :param num_non_spatial_filters: Same.
     :param padding_type_string: See doc for `_check_convolution_options`.
     :param weight_regularizer: See doc for `get_1d_conv_layer`.
+    :param kernel_init_name: Same.
+    :param bias_init_name: Same.
     :return: layer_object: Instance of `keras.layers.SeparableConv1D`.
     """
 
+    error_checking.assert_is_string(kernel_init_name)
+    error_checking.assert_is_string(bias_init_name)
     error_checking.assert_is_integer(num_spatial_filters)
     error_checking.assert_is_greater(num_non_spatial_filters, 0)
     num_total_filters = num_spatial_filters * num_non_spatial_filters
@@ -425,16 +441,16 @@ def get_2d_separable_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_total_filters, num_kernel_dimensions=2)
 
-    return layers.SeparableConv2D(
+    return keras.layers.SeparableConv2D(
         filters=num_total_filters,
         kernel_size=(num_kernel_rows, num_kernel_columns),
         strides=(num_rows_per_stride, num_columns_per_stride),
         depth_multiplier=num_non_spatial_filters,
         padding=padding_type_string, dilation_rate=(1, 1),
         activation=None, use_bias=True,
-        depthwise_initializer=KERNEL_INITIALIZER_NAME,
-        pointwise_initializer=KERNEL_INITIALIZER_NAME,
-        bias_initializer=BIAS_INITIALIZER_NAME,
+        depthwise_initializer=kernel_init_name,
+        pointwise_initializer=kernel_init_name,
+        bias_initializer=bias_init_name,
         depthwise_regularizer=weight_regularizer,
         pointwise_regularizer=weight_regularizer,
         bias_regularizer=weight_regularizer)
@@ -444,7 +460,9 @@ def get_3d_conv_layer(
         num_kernel_rows, num_kernel_columns, num_kernel_heights,
         num_rows_per_stride, num_columns_per_stride, num_heights_per_stride,
         num_filters, padding_type_string=NO_PADDING_STRING,
-        weight_regularizer=None, layer_name=None):
+        weight_regularizer=None, layer_name=None,
+        kernel_init_name=KERNEL_INITIALIZER_NAME,
+        bias_init_name=BIAS_INITIALIZER_NAME):
     """Creates layer for 2-D convolution.
 
     :param num_kernel_rows: See doc for `_check_convolution_options`.
@@ -457,8 +475,13 @@ def get_3d_conv_layer(
     :param padding_type_string: Same.
     :param weight_regularizer: See doc for `get_1d_conv_layer`.
     :param layer_name: Same.
+    :param kernel_init_name: Same.
+    :param bias_init_name: Same.
     :return: layer_object: Instance of `keras.layers.Conv2D`.
     """
+
+    error_checking.assert_is_string(kernel_init_name)
+    error_checking.assert_is_string(bias_init_name)
 
     _check_convolution_options(
         num_kernel_rows=num_kernel_rows, num_kernel_columns=num_kernel_columns,
@@ -469,15 +492,15 @@ def get_3d_conv_layer(
         padding_type_string=padding_type_string,
         num_filters=num_filters, num_kernel_dimensions=2)
 
-    return layers.Conv3D(
+    return keras.layers.Conv3D(
         filters=num_filters,
         kernel_size=(num_kernel_rows, num_kernel_columns, num_kernel_heights),
         strides=(num_rows_per_stride, num_columns_per_stride,
                  num_heights_per_stride),
         padding=padding_type_string, dilation_rate=(1, 1, 1),
         activation=None, use_bias=True,
-        kernel_initializer=KERNEL_INITIALIZER_NAME,
-        bias_initializer=BIAS_INITIALIZER_NAME,
+        kernel_initializer=kernel_init_name,
+        bias_initializer=bias_init_name,
         kernel_regularizer=weight_regularizer,
         bias_regularizer=weight_regularizer, name=layer_name
     )
@@ -503,12 +526,12 @@ def get_1d_pooling_layer(
         pooling_type_string=pooling_type_string, num_dimensions=1)
 
     if pooling_type_string == MAX_POOLING_STRING:
-        return layers.MaxPooling1D(
+        return keras.layers.MaxPooling1D(
             pool_size=num_rows_in_window, strides=num_rows_per_stride,
             padding=NO_PADDING_STRING, name=layer_name
         )
 
-    return layers.AveragePooling1D(
+    return keras.layers.AveragePooling1D(
         pool_size=num_rows_in_window, strides=num_rows_per_stride,
         padding=NO_PADDING_STRING, name=layer_name
     )
@@ -538,13 +561,13 @@ def get_2d_pooling_layer(
         pooling_type_string=pooling_type_string, num_dimensions=2)
 
     if pooling_type_string == MAX_POOLING_STRING:
-        return layers.MaxPooling2D(
+        return keras.layers.MaxPooling2D(
             pool_size=(num_rows_in_window, num_columns_in_window),
             strides=(num_rows_per_stride, num_columns_per_stride),
             padding=NO_PADDING_STRING, name=layer_name
         )
 
-    return layers.AveragePooling2D(
+    return keras.layers.AveragePooling2D(
         pool_size=(num_rows_in_window, num_columns_in_window),
         strides=(num_rows_per_stride, num_columns_per_stride),
         padding=NO_PADDING_STRING, name=layer_name
@@ -579,7 +602,7 @@ def get_3d_pooling_layer(
         pooling_type_string=pooling_type_string, num_dimensions=3)
 
     if pooling_type_string == MAX_POOLING_STRING:
-        return layers.MaxPooling3D(
+        return keras.layers.MaxPooling3D(
             pool_size=(num_rows_in_window, num_columns_in_window,
                        num_heights_in_window),
             strides=(num_rows_per_stride, num_columns_per_stride,
@@ -587,7 +610,7 @@ def get_3d_pooling_layer(
             padding=NO_PADDING_STRING, name=layer_name
         )
 
-    return layers.AveragePooling3D(
+    return keras.layers.AveragePooling3D(
         pool_size=(num_rows_in_window, num_columns_in_window,
                    num_heights_in_window),
         strides=(num_rows_per_stride, num_columns_per_stride,
@@ -596,7 +619,9 @@ def get_3d_pooling_layer(
     )
 
 
-def get_dense_layer(num_output_units, weight_regularizer=None, layer_name=None):
+def get_dense_layer(num_output_units, weight_regularizer=None, layer_name=None,
+                    kernel_init_name=KERNEL_INITIALIZER_NAME,
+                    bias_init_name=BIAS_INITIALIZER_NAME):
     """Creates dense (fully connected) layer.
 
     :param num_output_units: Number of output units (or "features" or
@@ -604,16 +629,20 @@ def get_dense_layer(num_output_units, weight_regularizer=None, layer_name=None):
     :param weight_regularizer: See doc for `get_1d_conv_layer`.
     :param layer_name: Layer name (string).  If None, will use default name in
         Keras.
+    :param kernel_init_name: See doc for `get_1d_conv_layer`.
+    :param bias_init_name: Same.
     :return: layer_object: Instance of `keras.layers.Dense`.
     """
 
+    error_checking.assert_is_string(kernel_init_name)
+    error_checking.assert_is_string(bias_init_name)
     error_checking.assert_is_integer(num_output_units)
     error_checking.assert_is_greater(num_output_units, 0)
 
-    return layers.Dense(
+    return keras.layers.Dense(
         num_output_units, activation=None, use_bias=True,
-        kernel_initializer=KERNEL_INITIALIZER_NAME,
-        bias_initializer=BIAS_INITIALIZER_NAME,
+        kernel_initializer=kernel_init_name,
+        bias_initializer=bias_init_name,
         kernel_regularizer=weight_regularizer,
         bias_regularizer=weight_regularizer, name=layer_name
     )
@@ -639,15 +668,15 @@ def get_activation_layer(
     )
 
     if activation_function_string == ELU_FUNCTION_STRING:
-        return layers.ELU(alpha=alpha_for_elu, name=layer_name)
+        return keras.layers.ELU(alpha=alpha_for_elu, name=layer_name)
 
     if activation_function_string == RELU_FUNCTION_STRING:
         if alpha_for_relu == 0:
-            return layers.ReLU(name=layer_name)
+            return keras.layers.ReLU(name=layer_name)
 
-        return layers.LeakyReLU(alpha=alpha_for_relu, name=layer_name)
+        return keras.layers.LeakyReLU(alpha=alpha_for_relu, name=layer_name)
 
-    return layers.Activation(activation_function_string, name=layer_name)
+    return keras.layers.Activation(activation_function_string, name=layer_name)
 
 
 def get_dropout_layer(dropout_fraction, layer_name=None):
@@ -662,7 +691,7 @@ def get_dropout_layer(dropout_fraction, layer_name=None):
     error_checking.assert_is_greater(dropout_fraction, 0.)
     error_checking.assert_is_less_than(dropout_fraction, 1.)
 
-    return layers.Dropout(rate=dropout_fraction, name=layer_name)
+    return keras.layers.Dropout(rate=dropout_fraction, name=layer_name)
 
 
 def get_batch_norm_layer(layer_name=None):
@@ -672,7 +701,7 @@ def get_batch_norm_layer(layer_name=None):
     :return: Instance of `keras.layers.BatchNormalization`.
     """
 
-    return layers.BatchNormalization(
+    return keras.layers.BatchNormalization(
         axis=-1, momentum=0.99, epsilon=0.001, center=True, scale=True,
         name=layer_name
     )
@@ -684,4 +713,4 @@ def get_flattening_layer():
     :return: layer_object: Instance of `keras.layers.Flatten`.
     """
 
-    return layers.Flatten()
+    return keras.layers.Flatten()
