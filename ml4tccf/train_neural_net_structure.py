@@ -168,9 +168,9 @@ if __name__ == '__main__':
         target_file_name=getattr(
             INPUT_ARG_OBJECT, training_args.TARGET_FILE_ARG_NAME
         ),
-        do_residual_prediction=getattr(
+        do_residual_prediction=bool(getattr(
             INPUT_ARG_OBJECT, training_args.DO_RESIDUAL_PREDICTION_ARG_NAME
-        ),
+        )),
         satellite_dir_name_for_training=getattr(
             INPUT_ARG_OBJECT, training_args.SATELLITE_DIR_FOR_TRAINING_ARG_NAME
         ),
