@@ -482,11 +482,21 @@ def apply_physical_constraints(
         len(numpy.unique(all_indices))
     )
 
-    predicted_intensity_tensor = prediction_tensor[..., intensity_index, :]
-    predicted_r34_tensor = prediction_tensor[..., r34_index, :]
-    predicted_r50_tensor = prediction_tensor[..., r50_index, :]
-    predicted_r64_tensor = prediction_tensor[..., r64_index, :]
-    predicted_rmw_tensor = prediction_tensor[..., rmw_index, :]
+    predicted_intensity_tensor = K.maximum(
+        prediction_tensor[..., intensity_index, :], 0.
+    )
+    predicted_r34_tensor = K.maximum(
+        prediction_tensor[..., r34_index, :], 0.
+    )
+    predicted_r50_tensor = K.maximum(
+        prediction_tensor[..., r50_index, :], 0.
+    )
+    predicted_r64_tensor = K.maximum(
+        prediction_tensor[..., r64_index, :], 0.
+    )
+    predicted_rmw_tensor = K.maximum(
+        prediction_tensor[..., rmw_index, :], 0.
+    )
 
     predicted_r50_tensor = predicted_r50_tensor + predicted_r64_tensor
     predicted_r34_tensor = predicted_r34_tensor + predicted_r50_tensor
