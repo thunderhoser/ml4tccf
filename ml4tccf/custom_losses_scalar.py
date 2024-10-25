@@ -490,6 +490,9 @@ def apply_physical_constraints(
         len(numpy.unique(all_indices))
     )
 
+    print('PREDICTION SHAPE:')
+    print(prediction_tensor.shape)
+
     predicted_intensity_tensor = K.maximum(
         prediction_tensor[..., intensity_index, :], 0.
     )
