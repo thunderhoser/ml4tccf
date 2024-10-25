@@ -17,6 +17,7 @@ REMOVE_NONTROPICAL_ARG_NAME = 'remove_nontropical_systems'
 REMOVE_TROPICAL_ARG_NAME = 'remove_tropical_systems'
 TARGET_FIELDS_ARG_NAME = 'target_field_names'
 TARGET_FILE_ARG_NAME = 'target_file_name'
+DO_RESIDUAL_PREDICTION_ARG_NAME = 'do_residual_prediction'
 
 SATELLITE_DIR_FOR_TRAINING_ARG_NAME = 'satellite_dir_name_for_training'
 TRAINING_YEARS_ARG_NAME = 'training_years'
@@ -80,6 +81,9 @@ TARGET_FIELDS_HELP_STRING = (
 )
 TARGET_FILE_HELP_STRING = (
     'Path to target file (will be read by `extended_best_track_io.read_file`).'
+)
+DO_RESIDUAL_PREDICTION_HELP_STRING = (
+    'Boolean flag.  If 1, will do residual prediction.'
 )
 
 SATELLITE_DIR_FOR_TRAINING_HELP_STRING = (
@@ -175,6 +179,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + TARGET_FILE_ARG_NAME, type=str, required=True,
         help=TARGET_FILE_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + DO_RESIDUAL_PREDICTION_ARG_NAME, type=int, required=True,
+        help=DO_RESIDUAL_PREDICTION_HELP_STRING
     )
 
     parser_object.add_argument(

@@ -247,6 +247,81 @@ def _run(input_new_a_deck_file_name, reference_a_deck_file_name,
         actual_values_training=ref_northward_motions_m_s01[real_ref_indices]
     )
 
+    # TODO(thunderhoser): The code dealing with wind radii is a bit HACKY.
+    # Not fully vetted yet.  Also, I assume that the three wind thresholds are
+    # 34, 50, and 64 kt.
+    ref_wind_radius_matrix_metres = numpy.stack([
+        ref_table[a_deck_io.WIND_RADIUS_NE_QUADRANT_KEY].values,
+        ref_table[a_deck_io.WIND_RADIUS_NW_QUADRANT_KEY].values,
+        ref_table[a_deck_io.WIND_RADIUS_SW_QUADRANT_KEY].values,
+        ref_table[a_deck_io.WIND_RADIUS_SE_QUADRANT_KEY].values,
+    ], axis=-1)
+
+    ref_wind_radius_matrix_metres = numpy.mean(
+        ref_wind_radius_matrix_metres, axis=-1
+    )
+
+    new_wind_radius_matrix_metres = numpy.stack([
+        new_table[a_deck_io.WIND_RADIUS_NE_QUADRANT_KEY].values,
+        new_table[a_deck_io.WIND_RADIUS_NW_QUADRANT_KEY].values,
+        new_table[a_deck_io.WIND_RADIUS_SW_QUADRANT_KEY].values,
+        new_table[a_deck_io.WIND_RADIUS_SE_QUADRANT_KEY].values,
+    ], axis=-1)
+
+    new_wind_radius_matrix_metres = numpy.mean(
+        new_wind_radius_matrix_metres, axis=-1
+    )
+    new_34kt_wind_radii_metres = new_wind_radius_matrix_metres[:, 0] + 0.
+    new_50kt_wind_radii_metres = new_wind_radius_matrix_metres[:, 1] + 0.
+    new_64kt_wind_radii_metres = new_wind_radius_matrix_metres[:, 2] + 0.
+
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_wind_radius_matrix_metres[:, 0]
+    )))[0]
+    norm_34kt_wind_radii_metres = normalization._normalize_one_variable(
+        actual_values_new=new_wind_radius_matrix_metres[:, 0],
+        actual_values_training=
+        ref_wind_radius_matrix_metres[real_ref_indices, 0]
+    )
+
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_wind_radius_matrix_metres[:, 1]
+    )))[0]
+    norm_50kt_wind_radii_metres = normalization._normalize_one_variable(
+        actual_values_new=new_wind_radius_matrix_metres[:, 1],
+        actual_values_training=
+        ref_wind_radius_matrix_metres[real_ref_indices, 1]
+    )
+
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_wind_radius_matrix_metres[:, 2]
+    )))[0]
+    norm_64kt_wind_radii_metres = normalization._normalize_one_variable(
+        actual_values_new=new_wind_radius_matrix_metres[:, 2],
+        actual_values_training=
+        ref_wind_radius_matrix_metres[real_ref_indices, 2]
+    )
+
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_table[a_deck_io.MAX_WIND_RADIUS_KEY].values
+    )))[0]
+    new_max_wind_radii_metres = new_table[a_deck_io.MAX_WIND_RADIUS_KEY].values
+    norm_max_wind_radii_metres = normalization._normalize_one_variable(
+        actual_values_new=new_max_wind_radii_metres + 0.,
+        actual_values_training=
+        ref_table[a_deck_io.MAX_WIND_RADIUS_KEY].values[real_ref_indices]
+    )
+
+    real_ref_indices = numpy.where(numpy.invert(numpy.isnan(
+        ref_table[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values
+    )))[0]
+
+    norm_central_pressures = normalization._normalize_one_variable(
+        actual_values_new=new_table[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values,
+        actual_values_training=
+        ref_table[a_deck_io.SEA_LEVEL_PRESSURE_KEY].values[real_ref_indices]
+    )
+
     num_storm_objects = len(norm_northward_motions_m_s01)
     storm_object_indices = numpy.linspace(
         0, num_storm_objects - 1, num=num_storm_objects, dtype=int
@@ -298,6 +373,30 @@ def _run(input_new_a_deck_file_name, reference_a_deck_file_name,
         ),
         a_deck_io.NORTHWARD_MOTION_KEY: (
             these_dim, norm_northward_motions_m_s01
+        ),
+        a_deck_io.WIND_RADIUS_34KT_KEY: (
+            these_dim, norm_34kt_wind_radii_metres
+        ),
+        a_deck_io.WIND_RADIUS_50KT_KEY: (
+            these_dim, norm_50kt_wind_radii_metres
+        ),
+        a_deck_io.WIND_RADIUS_64KT_KEY: (
+            these_dim, norm_64kt_wind_radii_metres
+        ),
+        a_deck_io.MAX_WIND_RADIUS_KEY: (
+            these_dim, norm_max_wind_radii_metres
+        ),
+        a_deck_io.UNNORM_WIND_RADIUS_34KT_KEY: (
+            these_dim, new_34kt_wind_radii_metres
+        ),
+        a_deck_io.UNNORM_WIND_RADIUS_50KT_KEY: (
+            these_dim, new_50kt_wind_radii_metres
+        ),
+        a_deck_io.UNNORM_WIND_RADIUS_64KT_KEY: (
+            these_dim, new_64kt_wind_radii_metres
+        ),
+        a_deck_io.UNNORM_MAX_WIND_RADIUS_KEY: (
+            these_dim, new_max_wind_radii_metres
         )
     }
 

@@ -1,5 +1,6 @@
 """NN-training for TC-structure parameters with simple Robert/Galina data."""
 
+import copy
 import random
 import numpy
 import keras
@@ -72,6 +73,7 @@ REMOVE_NONTROPICAL_KEY = 'remove_nontropical_systems'
 REMOVE_TROPICAL_KEY = 'remove_tropical_systems'
 TARGET_FIELDS_KEY = 'target_field_names'
 TARGET_FILE_KEY = 'target_file_name'
+DO_RESIDUAL_PREDICTION_KEY = 'do_residual_prediction'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
     SENTINEL_VALUE_KEY: -10.,
@@ -287,6 +289,10 @@ def check_generator_args(option_dict):
             option_dict[SCALAR_A_DECK_FIELDS_KEY]
         )
 
+    error_checking.assert_is_boolean(option_dict[DO_RESIDUAL_PREDICTION_KEY])
+    if option_dict[DO_RESIDUAL_PREDICTION_KEY]:
+        assert option_dict[A_DECK_FILE_KEY] is not None
+
     return option_dict
 
 
@@ -335,6 +341,7 @@ def data_generator_shuffled(option_dict):
         defined at the top of this module.
     option_dict["target_file_name"]: Path to target file (will be read by
         `extended_best_track_io.read_file`).
+    option_dict["do_residual_prediction"]: Boolean flag.
 
     :return: predictor_matrices: If predictors include scalars, this will be a
         list with [vector_predictor_matrix, scalar_predictor_matrix].
@@ -369,6 +376,7 @@ def data_generator_shuffled(option_dict):
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     target_field_names = option_dict[TARGET_FIELDS_KEY]
     target_file_name = option_dict[TARGET_FILE_KEY]
+    do_residual_prediction = option_dict[DO_RESIDUAL_PREDICTION_KEY]
 
     assert not a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY in scalar_a_deck_field_names
     assert not a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY in scalar_a_deck_field_names
@@ -377,6 +385,31 @@ def data_generator_shuffled(option_dict):
         directory_name=satellite_dir_name, raise_error_if_all_missing=True
     )
     random.shuffle(satellite_file_names)
+
+    first_scalar_a_deck_field_names = copy.deepcopy(scalar_a_deck_field_names)
+
+    if do_residual_prediction:
+        for this_target_field_name in target_field_names:
+            if this_target_field_name == INTENSITY_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_INTENSITY_KEY
+                )
+            elif this_target_field_name == R34_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_WIND_RADIUS_34KT_KEY
+                )
+            elif this_target_field_name == R50_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_WIND_RADIUS_50KT_KEY
+                )
+            elif this_target_field_name == R64_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_WIND_RADIUS_64KT_KEY
+                )
+            elif this_target_field_name == RMW_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_MAX_WIND_RADIUS_KEY
+                )
 
     (
         cyclone_id_strings_by_file,
@@ -436,6 +469,7 @@ def data_generator_shuffled(option_dict):
     while True:
         vector_predictor_matrix = None
         scalar_predictor_matrix = None
+        residual_baseline_matrix = None
         target_matrix = None
         num_examples_in_memory = 0
 
@@ -541,6 +575,21 @@ def data_generator_shuffled(option_dict):
                     scalar_predictor_matrix_by_file[prev_idx][row_indices, :]
                 )
 
+            if do_residual_prediction:
+                this_resid_baseline_matrix = this_scalar_predictor_matrix[
+                    :, len(first_scalar_a_deck_field_names):
+                ]
+                this_scalar_predictor_matrix = this_scalar_predictor_matrix[
+                    :, :len(first_scalar_a_deck_field_names)
+                ]
+
+                for f in range(len(target_field_names)):
+                    this_resid_baseline_matrix[:, f] *= (
+                        TARGET_NAME_TO_CONV_FACTOR[target_field_names[f]]
+                    )
+            else:
+                this_resid_baseline_matrix = None
+
             this_vector_predictor_matrix = (
                 nn_utils.combine_lag_times_and_wavelengths(
                     data_dict[BRIGHTNESS_TEMPS_KEY]
@@ -566,6 +615,13 @@ def data_generator_shuffled(option_dict):
                     )
                     scalar_predictor_matrix = numpy.full(these_dim, numpy.nan)
 
+                if this_resid_baseline_matrix is not None:
+                    these_dim = (
+                        (num_examples_per_batch,) +
+                        this_resid_baseline_matrix.shape[1:]
+                    )
+                    residual_baseline_matrix = numpy.full(these_dim, numpy.nan)
+
             first_index = num_examples_in_memory
             last_index = first_index + this_vector_predictor_matrix.shape[0]
             vector_predictor_matrix[first_index:last_index, ...] = (
@@ -576,6 +632,11 @@ def data_generator_shuffled(option_dict):
             if this_scalar_predictor_matrix is not None:
                 scalar_predictor_matrix[first_index:last_index, ...] = (
                     this_scalar_predictor_matrix
+                )
+
+            if this_resid_baseline_matrix is not None:
+                residual_baseline_matrix[first_index:last_index, ...] = (
+                    this_resid_baseline_matrix
                 )
 
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
@@ -594,6 +655,8 @@ def data_generator_shuffled(option_dict):
         predictor_matrices = [vector_predictor_matrix]
         if scalar_predictor_matrix is not None:
             predictor_matrices.append(scalar_predictor_matrix)
+        if residual_baseline_matrix is not None:
+            predictor_matrices.append(residual_baseline_matrix)
 
         predictor_matrices = [p.astype('float32') for p in predictor_matrices]
 
@@ -609,6 +672,15 @@ def data_generator_shuffled(option_dict):
                 numpy.mean(numpy.isnan(predictor_matrices[i])),
                 numpy.nanmin(predictor_matrices[i]),
                 numpy.nanmax(predictor_matrices[i])
+            ))
+
+        if residual_baseline_matrix is not None:
+            print((
+                'Min/max of every channel in residual baseline matrix:'
+                '\n{0:s}\n{1:s}'
+            ).format(
+                str(numpy.min(residual_baseline_matrix, axis=0)),
+                str(numpy.max(residual_baseline_matrix, axis=0))
             ))
 
         print('Shape of target matrix = {0:s}'.format(
