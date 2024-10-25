@@ -26,7 +26,7 @@ OUTPUT_DIR_NAME = (
 )
 
 NUM_SCALAR_PREDICTORS = 9
-ENSEMBLE_SIZE = 50
+ENSEMBLE_SIZE = 1
 
 OPTIMIZER_FUNCTION = keras.optimizers.Nadam()
 OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Nadam()'
@@ -63,11 +63,11 @@ DEFAULT_OPTION_DICT = {
     # tcnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(NUM_CONV_BLOCKS, 0.),
     # tcnn_architecture.NUM_NEURONS_KEY:
     #     numpy.array([1024, 128, 50, 50], dtype=int),
-    tcnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
+    tcnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0., 0., 0., 0]),
     tcnn_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
     tcnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    tcnn_architecture.L2_WEIGHT_KEY: 1e-6,
+    tcnn_architecture.L2_WEIGHT_KEY: 1e-9,
     tcnn_architecture.USE_BATCH_NORM_KEY: True,
     tcnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     tcnn_architecture.LOSS_FUNCTION_KEY: LOSS_FUNCTION,
