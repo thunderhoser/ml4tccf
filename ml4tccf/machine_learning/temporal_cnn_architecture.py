@@ -1266,7 +1266,7 @@ def create_model_for_structure(option_dict):
         )
     ]
 
-    if use_physical_constraints:
+    if not use_physical_constraints:
         metric_functions += [
             custom_metrics_structure.mean_squared_error_with_constraints(
                 channel_index=intensity_index,

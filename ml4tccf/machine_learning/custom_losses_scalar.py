@@ -482,56 +482,46 @@ def apply_physical_constraints(
         len(numpy.unique(all_indices))
     )
 
-    target_tensor[..., r50_index] = (
-        target_tensor[..., r50_index] +
-        target_tensor[..., r64_index]
+    predicted_intensity_tensor = prediction_tensor[..., intensity_index, :]
+    predicted_r34_tensor = prediction_tensor[..., r34_index, :]
+    predicted_r50_tensor = prediction_tensor[..., r50_index, :]
+    predicted_r64_tensor = prediction_tensor[..., r64_index, :]
+    predicted_rmw_tensor = prediction_tensor[..., rmw_index, :]
+
+    predicted_r50_tensor = predicted_r50_tensor + predicted_r64_tensor
+    predicted_r34_tensor = predicted_r34_tensor + predicted_r50_tensor
+    predicted_r34_tensor = tensorflow.where(
+        predicted_intensity_tensor < 34.,
+        tensorflow.zeros_like(predicted_r34_tensor),
+        predicted_r34_tensor
     )
-    prediction_tensor[..., r50_index, :] = (
-        prediction_tensor[..., r50_index, :] +
-        prediction_tensor[..., r64_index, :]
+    predicted_r50_tensor = tensorflow.where(
+        predicted_intensity_tensor < 50.,
+        tensorflow.zeros_like(predicted_r50_tensor),
+        predicted_r50_tensor
+    )
+    predicted_r64_tensor = tensorflow.where(
+        predicted_intensity_tensor < 64.,
+        tensorflow.zeros_like(predicted_r64_tensor),
+        predicted_r64_tensor
     )
 
-    target_tensor[..., r34_index] = (
-        target_tensor[..., r34_index] +
-        target_tensor[..., r50_index]
-    )
-    prediction_tensor[..., r34_index, :] = (
-        prediction_tensor[..., r34_index, :] +
-        prediction_tensor[..., r50_index, :]
-    )
+    new_prediction_tensors = [
+        K.expand_dims(predicted_intensity_tensor, axis=-2),
+        K.expand_dims(predicted_r34_tensor, axis=-2),
+        K.expand_dims(predicted_r50_tensor, axis=-2),
+        K.expand_dims(predicted_r64_tensor, axis=-2),
+        K.expand_dims(predicted_rmw_tensor, axis=-2)
+    ]
 
-    target_tensor[..., r34_index] = tensorflow.where(
-        target_tensor[..., intensity_index] < 34.,
-        tensorflow.zeros_like(target_tensor[..., r34_index]),
-        target_tensor[..., r34_index]
-    )
-    prediction_tensor[..., r34_index, :] = tensorflow.where(
-        prediction_tensor[..., intensity_index, :] < 34.,
-        tensorflow.zeros_like(prediction_tensor[..., r34_index, :]),
-        prediction_tensor[..., r34_index, :]
-    )
+    new_indices = numpy.array([
+        intensity_index, r34_index, r50_index, r64_index, rmw_index
+    ], dtype=int)
 
-    target_tensor[..., r50_index] = tensorflow.where(
-        target_tensor[..., intensity_index] < 50.,
-        tensorflow.zeros_like(target_tensor[..., r50_index]),
-        target_tensor[..., r50_index]
-    )
-    prediction_tensor[..., r50_index, :] = tensorflow.where(
-        prediction_tensor[..., intensity_index, :] < 50.,
-        tensorflow.zeros_like(prediction_tensor[..., r50_index, :]),
-        prediction_tensor[..., r50_index, :]
-    )
-
-    target_tensor[..., r64_index] = tensorflow.where(
-        target_tensor[..., intensity_index] < 64.,
-        tensorflow.zeros_like(target_tensor[..., r64_index]),
-        target_tensor[..., r64_index]
-    )
-    prediction_tensor[..., r64_index, :] = tensorflow.where(
-        prediction_tensor[..., intensity_index, :] < 64.,
-        tensorflow.zeros_like(prediction_tensor[..., r64_index, :]),
-        prediction_tensor[..., r64_index, :]
-    )
+    new_prediction_tensors = [
+        new_prediction_tensors[i] for i in numpy.argsort(new_indices)
+    ]
+    prediction_tensor = K.concatenate(new_prediction_tensors, axis=-2)
 
     return target_tensor, prediction_tensor
 
@@ -621,6 +611,104 @@ def constrained_dwcrps_for_structure_params(
         )
 
         return K.mean(error_tensor)
+
+    loss.__name__ = function_name
+    return loss
+
+
+def constrained_dwmse_for_structure_params(
+        channel_weights, intensity_index, r34_index, r50_index, r64_index,
+        rmw_index, function_name, test_mode=False):
+    """DWMSE for TC-structure parameters, with physical constraints.
+
+    :param channel_weights: See documentation for `dwcrps_for_structure_params`.
+    :param intensity_index: Array index for TC-intensity prediction.
+    :param r34_index: Array index for radius-of-34-kt-wind prediction.
+    :param r50_index: Array index for radius-of-50-kt-wind prediction.
+    :param r64_index: Array index for radius-of-64-kt-wind prediction.
+    :param rmw_index: Array index of radius-of-max-wind prediction.
+    :param function_name: Name of function (string).
+    :param test_mode: Leave this alone.
+    :return: loss: Loss function (defined below).
+    """
+
+    error_checking.assert_is_numpy_array(channel_weights, num_dimensions=1)
+    error_checking.assert_is_greater_numpy_array(channel_weights, 0.)
+    error_checking.assert_is_string(function_name)
+    error_checking.assert_is_boolean(test_mode)
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (DWMSE).
+
+        :param target_tensor: E-by-C numpy array of correct values.
+        :param prediction_tensor: E-by-C-by-S numpy array of predicted values.
+        :return: dwmse: DWMSE (scalar float).
+        """
+
+        target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
+        target_tensor, prediction_tensor = apply_physical_constraints(
+            target_tensor=target_tensor,
+            prediction_tensor=prediction_tensor,
+            intensity_index=intensity_index,
+            r34_index=r34_index,
+            r50_index=r50_index,
+            r64_index=r64_index,
+            rmw_index=rmw_index
+        )
+
+        # Compute dual weights (E-by-C tensor).
+        relevant_target_tensor = target_tensor
+        relevant_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+        dual_weight_tensor = K.maximum(
+            K.abs(relevant_target_tensor),
+            K.abs(relevant_prediction_tensor)
+        )
+
+        return K.mean(
+            dual_weight_tensor *
+            (relevant_target_tensor - relevant_prediction_tensor) ** 2
+        )
+
+    loss.__name__ = function_name
+    return loss
+
+
+def dwmse_for_structure_params(channel_weights, function_name, test_mode=False):
+    """DWMSE for TC-structure parameters, with*out* physical constraints.
+
+    :param channel_weights: See documentation for `dwcrps_for_structure_params`.
+    :param function_name: Name of function (string).
+    :param test_mode: Leave this alone.
+    :return: loss: Loss function (defined below).
+    """
+
+    error_checking.assert_is_numpy_array(channel_weights, num_dimensions=1)
+    error_checking.assert_is_greater_numpy_array(channel_weights, 0.)
+    error_checking.assert_is_string(function_name)
+    error_checking.assert_is_boolean(test_mode)
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (DWMSE).
+
+        :param target_tensor: E-by-C numpy array of correct values.
+        :param prediction_tensor: E-by-C-by-S numpy array of predicted values.
+        :return: dwmse: DWMSE (scalar float).
+        """
+
+        target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
+
+        # Compute dual weights (E-by-C tensor).
+        relevant_target_tensor = target_tensor
+        relevant_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+        dual_weight_tensor = K.maximum(
+            K.abs(relevant_target_tensor),
+            K.abs(relevant_prediction_tensor)
+        )
+
+        return K.mean(
+            dual_weight_tensor *
+            (relevant_target_tensor - relevant_prediction_tensor) ** 2
+        )
 
     loss.__name__ = function_name
     return loss
