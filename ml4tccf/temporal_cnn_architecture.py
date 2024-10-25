@@ -1048,6 +1048,8 @@ def create_model_for_structure(option_dict):
                 alpha_for_elu=0.
             )(layer_object)
 
+            break
+
         layer_object = architecture_utils.get_activation_layer(
             activation_function_string=inner_activ_function_name,
             alpha_for_relu=inner_activ_function_alpha,
