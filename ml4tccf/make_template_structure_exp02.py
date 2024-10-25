@@ -1,10 +1,4 @@
-"""Makes CNN template for Structure Experiment 2.
-
-Same as Experiment 1, except:
-
-- Moved physical constraints from architecture to loss function
-- Removed physical constraints on RMW
-"""
+"""Makes CNN templates for Structure Experiment 2."""
 
 import os
 import sys
@@ -25,14 +19,20 @@ import custom_losses_scalar
 
 OUTPUT_DIR_NAME = (
     '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/'
-    'structure_experiment02/template'
+    'structure_experiment02/templates'
 )
 
 NUM_SCALAR_PREDICTORS = 9
 ENSEMBLE_SIZE = 50
 
-OPTIMIZER_FUNCTION = keras.optimizers.Nadam(gradient_accumulation_steps=20)
-OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Nadam(gradient_accumulation_steps=20)'
+# OPTIMIZER_FUNCTION = keras.optimizers.Nadam(
+#     gradient_accumulation_steps=20, clipnorm=1.0
+# )
+# OPTIMIZER_FUNCTION_STRING = (
+#     'keras.optimizers.Nadam('
+#         'gradient_accumulation_steps=20, clipnorm=1.0'
+#     ')'
+# )
 
 # Intensity (kt), R34 (km), R50 (km), R64 (km), RMW (km)
 CHANNEL_WEIGHTS = numpy.array(
@@ -76,7 +76,7 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.USE_BATCH_NORM_KEY: True,
     tcnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     tcnn_architecture.LOSS_FUNCTION_KEY: LOSS_FUNCTION,
-    tcnn_architecture.OPTIMIZER_FUNCTION_KEY: OPTIMIZER_FUNCTION,
+    # tcnn_architecture.OPTIMIZER_FUNCTION_KEY: OPTIMIZER_FUNCTION,
     tcnn_architecture.INTENSITY_INDEX_KEY: 0,
     tcnn_architecture.R34_INDEX_KEY: 1,
     tcnn_architecture.R50_INDEX_KEY: 2,
@@ -85,114 +85,142 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.USE_PHYSICAL_CONSTRAINTS_KEY: False
 }
 
+GRAD_ACCUM_STEP_COUNTS = numpy.array([5, 10, 20, 40, 60, 80], dtype=int)
+INIT_LEARNING_RATES = numpy.array([0.005, 0.007, 0.009, 0.011])
+
 
 def _run():
-    """Makes CNN template for Structure Experiment 2.
+    """Makes CNN templates for Structure Experiment 2.
 
     This is effectively the main method.
     """
 
-    option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
-    input_dimensions = numpy.array([800, 800, 7, 3], dtype=int)
+    for i in range(len(GRAD_ACCUM_STEP_COUNTS)):
+        for j in range(len(INIT_LEARNING_RATES)):
+            optimizer_function = keras.optimizers.Nadam(
+                gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i],
+                learning_rate=INIT_LEARNING_RATES[j],
+                clipnorm=1.0
+            )
+            optimizer_function_string = (
+                'keras.optimizers.Nadam('
+                    'gradient_accumulation_steps={0:d}, '
+                    'learning_rate={1:.3f}, '
+                    'clipnorm=1.0'
+                ')'
+            ).format(
+                GRAD_ACCUM_STEP_COUNTS[i],
+                INIT_LEARNING_RATES[j]
+            )
 
-    pooling_size_by_conv_block_px = numpy.full(
-        8, 2, dtype=int
-    )
-    num_channels_multipliers = numpy.array([
-        1, 2, 3, 4, 5, 6, 7, 8
-    ])
-    num_pixels_coarsest = 36
+            option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
+            input_dimensions = numpy.array([800, 800, 7, 3], dtype=int)
 
-    num_conv_blocks = len(pooling_size_by_conv_block_px)
-    num_channels_by_conv_layer = numpy.round(
-        10 * num_channels_multipliers
-    ).astype(int)
+            pooling_size_by_conv_block_px = numpy.full(
+                8, 2, dtype=int
+            )
+            num_channels_multipliers = numpy.array([
+                1, 2, 3, 4, 5, 6, 7, 8
+            ])
+            num_pixels_coarsest = 36
 
-    num_dense_layers = len(
-        option_dict[tcnn_architecture.DENSE_DROPOUT_RATES_KEY]
-    )
+            num_conv_blocks = len(pooling_size_by_conv_block_px)
+            num_channels_by_conv_layer = numpy.round(
+                10 * num_channels_multipliers
+            ).astype(int)
 
-    dense_neuron_counts = (
-        architecture_utils.get_dense_layer_dimensions(
-            num_input_units=(
-                NUM_SCALAR_PREDICTORS +
-                num_pixels_coarsest * num_channels_by_conv_layer[-1]
-            ),
-            num_classes=5,
-            num_dense_layers=num_dense_layers,
-            for_classification=False
-        )[1]
-    )
+            num_dense_layers = len(
+                option_dict[tcnn_architecture.DENSE_DROPOUT_RATES_KEY]
+            )
 
-    dense_neuron_counts[-1] = 5 * ENSEMBLE_SIZE
-    dense_neuron_counts[-2] = max([
-        dense_neuron_counts[-1], dense_neuron_counts[-2]
-    ])
+            dense_neuron_counts = (
+                architecture_utils.get_dense_layer_dimensions(
+                    num_input_units=(
+                        NUM_SCALAR_PREDICTORS +
+                        num_pixels_coarsest * num_channels_by_conv_layer[-1]
+                    ),
+                    num_classes=5,
+                    num_dense_layers=num_dense_layers,
+                    for_classification=False
+                )[1]
+            )
 
-    option_dict.update({
-        tcnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
-            input_dimensions,
-        tcnn_architecture.NUM_CONV_LAYERS_KEY:
-            numpy.full(num_conv_blocks, 1, dtype=int),
-        tcnn_architecture.POOLING_SIZE_KEY:
-            pooling_size_by_conv_block_px,
-        tcnn_architecture.NUM_CHANNELS_KEY:
-            num_channels_by_conv_layer,
-        tcnn_architecture.CONV_DROPOUT_RATES_KEY:
-            numpy.full(num_conv_blocks, 0.),
-        tcnn_architecture.NUM_NEURONS_KEY: dense_neuron_counts
-    })
+            dense_neuron_counts[-1] = 5 * ENSEMBLE_SIZE
+            dense_neuron_counts[-2] = max([
+                dense_neuron_counts[-1], dense_neuron_counts[-2]
+            ])
 
-    model_object = tcnn_architecture.create_model_for_structure(option_dict)
+            option_dict.update({
+                tcnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
+                    input_dimensions,
+                tcnn_architecture.NUM_CONV_LAYERS_KEY:
+                    numpy.full(num_conv_blocks, 1, dtype=int),
+                tcnn_architecture.POOLING_SIZE_KEY:
+                    pooling_size_by_conv_block_px,
+                tcnn_architecture.NUM_CHANNELS_KEY:
+                    num_channels_by_conv_layer,
+                tcnn_architecture.CONV_DROPOUT_RATES_KEY:
+                    numpy.full(num_conv_blocks, 0.),
+                tcnn_architecture.NUM_NEURONS_KEY: dense_neuron_counts,
+                tcnn_architecture.OPTIMIZER_FUNCTION_KEY: optimizer_function
+            })
 
-    output_file_name = '{0:s}/model.h5'.format(OUTPUT_DIR_NAME)
-    file_system_utils.mkdir_recursive_if_necessary(
-        file_name=output_file_name
-    )
+            model_object = tcnn_architecture.create_model_for_structure(option_dict)
 
-    print('Writing model to: "{0:s}"...'.format(output_file_name))
-    model_object.save(
-        filepath=output_file_name, overwrite=True,
-        include_optimizer=True
-    )
+            output_file_name = (
+                '{0:s}/num-grad-accum-steps={1:02d}_init-learning-rate={2:.3f}/'
+                'model.h5'
+            ).format(
+                OUTPUT_DIR_NAME,
+                GRAD_ACCUM_STEP_COUNTS[i],
+                INIT_LEARNING_RATES[j]
+            )
 
-    metafile_name = neural_net_utils.find_metafile(
-        model_dir_name=os.path.split(output_file_name)[0],
-        raise_error_if_missing=False
-    )
+            file_system_utils.mkdir_recursive_if_necessary(
+                file_name=output_file_name
+            )
 
-    option_dict[tcnn_architecture.LOSS_FUNCTION_KEY] = (
-        LOSS_FUNCTION_STRING
-    )
-    option_dict[tcnn_architecture.OPTIMIZER_FUNCTION_KEY] = (
-        OPTIMIZER_FUNCTION_STRING
-    )
+            print('Writing model to: "{0:s}"...'.format(output_file_name))
+            model_object.save(
+                filepath=output_file_name, overwrite=True,
+                include_optimizer=True
+            )
 
-    neural_net_utils.write_metafile(
-        pickle_file_name=metafile_name,
-        num_epochs=100,
-        num_training_batches_per_epoch=32,
-        training_option_dict={
-            neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
-            neural_net_utils.A_DECK_FILE_KEY: ''
-        },
-        num_validation_batches_per_epoch=16,
-        validation_option_dict={
-            neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
-            neural_net_utils.A_DECK_FILE_KEY: ''
-        },
-        loss_function_string=LOSS_FUNCTION_STRING,
-        optimizer_function_string=OPTIMIZER_FUNCTION_STRING,
-        plateau_patience_epochs=10,
-        plateau_learning_rate_multiplier=0.6,
-        early_stopping_patience_epochs=50,
-        architecture_dict=option_dict,
-        is_model_bnn=False,
-        data_type_string=neural_net_utils.RG_SIMPLE_DATA_TYPE_STRING,
-        train_with_shuffled_data=True
-    )
+            metafile_name = neural_net_utils.find_metafile(
+                model_dir_name=os.path.split(output_file_name)[0],
+                raise_error_if_missing=False
+            )
 
-    neural_net_utils.read_model(output_file_name)
+            option_dict[tcnn_architecture.LOSS_FUNCTION_KEY] = (
+                LOSS_FUNCTION_STRING
+            )
+            option_dict[tcnn_architecture.OPTIMIZER_FUNCTION_KEY] = (
+                optimizer_function_string
+            )
+
+            neural_net_utils.write_metafile(
+                pickle_file_name=metafile_name,
+                num_epochs=100,
+                num_training_batches_per_epoch=32,
+                training_option_dict={
+                    neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
+                    neural_net_utils.A_DECK_FILE_KEY: ''
+                },
+                num_validation_batches_per_epoch=16,
+                validation_option_dict={
+                    neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
+                    neural_net_utils.A_DECK_FILE_KEY: ''
+                },
+                loss_function_string=LOSS_FUNCTION_STRING,
+                optimizer_function_string=optimizer_function_string,
+                plateau_patience_epochs=10,
+                plateau_learning_rate_multiplier=0.6,
+                early_stopping_patience_epochs=50,
+                architecture_dict=option_dict,
+                is_model_bnn=False,
+                data_type_string=neural_net_utils.RG_SIMPLE_DATA_TYPE_STRING,
+                train_with_shuffled_data=True
+            )
 
 
 if __name__ == '__main__':
