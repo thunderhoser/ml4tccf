@@ -26,11 +26,11 @@ NUM_SCALAR_PREDICTORS = 9
 ENSEMBLE_SIZE = 50
 
 OPTIMIZER_FUNCTION = keras.optimizers.Nadam(
-    gradient_accumulation_steps=20, clipnorm=1.0
+    gradient_accumulation_steps=5, clipnorm=1.0
 )
 OPTIMIZER_FUNCTION_STRING = (
     'keras.optimizers.Nadam('
-    'gradient_accumulation_steps=20, clipnorm=1.0'
+    'gradient_accumulation_steps=5, clipnorm=1.0'
     ')'
 )
 
