@@ -1041,12 +1041,12 @@ def create_model_for_structure(option_dict):
         )(layer_object)
 
         if i == num_dense_layers - 1:
-            layer_object = architecture_utils.get_activation_layer(
-                activation_function_string=
-                architecture_utils.RELU_FUNCTION_STRING,
-                alpha_for_relu=0.,
-                alpha_for_elu=0.
-            )(layer_object)
+            # layer_object = architecture_utils.get_activation_layer(
+            #     activation_function_string=
+            #     architecture_utils.RELU_FUNCTION_STRING,
+            #     alpha_for_relu=0.,
+            #     alpha_for_elu=0.
+            # )(layer_object)
 
             break
 
