@@ -63,6 +63,7 @@ R50_INDEX_KEY = 'r50_index'
 R64_INDEX_KEY = 'r64_index'
 RMW_INDEX_KEY = 'rmw_index'
 USE_PHYSICAL_CONSTRAINTS_KEY = 'use_physical_constraints'
+DO_RESIDUAL_PREDICTION_KEY = 'do_residual_prediction'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
@@ -88,7 +89,8 @@ DEFAULT_OPTION_DICT = {
     R50_INDEX_KEY: None,
     R64_INDEX_KEY: None,
     RMW_INDEX_KEY: None,
-    USE_PHYSICAL_CONSTRAINTS_KEY: True
+    USE_PHYSICAL_CONSTRAINTS_KEY: True,
+    DO_RESIDUAL_PREDICTION_KEY: False
 }
 
 
@@ -265,6 +267,9 @@ def check_input_args(option_dict):
         physical constraints to make predictions of TC-structure parameters
         consistent.  If you are predicting TC center and not TC-structure
         parameters, make this False.
+    option_dict["do_residual_prediction"]: Boolean flag.  If True, will do
+        residual prediction for TC-structure parameters.  If you are predicting
+        TC center and not TC-structure parameters, make this False.
 
     :return: option_dict: Same as input but maybe with default values added.
     """
@@ -404,6 +409,7 @@ def check_input_args(option_dict):
 
     if not predict_structure_params:
         option_dict[USE_PHYSICAL_CONSTRAINTS_KEY] = False
+        option_dict[DO_RESIDUAL_PREDICTION_KEY] = False
         return option_dict
 
     error_checking.assert_is_integer(option_dict[INTENSITY_INDEX_KEY])
@@ -417,6 +423,7 @@ def check_input_args(option_dict):
     error_checking.assert_is_integer(option_dict[RMW_INDEX_KEY])
     error_checking.assert_is_geq(option_dict[RMW_INDEX_KEY], 0)
     error_checking.assert_is_boolean(option_dict[USE_PHYSICAL_CONSTRAINTS_KEY])
+    error_checking.assert_is_boolean(option_dict[DO_RESIDUAL_PREDICTION_KEY])
 
     all_indices = numpy.array([
         option_dict[INTENSITY_INDEX_KEY], option_dict[R34_INDEX_KEY],
@@ -798,6 +805,7 @@ def create_model_for_structure(option_dict):
     r64_index = option_dict[R64_INDEX_KEY]
     rmw_index = option_dict[RMW_INDEX_KEY]
     use_physical_constraints = option_dict[USE_PHYSICAL_CONSTRAINTS_KEY]
+    do_residual_prediction = option_dict[DO_RESIDUAL_PREDICTION_KEY]
 
     input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
@@ -837,6 +845,19 @@ def create_model_for_structure(option_dict):
     else:
         input_layer_object_high_res = None
         layer_object_high_res = None
+
+    num_target_vars = float(num_neurons_by_dense_layer[-1]) / ensemble_size
+    assert numpy.isclose(
+        num_target_vars, numpy.round(num_target_vars), atol=1e-6
+    )
+    num_target_vars = int(numpy.round(num_target_vars))
+
+    if do_residual_prediction:
+        input_layer_object_resid_baseline = layers.Input(
+            shape=(num_target_vars,)
+        )
+    else:
+        input_layer_object_resid_baseline = None
 
     if include_scalar_data:
         input_dimensions_scalar = option_dict[INPUT_DIMENSIONS_SCALAR_KEY]
@@ -1080,15 +1101,26 @@ def create_model_for_structure(option_dict):
                 layer_object
             )
 
-    num_target_vars = float(num_neurons_by_dense_layer[-1]) / ensemble_size
-    assert numpy.isclose(
-        num_target_vars, numpy.round(num_target_vars), atol=1e-6
-    )
-
-    num_target_vars = int(numpy.round(num_target_vars))
     layer_object = layers.Reshape(
         target_shape=(num_target_vars, ensemble_size)
     )(layer_object)
+
+    if do_residual_prediction:
+        new_dims = (num_target_vars, 1)
+        layer_object_resid_baseline = keras.layers.Reshape(
+            target_shape=new_dims,
+            name='reshape_predn_baseline'
+        )(input_layer_object_resid_baseline)
+
+        layer_object = keras.layers.Add(name='output_add_baseline')([
+            layer_object, layer_object_resid_baseline
+        ])
+
+        layer_object = architecture_utils.get_activation_layer(
+            activation_function_string=architecture_utils.RELU_FUNCTION_STRING,
+            alpha_for_relu=0.,
+            alpha_for_elu=0.
+        )(layer_object)
 
     if use_physical_constraints:
         layer_object = layers.Permute(
@@ -1125,19 +1157,15 @@ def create_model_for_structure(option_dict):
             dims=(2, 1), name='output_channels_first'
         )(layer_object)
 
+    input_layer_objects = []
     if include_high_res_data:
-        input_layer_objects = [
-            input_layer_object_high_res, input_layer_object_low_res
-        ]
-        if include_scalar_data:
-            input_layer_objects.append(input_layer_object_scalar)
-    else:
-        if include_scalar_data:
-            input_layer_objects = [
-                input_layer_object_low_res, input_layer_object_scalar
-            ]
-        else:
-            input_layer_objects = input_layer_object_low_res
+        input_layer_objects.append(input_layer_object_high_res)
+
+    input_layer_objects.append(input_layer_object_low_res)
+    if include_scalar_data:
+        input_layer_objects.append(input_layer_object_scalar)
+    if do_residual_prediction:
+        input_layer_objects.append(input_layer_object_resid_baseline)
 
     metric_functions = [
         custom_metrics_structure.mean_squared_error(

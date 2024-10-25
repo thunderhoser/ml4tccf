@@ -506,8 +506,15 @@ def apply_physical_constraints(
         prediction_tensor[..., rmw_index, :], 0.
     )
 
-    predicted_r50_tensor = predicted_r50_tensor + predicted_r64_tensor
-    predicted_r34_tensor = predicted_r34_tensor + predicted_r50_tensor
+    predicted_r50_tensor = K.maximum(
+        predicted_r50_tensor, predicted_r64_tensor
+    )
+    predicted_r34_tensor = K.maximum(
+        predicted_r34_tensor, predicted_r50_tensor
+    )
+
+    # predicted_r50_tensor = predicted_r50_tensor + predicted_r64_tensor
+    # predicted_r34_tensor = predicted_r34_tensor + predicted_r50_tensor
     # predicted_r34_tensor = tensorflow.where(
     #     predicted_intensity_tensor < 34.,
     #     tensorflow.zeros_like(predicted_r34_tensor),
