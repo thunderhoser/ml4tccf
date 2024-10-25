@@ -622,3 +622,60 @@ def constrained_dwcrps_for_structure_params(
 
     loss.__name__ = function_name
     return loss
+
+
+def constrained_dwmse_for_structure_params(
+        channel_weights, intensity_index, r34_index, r50_index, r64_index,
+        rmw_index, function_name, test_mode=False):
+    """DWMSE for TC-structure parameters, with physical constraints.
+
+    :param channel_weights: See documentation for `dwcrps_for_structure_params`.
+    :param intensity_index: Array index for TC-intensity prediction.
+    :param r34_index: Array index for radius-of-34-kt-wind prediction.
+    :param r50_index: Array index for radius-of-50-kt-wind prediction.
+    :param r64_index: Array index for radius-of-64-kt-wind prediction.
+    :param rmw_index: Array index of radius-of-max-wind prediction.
+    :param function_name: Name of function (string).
+    :param test_mode: Leave this alone.
+    :return: loss: Loss function (defined below).
+    """
+
+    error_checking.assert_is_numpy_array(channel_weights, num_dimensions=1)
+    error_checking.assert_is_greater_numpy_array(channel_weights, 0.)
+    error_checking.assert_is_string(function_name)
+    error_checking.assert_is_boolean(test_mode)
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (DWMSE).
+
+        :param target_tensor: E-by-C numpy array of correct values.
+        :param prediction_tensor: E-by-C-by-S numpy array of predicted values.
+        :return: dwmse: DWMSE (scalar float).
+        """
+
+        target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
+        target_tensor, prediction_tensor = apply_physical_constraints(
+            target_tensor=target_tensor,
+            prediction_tensor=prediction_tensor,
+            intensity_index=intensity_index,
+            r34_index=r34_index,
+            r50_index=r50_index,
+            r64_index=r64_index,
+            rmw_index=rmw_index
+        )
+
+        # Compute dual weights (E-by-C tensor).
+        relevant_target_tensor = target_tensor
+        relevant_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+        dual_weight_tensor = K.maximum(
+            K.abs(relevant_target_tensor),
+            K.abs(relevant_prediction_tensor)
+        )
+
+        return K.mean(
+            dual_weight_tensor *
+            (relevant_target_tensor - relevant_prediction_tensor) ** 2
+        )
+
+    loss.__name__ = function_name
+    return loss
