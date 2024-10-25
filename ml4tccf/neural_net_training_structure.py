@@ -377,7 +377,9 @@ def data_generator_shuffled(option_dict):
     # )
     # sentinel_value = option_dict[SENTINEL_VALUE_KEY]
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
-    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    scalar_a_deck_field_names = copy.deepcopy(
+        option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    )
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
