@@ -19,7 +19,8 @@ except:
     import tensorflow.keras as keras
     import tensorflow.keras.layers as layers
 
-KERNEL_INITIALIZER_NAME = 'glorot_uniform'
+# KERNEL_INITIALIZER_NAME = 'glorot_uniform'
+KERNEL_INITIALIZER_NAME = 'he_uniform'
 BIAS_INITIALIZER_NAME = 'zeros'
 
 MAX_POOLING_STRING = 'max'

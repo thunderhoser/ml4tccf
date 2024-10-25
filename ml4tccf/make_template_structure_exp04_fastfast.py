@@ -28,8 +28,8 @@ OUTPUT_DIR_NAME = (
 NUM_SCALAR_PREDICTORS = 9
 ENSEMBLE_SIZE = 1
 
-OPTIMIZER_FUNCTION = keras.optimizers.Nadam()
-OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Nadam()'
+OPTIMIZER_FUNCTION = keras.optimizers.Nadam(learning_rate=0.01, clipnorm=1.0)
+OPTIMIZER_FUNCTION_STRING = 'keras.optimizers.Nadam(learning_rate=0.01, clipnorm=1.0)'
 
 # Intensity (kt), R34 (km), R50 (km), R64 (km), RMW (km)
 CHANNEL_WEIGHTS = numpy.array(
