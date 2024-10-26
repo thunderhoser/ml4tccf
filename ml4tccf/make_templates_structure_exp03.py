@@ -185,7 +185,7 @@ def _run():
             model_object = tcnn_architecture.create_model_for_structure(option_dict)
 
             output_file_name = (
-                '{0:s}/num-grad-accum-steps={1:02d}_init-learning-rate={2:.3f}/'
+                '{0:s}/num-grad-accum-steps={1:02d}_init-learning-rate={2:.4f}/'
                 'model.h5'
             ).format(
                 OUTPUT_DIR_NAME,
