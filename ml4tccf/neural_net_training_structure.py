@@ -546,6 +546,9 @@ def data_generator_shuffled(option_dict):
             ]
             this_target_matrix = numpy.vstack(target_values_by_sample)
 
+            print('this_target_matrix, FOO1:')
+            print(this_target_matrix)
+
             data_dict = nn_training_simple._read_satellite_data_1shuffled_file(
                 input_file_name=satellite_file_names[file_index],
                 lag_times_minutes=lag_times_minutes,
@@ -579,6 +582,9 @@ def data_generator_shuffled(option_dict):
             this_target_matrix = this_target_matrix[row_indices, :]
             del these_cyclone_id_strings
             del these_target_times_unix_sec
+
+            print('this_target_matrix, FOO2:')
+            print(this_target_matrix)
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
