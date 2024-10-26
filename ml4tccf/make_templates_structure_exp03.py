@@ -38,21 +38,19 @@ ENSEMBLE_SIZE = 1
 CHANNEL_WEIGHTS = numpy.array(
     [0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]
 )
-LOSS_FUNCTION = keras.losses.mean_squared_error
-LOSS_FUNCTION_STRING = 'keras.losses.mean_squared_error'
+# LOSS_FUNCTION = keras.losses.mean_squared_error
+# LOSS_FUNCTION_STRING = 'keras.losses.mean_squared_error'
 
-# LOSS_FUNCTION = custom_losses_scalar.constrained_dwmse_for_structure_params(
-#     channel_weights=CHANNEL_WEIGHTS,
-#     intensity_index=0, r34_index=1, r50_index=2, r64_index=3, rmw_index=4,
-#     function_name='loss_constrained_dwmse'
-# )
-# LOSS_FUNCTION_STRING = (
-#     'custom_losses_scalar.constrained_dwmse_for_structure_params('
-#     'channel_weights=numpy.array([0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]), '
-#     'intensity_index=0, r34_index=1, r50_index=2, r64_index=3, rmw_index=4, '
-#     'function_name="loss_constrained_dwmse"'
-#     ')'
-# )
+LOSS_FUNCTION = custom_losses_scalar.dwmse_for_structure_params(
+    channel_weights=CHANNEL_WEIGHTS,
+    function_name='loss_dwmse'
+)
+LOSS_FUNCTION_STRING = (
+    'custom_losses_scalar.dwmse_for_structure_params('
+    'channel_weights=numpy.array([0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]), '
+    'function_name="loss_dwmse"'
+    ')'
+)
 
 DEFAULT_OPTION_DICT = {
     # tcnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
@@ -90,7 +88,7 @@ DEFAULT_OPTION_DICT = {
 }
 
 GRAD_ACCUM_STEP_COUNTS = numpy.array([5, 10, 20, 40, 60, 80], dtype=int)
-INIT_LEARNING_RATES = numpy.array([0.001, 0.005, 0.007, 0.009, 0.011])
+INIT_LEARNING_RATES = numpy.array([0.0001, 0.0005, 0.0007, 0.0009, 0.0011])
 
 
 def _run():
@@ -101,21 +99,36 @@ def _run():
 
     for i in range(len(GRAD_ACCUM_STEP_COUNTS)):
         for j in range(len(INIT_LEARNING_RATES)):
-            optimizer_function = keras.optimizers.Nadam(
-                gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i],
-                learning_rate=INIT_LEARNING_RATES[j],
-                clipnorm=1.0
-            )
-            optimizer_function_string = (
-                'keras.optimizers.Nadam('
+            if j == 0:
+                optimizer_function = keras.optimizers.Nadam(
+                    gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i],
+                    clipnorm=1.0
+                )
+                optimizer_function_string = (
+                    'keras.optimizers.Nadam('
+                    'gradient_accumulation_steps={0:d}, '
+                    'clipnorm=1.0'
+                    ')'
+                ).format(
+                    GRAD_ACCUM_STEP_COUNTS[i],
+                    INIT_LEARNING_RATES[j]
+                )
+            else:
+                optimizer_function = keras.optimizers.Nadam(
+                    gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i],
+                    learning_rate=INIT_LEARNING_RATES[j],
+                    clipnorm=1.0
+                )
+                optimizer_function_string = (
+                    'keras.optimizers.Nadam('
                     'gradient_accumulation_steps={0:d}, '
                     'learning_rate={1:.3f}, '
                     'clipnorm=1.0'
-                ')'
-            ).format(
-                GRAD_ACCUM_STEP_COUNTS[i],
-                INIT_LEARNING_RATES[j]
-            )
+                    ')'
+                ).format(
+                    GRAD_ACCUM_STEP_COUNTS[i],
+                    INIT_LEARNING_RATES[j]
+                )
 
             option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
             input_dimensions = numpy.array([800, 800, 7, 3], dtype=int)
