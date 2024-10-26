@@ -1,7 +1,4 @@
-"""Makes CNN templates for Structure Experiment 3b.
-
-Same as Experiment 3 but with bigger batches.
-"""
+"""Makes CNN templates for Structure Experiment 3."""
 
 import os
 import sys
@@ -22,7 +19,7 @@ import custom_losses_scalar
 
 OUTPUT_DIR_NAME = (
     '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/'
-    'structure_experiment03b/templates'
+    'structure_experiment03/templates'
 )
 
 NUM_SCALAR_PREDICTORS = 13
@@ -90,12 +87,12 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.DO_RESIDUAL_PREDICTION_KEY: True
 }
 
-GRAD_ACCUM_STEP_COUNTS = numpy.array([1, 2, 3, 4, 5], dtype=int)
+GRAD_ACCUM_STEP_COUNTS = numpy.array([5, 10, 20, 40, 60, 80], dtype=int)
 INIT_LEARNING_RATES = numpy.array([0.0001, 0.0005, 0.0007, 0.0009, 0.0011])
 
 
 def _run():
-    """Makes CNN templates for Structure Experiment 3b.
+    """Makes CNN templates for Structure Experiment 3.
 
     This is effectively the main method.
     """
@@ -103,50 +100,35 @@ def _run():
     for i in range(len(GRAD_ACCUM_STEP_COUNTS)):
         for j in range(len(INIT_LEARNING_RATES)):
             if j == 0:
-                if GRAD_ACCUM_STEP_COUNTS[i] == 1:
-                    optimizer_function = keras.optimizers.Nadam(clipnorm=1.0)
-                    optimizer_function_string = (
-                        'keras.optimizers.Nadam(clipnorm=1.0)'
-                    )
-                else:
-                    optimizer_function = keras.optimizers.Nadam(
-                        gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i],
-                        clipnorm=1.0
-                    )
-                    optimizer_function_string = (
-                        'keras.optimizers.Nadam('
-                        'gradient_accumulation_steps={0:d}, '
-                        'clipnorm=1.0'
-                        ')'
-                    ).format(GRAD_ACCUM_STEP_COUNTS[i])
+                optimizer_function = keras.optimizers.Nadam(
+                    gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i],
+                    clipnorm=1.0
+                )
+                optimizer_function_string = (
+                    'keras.optimizers.Nadam('
+                    'gradient_accumulation_steps={0:d}, '
+                    'clipnorm=1.0'
+                    ')'
+                ).format(
+                    GRAD_ACCUM_STEP_COUNTS[i],
+                    INIT_LEARNING_RATES[j]
+                )
             else:
-                if GRAD_ACCUM_STEP_COUNTS[i] == 1:
-                    optimizer_function = keras.optimizers.Nadam(
-                        learning_rate=INIT_LEARNING_RATES[j],
-                        clipnorm=1.0
-                    )
-                    optimizer_function_string = (
-                        'keras.optimizers.Nadam('
-                        'learning_rate={0:.3f}, '
-                        'clipnorm=1.0'
-                        ')'
-                    ).format(INIT_LEARNING_RATES[j])
-                else:
-                    optimizer_function = keras.optimizers.Nadam(
-                        gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i],
-                        learning_rate=INIT_LEARNING_RATES[j],
-                        clipnorm=1.0
-                    )
-                    optimizer_function_string = (
-                        'keras.optimizers.Nadam('
-                        'gradient_accumulation_steps={0:d}, '
-                        'learning_rate={1:.3f}, '
-                        'clipnorm=1.0'
-                        ')'
-                    ).format(
-                        GRAD_ACCUM_STEP_COUNTS[i],
-                        INIT_LEARNING_RATES[j]
-                    )
+                optimizer_function = keras.optimizers.Nadam(
+                    gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i],
+                    learning_rate=INIT_LEARNING_RATES[j],
+                    clipnorm=1.0
+                )
+                optimizer_function_string = (
+                    'keras.optimizers.Nadam('
+                    'gradient_accumulation_steps={0:d}, '
+                    'learning_rate={1:.3f}, '
+                    'clipnorm=1.0'
+                    ')'
+                ).format(
+                    GRAD_ACCUM_STEP_COUNTS[i],
+                    INIT_LEARNING_RATES[j]
+                )
 
             option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
             input_dimensions = numpy.array([800, 800, 7, 3], dtype=int)
