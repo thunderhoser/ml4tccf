@@ -38,18 +38,21 @@ ENSEMBLE_SIZE = 1
 CHANNEL_WEIGHTS = numpy.array(
     [0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]
 )
-LOSS_FUNCTION = custom_losses_scalar.constrained_dwmse_for_structure_params(
-    channel_weights=CHANNEL_WEIGHTS,
-    intensity_index=0, r34_index=1, r50_index=2, r64_index=3, rmw_index=4,
-    function_name='loss_constrained_dwmse'
-)
-LOSS_FUNCTION_STRING = (
-    'custom_losses_scalar.constrained_dwmse_for_structure_params('
-    'channel_weights=numpy.array([0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]), '
-    'intensity_index=0, r34_index=1, r50_index=2, r64_index=3, rmw_index=4, '
-    'function_name="loss_constrained_dwmse"'
-    ')'
-)
+LOSS_FUNCTION = keras.losses.mean_squared_error
+LOSS_FUNCTION_STRING = 'keras.losses.mean_squared_error'
+
+# LOSS_FUNCTION = custom_losses_scalar.constrained_dwmse_for_structure_params(
+#     channel_weights=CHANNEL_WEIGHTS,
+#     intensity_index=0, r34_index=1, r50_index=2, r64_index=3, rmw_index=4,
+#     function_name='loss_constrained_dwmse'
+# )
+# LOSS_FUNCTION_STRING = (
+#     'custom_losses_scalar.constrained_dwmse_for_structure_params('
+#     'channel_weights=numpy.array([0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]), '
+#     'intensity_index=0, r34_index=1, r50_index=2, r64_index=3, rmw_index=4, '
+#     'function_name="loss_constrained_dwmse"'
+#     ')'
+# )
 
 DEFAULT_OPTION_DICT = {
     # tcnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:

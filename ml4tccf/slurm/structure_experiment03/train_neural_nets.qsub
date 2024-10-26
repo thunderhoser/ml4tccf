@@ -38,13 +38,13 @@ VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/
 A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/including_western_pacific_a-decks_not-b-decks/processed_a_decks_2016-2022_normalized_structure.nc"
 
 GRAD_ACCUM_STEP_COUNTS=("05" "10" "20" "40" "60" "80" "05" "10" "20" "40" "60" "80" "05" "10" "20" "40" "60" "80" "05" "10" "20" "40" "60" "80" "05" "10" "20" "40" "60" "80")
-TRAINING_EXAMPLE_PER_EPOCH_COUNTS=("180" "360" "360" "360" "360" "360" "180" "360" "360" "360" "360" "360" "180" "360" "360" "360" "360" "360" "180" "360" "360" "360" "360" "360" "180" "360" "360" "360" "360" "360")
-VALIDATION_EXAMPLE_PER_EPOCH_COUNTS=("060" "120" "120" "120" "120" "120" "060" "120" "120" "120" "120" "120" "060" "120" "120" "120" "120" "120" "060" "120" "120" "120" "120" "120" "060" "120" "120" "120" "120" "120")
+TRAINING_BATCH_PER_EPOCH_COUNTS=("36" "72" "72" "72" "72" "72" "36" "72" "72" "72" "72" "72" "36" "72" "72" "72" "72" "72" "36" "72" "72" "72" "72" "72" "36" "72" "72" "72" "72" "72")
+VALIDATION_BATCH_PER_EPOCH_COUNTS=("12" "24" "24" "24" "24" "24" "12" "24" "24" "24" "24" "24" "12" "24" "24" "24" "24" "24" "12" "24" "24" "24" "24" "24" "12" "24" "24" "24" "24" "24")
 INIT_LEARNING_RATES=("0.001" "0.001" "0.001" "0.001" "0.001" "0.001" "0.005" "0.005" "0.005" "0.005" "0.005" "0.005" "0.007" "0.007" "0.007" "0.007" "0.007" "0.007" "0.009" "0.009" "0.009" "0.009" "0.009" "0.009" "0.011" "0.011" "0.011" "0.011" "0.011" "0.011")
 
 num_grad_accum_steps=${GRAD_ACCUM_STEP_COUNTS[$SLURM_ARRAY_TASK_ID]}
-num_training_examples_per_epoch=${TRAINING_EXAMPLE_PER_EPOCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
-num_validation_examples_per_epoch=${VALIDATION_EXAMPLE_PER_EPOCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
+num_training_batches_per_epoch=${TRAINING_BATCH_PER_EPOCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
+num_validation_batches_per_epoch=${VALIDATION_BATCH_PER_EPOCH_COUNTS[$SLURM_ARRAY_TASK_ID]}
 init_learning_rate=${INIT_LEARNING_RATES[$SLURM_ARRAY_TASK_ID]}
 
 template_file_name="${TEMPLATE_DIR_NAME}/num-grad-accum-steps=${num_grad_accum_steps}_init-learning-rate=${init_learning_rate}/model.h5"
@@ -56,7 +56,7 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_structure.py" \
 --output_model_dir_name="${output_dir_name}" \
 --lag_times_minutes 0 30 60 90 120 150 180 \
 --low_res_wavelengths_microns 8.500 9.610 12.300 \
---num_examples_per_batch=1 \
+--num_examples_per_batch=5 \
 --num_rows_low_res=800 \
 --num_columns_low_res=800 \
 --synoptic_times_only=0 \
@@ -72,8 +72,8 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_structure.py" \
 --satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
 --validation_years 2016 2017 2018 2019 2020 2021 2022 \
 --num_epochs=1000 \
---num_training_batches_per_epoch=${num_training_examples_per_epoch} \
---num_validation_batches_per_epoch=${num_validation_examples_per_epoch} \
+--num_training_batches_per_epoch=${num_training_batches_per_epoch} \
+--num_validation_batches_per_epoch=${num_validation_batches_per_epoch} \
 --plateau_patience_epochs=10 \
 --plateau_learning_rate_multiplier=0.75 \
 --early_stopping_patience_epochs=500
