@@ -26,7 +26,7 @@ OUTPUT_DIR_NAME = (
 )
 
 NUM_SCALAR_PREDICTORS = 13
-ENSEMBLE_SIZE = 1
+ENSEMBLE_SIZE = 2
 
 # OPTIMIZER_FUNCTION = keras.optimizers.Nadam(
 #     gradient_accumulation_steps=20, clipnorm=1.0
