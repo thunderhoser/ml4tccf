@@ -79,7 +79,7 @@ DEFAULT_OPTION_DICT = {
         architecture_utils.RELU_FUNCTION_STRING,
     tcnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
     tcnn_architecture.L2_WEIGHT_KEY: 1e-6,
-    tcnn_architecture.USE_BATCH_NORM_KEY: True,
+    tcnn_architecture.USE_BATCH_NORM_KEY: False,
     tcnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     tcnn_architecture.LOSS_FUNCTION_KEY: LOSS_FUNCTION,
     # tcnn_architecture.OPTIMIZER_FUNCTION_KEY: OPTIMIZER_FUNCTION,
