@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name="train_neural_nets"
+#SBATCH --job-name="train_neural_nets_first"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="gpuwf"
@@ -10,13 +10,13 @@
 #SBATCH --ntasks-per-node=8  # 8 GPUs per node
 #SBATCH --exclusive
 #SBATCH --time=120:00:00
-#SBATCH --array=0-24
+#SBATCH --array=0-4
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=train_neural_nets_%A_%a.out
+#SBATCH --output=train_neural_nets_first_%A_%a.out
 
 module load cuda/12.3.1
 conda init
