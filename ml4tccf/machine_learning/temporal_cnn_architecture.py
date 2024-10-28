@@ -1108,45 +1108,70 @@ def create_model_for_structure(option_dict):
             layer_object, layer_object_resid_baseline
         ])
 
+    if use_physical_constraints:
         layer_object = architecture_utils.get_activation_layer(
             activation_function_string=architecture_utils.RELU_FUNCTION_STRING,
             alpha_for_relu=0.,
             alpha_for_elu=0.
         )(layer_object)
 
-    if use_physical_constraints:
         layer_object = layers.Permute(
             dims=(2, 1), name='output_channels_last'
         )(layer_object)
 
-        # r64_layer_object = layers.Lambda(
-        #     lambda x: x[..., r64_index], name='output_slice_r64'
-        # )(layer_object)
-        # r50_layer_object = layers.Lambda(
-        #     lambda x: x[..., r50_index], name='output_slice_r50'
-        # )(layer_object)
-        # r34_layer_object = layers.Lambda(
-        #     lambda x: x[..., r34_index], name='output_slice_r34'
-        # )(layer_object)
-        #
-        # r50_layer_object = layers.Add(name='output_add_r50_to_r64')(
-        #     [r50_layer_object, r64_layer_object]
-        # )
-        # r34_layer_object = layers.Add(name='output_add_r34_to_r50')(
-        #     [r34_layer_object, r50_layer_object]
-        # )
-
-        layer_object = PhysicalConstraintLayer(
-            intensity_index=intensity_index,
-            r34_index=r34_index,
-            r50_index=r50_index,
-            r64_index=r64_index,
-            rmw_index=rmw_index,
-            name='output_phys_constraints'
+        r64_layer_object = layers.Lambda(
+            lambda x: x[..., [r64_index]], name='output_slice_r64'
         )(layer_object)
+        r50_layer_object = layers.Lambda(
+            lambda x: x[..., [r50_index]], name='output_slice_r50'
+        )(layer_object)
+        r34_layer_object = layers.Lambda(
+            lambda x: x[..., [r34_index]], name='output_slice_r34'
+        )(layer_object)
+        intensity_layer_object = layers.Lambda(
+            lambda x: x[..., [intensity_index]], name='output_slice_intensity'
+        )(layer_object)
+        rmw_layer_object = layers.Lambda(
+            lambda x: x[..., [rmw_index]], name='output_slice_rmw'
+        )(layer_object)
+
+        r50_layer_object = layers.Add(name='output_add_r50_to_r64')(
+            [r50_layer_object, r64_layer_object]
+        )
+        r34_layer_object = layers.Add(name='output_add_r34_to_r50')(
+            [r34_layer_object, r50_layer_object]
+        )
+
+        assert (
+            intensity_index == 0 and r34_index == 1 and r50_index == 2
+            and r64_index == 3 and rmw_index == 4
+        )
+
+        layer_object = layers.Concatenate(axis=-1)([
+            intensity_layer_object,
+            r34_layer_object,
+            r50_layer_object,
+            r64_layer_object,
+            rmw_layer_object
+        ])
+
+        # layer_object = PhysicalConstraintLayer(
+        #     intensity_index=intensity_index,
+        #     r34_index=r34_index,
+        #     r50_index=r50_index,
+        #     r64_index=r64_index,
+        #     rmw_index=rmw_index,
+        #     name='output_phys_constraints'
+        # )(layer_object)
 
         layer_object = layers.Permute(
             dims=(2, 1), name='output_channels_first'
+        )(layer_object)
+    else:
+        layer_object = architecture_utils.get_activation_layer(
+            activation_function_string=architecture_utils.RELU_FUNCTION_STRING,
+            alpha_for_relu=0.,
+            alpha_for_elu=0.
         )(layer_object)
 
     input_layer_objects = []
