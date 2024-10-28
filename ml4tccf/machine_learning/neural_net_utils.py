@@ -1043,7 +1043,11 @@ def read_model(hdf5_file_name):
     architecture_dict = metadata_dict[ARCHITECTURE_KEY]
     is_model_bnn = metadata_dict[IS_MODEL_BNN_KEY]
     training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
-    semantic_segmentation_flag = training_option_dict[SEMANTIC_SEG_FLAG_KEY]
+
+    if SEMANTIC_SEG_FLAG_KEY in training_option_dict:
+        semantic_segmentation_flag = training_option_dict[SEMANTIC_SEG_FLAG_KEY]
+    else:
+        semantic_segmentation_flag = False
 
     if is_model_bnn:
         from ml4tccf.machine_learning import cnn_architecture_bayesian
