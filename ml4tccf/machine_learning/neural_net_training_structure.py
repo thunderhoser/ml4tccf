@@ -858,6 +858,20 @@ def data_generator_shuffled(option_dict):
             ):
                 continue
 
+            row_indices = numpy.array([
+                numpy.where(numpy.logical_and(
+                    numpy.array(these_cyclone_id_strings) == c,
+                    these_target_times_unix_sec == t
+                ))[0][0]
+                for c, t in zip(
+                    data_dict[CYCLONE_IDS_KEY], data_dict[TARGET_TIMES_KEY]
+                )
+            ], dtype=int)
+
+            this_target_matrix = this_target_matrix[row_indices, :]
+            del these_cyclone_id_strings
+            del these_target_times_unix_sec
+
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
             else:
