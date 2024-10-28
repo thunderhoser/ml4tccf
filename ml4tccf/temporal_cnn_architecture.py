@@ -1128,23 +1128,28 @@ def create_model_for_structure(option_dict):
         )(layer_object)
 
         r64_layer_object = layers.Lambda(
-            lambda x: x[..., [r64_index]], name='output_slice_r64',
+            lambda x: x[..., r64_index:(r64_index + 1)],
+            name='output_slice_r64',
             output_shape=(ensemble_size, 1)
         )(layer_object)
         r50_layer_object = layers.Lambda(
-            lambda x: x[..., [r50_index]], name='output_slice_r50',
+            lambda x: x[..., r50_index:(r50_index + 1)],
+            name='output_slice_r50',
             output_shape=(ensemble_size, 1)
         )(layer_object)
         r34_layer_object = layers.Lambda(
-            lambda x: x[..., [r34_index]], name='output_slice_r34',
+            lambda x: x[..., r34_index:(r34_index + 1)],
+            name='output_slice_r34',
             output_shape=(ensemble_size, 1)
         )(layer_object)
         intensity_layer_object = layers.Lambda(
-            lambda x: x[..., [intensity_index]], name='output_slice_intensity',
+            lambda x: x[..., intensity_index:(intensity_index + 1)],
+            name='output_slice_intensity',
             output_shape=(ensemble_size, 1)
         )(layer_object)
         rmw_layer_object = layers.Lambda(
-            lambda x: x[..., [rmw_index]], name='output_slice_rmw',
+            lambda x: x[..., rmw_index:(rmw_index + 1)],
+            name='output_slice_rmw',
             output_shape=(ensemble_size, 1)
         )(layer_object)
 
