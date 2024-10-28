@@ -708,9 +708,9 @@ def get_batch_norm_layer(layer_name=None):
     :return: Instance of `keras.layers.BatchNormalization`.
     """
 
-    return layers.BatchNormalization(
+    return keras.layers.BatchNormalization(
         axis=-1, momentum=0.99, epsilon=0.001, center=True, scale=True,
-        name=layer_name
+        synchronized=True, name=layer_name
     )
 
 
