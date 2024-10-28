@@ -104,7 +104,9 @@ def _run(prediction_file_pattern, output_dir_name):
         tptx = this_prediction_table_xarray
 
         if i == 0:
-            model_file_name = tptx[structure_prediction_utils.MODEL_FILE_KEY]
+            model_file_name = tptx.attrs[
+                structure_prediction_utils.MODEL_FILE_KEY
+            ]
 
         this_target_matrix = (
             tptx[structure_prediction_utils.TARGET_KEY].values
