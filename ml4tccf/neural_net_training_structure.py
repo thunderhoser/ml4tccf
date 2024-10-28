@@ -510,8 +510,12 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         data_dict[BRIGHTNESS_TEMPS_KEY][:num_target_times, ...]
     )
     target_times_unix_sec = data_dict[TARGET_TIMES_KEY][:num_target_times, ...]
-    latitude_matrix_deg_n = data_dict[LATITUDES_KEY][:num_target_times, ...]
-    longitude_matrix_deg_e = data_dict[LONGITUDES_KEY][:num_target_times, ...]
+    latitude_matrix_deg_n = data_dict[
+        nn_training_simple.LOW_RES_LATITUDES_KEY
+    ][:num_target_times, ...]
+    longitude_matrix_deg_e = data_dict[
+        nn_training_simple.LOW_RES_LONGITUDES_KEY
+    ][:num_target_times, ...]
 
     vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
         vector_predictor_matrix
