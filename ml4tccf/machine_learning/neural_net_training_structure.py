@@ -1,6 +1,7 @@
 """NN-training for TC-structure parameters with simple Robert/Galina data."""
 
 import copy
+import time
 import random
 import numpy
 import keras
@@ -16,8 +17,13 @@ from ml4tccf.io import extended_best_track_io as ebtrk_io
 from ml4tccf.utils import extended_best_track_utils as ebtrk_utils
 from ml4tccf.machine_learning import \
     neural_net_training_simple as nn_training_simple
+from ml4tccf.machine_learning import \
+    neural_net_training_fancy as nn_training_fancy
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
 
+DATE_FORMAT = '%Y%m%d'
+
+DAYS_TO_SECONDS = 86400
 HOURS_TO_SECONDS = 3600
 MINUTES_TO_SECONDS = 60
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
@@ -54,6 +60,10 @@ TARGET_NAME_TO_CONV_FACTOR = {
 BRIGHTNESS_TEMPS_KEY = nn_utils.BRIGHTNESS_TEMPS_KEY
 TARGET_TIMES_KEY = nn_utils.TARGET_TIMES_KEY
 CYCLONE_IDS_KEY = 'cyclone_id_strings'
+PREDICTOR_MATRICES_KEY = nn_utils.PREDICTOR_MATRICES_KEY
+TARGET_MATRIX_KEY = nn_utils.TARGET_MATRIX_KEY
+LATITUDES_KEY = 'latitude_matrix_deg_n'
+LONGITUDES_KEY = 'longitude_matrix_deg_e'
 
 SATELLITE_DIRECTORY_KEY = 'satellite_dir_name'
 YEARS_KEY = 'years'
@@ -296,6 +306,289 @@ def check_generator_args(option_dict):
     return option_dict
 
 
+def create_data(option_dict, cyclone_id_string, num_target_times,
+                target_date_string=None):
+    """Creates validation or testing data from non-shuffled files.
+
+    E = number of examples (or number of "TC samples")
+    L = number of lag times for predictors
+    M = number of rows in grid
+    N = number of columns in grid
+
+    :param option_dict: See documentation for `data_generator_shuffled`.
+    :param cyclone_id_string: Cyclone ID (must be accepted by
+        `misc_utils.parse_cyclone_id`).  Data will be created only for this
+        tropical cyclone.
+    :param num_target_times: Number of target times.  Data will be created for
+        this many TC samples.
+    :param target_date_string: Target date (format "yyyymmdd").  Data will be
+        created only for the given TC and this date.  If you want to create data
+        for the given TC regardless of date, leave this argument alone.
+    :return: data_dict: Dictionary with the following keys.
+    data_dict["predictor_matrices"]: See documentation for
+        `data_generator_shuffled`.
+    data_dict["target_matrix"]: Same.
+    data_dict["target_times_unix_sec"]: length-E numpy array of target times.
+    data_dict["latitude_matrix_deg_n"]: E-by-M-by-L numpy array of latitudes
+        (deg north).
+    data_dict["longitude_matrix_deg_e"]: E-by-M-by-L numpy array of longitudes
+        (deg east).
+    """
+
+    error_checking.assert_is_integer(num_target_times)
+    error_checking.assert_is_greater(num_target_times, 0)
+
+    option_dict[BATCH_SIZE_KEY] = 10
+    option_dict[YEARS_KEY] = numpy.array([1990], dtype=int)
+    option_dict = check_generator_args(option_dict)
+
+    satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
+    lag_times_minutes = option_dict[LAG_TIMES_KEY]
+    low_res_wavelengths_microns = option_dict[LOW_RES_WAVELENGTHS_KEY]
+    num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
+    num_columns_low_res = option_dict[NUM_GRID_COLUMNS_KEY]
+    synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
+    scalar_a_deck_field_names = copy.deepcopy(
+        option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    )
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
+    remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
+    a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    target_field_names = option_dict[TARGET_FIELDS_KEY]
+    target_file_name = option_dict[TARGET_FILE_KEY]
+    do_residual_prediction = option_dict[DO_RESIDUAL_PREDICTION_KEY]
+
+    assert not a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY in scalar_a_deck_field_names
+    assert not a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY in scalar_a_deck_field_names
+
+    satellite_file_names = satellite_io.find_files_one_cyclone(
+        directory_name=satellite_dir_name,
+        cyclone_id_string=cyclone_id_string,
+        raise_error_if_all_missing=True
+    )
+
+    first_scalar_a_deck_field_names = copy.deepcopy(scalar_a_deck_field_names)
+
+    if do_residual_prediction:
+        for this_target_field_name in target_field_names:
+            if this_target_field_name == INTENSITY_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_INTENSITY_KEY
+                )
+            elif this_target_field_name == R34_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_WIND_RADIUS_34KT_KEY
+                )
+            elif this_target_field_name == R50_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_WIND_RADIUS_50KT_KEY
+                )
+            elif this_target_field_name == R64_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_WIND_RADIUS_64KT_KEY
+                )
+            elif this_target_field_name == RMW_FIELD_NAME:
+                scalar_a_deck_field_names.append(
+                    a_deck_io.UNNORM_MAX_WIND_RADIUS_KEY
+                )
+
+    (
+        all_target_times_unix_sec, all_scalar_predictor_matrix
+    ) = nn_training_fancy.get_target_times_and_scalar_predictors(
+        cyclone_id_strings=[cyclone_id_string],
+        synoptic_times_only=synoptic_times_only,
+        satellite_file_names_by_cyclone=[satellite_file_names],
+        a_deck_file_name=a_deck_file_name,
+        scalar_a_deck_field_names=scalar_a_deck_field_names,
+        remove_nontropical_systems=remove_nontropical_systems,
+        remove_tropical_systems=remove_tropical_systems,
+        predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes,
+        a_decks_at_least_6h_old=True
+    )
+
+    all_target_times_unix_sec = all_target_times_unix_sec[0]
+    all_scalar_predictor_matrix = all_scalar_predictor_matrix[0]
+
+    if target_date_string is not None:
+        all_target_dates_unix_sec = number_rounding.floor_to_nearest(
+            all_target_times_unix_sec, DAYS_TO_SECONDS
+        )
+        all_target_dates_unix_sec = numpy.round(
+            all_target_dates_unix_sec
+        ).astype(int)
+
+        target_date_unix_sec = time_conversion.string_to_unix_sec(
+            target_date_string, DATE_FORMAT
+        )
+        good_indices = numpy.where(
+            all_target_dates_unix_sec == target_date_unix_sec
+        )[0]
+
+        all_target_times_unix_sec = all_target_times_unix_sec[good_indices]
+        all_scalar_predictor_matrix = (
+            all_scalar_predictor_matrix[good_indices, :]
+        )
+
+    print('Reading data from: "{0:s}"...'.format(target_file_name))
+    ebtrk_table_xarray = ebtrk_io.read_file(target_file_name)
+
+    all_target_values_by_sample = [
+        _get_target_variables(
+            ebtrk_table_xarray=ebtrk_table_xarray,
+            target_field_names=target_field_names,
+            cyclone_id_string=cyclone_id_string,
+            target_time_unix_sec=t
+        )
+        for t in all_target_times_unix_sec
+    ]
+
+    good_flags = numpy.array(
+        [tv is not None for tv in all_target_values_by_sample], dtype=int
+    )
+    good_indices = numpy.where(good_flags)[0]
+    if len(good_indices) == 0:
+        return None
+
+    all_scalar_predictor_matrix = all_scalar_predictor_matrix[good_indices, :]
+    all_target_times_unix_sec = all_target_times_unix_sec[good_indices]
+    all_target_values_by_sample = [
+        all_target_values_by_sample[k] for k in good_indices
+    ]
+    all_target_matrix = numpy.vstack(all_target_values_by_sample)
+
+    conservative_num_target_times = max([
+        int(numpy.round(num_target_times * 1.25)),
+        num_target_times + 2
+    ])
+
+    chosen_target_times_unix_sec = (
+        nn_training_fancy.choose_random_target_times(
+            all_target_times_unix_sec=all_target_times_unix_sec + 0,
+            num_times_desired=conservative_num_target_times
+        )[0]
+    )
+
+    data_dict = nn_training_simple._read_satellite_data_1cyclone(
+        input_file_names=satellite_file_names,
+        target_times_unix_sec=chosen_target_times_unix_sec,
+        lag_times_minutes=lag_times_minutes,
+        low_res_wavelengths_microns=low_res_wavelengths_microns,
+        num_rows_low_res=num_rows_low_res,
+        num_columns_low_res=num_columns_low_res,
+        return_coords=True,
+        return_xy_coords=False
+    )
+
+    if (
+            data_dict is None
+            or data_dict[BRIGHTNESS_TEMPS_KEY] is None
+            or data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
+    ):
+        return None
+
+    row_indices = numpy.array([
+        numpy.where(all_target_times_unix_sec == t)[0][0]
+        for t in data_dict[TARGET_TIMES_KEY]
+    ], dtype=int)
+
+    target_matrix = all_target_matrix[row_indices, :]
+    target_matrix = target_matrix[:num_target_times, :]
+
+    if a_deck_file_name is None:
+        scalar_predictor_matrix = None
+    else:
+        scalar_predictor_matrix = all_scalar_predictor_matrix[row_indices, :]
+        scalar_predictor_matrix = scalar_predictor_matrix[:num_target_times, :]
+
+    vector_predictor_matrix = (
+        data_dict[BRIGHTNESS_TEMPS_KEY][:num_target_times, ...]
+    )
+    target_times_unix_sec = data_dict[TARGET_TIMES_KEY][:num_target_times, ...]
+    latitude_matrix_deg_n = data_dict[LATITUDES_KEY][:num_target_times, ...]
+    longitude_matrix_deg_e = data_dict[LONGITUDES_KEY][:num_target_times, ...]
+
+    vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
+        vector_predictor_matrix
+    )
+
+    if do_residual_prediction:
+        residual_baseline_matrix = (
+            scalar_predictor_matrix[:, len(first_scalar_a_deck_field_names):]
+        )
+        scalar_predictor_matrix = (
+            scalar_predictor_matrix[:, :len(first_scalar_a_deck_field_names)]
+        )
+
+        for f in range(len(target_field_names)):
+            residual_baseline_matrix[:, f] *= (
+                TARGET_NAME_TO_CONV_FACTOR[target_field_names[f]]
+            )
+    else:
+        residual_baseline_matrix = None
+
+    # TODO(thunderhoser): This is a HACK.  Should be controlled by an input
+    # arg.
+    final_axis_length = len(low_res_wavelengths_microns)
+    new_dimensions = (
+        vector_predictor_matrix.shape[:3] +
+        (len(lag_times_minutes), final_axis_length)
+    )
+    vector_predictor_matrix = numpy.reshape(
+        vector_predictor_matrix, new_dimensions
+    )
+
+    predictor_matrices = [vector_predictor_matrix]
+    if scalar_predictor_matrix is not None:
+        predictor_matrices.append(scalar_predictor_matrix)
+    if residual_baseline_matrix is not None:
+        predictor_matrices.append(residual_baseline_matrix)
+
+    predictor_matrices = [p.astype('float32') for p in predictor_matrices]
+
+    for i in range(len(predictor_matrices)):
+        print('Shape of {0:d}th predictor matrix = {1:s}'.format(
+            i + 1, str(predictor_matrices[i].shape)
+        ))
+        print((
+            'NaN fraction and min/max in {0:d}th predictor matrix = '
+            '{1:.4f}, {2:.4f}, {3:.4f}'
+        ).format(
+            i + 1,
+            numpy.mean(numpy.isnan(predictor_matrices[i])),
+            numpy.nanmin(predictor_matrices[i]),
+            numpy.nanmax(predictor_matrices[i])
+        ))
+
+    if residual_baseline_matrix is not None:
+        print((
+            'Min/max of every channel in residual baseline matrix:'
+            '\n{0:s}\n{1:s}'
+        ).format(
+            str(numpy.min(residual_baseline_matrix, axis=0)),
+            str(numpy.max(residual_baseline_matrix, axis=0))
+        ))
+
+    print('Shape of target matrix = {0:s}'.format(
+        str(target_matrix.shape)
+    ))
+    print((
+        'NaN fraction and min/max in target matrix = '
+        '{0:.4f}, {1:.4f}, {2:.4f}'
+    ).format(
+        numpy.mean(numpy.isnan(target_matrix)),
+        numpy.nanmin(target_matrix),
+        numpy.nanmax(target_matrix)
+    ))
+
+    return {
+        PREDICTOR_MATRICES_KEY: predictor_matrices,
+        TARGET_MATRIX_KEY: target_matrix,
+        TARGET_TIMES_KEY: target_times_unix_sec,
+        LATITUDES_KEY: latitude_matrix_deg_n,
+        LONGITUDES_KEY: longitude_matrix_deg_e
+    }
+
+
 def data_generator_shuffled(option_dict):
     """Generates training data from shuffled files.
 
@@ -343,13 +636,16 @@ def data_generator_shuffled(option_dict):
         `extended_best_track_io.read_file`).
     option_dict["do_residual_prediction"]: Boolean flag.
 
-    :return: predictor_matrices: If predictors include scalars, this will be a
-        list with [vector_predictor_matrix, scalar_predictor_matrix].
-        Otherwise, this will be a list with only the first item.
+    :return: predictor_matrices: Tuple with the following items:
+        (vector_predictor_matrix, scalar_predictor_matrix,
+         resid_baseline_predictor_matrix).  Either of the last two items might
+        be missing.
 
         vector_predictor_matrix: E-by-M-by-N-by-W-by-L numpy array of
             brightness temperatures.
         scalar_predictor_matrix: E-by-F numpy array of scalar predictors.
+        resid_baseline_predictor_matrix: E-by-T numpy array of baseline
+            predictions.
 
     :return: target_matrix: E-by-T numpy array of target values.
     """
@@ -832,3 +1128,66 @@ def train_model(
         validation_data=validation_generator,
         validation_steps=num_validation_batches_per_epoch
     )
+
+
+def apply_model(
+        model_object, predictor_matrices, num_examples_per_batch, verbose=True):
+    """Applies trained neural net -- inference time!
+
+    E = number of examples (or number of "TC samples")
+    F = number of target fields
+    S = ensemble size
+
+    :param model_object: Trained neural net (instance of `keras.models.Model` or
+        `keras.models.Sequential`).
+    :param predictor_matrices: See output documentation for `create_data`.
+    :param num_examples_per_batch: Batch size.
+    :param verbose: Boolean flag.  If True, will print progress messages.
+    :return: prediction_matrix: E-by-F-by-S numpy array of predictions.
+    """
+
+    # Check input args.
+    for this_matrix in predictor_matrices:
+        error_checking.assert_is_numpy_array_without_nan(this_matrix)
+
+    error_checking.assert_is_integer(num_examples_per_batch)
+    error_checking.assert_is_geq(num_examples_per_batch, 1)
+    num_examples = predictor_matrices[0].shape[0]
+    num_examples_per_batch = min([num_examples_per_batch, num_examples])
+
+    error_checking.assert_is_boolean(verbose)
+
+    # Do actual stuff.
+    prediction_matrix = None
+    exec_start_time_unix_sec = time.time()
+
+    for i in range(0, num_examples, num_examples_per_batch):
+        first_index = i
+        last_index = min([i + num_examples_per_batch, num_examples])
+
+        if verbose:
+            print('Applying model to examples {0:d}-{1:d} of {2:d}...'.format(
+                first_index + 1, last_index, num_examples
+            ))
+
+        this_prediction_matrix = model_object.predict_on_batch(
+            [a[first_index:last_index, ...] for a in predictor_matrices]
+        )
+
+        if prediction_matrix is None:
+            dimensions = (num_examples,) + this_prediction_matrix.shape[1:]
+            prediction_matrix = numpy.full(dimensions, numpy.nan)
+
+        prediction_matrix[first_index:last_index, ...] = this_prediction_matrix
+
+    elapsed_time_sec = time.time() - exec_start_time_unix_sec
+
+    if verbose:
+        print((
+            'Have applied model to all {0:d} examples!  It took {1:.4f} '
+            'seconds.'
+        ).format(
+            num_examples, elapsed_time_sec
+        ))
+
+    return prediction_matrix

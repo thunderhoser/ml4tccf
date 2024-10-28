@@ -642,7 +642,8 @@ def get_target_times_and_scalar_predictors(
         cyclone_id_strings, synoptic_times_only,
         satellite_file_names_by_cyclone, a_deck_file_name,
         scalar_a_deck_field_names, remove_nontropical_systems,
-        remove_tropical_systems, predictor_lag_times_sec):
+        remove_tropical_systems, predictor_lag_times_sec,
+        a_decks_at_least_6h_old=False):
     """Returns target times and scalar predictors for each cyclone.
 
     C = number of cyclones
@@ -670,6 +671,7 @@ def get_target_times_and_scalar_predictors(
         non-tropical systems.
     :param predictor_lag_times_sec: 1-D numpy array of lag times for predictors.
         Make this None if you do not want to consider predictor lag times.
+    :param a_decks_at_least_6h_old: Boolean flag.
     :return: target_times_by_cyclone_unix_sec: length-C list, where the [i]th
         item is a numpy array (length T_i) of target times.
     :return: scalar_predictor_matrix_by_cyclone: length-C list, where the [i]th
@@ -694,6 +696,8 @@ def get_target_times_and_scalar_predictors(
             predictor_lag_times_sec, num_dimensions=1
         )
         error_checking.assert_is_geq_numpy_array(predictor_lag_times_sec, 0)
+
+    error_checking.assert_is_boolean(a_decks_at_least_6h_old)
 
     # Do actual stuff.
     num_cyclones = len(cyclone_id_strings)
@@ -748,7 +752,8 @@ def get_target_times_and_scalar_predictors(
             remove_nontropical_systems=remove_nontropical_systems,
             remove_tropical_systems=remove_tropical_systems,
             cyclone_id_strings=[cyclone_id_strings[i]] * this_num_times,
-            target_times_unix_sec=target_times_by_cyclone_unix_sec[i]
+            target_times_unix_sec=target_times_by_cyclone_unix_sec[i],
+            a_decks_at_least_6h_old=a_decks_at_least_6h_old
         )
 
         import sys
