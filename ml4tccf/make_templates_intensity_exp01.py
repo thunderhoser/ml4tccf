@@ -1,4 +1,4 @@
-"""Makes templates for first intensity experiment."""
+"""Makes CNN templates for Intensity Experiment 1."""
 
 import os
 import sys
@@ -14,157 +14,224 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import file_system_utils
 import architecture_utils
 import neural_net_utils
-import cnn_architecture
-import accum_grad_optimizer
+import temporal_cnn_architecture as tcnn_architecture
+import custom_losses_scalar
+import custom_metrics_structure
 
 OUTPUT_DIR_NAME = (
     '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/'
     'intensity_experiment01/templates'
 )
 
-NUM_SCALAR_PREDICTORS = 5
-NUM_CONV_BLOCKS = 7
-NUM_DENSE_LAYERS = 4
-LOSS_FUNCTION_STRING = 'keras.losses.mse'
+NUM_SCALAR_PREDICTORS = 13
+ENSEMBLE_SIZE = 2
+
+# Intensity (kt), R34 (km), R50 (km), R64 (km), RMW (km)
+CHANNEL_WEIGHTS = numpy.array(
+    [0.22710066, 0.01812499, 0.10875182, 0.5450069, 0.10101562]
+)
+LOSS_FUNCTION = custom_metrics_structure.mean_squared_error(
+    channel_index=0,
+    function_name='mean_sq_error_intensity_kt2'
+)
+LOSS_FUNCTION_STRING = (
+    'custom_metrics_structure.mean_squared_error('
+        'channel_index=0, '
+        'function_name="mean_sq_error_intensity_kt2"'
+    ')'
+)
 
 DEFAULT_OPTION_DICT = {
-    cnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
-        numpy.array([580, 900, 15], dtype=int),
-    cnn_architecture.INPUT_DIMENSIONS_SCALAR_KEY:
+    # tcnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
+    #     numpy.array([580, 900, 21], dtype=int),
+    tcnn_architecture.INPUT_DIMENSIONS_SCALAR_KEY:
         numpy.array([NUM_SCALAR_PREDICTORS], dtype=int),
-    cnn_architecture.INCLUDE_HIGH_RES_KEY: False,
-    cnn_architecture.INCLUDE_SCALAR_DATA_KEY: True,
-    cnn_architecture.START_WITH_POOLING_KEY: True,
-    cnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(
-        NUM_CONV_BLOCKS, 1, dtype=int
-    ),
-    # cnn_architecture.NUM_CHANNELS_KEY: numpy.array(
+    tcnn_architecture.INCLUDE_HIGH_RES_KEY: False,
+    tcnn_architecture.INCLUDE_SCALAR_DATA_KEY: True,
+    tcnn_architecture.START_WITH_POOLING_KEY: False,
+    # tcnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(
+    #     NUM_CONV_BLOCKS, 1, dtype=int
+    # ),
+    # tcnn_architecture.NUM_CHANNELS_KEY: numpy.array(
     #     [16, 16, 24, 24, 32, 32, 40, 40, 48, 48, 56, 56, 64, 64], dtype=int
     # ),
-    cnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(NUM_CONV_BLOCKS, 0.),
-    # cnn_architecture.NUM_NEURONS_KEY:
+    # tcnn_architecture.CONV_DROPOUT_RATES_KEY: numpy.full(NUM_CONV_BLOCKS, 0.),
+    # tcnn_architecture.NUM_NEURONS_KEY:
     #     numpy.array([1024, 128, 50, 50], dtype=int),
-    cnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
-    cnn_architecture.INNER_ACTIV_FUNCTION_KEY:
+    tcnn_architecture.DENSE_DROPOUT_RATES_KEY: numpy.array([0.5, 0.5, 0.5, 0]),
+    tcnn_architecture.INNER_ACTIV_FUNCTION_KEY:
         architecture_utils.RELU_FUNCTION_STRING,
-    cnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
-    cnn_architecture.L2_WEIGHT_KEY: 1e-6,
-    cnn_architecture.USE_BATCH_NORM_KEY: True,
-    cnn_architecture.LOSS_FUNCTION_KEY: keras.losses.mse,
-    # cnn_architecture.OPTIMIZER_FUNCTION_KEY:
-    #     accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
-    #         orig_optimizer=keras.optimizers.Adam(), update_params_frequency=5,
-    #         accumulate_sum_or_mean=True
-    #     )
+    tcnn_architecture.INNER_ACTIV_FUNCTION_ALPHA_KEY: 0.2,
+    tcnn_architecture.L2_WEIGHT_KEY: 1e-6,
+    tcnn_architecture.USE_BATCH_NORM_KEY: True,
+    tcnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
+    tcnn_architecture.LOSS_FUNCTION_KEY: LOSS_FUNCTION,
+    # tcnn_architecture.OPTIMIZER_FUNCTION_KEY: OPTIMIZER_FUNCTION,
+    tcnn_architecture.INTENSITY_INDEX_KEY: 0,
+    tcnn_architecture.R34_INDEX_KEY: 1,
+    tcnn_architecture.R50_INDEX_KEY: 2,
+    tcnn_architecture.R64_INDEX_KEY: 3,
+    tcnn_architecture.RMW_INDEX_KEY: 4,
+    tcnn_architecture.USE_PHYSICAL_CONSTRAINTS_KEY: True,
+    tcnn_architecture.DO_RESIDUAL_PREDICTION_KEY: False
 }
 
-FIRST_LAYER_FILTER_COUNTS = numpy.array([16, 16, 32], dtype=int)
-BATCHES_PER_UPDATE_COUNTS = numpy.array([2, 1, 1], dtype=int)
+GRAD_ACCUM_STEP_COUNTS = numpy.array([1, 2, 3, 4, 5], dtype=int)
+INIT_LEARNING_RATES = numpy.array([0.0001, 0.0005, 0.0007, 0.0009, 0.0011])
 
 
 def _run():
-    """Makes templates for first intensity experiment.
+    """Makes CNN templates for Intensity Experiment 1.
 
     This is effectively the main method.
     """
 
-    for i in range(len(FIRST_LAYER_FILTER_COUNTS)):
-        option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
+    for i in range(len(GRAD_ACCUM_STEP_COUNTS)):
+        for j in range(len(INIT_LEARNING_RATES)):
+            if j == 0:
+                if GRAD_ACCUM_STEP_COUNTS[i] == 1:
+                    optimizer_function = keras.optimizers.Nadam()
+                    optimizer_function_string = 'keras.optimizers.Nadam()'
+                else:
+                    optimizer_function = keras.optimizers.Nadam(
+                        gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i]
+                    )
+                    optimizer_function_string = (
+                        'keras.optimizers.Nadam('
+                        'gradient_accumulation_steps={0:d}'
+                        ')'
+                    ).format(GRAD_ACCUM_STEP_COUNTS[i])
+            else:
+                if GRAD_ACCUM_STEP_COUNTS[i] == 1:
+                    optimizer_function = keras.optimizers.Nadam(
+                        learning_rate=INIT_LEARNING_RATES[j]
+                    )
+                    optimizer_function_string = (
+                        'keras.optimizers.Nadam(learning_rate={0:.3f})'
+                    ).format(INIT_LEARNING_RATES[j])
+                else:
+                    optimizer_function = keras.optimizers.Nadam(
+                        gradient_accumulation_steps=GRAD_ACCUM_STEP_COUNTS[i],
+                        learning_rate=INIT_LEARNING_RATES[j]
+                    )
+                    optimizer_function_string = (
+                        'keras.optimizers.Nadam('
+                        'gradient_accumulation_steps={0:d}, '
+                        'learning_rate={1:.3f}'
+                        ')'
+                    ).format(
+                        GRAD_ACCUM_STEP_COUNTS[i],
+                        INIT_LEARNING_RATES[j]
+                    )
 
-        num_channels_by_conv_layer = numpy.linspace(
-            1, NUM_CONV_BLOCKS, num=NUM_CONV_BLOCKS, dtype=int
-        ) * FIRST_LAYER_FILTER_COUNTS[i]
+            option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
+            input_dimensions = numpy.array([800, 800, 7, 3], dtype=int)
 
-        (
-            dense_neuron_counts
-        ) = architecture_utils.get_dense_layer_dimensions(
-            num_input_units=
-            NUM_SCALAR_PREDICTORS + 28 * num_channels_by_conv_layer[-1],
-            num_classes=2,
-            num_dense_layers=NUM_DENSE_LAYERS,
-            for_classification=True
-        )[1]
+            pooling_size_by_conv_block_px = numpy.full(
+                8, 2, dtype=int
+            )
+            num_channels_multipliers = numpy.array([
+                1, 2, 3, 4, 5, 6, 7, 8
+            ])
+            num_pixels_coarsest = 36
 
-        if BATCHES_PER_UPDATE_COUNTS[i] > 1:
-            optimizer_function = (
-                accum_grad_optimizer.convert_to_accumulate_gradient_optimizer(
-                    orig_optimizer=keras.optimizers.Adam(),
-                    update_params_frequency=BATCHES_PER_UPDATE_COUNTS[i],
-                    accumulate_sum_or_mean=False
-                )
+            num_conv_blocks = len(pooling_size_by_conv_block_px)
+            num_channels_by_conv_layer = numpy.round(
+                10 * num_channels_multipliers
+            ).astype(int)
+
+            num_dense_layers = len(
+                option_dict[tcnn_architecture.DENSE_DROPOUT_RATES_KEY]
             )
 
-            optimizer_string = (
-                'accum_grad_optimizer.convert_to_accumulate_gradient_optimizer('
-                'orig_optimizer=keras.optimizers.Adam(), '
-                'update_params_frequency={0:d}, '
-                'accumulate_sum_or_mean=False)'.format(
-                    BATCHES_PER_UPDATE_COUNTS[i]
-                )
+            dense_neuron_counts = (
+                architecture_utils.get_dense_layer_dimensions(
+                    num_input_units=(
+                        NUM_SCALAR_PREDICTORS +
+                        num_pixels_coarsest * num_channels_by_conv_layer[-1]
+                    ),
+                    num_classes=1,
+                    num_dense_layers=num_dense_layers,
+                    for_classification=False
+                )[1]
             )
-        else:
-            optimizer_function = keras.optimizers.Adam()
-            optimizer_string = 'keras.optimizers.Adam()'
 
-        option_dict.update({
-            cnn_architecture.NUM_CHANNELS_KEY: num_channels_by_conv_layer,
-            cnn_architecture.NUM_NEURONS_KEY: dense_neuron_counts,
-            cnn_architecture.OPTIMIZER_FUNCTION_KEY: optimizer_function
-        })
-        model_object = cnn_architecture.create_intensity_model(option_dict)
+            dense_neuron_counts[-1] = ENSEMBLE_SIZE
+            dense_neuron_counts[-2] = max([
+                dense_neuron_counts[-1], dense_neuron_counts[-2]
+            ])
 
-        output_file_name = (
-            '{0:s}/num-first-layer-filters={1:02d}_'
-            'num-batches-per-update={2:d}/model.h5'
-        ).format(
-            OUTPUT_DIR_NAME,
-            FIRST_LAYER_FILTER_COUNTS[i],
-            BATCHES_PER_UPDATE_COUNTS[i]
-        )
+            option_dict.update({
+                tcnn_architecture.INPUT_DIMENSIONS_LOW_RES_KEY:
+                    input_dimensions,
+                tcnn_architecture.NUM_CONV_LAYERS_KEY:
+                    numpy.full(num_conv_blocks, 1, dtype=int),
+                tcnn_architecture.POOLING_SIZE_KEY:
+                    pooling_size_by_conv_block_px,
+                tcnn_architecture.NUM_CHANNELS_KEY:
+                    num_channels_by_conv_layer,
+                tcnn_architecture.CONV_DROPOUT_RATES_KEY:
+                    numpy.full(num_conv_blocks, 0.),
+                tcnn_architecture.NUM_NEURONS_KEY: dense_neuron_counts,
+                tcnn_architecture.OPTIMIZER_FUNCTION_KEY: optimizer_function
+            })
 
-        file_system_utils.mkdir_recursive_if_necessary(
-            file_name=output_file_name
-        )
+            model_object = tcnn_architecture.create_model_for_intensity(option_dict)
 
-        print('Writing model to: "{0:s}"...'.format(output_file_name))
-        model_object.save(
-            filepath=output_file_name, overwrite=True,
-            include_optimizer=True
-        )
+            output_file_name = (
+                '{0:s}/num-grad-accum-steps={1:02d}_init-learning-rate={2:.4f}/'
+                'model.h5'
+            ).format(
+                OUTPUT_DIR_NAME,
+                GRAD_ACCUM_STEP_COUNTS[i],
+                INIT_LEARNING_RATES[j]
+            )
 
-        metafile_name = neural_net_utils.find_metafile(
-            model_dir_name=os.path.split(output_file_name)[0],
-            raise_error_if_missing=False
-        )
+            file_system_utils.mkdir_recursive_if_necessary(
+                file_name=output_file_name
+            )
 
-        option_dict[cnn_architecture.LOSS_FUNCTION_KEY] = (
-            LOSS_FUNCTION_STRING
-        )
-        option_dict[cnn_architecture.OPTIMIZER_FUNCTION_KEY] = (
-            optimizer_string
-        )
+            print('Writing model to: "{0:s}"...'.format(output_file_name))
+            model_object.save(
+                filepath=output_file_name, overwrite=True,
+                include_optimizer=True
+            )
 
-        neural_net_utils.write_metafile(
-            pickle_file_name=metafile_name,
-            num_epochs=100,
-            num_training_batches_per_epoch=32,
-            training_option_dict={
-                neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False
-            },
-            num_validation_batches_per_epoch=16,
-            validation_option_dict={
-                neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False
-            },
-            loss_function_string=LOSS_FUNCTION_STRING,
-            optimizer_function_string=optimizer_string,
-            plateau_patience_epochs=10,
-            plateau_learning_rate_multiplier=0.6,
-            early_stopping_patience_epochs=50,
-            architecture_dict=option_dict,
-            is_model_bnn=False,
-            data_type_string=neural_net_utils.RG_SIMPLE_DATA_TYPE_STRING,
-            train_with_shuffled_data=True
-        )
+            metafile_name = neural_net_utils.find_metafile(
+                model_dir_name=os.path.split(output_file_name)[0],
+                raise_error_if_missing=False
+            )
+
+            option_dict[tcnn_architecture.LOSS_FUNCTION_KEY] = (
+                LOSS_FUNCTION_STRING
+            )
+            option_dict[tcnn_architecture.OPTIMIZER_FUNCTION_KEY] = (
+                optimizer_function_string
+            )
+
+            neural_net_utils.write_metafile(
+                pickle_file_name=metafile_name,
+                num_epochs=100,
+                num_training_batches_per_epoch=32,
+                training_option_dict={
+                    neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
+                    neural_net_utils.A_DECK_FILE_KEY: ''
+                },
+                num_validation_batches_per_epoch=16,
+                validation_option_dict={
+                    neural_net_utils.SEMANTIC_SEG_FLAG_KEY: False,
+                    neural_net_utils.A_DECK_FILE_KEY: ''
+                },
+                loss_function_string=LOSS_FUNCTION_STRING,
+                optimizer_function_string=optimizer_function_string,
+                plateau_patience_epochs=10,
+                plateau_learning_rate_multiplier=0.6,
+                early_stopping_patience_epochs=50,
+                architecture_dict=option_dict,
+                is_model_bnn=False,
+                data_type_string=neural_net_utils.RG_SIMPLE_DATA_TYPE_STRING,
+                train_with_shuffled_data=True
+            )
 
 
 if __name__ == '__main__':

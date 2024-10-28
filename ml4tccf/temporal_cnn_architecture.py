@@ -64,6 +64,7 @@ R64_INDEX_KEY = 'r64_index'
 RMW_INDEX_KEY = 'rmw_index'
 USE_PHYSICAL_CONSTRAINTS_KEY = 'use_physical_constraints'
 DO_RESIDUAL_PREDICTION_KEY = 'do_residual_prediction'
+PREDICT_INTENSITY_ONLY_KEY = 'predict_intensity_only'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
@@ -90,7 +91,8 @@ DEFAULT_OPTION_DICT = {
     R64_INDEX_KEY: None,
     RMW_INDEX_KEY: None,
     USE_PHYSICAL_CONSTRAINTS_KEY: True,
-    DO_RESIDUAL_PREDICTION_KEY: False
+    DO_RESIDUAL_PREDICTION_KEY: False,
+    PREDICT_INTENSITY_ONLY_KEY: False
 }
 
 
@@ -398,6 +400,12 @@ def check_input_args(option_dict):
     error_checking.assert_is_integer(option_dict[ENSEMBLE_SIZE_KEY])
     error_checking.assert_is_geq(option_dict[ENSEMBLE_SIZE_KEY], 1)
     error_checking.assert_is_boolean(option_dict[START_WITH_POOLING_KEY])
+
+    error_checking.assert_is_boolean(option_dict[PREDICT_INTENSITY_ONLY_KEY])
+    if option_dict[PREDICT_INTENSITY_ONLY_KEY]:
+        option_dict[USE_PHYSICAL_CONSTRAINTS_KEY] = False
+        option_dict[DO_RESIDUAL_PREDICTION_KEY] = False
+        return option_dict
 
     predict_structure_params = (
         option_dict[INTENSITY_INDEX_KEY] is not None

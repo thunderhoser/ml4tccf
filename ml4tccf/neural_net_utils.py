@@ -1114,6 +1114,13 @@ def read_model(hdf5_file_name):
 
             # TODO(thunderhoser): HACK
             if (
+                    tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY in architecture_dict
+                    and architecture_dict[tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY]
+            ):
+                model_object = tcnn_architecture.create_model_for_intensity(
+                    architecture_dict
+                )
+            elif (
                     tcnn_architecture.INTENSITY_INDEX_KEY in architecture_dict
                     and architecture_dict[tcnn_architecture.INTENSITY_INDEX_KEY]
                     is not None
