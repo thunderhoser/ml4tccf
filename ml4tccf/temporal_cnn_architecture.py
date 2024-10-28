@@ -1465,3 +1465,352 @@ def create_model_for_structure(option_dict):
     model_object.summary()
 
     return model_object
+
+
+def create_model_for_intensity(option_dict):
+    """Creates CNN for TC intensity only.
+
+    :param option_dict: See documentation for `check_input_args`.
+    :return: model_object: Untrained (but compiled) instance of
+        `keras.models.Model`.
+    """
+
+    option_dict = check_input_args(option_dict)
+
+    input_dimensions_low_res = option_dict[INPUT_DIMENSIONS_LOW_RES_KEY]
+    include_high_res_data = option_dict[INCLUDE_HIGH_RES_KEY]
+    include_scalar_data = option_dict[INCLUDE_SCALAR_DATA_KEY]
+    num_conv_layers_by_block = option_dict[NUM_CONV_LAYERS_KEY]
+    pooling_size_by_block_px = option_dict[POOLING_SIZE_KEY]
+    num_channels_by_conv_layer = option_dict[NUM_CHANNELS_KEY]
+    dropout_rate_by_conv_layer = option_dict[CONV_DROPOUT_RATES_KEY]
+    forecast_module_num_conv_layers = option_dict[FC_MODULE_NUM_CONV_LAYERS_KEY]
+    forecast_module_dropout_rates = option_dict[FC_MODULE_DROPOUT_RATES_KEY]
+    forecast_module_use_3d_conv = option_dict[FC_MODULE_USE_3D_CONV]
+    num_neurons_by_dense_layer = option_dict[NUM_NEURONS_KEY]
+    dropout_rate_by_dense_layer = option_dict[DENSE_DROPOUT_RATES_KEY]
+    inner_activ_function_name = option_dict[INNER_ACTIV_FUNCTION_KEY]
+    inner_activ_function_alpha = option_dict[INNER_ACTIV_FUNCTION_ALPHA_KEY]
+    l2_weight = option_dict[L2_WEIGHT_KEY]
+    use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
+    loss_function = option_dict[LOSS_FUNCTION_KEY]
+    optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
+    ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
+    start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
+
+    input_layer_object_low_res = layers.Input(
+        shape=tuple(input_dimensions_low_res.tolist())
+    )
+    layer_object_low_res = layers.Permute(
+        dims=(3, 1, 2, 4), name='low_res_put-time-first'
+    )(input_layer_object_low_res)
+
+    num_lag_times = input_dimensions_low_res[2]
+
+    if start_with_pooling_layer:
+        layer_object_low_res = (
+            architecture_utils.get_2d_pooling_layer(
+                num_rows_in_window=2, num_columns_in_window=2,
+                num_rows_per_stride=2, num_columns_per_stride=2,
+                pooling_type_string=architecture_utils.MAX_POOLING_STRING
+            )(input_layer_object_low_res)
+        )
+
+    if include_high_res_data:
+        input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
+        input_layer_object_high_res = layers.Input(
+            shape=tuple(input_dimensions_high_res.tolist())
+        )
+        layer_object_high_res = layers.Permute(
+            dims=(3, 1, 2, 4), name='high_res_put-time-first'
+        )(input_layer_object_high_res)
+
+        if start_with_pooling_layer:
+            layer_object_high_res = (
+                architecture_utils.get_2d_pooling_layer(
+                    num_rows_in_window=2, num_columns_in_window=2,
+                    num_rows_per_stride=2, num_columns_per_stride=2,
+                    pooling_type_string=architecture_utils.MAX_POOLING_STRING
+                )(input_layer_object_high_res)
+            )
+    else:
+        input_layer_object_high_res = None
+        layer_object_high_res = None
+
+    num_target_vars = float(num_neurons_by_dense_layer[-1]) / ensemble_size
+    assert numpy.isclose(
+        num_target_vars, numpy.round(num_target_vars), atol=1e-6
+    )
+    num_target_vars = int(numpy.round(num_target_vars))
+
+    if include_scalar_data:
+        input_dimensions_scalar = option_dict[INPUT_DIMENSIONS_SCALAR_KEY]
+        input_layer_object_scalar = layers.Input(
+            shape=tuple(input_dimensions_scalar.tolist())
+        )
+    else:
+        input_layer_object_scalar = None
+
+    l2_function = architecture_utils.get_weight_regularizer(l2_weight=l2_weight)
+    layer_index = -1
+    layer_object = None
+
+    if include_high_res_data:
+        for block_index in range(2):
+            for _ in range(num_conv_layers_by_block[block_index]):
+                layer_index += 1
+                k = layer_index
+
+                this_conv_layer_object = architecture_utils.get_2d_conv_layer(
+                    num_kernel_rows=3, num_kernel_columns=3,
+                    num_rows_per_stride=1, num_columns_per_stride=1,
+                    num_filters=num_channels_by_conv_layer[k],
+                    padding_type_string=
+                    architecture_utils.YES_PADDING_STRING,
+                    weight_regularizer=l2_function,
+                    kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
+                    bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+                )
+                if k == 0:
+                    layer_object = layers.TimeDistributed(
+                        this_conv_layer_object
+                    )(layer_object_high_res)
+                else:
+                    layer_object = layers.TimeDistributed(
+                        this_conv_layer_object
+                    )(layer_object)
+
+                layer_object = architecture_utils.get_activation_layer(
+                    activation_function_string=inner_activ_function_name,
+                    alpha_for_relu=inner_activ_function_alpha,
+                    alpha_for_elu=inner_activ_function_alpha
+                )(layer_object)
+
+                if dropout_rate_by_conv_layer[k] > 0:
+                    layer_object = architecture_utils.get_dropout_layer(
+                        dropout_fraction=dropout_rate_by_conv_layer[k]
+                    )(layer_object)
+
+                if use_batch_normalization:
+                    layer_object = architecture_utils.get_batch_norm_layer()(
+                        layer_object
+                    )
+
+            this_pooling_layer_object = architecture_utils.get_2d_pooling_layer(
+                num_rows_in_window=pooling_size_by_block_px[block_index],
+                num_columns_in_window=pooling_size_by_block_px[block_index],
+                num_rows_per_stride=pooling_size_by_block_px[block_index],
+                num_columns_per_stride=pooling_size_by_block_px[block_index],
+                pooling_type_string=architecture_utils.MAX_POOLING_STRING
+            )
+            layer_object = layers.TimeDistributed(
+                this_pooling_layer_object
+            )(layer_object)
+
+        layer_object = layers.Concatenate(axis=-1)([
+            layer_object, layer_object_low_res
+        ])
+    else:
+        layer_object = layer_object_low_res
+
+    num_conv_blocks = len(num_conv_layers_by_block)
+    start_index = 2 if include_high_res_data else 0
+
+    for block_index in range(start_index, num_conv_blocks):
+        for _ in range(num_conv_layers_by_block[block_index]):
+            layer_index += 1
+            k = layer_index
+
+            this_conv_layer_object = architecture_utils.get_2d_conv_layer(
+                num_kernel_rows=3, num_kernel_columns=3,
+                num_rows_per_stride=1, num_columns_per_stride=1,
+                num_filters=num_channels_by_conv_layer[k],
+                padding_type_string=
+                architecture_utils.YES_PADDING_STRING,
+                weight_regularizer=l2_function,
+                kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
+                bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+            )
+            layer_object = layers.TimeDistributed(
+                this_conv_layer_object
+            )(layer_object)
+
+            layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=inner_activ_function_name,
+                alpha_for_relu=inner_activ_function_alpha,
+                alpha_for_elu=inner_activ_function_alpha
+            )(layer_object)
+
+            if dropout_rate_by_conv_layer[k] > 0:
+                layer_object = architecture_utils.get_dropout_layer(
+                    dropout_fraction=dropout_rate_by_conv_layer[k]
+                )(layer_object)
+
+            if use_batch_normalization:
+                layer_object = architecture_utils.get_batch_norm_layer()(
+                    layer_object
+                )
+
+        if block_index != num_conv_blocks - 1:
+            this_pooling_layer_object = architecture_utils.get_2d_pooling_layer(
+                num_rows_in_window=pooling_size_by_block_px[block_index],
+                num_columns_in_window=pooling_size_by_block_px[block_index],
+                num_rows_per_stride=pooling_size_by_block_px[block_index],
+                num_columns_per_stride=pooling_size_by_block_px[block_index],
+                pooling_type_string=architecture_utils.MAX_POOLING_STRING
+            )
+            layer_object = layers.TimeDistributed(
+                this_pooling_layer_object
+            )(layer_object)
+
+    forecast_module_layer_object = layers.Permute(
+        dims=(2, 3, 1, 4), name='fcst_module_put-time-last'
+    )(layer_object)
+
+    if not forecast_module_use_3d_conv:
+        orig_dims = forecast_module_layer_object.get_shape()
+        new_dims = orig_dims[1:-2] + [orig_dims[-2] * orig_dims[-1]]
+
+        forecast_module_layer_object = layers.Reshape(
+            target_shape=new_dims, name='fcst_module_remove-time-dim'
+        )(forecast_module_layer_object)
+
+    for j in range(forecast_module_num_conv_layers):
+        if forecast_module_use_3d_conv:
+            if j == 0:
+                forecast_module_layer_object = (
+                    architecture_utils.get_3d_conv_layer(
+                        num_kernel_rows=1, num_kernel_columns=1,
+                        num_kernel_heights=num_lag_times,
+                        num_rows_per_stride=1, num_columns_per_stride=1,
+                        num_heights_per_stride=1,
+                        num_filters=num_channels_by_conv_layer[-1],
+                        padding_type_string=
+                        architecture_utils.NO_PADDING_STRING,
+                        weight_regularizer=l2_function,
+                        kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
+                        bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+                    )(forecast_module_layer_object)
+                )
+
+                new_dims = (
+                    forecast_module_layer_object.shape[1:-2] +
+                    (forecast_module_layer_object.shape[-1],)
+                )
+                forecast_module_layer_object = layers.Reshape(
+                    target_shape=new_dims, name='fcst_module_remove-time-dim'
+                )(forecast_module_layer_object)
+            else:
+                forecast_module_layer_object = (
+                    architecture_utils.get_2d_conv_layer(
+                        num_kernel_rows=3, num_kernel_columns=3,
+                        num_rows_per_stride=1, num_columns_per_stride=1,
+                        num_filters=num_channels_by_conv_layer[-1],
+                        padding_type_string=
+                        architecture_utils.YES_PADDING_STRING,
+                        weight_regularizer=l2_function,
+                        kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
+                        bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+                    )(forecast_module_layer_object)
+                )
+        else:
+            forecast_module_layer_object = architecture_utils.get_2d_conv_layer(
+                num_kernel_rows=3, num_kernel_columns=3,
+                num_rows_per_stride=1, num_columns_per_stride=1,
+                num_filters=num_channels_by_conv_layer[-1],
+                padding_type_string=architecture_utils.YES_PADDING_STRING,
+                weight_regularizer=l2_function,
+                kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
+                bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+            )(forecast_module_layer_object)
+
+        forecast_module_layer_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(forecast_module_layer_object)
+
+        if forecast_module_dropout_rates[j] > 0:
+            forecast_module_layer_object = architecture_utils.get_dropout_layer(
+                dropout_fraction=forecast_module_dropout_rates[j]
+            )(forecast_module_layer_object)
+
+        if use_batch_normalization:
+            forecast_module_layer_object = (
+                architecture_utils.get_batch_norm_layer()(
+                    forecast_module_layer_object
+                )
+            )
+
+    layer_object = architecture_utils.get_flattening_layer()(
+        forecast_module_layer_object
+    )
+    if include_scalar_data:
+        layer_object = layers.Concatenate(axis=-1)([
+            layer_object, input_layer_object_scalar
+        ])
+
+    num_dense_layers = len(num_neurons_by_dense_layer)
+
+    for i in range(num_dense_layers):
+        layer_object = architecture_utils.get_dense_layer(
+            num_output_units=num_neurons_by_dense_layer[i],
+            kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
+            bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+        )(layer_object)
+
+        if i == num_dense_layers - 1:
+            layer_object = architecture_utils.get_activation_layer(
+                activation_function_string=
+                architecture_utils.RELU_FUNCTION_STRING,
+                alpha_for_relu=0.,
+                alpha_for_elu=0.
+            )(layer_object)
+
+            break
+
+        layer_object = architecture_utils.get_activation_layer(
+            activation_function_string=inner_activ_function_name,
+            alpha_for_relu=inner_activ_function_alpha,
+            alpha_for_elu=inner_activ_function_alpha
+        )(layer_object)
+
+        if dropout_rate_by_dense_layer[i] > 0:
+            layer_object = architecture_utils.get_dropout_layer(
+                dropout_fraction=dropout_rate_by_dense_layer[i]
+            )(layer_object)
+
+        if use_batch_normalization:
+            layer_object = architecture_utils.get_batch_norm_layer()(
+                layer_object
+            )
+
+    layer_object = layers.Reshape(
+        target_shape=(num_target_vars, ensemble_size)
+    )(layer_object)
+
+    input_layer_objects = []
+    if include_high_res_data:
+        input_layer_objects.append(input_layer_object_high_res)
+
+    input_layer_objects.append(input_layer_object_low_res)
+    if include_scalar_data:
+        input_layer_objects.append(input_layer_object_scalar)
+
+    metric_functions = [
+        custom_metrics_structure.mean_squared_error(
+            channel_index=0,
+            function_name='mean_sq_error_intensity_kt2'
+        )
+    ]
+
+    model_object = keras.models.Model(
+        inputs=input_layer_objects, outputs=layer_object
+    )
+    model_object.compile(
+        loss=loss_function, optimizer=optimizer_function,
+        metrics=metric_functions
+    )
+    model_object.summary()
+
+    return model_object
