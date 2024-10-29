@@ -87,7 +87,7 @@ def _run():
         for j in range(len(L2_WEIGHTS_AXIS2)):
             for k in range(len(USE_A_DECK_FLAGS_AXIS3)):
                 option_dict = copy.deepcopy(DEFAULT_OPTION_DICT)
-                input_dimensions = numpy.array([400, 400, 7, 3], dtype=int)
+                input_dimensions = numpy.array([400, 400, 1, 3], dtype=int)
 
                 num_channels_multipliers = numpy.array([1, 2, 3, 4, 5, 6, 7])
                 num_pixels_coarsest = 36
