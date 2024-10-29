@@ -91,11 +91,12 @@ def write_file(
         prediction_matrix, exact_dimensions=expected_dim
     )
 
-    error_checking.assert_is_geq_numpy_array(baseline_prediction_matrix, 0.)
-    error_checking.assert_is_numpy_array(
-        baseline_prediction_matrix,
-        exact_dimensions=numpy.array(target_matrix.shape, dtype=int)
-    )
+    if baseline_prediction_matrix is not None:
+        error_checking.assert_is_geq_numpy_array(baseline_prediction_matrix, 0.)
+        error_checking.assert_is_numpy_array(
+            baseline_prediction_matrix,
+            exact_dimensions=numpy.array(target_matrix.shape, dtype=int)
+        )
 
     _ = misc_utils.parse_cyclone_id(cyclone_id_string)
 
@@ -148,13 +149,14 @@ def write_file(
     )
     dataset_object.variables[prediction_utils.TARGET_KEY][:] = target_matrix
 
-    dataset_object.createVariable(
-        prediction_utils.BASELINE_PREDICTION_KEY, datatype=numpy.float32,
-        dimensions=these_dim
-    )
-    dataset_object.variables[prediction_utils.BASELINE_PREDICTION_KEY][:] = (
-        baseline_prediction_matrix
-    )
+    if baseline_prediction_matrix is not None:
+        dataset_object.createVariable(
+            prediction_utils.BASELINE_PREDICTION_KEY, datatype=numpy.float32,
+            dimensions=these_dim
+        )
+        dataset_object.variables[prediction_utils.BASELINE_PREDICTION_KEY][:] = (
+            baseline_prediction_matrix
+        )
 
     dataset_object.createVariable(
         prediction_utils.TARGET_TIME_KEY, datatype=numpy.int32,
