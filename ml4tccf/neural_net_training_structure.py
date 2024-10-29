@@ -1025,10 +1025,19 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
             numpy.nanmax(target_matrix)
         ))
 
-        mean_brightness_temp_matrix = numpy.mean(predictor_matrices[0][:, 300:500, 300:500, -1, :], axis=(1, 2))
-        print(mean_brightness_temp_matrix)
-        print(target_matrix)
-        print('\n\n')
+        for i in range(len(cyclone_id_strings)):
+            print((
+                '{0:s} at {1:s} ... mean BT in inner 400 x 400 km = {2:s} ... '
+                'targets = {3:s}'
+            ).format(
+                cyclone_id_strings[i],
+                time_conversion.unix_sec_to_string(target_times_unix_sec[i], '%Y-%m-%d-%H%M'),
+                str(numpy.mean(
+                    predictor_matrices[0][i, 300:500, 300:500, -1, :],
+                    axis=(1, 2)
+                )),
+                str(target_matrix[i, :])
+            ))
 
         if return_cyclone_ids:
             yield (
