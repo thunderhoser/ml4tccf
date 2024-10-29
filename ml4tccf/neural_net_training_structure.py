@@ -839,10 +839,7 @@ def data_generator_shuffled(option_dict):
             these_target_times_unix_sec = these_target_times_unix_sec[
                 good_indices
             ]
-            target_values_by_sample = [
-                target_values_by_sample[k] for k in good_indices
-            ]
-            this_target_matrix = numpy.vstack(target_values_by_sample)
+            del target_values_by_sample
 
             data_dict = nn_training_simple._read_satellite_data_1shuffled_file(
                 input_file_name=satellite_file_names[file_index],
@@ -855,6 +852,9 @@ def data_generator_shuffled(option_dict):
                 target_times_unix_sec=these_target_times_unix_sec,
                 return_xy_coords=False
             )
+
+            del these_cyclone_id_strings
+            del these_target_times_unix_sec
             file_index += 1
 
             if (
@@ -864,19 +864,19 @@ def data_generator_shuffled(option_dict):
             ):
                 continue
 
-            row_indices = numpy.array([
-                numpy.where(numpy.logical_and(
-                    numpy.array(these_cyclone_id_strings) == c,
-                    these_target_times_unix_sec == t
-                ))[0][0]
+            target_values_by_sample = [
+                _get_target_variables(
+                    ebtrk_table_xarray=ebtrk_table_xarray,
+                    target_field_names=target_field_names,
+                    cyclone_id_string=c,
+                    target_time_unix_sec=t
+                )
                 for c, t in zip(
                     data_dict[CYCLONE_IDS_KEY], data_dict[TARGET_TIMES_KEY]
                 )
-            ], dtype=int)
+            ]
 
-            this_target_matrix = this_target_matrix[row_indices, :]
-            del these_cyclone_id_strings
-            del these_target_times_unix_sec
+            this_target_matrix = numpy.vstack(target_values_by_sample)
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
