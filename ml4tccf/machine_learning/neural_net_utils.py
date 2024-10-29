@@ -1071,71 +1071,74 @@ def read_model(hdf5_file_name):
         model_object = cnn_architecture_bayesian.create_model(
             architecture_dict
         )
-    else:
-        if semantic_segmentation_flag:
-            for this_key in [
-                    u_net_architecture.LOSS_FUNCTION_KEY,
-                    u_net_architecture.OPTIMIZER_FUNCTION_KEY
-            ]:
-                try:
-                    architecture_dict[this_key] = eval(
-                        architecture_dict[this_key]
-                    )
-                except NameError:
-                    architecture_dict[this_key] = eval(
-                        architecture_dict[this_key].replace(
-                            'custom_losses', 'custom_losses_scalar'
-                        )
-                    )
+        model_object.load_weights(hdf5_file_name)
+        return model_object
 
-            model_object = u_net_architecture.create_model(
+    if semantic_segmentation_flag:
+        for this_key in [
+                u_net_architecture.LOSS_FUNCTION_KEY,
+                u_net_architecture.OPTIMIZER_FUNCTION_KEY
+        ]:
+            try:
+                architecture_dict[this_key] = eval(
+                    architecture_dict[this_key]
+                )
+            except NameError:
+                architecture_dict[this_key] = eval(
+                    architecture_dict[this_key].replace(
+                        'custom_losses', 'custom_losses_scalar'
+                    )
+                )
+
+        model_object = u_net_architecture.create_model(
+            architecture_dict
+        )
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
+    for this_key in [
+            cnn_architecture.LOSS_FUNCTION_KEY,
+            cnn_architecture.OPTIMIZER_FUNCTION_KEY
+    ]:
+        try:
+            architecture_dict[this_key] = eval(
+                architecture_dict[this_key]
+            )
+        except NameError:
+            architecture_dict[this_key] = eval(
+                architecture_dict[this_key].replace(
+                    'custom_losses', 'custom_losses_scalar'
+                )
+            )
+
+    if tcnn_architecture.FC_MODULE_USE_3D_CONV not in architecture_dict:
+        try:
+            model_object = cnn_architecture.create_model(architecture_dict)
+        except:
+            model_object = cnn_architecture.create_intensity_model(
                 architecture_dict
             )
-        else:
-            for this_key in [
-                    cnn_architecture.LOSS_FUNCTION_KEY,
-                    cnn_architecture.OPTIMIZER_FUNCTION_KEY
-            ]:
-                try:
-                    architecture_dict[this_key] = eval(
-                        architecture_dict[this_key]
-                    )
-                except NameError:
-                    architecture_dict[this_key] = eval(
-                        architecture_dict[this_key].replace(
-                            'custom_losses', 'custom_losses_scalar'
-                        )
-                    )
 
-            # TODO(thunderhoser): HACK
-            if (
-                    tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY in architecture_dict
-                    and architecture_dict[tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY]
-            ):
-                model_object = tcnn_architecture.create_model_for_intensity(
-                    architecture_dict
-                )
-            elif (
-                    tcnn_architecture.INTENSITY_INDEX_KEY in architecture_dict
-                    and architecture_dict[tcnn_architecture.INTENSITY_INDEX_KEY]
-                    is not None
-            ):
-                model_object = tcnn_architecture.create_model_for_structure(
-                    architecture_dict
-                )
-            else:
-                model_object = tcnn_architecture.create_model(architecture_dict)
+        model_object.load_weights(hdf5_file_name)
+        return model_object
 
-            # if temporal_cnn_architecture.FC_MODULE_USE_3D_CONV in architecture_dict:
-            #     model_object = temporal_cnn_architecture.create_model(architecture_dict)
-            # else:
-            #     # TODO(thunderhoser): HACK
-            #     try:
-            #         model_object = cnn_architecture.create_model(architecture_dict)
-            #     except:
-            #         model_object = cnn_architecture.create_intensity_model(
-            #             architecture_dict
-            #         )
+    if (
+            tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY in architecture_dict
+            and architecture_dict[tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY]
+    ):
+        model_object = tcnn_architecture.create_model_for_intensity(
+            architecture_dict
+        )
+    elif (
+            tcnn_architecture.INTENSITY_INDEX_KEY in architecture_dict
+            and architecture_dict[tcnn_architecture.INTENSITY_INDEX_KEY]
+            is not None
+    ):
+        model_object = tcnn_architecture.create_model_for_structure(
+            architecture_dict
+        )
+    else:
+        model_object = tcnn_architecture.create_model(architecture_dict)
 
     model_object.load_weights(hdf5_file_name)
     return model_object

@@ -2,10 +2,17 @@
 
 import numpy
 import keras
-import keras.layers
+import keras.layers as layers
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
 from ml4tccf.machine_learning import neural_net_utils
+from ml4tccf.machine_learning import custom_metrics_structure
+
+try:
+    input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
+except:
+    import tensorflow.keras as keras
+    import tensorflow.keras.layers as layers
 
 INPUT_DIMENSIONS_LOW_RES_KEY = 'input_dimensions_low_res'
 INPUT_DIMENSIONS_HIGH_RES_KEY = 'input_dimensions_high_res'
@@ -224,7 +231,7 @@ def create_model(option_dict):
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
     start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
 
-    input_layer_object_low_res = keras.layers.Input(
+    input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
     )
 
@@ -241,7 +248,7 @@ def create_model(option_dict):
 
     if include_high_res_data:
         input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
-        input_layer_object_high_res = keras.layers.Input(
+        input_layer_object_high_res = layers.Input(
             shape=tuple(input_dimensions_high_res.tolist())
         )
 
@@ -261,7 +268,7 @@ def create_model(option_dict):
 
     if include_scalar_data:
         input_dimensions_scalar = option_dict[INPUT_DIMENSIONS_SCALAR_KEY]
-        input_layer_object_scalar = keras.layers.Input(
+        input_layer_object_scalar = layers.Input(
             shape=tuple(input_dimensions_scalar.tolist())
         )
     else:
@@ -322,7 +329,7 @@ def create_model(option_dict):
                 pooling_type_string=architecture_utils.MAX_POOLING_STRING
             )(layer_object)
 
-        layer_object = keras.layers.Concatenate(axis=-1)([
+        layer_object = layers.Concatenate(axis=-1)([
             layer_object,
             input_layer_object_low_res if layer_object_low_res is None
             else layer_object_low_res
@@ -375,7 +382,7 @@ def create_model(option_dict):
 
     layer_object = architecture_utils.get_flattening_layer()(layer_object)
     if include_scalar_data:
-        layer_object = keras.layers.Concatenate(axis=-1)([
+        layer_object = layers.Concatenate(axis=-1)([
             layer_object, input_layer_object_scalar
         ])
 
@@ -411,7 +418,7 @@ def create_model(option_dict):
     )
 
     num_target_vars = int(numpy.round(num_target_vars))
-    layer_object = keras.layers.Reshape(
+    layer_object = layers.Reshape(
         target_shape=(num_target_vars, ensemble_size)
     )(layer_object)
 
@@ -449,7 +456,6 @@ def create_intensity_model(option_dict):
         `keras.models.Model`.
     """
 
-    option_dict[ENSEMBLE_SIZE_KEY] = 2
     option_dict = check_input_args(option_dict)
 
     input_dimensions_low_res = option_dict[INPUT_DIMENSIONS_LOW_RES_KEY]
@@ -466,12 +472,21 @@ def create_intensity_model(option_dict):
     use_batch_normalization = option_dict[USE_BATCH_NORM_KEY]
     loss_function = option_dict[LOSS_FUNCTION_KEY]
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
+    ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
     start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
 
     assert num_neurons_by_dense_layer[-1] == 1
 
-    input_layer_object_low_res = keras.layers.Input(
+    input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
+    )
+
+    new_dims = (
+        input_dimensions_low_res[0], input_dimensions_low_res[1],
+        input_dimensions_low_res[2] * input_dimensions_low_res[3]
+    )
+    layer_object_low_res = layers.Reshape(target_shape=new_dims)(
+        input_layer_object_low_res
     )
 
     if start_with_pooling_layer:
@@ -482,13 +497,19 @@ def create_intensity_model(option_dict):
                 pooling_type_string=architecture_utils.MAX_POOLING_STRING
             )(input_layer_object_low_res)
         )
-    else:
-        layer_object_low_res = None
 
     if include_high_res_data:
         input_dimensions_high_res = option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
-        input_layer_object_high_res = keras.layers.Input(
+        input_layer_object_high_res = layers.Input(
             shape=tuple(input_dimensions_high_res.tolist())
+        )
+
+        new_dims = (
+            input_dimensions_high_res[0], input_dimensions_high_res[1],
+            input_dimensions_high_res[2] * input_dimensions_high_res[3]
+        )
+        layer_object_high_res = layers.Reshape(target_shape=new_dims)(
+            input_layer_object_high_res
         )
 
         if start_with_pooling_layer:
@@ -499,15 +520,19 @@ def create_intensity_model(option_dict):
                     pooling_type_string=architecture_utils.MAX_POOLING_STRING
                 )(input_layer_object_high_res)
             )
-        else:
-            layer_object_high_res = None
     else:
         input_layer_object_high_res = None
         layer_object_high_res = None
 
+    num_target_vars = float(num_neurons_by_dense_layer[-1]) / ensemble_size
+    assert numpy.isclose(
+        num_target_vars, numpy.round(num_target_vars), atol=1e-6
+    )
+    num_target_vars = int(numpy.round(num_target_vars))
+
     if include_scalar_data:
         input_dimensions_scalar = option_dict[INPUT_DIMENSIONS_SCALAR_KEY]
-        input_layer_object_scalar = keras.layers.Input(
+        input_layer_object_scalar = layers.Input(
             shape=tuple(input_dimensions_scalar.tolist())
         )
     else:
@@ -568,7 +593,7 @@ def create_intensity_model(option_dict):
                 pooling_type_string=architecture_utils.MAX_POOLING_STRING
             )(layer_object)
 
-        layer_object = keras.layers.Concatenate(axis=-1)([
+        layer_object = layers.Concatenate(axis=-1)([
             layer_object,
             input_layer_object_low_res if layer_object_low_res is None
             else layer_object_low_res
@@ -621,7 +646,7 @@ def create_intensity_model(option_dict):
 
     layer_object = architecture_utils.get_flattening_layer()(layer_object)
     if include_scalar_data:
-        layer_object = keras.layers.Concatenate(axis=-1)([
+        layer_object = layers.Concatenate(axis=-1)([
             layer_object, input_layer_object_scalar
         ])
 
@@ -658,6 +683,42 @@ def create_intensity_model(option_dict):
                 layer_object
             )
 
+    layer_object = layers.Reshape(
+        target_shape=(num_target_vars, ensemble_size)
+    )(layer_object)
+
+    metric_functions = [
+        custom_metrics_structure.mean_squared_error(
+            channel_index=0,
+            convert_intensity_from_sigmoid=False,
+            function_name='mean_sq_error_intensity_kt2'
+        ),
+        custom_metrics_structure.min_prediction(
+            channel_index=0,
+            convert_intensity_from_sigmoid=False,
+            function_name='min_ens_member_pred_intensity_kt',
+            take_ensemble_mean=False
+        ),
+        custom_metrics_structure.min_prediction(
+            channel_index=0,
+            convert_intensity_from_sigmoid=False,
+            function_name='min_pred_intensity_kt',
+            take_ensemble_mean=True
+        ),
+        custom_metrics_structure.max_prediction(
+            channel_index=0,
+            convert_intensity_from_sigmoid=False,
+            function_name='max_ens_member_pred_intensity_kt',
+            take_ensemble_mean=False
+        ),
+        custom_metrics_structure.max_prediction(
+            channel_index=0,
+            convert_intensity_from_sigmoid=False,
+            function_name='max_pred_intensity_kt',
+            take_ensemble_mean=True
+        )
+    ]
+
     if include_high_res_data:
         input_layer_objects = [
             input_layer_object_high_res, input_layer_object_low_res
@@ -676,7 +737,8 @@ def create_intensity_model(option_dict):
         inputs=input_layer_objects, outputs=layer_object
     )
     model_object.compile(
-        loss=loss_function, optimizer=optimizer_function, metrics=[]
+        loss=loss_function, optimizer=optimizer_function,
+        metrics=metric_functions
     )
     model_object.summary()
 
