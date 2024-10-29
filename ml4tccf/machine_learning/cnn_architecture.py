@@ -109,7 +109,7 @@ def check_input_args(option_dict):
 
     error_checking.assert_is_numpy_array(
         option_dict[INPUT_DIMENSIONS_LOW_RES_KEY],
-        exact_dimensions=numpy.array([3], dtype=int)
+        exact_dimensions=numpy.array([4], dtype=int)
     )
     error_checking.assert_is_integer_numpy_array(
         option_dict[INPUT_DIMENSIONS_LOW_RES_KEY]
@@ -122,7 +122,7 @@ def check_input_args(option_dict):
     if option_dict[INCLUDE_HIGH_RES_KEY]:
         error_checking.assert_is_numpy_array(
             option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY],
-            exact_dimensions=numpy.array([3], dtype=int)
+            exact_dimensions=numpy.array([4], dtype=int)
         )
         error_checking.assert_is_integer_numpy_array(
             option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
@@ -474,8 +474,6 @@ def create_intensity_model(option_dict):
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
     start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
-
-    assert num_neurons_by_dense_layer[-1] == 1
 
     input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
