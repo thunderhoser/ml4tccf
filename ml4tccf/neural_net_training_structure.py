@@ -877,7 +877,6 @@ def data_generator_shuffled(option_dict):
             ]
 
             this_target_matrix = numpy.vstack(target_values_by_sample)
-            print(this_target_matrix)
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
@@ -964,8 +963,6 @@ def data_generator_shuffled(option_dict):
 
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
-        print(target_matrix)
-
         # TODO(thunderhoser): This is a HACK.  Should be controlled by an input
         # arg.
         final_axis_length = len(low_res_wavelengths_microns)
@@ -1019,6 +1016,11 @@ def data_generator_shuffled(option_dict):
             numpy.nanmin(target_matrix),
             numpy.nanmax(target_matrix)
         ))
+
+        mean_brightness_temp_matrix = numpy.mean(predictor_matrices[0][:, 300:500, 300:500, -1, :], axis=(1, 2))
+        print(mean_brightness_temp_matrix)
+        print(target_matrix)
+        print('\n\n')
 
         yield tuple(predictor_matrices), target_matrix
 
