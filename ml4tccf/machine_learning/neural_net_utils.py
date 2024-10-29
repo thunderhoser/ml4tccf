@@ -16,6 +16,7 @@ from ml4tccf.machine_learning import custom_losses_scalar
 from ml4tccf.machine_learning import custom_metrics_scalar
 from ml4tccf.machine_learning import custom_losses_gridded
 from ml4tccf.machine_learning import custom_metrics_gridded
+from ml4tccf.machine_learning import custom_metrics_structure
 from ml4tccf.machine_learning import cnn_architecture
 from ml4tccf.machine_learning import u_net_architecture
 from ml4tccf.machine_learning import \

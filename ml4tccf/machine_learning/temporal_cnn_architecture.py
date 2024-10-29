@@ -1801,6 +1801,26 @@ def create_model_for_intensity(option_dict):
         custom_metrics_structure.mean_squared_error(
             channel_index=0,
             function_name='mean_sq_error_intensity_kt2'
+        ),
+        custom_metrics_structure.min_prediction(
+            channel_index=0,
+            function_name='min_ens_member_pred_intensity_kt',
+            take_ensemble_mean=False
+        ),
+        custom_metrics_structure.min_prediction(
+            channel_index=0,
+            function_name='min_pred_intensity_kt',
+            take_ensemble_mean=True
+        ),
+        custom_metrics_structure.max_prediction(
+            channel_index=0,
+            function_name='max_ens_member_pred_intensity_kt',
+            take_ensemble_mean=False
+        ),
+        custom_metrics_structure.max_prediction(
+            channel_index=0,
+            function_name='max_pred_intensity_kt',
+            take_ensemble_mean=True
         )
     ]
 
