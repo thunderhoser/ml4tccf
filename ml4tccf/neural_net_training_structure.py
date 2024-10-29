@@ -89,6 +89,7 @@ REMOVE_NONTROPICAL_KEY = 'remove_nontropical_systems'
 REMOVE_TROPICAL_KEY = 'remove_tropical_systems'
 TARGET_FIELDS_KEY = 'target_field_names'
 TARGET_FILE_KEY = 'target_file_name'
+TARGET_SHRINK_FACTOR_KEY = 'target_shrink_factor'
 DO_RESIDUAL_PREDICTION_KEY = 'do_residual_prediction'
 
 DEFAULT_GENERATOR_OPTION_DICT = {
@@ -362,6 +363,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     target_field_names = option_dict[TARGET_FIELDS_KEY]
     target_file_name = option_dict[TARGET_FILE_KEY]
+    target_shrink_factor = option_dict[TARGET_SHRINK_FACTOR_KEY]
     do_residual_prediction = option_dict[DO_RESIDUAL_PREDICTION_KEY]
 
     assert not a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY in scalar_a_deck_field_names
@@ -460,7 +462,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     all_target_values_by_sample = [
         all_target_values_by_sample[k] for k in good_indices
     ]
-    all_target_matrix = numpy.vstack(all_target_values_by_sample)
+    all_target_matrix = (
+        target_shrink_factor * numpy.vstack(all_target_values_by_sample)
+    )
 
     conservative_num_target_times = max([
         int(numpy.round(num_target_times * 1.25)),
@@ -644,6 +648,8 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
         defined at the top of this module.
     option_dict["target_file_name"]: Path to target file (will be read by
         `extended_best_track_io.read_file`).
+    option_dict["target_shrink_factor"]: Will multiply every target variable by
+        this float.
     option_dict["do_residual_prediction"]: Boolean flag.
 
     :param return_cyclone_ids: Leave this alone.
@@ -687,6 +693,7 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     target_field_names = option_dict[TARGET_FIELDS_KEY]
     target_file_name = option_dict[TARGET_FILE_KEY]
+    target_shrink_factor = option_dict[TARGET_SHRINK_FACTOR_KEY]
     do_residual_prediction = option_dict[DO_RESIDUAL_PREDICTION_KEY]
 
     assert not a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY in scalar_a_deck_field_names
@@ -877,7 +884,9 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
                 )
             ]
 
-            this_target_matrix = numpy.vstack(target_values_by_sample)
+            this_target_matrix = (
+                target_shrink_factor * numpy.vstack(target_values_by_sample)
+            )
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None

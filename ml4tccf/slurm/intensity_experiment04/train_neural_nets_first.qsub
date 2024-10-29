@@ -70,6 +70,7 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_structure.py" \
 --remove_tropical_systems=0 \
 --target_field_names "intensity_kt" \
 --target_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/extended_best_track_thru_nov2023.nc" \
+--target_shrink_factor=0.01 \
 --do_residual_prediction=0 \
 --satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
 --training_years 2016 2017 2018 2019 2020 2021 2022 \

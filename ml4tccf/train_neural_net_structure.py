@@ -23,7 +23,8 @@ def _run(template_file_name, output_dir_name,
          num_examples_per_batch, num_rows_low_res, num_columns_low_res,
          synoptic_times_only, a_deck_file_name, scalar_a_deck_field_names,
          remove_nontropical_systems, remove_tropical_systems,
-         target_field_names, target_file_name, do_residual_prediction,
+         target_field_names, target_file_name, target_shrink_factor,
+         do_residual_prediction,
          satellite_dir_name_for_training, training_years,
          satellite_dir_name_for_validation, validation_years,
          num_epochs,
@@ -48,6 +49,7 @@ def _run(template_file_name, output_dir_name,
     :param remove_tropical_systems: Same.
     :param target_field_names: Same.
     :param target_file_name: Same.
+    :param target_shrink_factor: Same.
     :param do_residual_prediction: Same.
     :param satellite_dir_name_for_training: Same.
     :param training_years: Same.
@@ -88,9 +90,9 @@ def _run(template_file_name, output_dir_name,
         nn_training.REMOVE_TROPICAL_KEY: remove_tropical_systems,
         nn_training.TARGET_FIELDS_KEY: target_field_names,
         nn_training.TARGET_FILE_KEY: target_file_name,
+        nn_training.TARGET_SHRINK_FACTOR_KEY: target_shrink_factor,
         nn_training.DO_RESIDUAL_PREDICTION_KEY: do_residual_prediction
     }
-
     validation_option_dict = {
         nn_training.SATELLITE_DIRECTORY_KEY: satellite_dir_name_for_validation,
         nn_training.YEARS_KEY: validation_years
@@ -173,6 +175,9 @@ if __name__ == '__main__':
         ),
         target_file_name=getattr(
             INPUT_ARG_OBJECT, training_args.TARGET_FILE_ARG_NAME
+        ),
+        target_shrink_factor=getattr(
+            INPUT_ARG_OBJECT, training_args.TARGET_SHRINK_FACTOR_ARG_NAME
         ),
         do_residual_prediction=bool(getattr(
             INPUT_ARG_OBJECT, training_args.DO_RESIDUAL_PREDICTION_ARG_NAME
