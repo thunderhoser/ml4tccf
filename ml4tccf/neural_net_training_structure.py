@@ -800,8 +800,9 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
                 all_cyclone_id_strings=cyclone_id_strings_by_file[file_index],
                 all_target_times_unix_sec=
                 target_times_by_file_unix_sec[file_index],
-                num_objects_desired=
-                num_examples_per_batch - num_examples_in_memory
+                num_objects_desired=min([
+                    num_examples_per_batch - num_examples_in_memory, 15
+                ])
             )
 
             if len(these_cyclone_id_strings) == 0:
