@@ -877,6 +877,7 @@ def data_generator_shuffled(option_dict):
             ]
 
             this_target_matrix = numpy.vstack(target_values_by_sample)
+            print(this_target_matrix)
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
@@ -962,6 +963,8 @@ def data_generator_shuffled(option_dict):
                 )
 
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
+
+        print(target_matrix)
 
         # TODO(thunderhoser): This is a HACK.  Should be controlled by an input
         # arg.
