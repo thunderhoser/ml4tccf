@@ -73,7 +73,8 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.R64_INDEX_KEY: 3,
     tcnn_architecture.RMW_INDEX_KEY: 4,
     tcnn_architecture.USE_PHYSICAL_CONSTRAINTS_KEY: True,
-    tcnn_architecture.DO_RESIDUAL_PREDICTION_KEY: False
+    tcnn_architecture.DO_RESIDUAL_PREDICTION_KEY: False,
+    tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY: True
 }
 
 GRAD_ACCUM_STEP_COUNTS = numpy.array([1, 2, 3, 4, 5], dtype=int)
