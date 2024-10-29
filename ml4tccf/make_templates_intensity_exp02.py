@@ -20,7 +20,7 @@ import custom_metrics_structure
 
 OUTPUT_DIR_NAME = (
     '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/'
-    'intensity_experiment01/templates'
+    'intensity_experiment02/templates'
 )
 
 ENSEMBLE_SIZE = 2
