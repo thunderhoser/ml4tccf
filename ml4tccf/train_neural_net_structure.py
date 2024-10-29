@@ -61,6 +61,12 @@ def _run(template_file_name, output_dir_name,
     :param early_stopping_patience_epochs: Same.
     """
 
+    if (
+            len(scalar_a_deck_field_names) == 1 and
+            scalar_a_deck_field_names[0].lower() == 'none'
+    ):
+        scalar_a_deck_field_names = []
+
     if num_rows_low_res <= 0:
         num_rows_low_res = None
     if num_columns_low_res <= 0:

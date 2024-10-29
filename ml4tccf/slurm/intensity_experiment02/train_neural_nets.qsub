@@ -49,10 +49,10 @@ template_file_name="${TEMPLATE_DIR_NAME}/dropout-rate=${dropout_rate}_l2-weight=
 output_dir_name="${TOP_OUTPUT_DIR_NAME}/dropout-rate=${dropout_rate}_l2-weight=${l2_weight}_use-a-decks=${use_a_deck_flag}"
 echo $output_dir_name
 
-if [ "$my_var" = "1" ]; then
+if [ "$use_a_deck_flag" = "1" ]; then
     a_deck_field_names="absolute_latitude_deg_n longitude_cosine longitude_sine intensity_m_s01 sea_level_pressure_pa unnorm_tropical_flag_int unnorm_subtropical_flag_int unnorm_extratropical_flag_int unnorm_disturbance_flag_int wind_radius_34kt_metres wind_radius_50kt_metres wind_radius_64kt_metres max_wind_radius_metres"
 else
-    a_deck_field_names=""
+    a_deck_field_names="none"
 fi
 
 python3 -u "${CODE_DIR_NAME}/train_neural_net_structure.py" \
