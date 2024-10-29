@@ -117,7 +117,7 @@ def check_input_args(option_dict):
 
     error_checking.assert_is_numpy_array(
         option_dict[INPUT_DIMENSIONS_LOW_RES_KEY],
-        exact_dimensions=numpy.array([3], dtype=int)
+        exact_dimensions=numpy.array([4], dtype=int)
     )
     error_checking.assert_is_integer_numpy_array(
         option_dict[INPUT_DIMENSIONS_LOW_RES_KEY]
@@ -130,7 +130,7 @@ def check_input_args(option_dict):
     if option_dict[INCLUDE_HIGH_RES_KEY]:
         error_checking.assert_is_numpy_array(
             option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY],
-            exact_dimensions=numpy.array([3], dtype=int)
+            exact_dimensions=numpy.array([4], dtype=int)
         )
         error_checking.assert_is_integer_numpy_array(
             option_dict[INPUT_DIMENSIONS_HIGH_RES_KEY]
