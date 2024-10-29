@@ -59,6 +59,7 @@ RMW_INDEX_KEY = 'rmw_index'
 USE_PHYSICAL_CONSTRAINTS_KEY = 'use_physical_constraints'
 DO_RESIDUAL_PREDICTION_KEY = 'do_residual_prediction'
 PREDICT_INTENSITY_ONLY_KEY = 'predict_intensity_only'
+PREDICT_SIGMOID_INTENSITY = 'predict_sigmoid_intensity'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
@@ -86,7 +87,8 @@ DEFAULT_OPTION_DICT = {
     RMW_INDEX_KEY: None,
     USE_PHYSICAL_CONSTRAINTS_KEY: True,
     DO_RESIDUAL_PREDICTION_KEY: False,
-    PREDICT_INTENSITY_ONLY_KEY: False
+    PREDICT_INTENSITY_ONLY_KEY: False,
+    PREDICT_SIGMOID_INTENSITY: False
 }
 
 
@@ -1499,6 +1501,7 @@ def create_model_for_intensity(option_dict):
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
     start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
+    predict_sigmoid_intensity = option_dict[PREDICT_SIGMOID_INTENSITY]
 
     input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
@@ -1762,12 +1765,20 @@ def create_model_for_intensity(option_dict):
         )(layer_object)
 
         if i == num_dense_layers - 1:
-            layer_object = architecture_utils.get_activation_layer(
-                activation_function_string=
-                architecture_utils.RELU_FUNCTION_STRING,
-                alpha_for_relu=0.,
-                alpha_for_elu=0.
-            )(layer_object)
+            if predict_sigmoid_intensity:
+                layer_object = architecture_utils.get_activation_layer(
+                    activation_function_string=
+                    architecture_utils.SIGMOID_FUNCTION_STRING,
+                    alpha_for_relu=0.,
+                    alpha_for_elu=0.
+                )(layer_object)
+            else:
+                layer_object = architecture_utils.get_activation_layer(
+                    activation_function_string=
+                    architecture_utils.RELU_FUNCTION_STRING,
+                    alpha_for_relu=0.,
+                    alpha_for_elu=0.
+                )(layer_object)
 
             break
 
@@ -1802,25 +1813,30 @@ def create_model_for_intensity(option_dict):
     metric_functions = [
         custom_metrics_structure.mean_squared_error(
             channel_index=0,
+            convert_intensity_from_sigmoid=predict_sigmoid_intensity,
             function_name='mean_sq_error_intensity_kt2'
         ),
         custom_metrics_structure.min_prediction(
             channel_index=0,
+            convert_intensity_from_sigmoid=predict_sigmoid_intensity,
             function_name='min_ens_member_pred_intensity_kt',
             take_ensemble_mean=False
         ),
         custom_metrics_structure.min_prediction(
             channel_index=0,
+            convert_intensity_from_sigmoid=predict_sigmoid_intensity,
             function_name='min_pred_intensity_kt',
             take_ensemble_mean=True
         ),
         custom_metrics_structure.max_prediction(
             channel_index=0,
+            convert_intensity_from_sigmoid=predict_sigmoid_intensity,
             function_name='max_ens_member_pred_intensity_kt',
             take_ensemble_mean=False
         ),
         custom_metrics_structure.max_prediction(
             channel_index=0,
+            convert_intensity_from_sigmoid=predict_sigmoid_intensity,
             function_name='max_pred_intensity_kt',
             take_ensemble_mean=True
         )
