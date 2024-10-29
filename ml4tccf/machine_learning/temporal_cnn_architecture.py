@@ -23,6 +23,8 @@ except:
 NUM_STRUCTURE_PARAMETERS = 5
 KERNEL_INIT_NAME_FOR_STRUCTURE = 'he_uniform'
 BIAS_INIT_NAME_FOR_STRUCTURE = 'zeros'
+KERNEL_INIT_NAME_FOR_INTENSITY = 'glorot_uniform'
+BIAS_INIT_NAME_FOR_INTENSITY = 'zeros'
 
 INPUT_DIMENSIONS_LOW_RES_KEY = 'input_dimensions_low_res'
 INPUT_DIMENSIONS_HIGH_RES_KEY = 'input_dimensions_high_res'
@@ -1568,8 +1570,8 @@ def create_model_for_intensity(option_dict):
                     padding_type_string=
                     architecture_utils.YES_PADDING_STRING,
                     weight_regularizer=l2_function,
-                    kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
-                    bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+                    kernel_init_name=KERNEL_INIT_NAME_FOR_INTENSITY,
+                    bias_init_name=BIAS_INIT_NAME_FOR_INTENSITY
                 )
                 if k == 0:
                     layer_object = layers.TimeDistributed(
@@ -1628,8 +1630,8 @@ def create_model_for_intensity(option_dict):
                 padding_type_string=
                 architecture_utils.YES_PADDING_STRING,
                 weight_regularizer=l2_function,
-                kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
-                bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+                kernel_init_name=KERNEL_INIT_NAME_FOR_INTENSITY,
+                bias_init_name=BIAS_INIT_NAME_FOR_INTENSITY
             )
             layer_object = layers.TimeDistributed(
                 this_conv_layer_object
@@ -1688,8 +1690,8 @@ def create_model_for_intensity(option_dict):
                         padding_type_string=
                         architecture_utils.NO_PADDING_STRING,
                         weight_regularizer=l2_function,
-                        kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
-                        bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+                        kernel_init_name=KERNEL_INIT_NAME_FOR_INTENSITY,
+                        bias_init_name=BIAS_INIT_NAME_FOR_INTENSITY
                     )(forecast_module_layer_object)
                 )
 
@@ -1709,8 +1711,8 @@ def create_model_for_intensity(option_dict):
                         padding_type_string=
                         architecture_utils.YES_PADDING_STRING,
                         weight_regularizer=l2_function,
-                        kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
-                        bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+                        kernel_init_name=KERNEL_INIT_NAME_FOR_INTENSITY,
+                        bias_init_name=BIAS_INIT_NAME_FOR_INTENSITY
                     )(forecast_module_layer_object)
                 )
         else:
@@ -1720,8 +1722,8 @@ def create_model_for_intensity(option_dict):
                 num_filters=num_channels_by_conv_layer[-1],
                 padding_type_string=architecture_utils.YES_PADDING_STRING,
                 weight_regularizer=l2_function,
-                kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
-                bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+                kernel_init_name=KERNEL_INIT_NAME_FOR_INTENSITY,
+                bias_init_name=BIAS_INIT_NAME_FOR_INTENSITY
             )(forecast_module_layer_object)
 
         forecast_module_layer_object = architecture_utils.get_activation_layer(
@@ -1755,8 +1757,8 @@ def create_model_for_intensity(option_dict):
     for i in range(num_dense_layers):
         layer_object = architecture_utils.get_dense_layer(
             num_output_units=num_neurons_by_dense_layer[i],
-            kernel_init_name=KERNEL_INIT_NAME_FOR_STRUCTURE,
-            bias_init_name=BIAS_INIT_NAME_FOR_STRUCTURE
+            kernel_init_name=KERNEL_INIT_NAME_FOR_INTENSITY,
+            bias_init_name=BIAS_INIT_NAME_FOR_INTENSITY
         )(layer_object)
 
         if i == num_dense_layers - 1:
