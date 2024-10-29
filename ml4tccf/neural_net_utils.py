@@ -23,6 +23,7 @@ import custom_losses_scalar
 import custom_metrics_scalar
 import custom_losses_gridded
 import custom_metrics_gridded
+import custom_metrics_structure
 import cnn_architecture
 import u_net_architecture
 import temporal_cnn_architecture as tcnn_architecture
