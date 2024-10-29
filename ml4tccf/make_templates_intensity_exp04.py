@@ -69,7 +69,8 @@ DEFAULT_OPTION_DICT = {
     cnn_architecture.USE_BATCH_NORM_KEY: True,
     cnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     cnn_architecture.LOSS_FUNCTION_KEY: LOSS_FUNCTION,
-    cnn_architecture.OPTIMIZER_FUNCTION_KEY: OPTIMIZER_FUNCTION
+    cnn_architecture.OPTIMIZER_FUNCTION_KEY: OPTIMIZER_FUNCTION,
+    cnn_architecture.TARGET_SHRINK_FACTOR_KEY: 0.01
 }
 
 DROPOUT_RATES_AXIS1 = numpy.array([0.1, 0.2, 0.3, 0.4])
