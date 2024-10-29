@@ -14,6 +14,7 @@ THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
 ))
 sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
+import time_conversion
 import file_system_utils
 import imagemagick_utils
 import a_deck_io
@@ -142,18 +143,32 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     a_deck_field_names = tod[nn_training.SCALAR_A_DECK_FIELDS_KEY]
     target_field_names = tod[nn_training.TARGET_FIELDS_KEY]
 
-    generator_handle = nn_training.data_generator_shuffled(tod)
+    generator_handle = nn_training.data_generator_shuffled(
+        tod, return_cyclone_ids=True
+    )
     print(SEPARATOR_STRING)
 
     for i in range(num_examples):
-        predictor_matrices, target_matrix = next(generator_handle)
+        (
+            predictor_matrices,
+            target_matrix,
+            cyclone_id_strings,
+            target_times_unix_sec
+        ) = next(generator_handle)
+
         print(SEPARATOR_STRING)
 
-        dummy_cyclone_id_string = '1900AL{0:02d}'.format(i)
-        base_title_string = ''
+        base_title_string = '{0:s} at {1:s}'.format(
+            cyclone_id_strings[0],
+            time_conversion.unix_sec_to_string(
+                target_times_unix_sec[0], '%Y-%m-%d-%H%M'
+            )
+        )
 
         for f in range(len(a_deck_field_names)):
-            if f > 0:
+            if f == 0:
+                base_title_string += '\n'
+            else:
                 if numpy.mod(f, 4) == 0:
                     base_title_string += '\n'
                 else:
@@ -192,7 +207,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
                     )
 
                 satellite_plotting.plot_2d_grid_no_coords(
-                    data_matrix=predictor_matrices[0][0, ..., j, k],
+                    data_matrix=predictor_matrices[0][0, ..., k, j],
                     axes_object=axes_object,
                     plotting_brightness_temp=True,
                     cbar_orientation_string=None,

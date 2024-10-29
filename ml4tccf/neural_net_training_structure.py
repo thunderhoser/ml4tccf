@@ -599,7 +599,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     }
 
 
-def data_generator_shuffled(option_dict):
+def data_generator_shuffled(option_dict, return_cyclone_ids=False):
     """Generates training data from shuffled files.
 
     E = batch size = number of examples
@@ -646,6 +646,8 @@ def data_generator_shuffled(option_dict):
         `extended_best_track_io.read_file`).
     option_dict["do_residual_prediction"]: Boolean flag.
 
+    :param return_cyclone_ids: Leave this alone.
+
     :return: predictor_matrices: Tuple with the following items:
         (vector_predictor_matrix, scalar_predictor_matrix,
          resid_baseline_predictor_matrix).  Either of the last two items might
@@ -661,6 +663,7 @@ def data_generator_shuffled(option_dict):
     """
 
     option_dict = check_generator_args(option_dict)
+    error_checking.assert_is_boolean(return_cyclone_ids)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     years = option_dict[YEARS_KEY]
@@ -779,6 +782,8 @@ def data_generator_shuffled(option_dict):
         scalar_predictor_matrix = None
         residual_baseline_matrix = None
         target_matrix = None
+        cyclone_id_strings = []
+        target_times_unix_sec = []
         num_examples_in_memory = 0
 
         while num_examples_in_memory < num_examples_per_batch:
@@ -961,6 +966,9 @@ def data_generator_shuffled(option_dict):
                     this_resid_baseline_matrix
                 )
 
+            cyclone_id_strings += data_dict[CYCLONE_IDS_KEY]
+            target_times_unix_sec += data_dict[TARGET_TIMES_KEY].tolist()
+
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
         # TODO(thunderhoser): This is a HACK.  Should be controlled by an input
@@ -1022,7 +1030,15 @@ def data_generator_shuffled(option_dict):
         print(target_matrix)
         print('\n\n')
 
-        yield tuple(predictor_matrices), target_matrix
+        if return_cyclone_ids:
+            yield (
+                tuple(predictor_matrices),
+                target_matrix,
+                cyclone_id_strings,
+                numpy.array(target_times_unix_sec, dtype=int)
+            )
+        else:
+            yield tuple(predictor_matrices), target_matrix
 
 
 def train_model(
