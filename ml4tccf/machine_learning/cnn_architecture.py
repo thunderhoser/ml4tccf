@@ -32,6 +32,7 @@ ENSEMBLE_SIZE_KEY = 'ensemble_size'
 LOSS_FUNCTION_KEY = 'loss_function'
 OPTIMIZER_FUNCTION_KEY = 'optimizer_function'
 START_WITH_POOLING_KEY = 'start_with_pooling_layer'
+TARGET_SHRINK_FACTOR_KEY = 'target_shrink_factor'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: True,
@@ -474,6 +475,7 @@ def create_intensity_model(option_dict):
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
     start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
+    target_shrink_factor = option_dict[TARGET_SHRINK_FACTOR_KEY]
 
     input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
@@ -689,6 +691,7 @@ def create_intensity_model(option_dict):
         custom_metrics_structure.mean_squared_error(
             channel_index=0,
             convert_intensity_from_sigmoid=False,
+            target_shrink_factor=target_shrink_factor,
             function_name='mean_sq_error_intensity_kt2'
         ),
         custom_metrics_structure.min_prediction(
