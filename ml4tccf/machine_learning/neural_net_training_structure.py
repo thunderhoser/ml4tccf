@@ -593,7 +593,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     }
 
 
-def data_generator_shuffled(option_dict):
+def data_generator_shuffled(option_dict, return_cyclone_ids=False):
     """Generates training data from shuffled files.
 
     E = batch size = number of examples
@@ -640,6 +640,8 @@ def data_generator_shuffled(option_dict):
         `extended_best_track_io.read_file`).
     option_dict["do_residual_prediction"]: Boolean flag.
 
+    :param return_cyclone_ids: Leave this alone.
+
     :return: predictor_matrices: Tuple with the following items:
         (vector_predictor_matrix, scalar_predictor_matrix,
          resid_baseline_predictor_matrix).  Either of the last two items might
@@ -655,6 +657,7 @@ def data_generator_shuffled(option_dict):
     """
 
     option_dict = check_generator_args(option_dict)
+    error_checking.assert_is_boolean(return_cyclone_ids)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     years = option_dict[YEARS_KEY]
@@ -773,6 +776,8 @@ def data_generator_shuffled(option_dict):
         scalar_predictor_matrix = None
         residual_baseline_matrix = None
         target_matrix = None
+        cyclone_id_strings = []
+        target_times_unix_sec = []
         num_examples_in_memory = 0
 
         while num_examples_in_memory < num_examples_per_batch:
@@ -833,10 +838,7 @@ def data_generator_shuffled(option_dict):
             these_target_times_unix_sec = these_target_times_unix_sec[
                 good_indices
             ]
-            target_values_by_sample = [
-                target_values_by_sample[k] for k in good_indices
-            ]
-            this_target_matrix = numpy.vstack(target_values_by_sample)
+            del target_values_by_sample
 
             data_dict = nn_training_simple._read_satellite_data_1shuffled_file(
                 input_file_name=satellite_file_names[file_index],
@@ -849,6 +851,9 @@ def data_generator_shuffled(option_dict):
                 target_times_unix_sec=these_target_times_unix_sec,
                 return_xy_coords=False
             )
+
+            del these_cyclone_id_strings
+            del these_target_times_unix_sec
             file_index += 1
 
             if (
@@ -858,19 +863,19 @@ def data_generator_shuffled(option_dict):
             ):
                 continue
 
-            row_indices = numpy.array([
-                numpy.where(numpy.logical_and(
-                    numpy.array(these_cyclone_id_strings) == c,
-                    these_target_times_unix_sec == t
-                ))[0][0]
+            target_values_by_sample = [
+                _get_target_variables(
+                    ebtrk_table_xarray=ebtrk_table_xarray,
+                    target_field_names=target_field_names,
+                    cyclone_id_string=c,
+                    target_time_unix_sec=t
+                )
                 for c, t in zip(
                     data_dict[CYCLONE_IDS_KEY], data_dict[TARGET_TIMES_KEY]
                 )
-            ], dtype=int)
+            ]
 
-            this_target_matrix = this_target_matrix[row_indices, :]
-            del these_cyclone_id_strings
-            del these_target_times_unix_sec
+            this_target_matrix = numpy.vstack(target_values_by_sample)
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
@@ -955,6 +960,9 @@ def data_generator_shuffled(option_dict):
                     this_resid_baseline_matrix
                 )
 
+            cyclone_id_strings += data_dict[CYCLONE_IDS_KEY]
+            target_times_unix_sec += data_dict[TARGET_TIMES_KEY].tolist()
+
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
         # TODO(thunderhoser): This is a HACK.  Should be controlled by an input
@@ -1011,7 +1019,20 @@ def data_generator_shuffled(option_dict):
             numpy.nanmax(target_matrix)
         ))
 
-        yield tuple(predictor_matrices), target_matrix
+        mean_brightness_temp_matrix = numpy.mean(predictor_matrices[0][:, 300:500, 300:500, -1, :], axis=(1, 2))
+        print(mean_brightness_temp_matrix)
+        print(target_matrix)
+        print('\n\n')
+
+        if return_cyclone_ids:
+            yield (
+                tuple(predictor_matrices),
+                target_matrix,
+                cyclone_id_strings,
+                numpy.array(target_times_unix_sec, dtype=int)
+            )
+        else:
+            yield tuple(predictor_matrices), target_matrix
 
 
 def train_model(

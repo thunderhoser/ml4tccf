@@ -7,10 +7,10 @@ import matplotlib
 matplotlib.use('agg')
 from matplotlib import pyplot
 import matplotlib.colors
+from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.plotting import imagemagick_utils
 from ml4tccf.io import a_deck_io
-from ml4tccf.utils import extended_best_track_utils as ebtrk_utils
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
 from ml4tccf.machine_learning import \
     neural_net_training_structure as nn_training
@@ -36,19 +36,11 @@ A_DECK_FIELD_TO_FANCY_NAME = {
 }
 
 TARGET_FIELD_TO_FANCY_NAME = {
-    ebtrk_utils.MAX_SUSTAINED_WIND_KEY: r'$V_{max}$',
-    ebtrk_utils.RADII_OF_34KT_WIND_KEY: 'R34',
-    ebtrk_utils.RADII_OF_50KT_WIND_KEY: 'R50',
-    ebtrk_utils.RADII_OF_64KT_WIND_KEY: 'R64',
-    ebtrk_utils.MAX_WIND_RADIUS_KEY: 'RMW'
-}
-
-TARGET_FIELD_TO_CONV_FACTOR = {
-    ebtrk_utils.MAX_SUSTAINED_WIND_KEY: 3.6 / 1.852,
-    ebtrk_utils.RADII_OF_34KT_WIND_KEY: 0.001,
-    ebtrk_utils.RADII_OF_50KT_WIND_KEY: 0.001,
-    ebtrk_utils.RADII_OF_64KT_WIND_KEY: 0.001,
-    ebtrk_utils.MAX_WIND_RADIUS_KEY: 0.001
+    nn_training.INTENSITY_FIELD_NAME: r'$V_{max}$',
+    nn_training.R34_FIELD_NAME: 'R34',
+    nn_training.R50_FIELD_NAME: 'R50',
+    nn_training.R64_FIELD_NAME: 'R64',
+    nn_training.RMW_FIELD_NAME: 'RMW'
 }
 
 FIGURE_WIDTH_INCHES = 15
@@ -145,18 +137,32 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     a_deck_field_names = tod[nn_training.SCALAR_A_DECK_FIELDS_KEY]
     target_field_names = tod[nn_training.TARGET_FIELDS_KEY]
 
-    generator_handle = nn_training.data_generator_shuffled(tod)
+    generator_handle = nn_training.data_generator_shuffled(
+        tod, return_cyclone_ids=True
+    )
     print(SEPARATOR_STRING)
 
     for i in range(num_examples):
-        predictor_matrices, target_matrix = next(generator_handle)
+        (
+            predictor_matrices,
+            target_matrix,
+            cyclone_id_strings,
+            target_times_unix_sec
+        ) = next(generator_handle)
+
         print(SEPARATOR_STRING)
 
-        dummy_cyclone_id_string = '1900AL{0:02d}'.format(i)
-        base_title_string = ''
+        base_title_string = '{0:s} at {1:s}'.format(
+            cyclone_id_strings[0],
+            time_conversion.unix_sec_to_string(
+                target_times_unix_sec[0], '%Y-%m-%d-%H%M'
+            )
+        )
 
         for f in range(len(a_deck_field_names)):
-            if f > 0:
+            if f == 0:
+                base_title_string += '\n'
+            else:
                 if numpy.mod(f, 4) == 0:
                     base_title_string += '\n'
                 else:
@@ -173,7 +179,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
             base_title_string += '{0:s} = {1:.2f}'.format(
                 TARGET_FIELD_TO_FANCY_NAME[target_field_names[f]],
                 target_matrix[0, f] *
-                TARGET_FIELD_TO_CONV_FACTOR[target_field_names[f]]
+                nn_training.TARGET_NAME_TO_CONV_FACTOR[target_field_names[f]]
             )
 
         for k in range(len(lag_times_minutes)):
@@ -195,7 +201,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
                     )
 
                 satellite_plotting.plot_2d_grid_no_coords(
-                    data_matrix=predictor_matrices[0][0, ..., j, k],
+                    data_matrix=predictor_matrices[0][0, ..., k, j],
                     axes_object=axes_object,
                     plotting_brightness_temp=True,
                     cbar_orientation_string=None,
