@@ -17,7 +17,6 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import file_system_utils
 import imagemagick_utils
 import a_deck_io
-import extended_best_track_utils as ebtrk_utils
 import neural_net_utils as nn_utils
 import neural_net_training_structure as nn_training
 import satellite_plotting
@@ -42,19 +41,11 @@ A_DECK_FIELD_TO_FANCY_NAME = {
 }
 
 TARGET_FIELD_TO_FANCY_NAME = {
-    ebtrk_utils.MAX_SUSTAINED_WIND_KEY: r'$V_{max}$',
-    ebtrk_utils.RADII_OF_34KT_WIND_KEY: 'R34',
-    ebtrk_utils.RADII_OF_50KT_WIND_KEY: 'R50',
-    ebtrk_utils.RADII_OF_64KT_WIND_KEY: 'R64',
-    ebtrk_utils.MAX_WIND_RADIUS_KEY: 'RMW'
-}
-
-TARGET_FIELD_TO_CONV_FACTOR = {
-    ebtrk_utils.MAX_SUSTAINED_WIND_KEY: 3.6 / 1.852,
-    ebtrk_utils.RADII_OF_34KT_WIND_KEY: 0.001,
-    ebtrk_utils.RADII_OF_50KT_WIND_KEY: 0.001,
-    ebtrk_utils.RADII_OF_64KT_WIND_KEY: 0.001,
-    ebtrk_utils.MAX_WIND_RADIUS_KEY: 0.001
+    nn_training.INTENSITY_FIELD_NAME: r'$V_{max}$',
+    nn_training.R34_FIELD_NAME: 'R34',
+    nn_training.R50_FIELD_NAME: 'R50',
+    nn_training.R64_FIELD_NAME: 'R64',
+    nn_training.RMW_FIELD_NAME: 'RMW'
 }
 
 FIGURE_WIDTH_INCHES = 15
@@ -179,7 +170,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
             base_title_string += '{0:s} = {1:.2f}'.format(
                 TARGET_FIELD_TO_FANCY_NAME[target_field_names[f]],
                 target_matrix[0, f] *
-                TARGET_FIELD_TO_CONV_FACTOR[target_field_names[f]]
+                nn_training.TARGET_NAME_TO_CONV_FACTOR[target_field_names[f]]
             )
 
         for k in range(len(lag_times_minutes)):
