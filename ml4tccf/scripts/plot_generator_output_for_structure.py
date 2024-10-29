@@ -229,10 +229,13 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
                 axes_object.set_title(title_string)
 
                 panel_file_names[j] = (
-                    '{0:s}/{1:s}_{2:03d}minutes_{3:06.3f}microns.jpg'
+                    '{0:s}/{1:s}_{2:s}_{3:03d}minutes_{4:06.3f}microns.jpg'
                 ).format(
                     output_dir_name,
-                    dummy_cyclone_id_string,
+                    cyclone_id_strings[0],
+                    time_conversion.unix_sec_to_string(
+                        target_times_unix_sec[0], '%Y-%m-%d-%H%M'
+                    ),
                     lag_times_minutes[k],
                     wavelengths_microns[j]
                 )
@@ -256,9 +259,14 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
                     output_size_pixels=PANEL_SIZE_PX
                 )
 
-            concat_figure_file_name = '{0:s}/{1:s}_{2:03d}minutes.jpg'.format(
+            concat_figure_file_name = (
+                '{0:s}/{1:s}_{2:s}_{3:03d}minutes.jpg'
+            ).format(
                 output_dir_name,
-                dummy_cyclone_id_string,
+                cyclone_id_strings[0],
+                time_conversion.unix_sec_to_string(
+                    target_times_unix_sec[0], '%Y-%m-%d-%H%M'
+                ),
                 lag_times_minutes[k]
             )
 
