@@ -35,6 +35,22 @@ A_DECK_FIELD_TO_FANCY_NAME = {
     a_deck_io.MAX_WIND_RADIUS_KEY: 'RMW'
 }
 
+A_DECK_FIELD_TO_CONV_FACTOR = {
+    a_deck_io.ABSOLUTE_LATITUDE_KEY: 1.,
+    a_deck_io.LONGITUDE_SINE_KEY: 1.,
+    a_deck_io.LONGITUDE_COSINE_KEY: 1.,
+    a_deck_io.INTENSITY_KEY: 3.6 / 1.852,
+    a_deck_io.SEA_LEVEL_PRESSURE_KEY: 0.01,
+    a_deck_io.UNNORM_TROPICAL_FLAG_KEY: 1.,
+    a_deck_io.UNNORM_SUBTROPICAL_FLAG_KEY: 1.,
+    a_deck_io.UNNORM_EXTRATROPICAL_FLAG_KEY: 1.,
+    a_deck_io.UNNORM_DISTURBANCE_FLAG_KEY: 1.,
+    a_deck_io.WIND_RADIUS_34KT_KEY: 0.001,
+    a_deck_io.WIND_RADIUS_50KT_KEY: 0.001,
+    a_deck_io.WIND_RADIUS_64KT_KEY: 0.001,
+    a_deck_io.MAX_WIND_RADIUS_KEY: 0.001
+}
+
 TARGET_FIELD_TO_FANCY_NAME = {
     nn_training.INTENSITY_FIELD_NAME: r'$V_{max}$',
     nn_training.R34_FIELD_NAME: 'R34',
@@ -170,7 +186,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
 
             base_title_string += '{0:s} = {1:.2f}'.format(
                 A_DECK_FIELD_TO_FANCY_NAME[a_deck_field_names[f]],
-                predictor_matrices[1][0, f]
+                predictor_matrices[1][0, f] * A_DECK_FIELD_TO_CONV_FACTOR[a_deck_field_names[f]]
             )
 
         base_title_string += '\n'
@@ -178,8 +194,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         for f in range(len(target_field_names)):
             base_title_string += '{0:s} = {1:.2f}'.format(
                 TARGET_FIELD_TO_FANCY_NAME[target_field_names[f]],
-                target_matrix[0, f] *
-                nn_training.TARGET_NAME_TO_CONV_FACTOR[target_field_names[f]]
+                target_matrix[0, f]
             )
 
         for k in range(len(lag_times_minutes)):
