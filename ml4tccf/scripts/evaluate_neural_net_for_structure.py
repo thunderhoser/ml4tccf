@@ -108,9 +108,13 @@ def _run(prediction_file_pattern, output_dir_name):
         this_prediction_matrix = numpy.mean(
             tptx[structure_prediction_utils.PREDICTION_KEY].values, axis=-1
         )
-        this_baseline_prediction_matrix = (
-            tptx[structure_prediction_utils.BASELINE_PREDICTION_KEY].values
-        )
+
+        try:
+            this_baseline_prediction_matrix = (
+                tptx[structure_prediction_utils.BASELINE_PREDICTION_KEY].values
+            )
+        except:
+            this_baseline_prediction_matrix = numpy.array([])
 
         if i == 0:
             target_matrix = this_target_matrix + 0.
@@ -228,15 +232,32 @@ def _run(prediction_file_pattern, output_dir_name):
             numpy.mean((prediction_matrix[:, f] - target_matrix[:, f]) ** 2)
         )
 
+        numerator = numpy.sum(
+            (target_matrix[:, f] - numpy.mean(target_matrix[:, f])) *
+            (prediction_matrix[:, f] - numpy.mean(prediction_matrix[:, f]))
+        )
+        sum_squared_target_diffs = numpy.sum(
+            (target_matrix[:, f] - numpy.mean(target_matrix[:, f])) ** 2
+        )
+        sum_squared_prediction_diffs = numpy.sum(
+            (prediction_matrix[:, f] - numpy.mean(prediction_matrix[:, f])) ** 2
+        )
+        correlation = (
+            numerator /
+            numpy.sqrt(sum_squared_target_diffs * sum_squared_prediction_diffs)
+        )
+
         title_string = (
             'NN for {0:s}\n'
-            'MAE = {1:.2f}; bias = {2:.2f}; RMSE = {3:.2f}; REL = {4:.2f}'
+            'MAE = {1:.2f}; bias = {2:.2f}; RMSE = {3:.2f}; REL = {4:.2f}; '
+            'corr = {5:.2f}'
         ).format(
             target_field_names[f],
             mean_absolute_error,
             bias,
             rmse,
-            reliability
+            reliability,
+            correlation
         )
 
         print(title_string)
@@ -252,6 +273,9 @@ def _run(prediction_file_pattern, output_dir_name):
             pad_inches=0, bbox_inches='tight'
         )
         pyplot.close(figure_object)
+
+        if numpy.size(baseline_prediction_matrix) == 0:
+            continue
 
         (
             mean_predictions, mean_observations, example_counts
@@ -321,15 +345,34 @@ def _run(prediction_file_pattern, output_dir_name):
             (baseline_prediction_matrix[:, f] - target_matrix[:, f]) ** 2
         ))
 
+        numerator = numpy.sum(
+            (target_matrix[:, f] - numpy.mean(target_matrix[:, f])) *
+            (baseline_prediction_matrix[:, f] -
+             numpy.mean(baseline_prediction_matrix[:, f]))
+        )
+        sum_squared_target_diffs = numpy.sum(
+            (target_matrix[:, f] - numpy.mean(target_matrix[:, f])) ** 2
+        )
+        sum_squared_prediction_diffs = numpy.sum(
+            (baseline_prediction_matrix[:, f] -
+             numpy.mean(baseline_prediction_matrix[:, f])) ** 2
+        )
+        correlation = (
+            numerator /
+            numpy.sqrt(sum_squared_target_diffs * sum_squared_prediction_diffs)
+        )
+
         title_string = (
             'Baseline for {0:s}\n'
-            'MAE = {1:.2f}; bias = {2:.2f}; RMSE = {3:.2f}; REL = {4:.2f}'
+            'MAE = {1:.2f}; bias = {2:.2f}; RMSE = {3:.2f}; REL = {4:.2f}; '
+            'corr = {5:.2f}'
         ).format(
             target_field_names[f],
             mean_absolute_error,
             bias,
             rmse,
-            reliability
+            reliability,
+            correlation
         )
 
         print(title_string)
