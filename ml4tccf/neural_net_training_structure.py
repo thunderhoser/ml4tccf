@@ -809,12 +809,10 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
                 file_index += 1
                 continue
 
-            print(these_cyclone_id_strings)
             these_target_time_strings = [
                 time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M')
                 for t in these_target_times_unix_sec
             ]
-            print(these_target_time_strings)
 
             target_values_by_sample = [
                 _get_target_variables(
@@ -827,9 +825,6 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
                     these_cyclone_id_strings, these_target_times_unix_sec
                 )
             ]
-
-            print(target_field_names)
-            print(target_values_by_sample)
 
             good_flags = numpy.array(
                 [tv is not None for tv in target_values_by_sample], dtype=int

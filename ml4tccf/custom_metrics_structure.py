@@ -13,11 +13,13 @@ import error_checking
 import custom_losses_scalar as custom_losses
 
 
-def mean_squared_error(channel_index, function_name, test_mode=False):
+def mean_squared_error(channel_index, function_name,
+                       convert_intensity_from_sigmoid=False, test_mode=False):
     """Computes mean squared error (MSE) for one channel (target variable).
 
     :param channel_index: Array index for the desired channel.
     :param function_name: Name of function.
+    :param convert_intensity_from_sigmoid: Boolean flag.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
@@ -25,6 +27,7 @@ def mean_squared_error(channel_index, function_name, test_mode=False):
     error_checking.assert_is_integer(channel_index)
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
+    error_checking.assert_is_boolean(convert_intensity_from_sigmoid)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -38,6 +41,9 @@ def mean_squared_error(channel_index, function_name, test_mode=False):
         :param prediction_tensor: E-by-C-by-S numpy array of predicted values.
         :return: mean_squared_error: MSE (scalar float).
         """
+
+        if convert_intensity_from_sigmoid:
+            prediction_tensor = 25. + prediction_tensor * 160
 
         target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
         relevant_target_tensor = target_tensor[:, channel_index]
@@ -110,7 +116,7 @@ def max_target(channel_index, function_name, test_mode=False):
 
 
 def min_prediction(channel_index, function_name, take_ensemble_mean,
-                   test_mode=False):
+                   convert_intensity_from_sigmoid=False, test_mode=False):
     """Computes minimum predicted value for one channel (target variable).
 
     :param channel_index: Array index for the desired channel.
@@ -118,6 +124,7 @@ def min_prediction(channel_index, function_name, take_ensemble_mean,
     :param take_ensemble_mean: Boolean flag.  If True, will take minimum of
         ensemble-mean predictions.  If False, will take minimum of ensemble-
         member predictions.
+    :param convert_intensity_from_sigmoid: Boolean flag.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
@@ -126,6 +133,7 @@ def min_prediction(channel_index, function_name, take_ensemble_mean,
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
     error_checking.assert_is_boolean(take_ensemble_mean)
+    error_checking.assert_is_boolean(convert_intensity_from_sigmoid)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -135,6 +143,9 @@ def min_prediction(channel_index, function_name, take_ensemble_mean,
         :param prediction_tensor: Same.
         :return: min_prediction: Minimum predicted value. (scalar float).
         """
+
+        if convert_intensity_from_sigmoid:
+            prediction_tensor = 25. + prediction_tensor * 160
 
         if take_ensemble_mean:
             relevant_prediction_tensor = K.mean(
@@ -150,11 +161,12 @@ def min_prediction(channel_index, function_name, take_ensemble_mean,
 
 
 def max_prediction(channel_index, function_name, take_ensemble_mean,
-                   test_mode=False):
+                   convert_intensity_from_sigmoid=False, test_mode=False):
     """Computes maximum predicted value for one channel (target variable).
 
     :param channel_index: Array index for the desired channel.
     :param function_name: Name of function (string).
+    :param convert_intensity_from_sigmoid: Boolean flag.
     :param take_ensemble_mean: Boolean flag.  If True, will take maximum of
         ensemble-mean predictions.  If False, will take maximum of ensemble-
         member predictions.
@@ -166,6 +178,7 @@ def max_prediction(channel_index, function_name, take_ensemble_mean,
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
     error_checking.assert_is_boolean(take_ensemble_mean)
+    error_checking.assert_is_boolean(convert_intensity_from_sigmoid)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -175,6 +188,9 @@ def max_prediction(channel_index, function_name, take_ensemble_mean,
         :param prediction_tensor: Same.
         :return: max_prediction: Maximum predicted value. (scalar float).
         """
+
+        if convert_intensity_from_sigmoid:
+            prediction_tensor = 25. + prediction_tensor * 160
 
         if take_ensemble_mean:
             relevant_prediction_tensor = K.mean(

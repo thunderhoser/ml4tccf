@@ -491,24 +491,19 @@ def apply_physical_constraints(
     )
 
     predicted_intensity_tensor = K.maximum(
-        tensorflow.gather(prediction_tensor, indices=intensity_index, axis=-2),
-        0.
+        prediction_tensor[..., intensity_index, :], 0.
     )
     predicted_r34_tensor = K.maximum(
-        tensorflow.gather(prediction_tensor, indices=r34_index, axis=-2),
-        0.
+        prediction_tensor[..., r34_index, :], 0.
     )
     predicted_r50_tensor = K.maximum(
-        tensorflow.gather(prediction_tensor, indices=r50_index, axis=-2),
-        0.
+        prediction_tensor[..., r50_index, :], 0.
     )
     predicted_r64_tensor = K.maximum(
-        tensorflow.gather(prediction_tensor, indices=r64_index, axis=-2),
-        0.
+        prediction_tensor[..., r64_index, :], 0.
     )
     predicted_rmw_tensor = K.maximum(
-        tensorflow.gather(prediction_tensor, indices=rmw_index, axis=-2),
-        0.
+        prediction_tensor[..., rmw_index, :], 0.
     )
 
     predicted_r50_tensor = K.maximum(
@@ -749,6 +744,45 @@ def dwmse_for_structure_params(channel_weights, function_name, test_mode=False):
 
         return K.mean(
             channel_weight_tensor * dual_weight_tensor *
+            (relevant_target_tensor - relevant_prediction_tensor) ** 2
+        )
+
+    loss.__name__ = function_name
+    return loss
+
+
+def dwmse_for_sigmoid_intensity(function_name, test_mode=False):
+    """DWMSE for TC intensity, converting from sigmoid to physical units.
+
+    :param function_name: Name of function (string).
+    :param test_mode: Leave this alone.
+    :return: loss: Loss function (defined below).
+    """
+
+    error_checking.assert_is_string(function_name)
+    error_checking.assert_is_boolean(test_mode)
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (DWMSE).
+
+        :param target_tensor: E-by-C numpy array of correct values.
+        :param prediction_tensor: E-by-C-by-S numpy array of predicted values.
+        :return: dwmse: DWMSE (scalar float).
+        """
+
+        target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
+        prediction_tensor = 25. + prediction_tensor * 160
+
+        # Compute dual weights (E-by-C tensor).
+        relevant_target_tensor = target_tensor
+        relevant_prediction_tensor = K.mean(prediction_tensor, axis=-1)
+        dual_weight_tensor = K.maximum(
+            K.abs(relevant_target_tensor),
+            K.abs(relevant_prediction_tensor)
+        )
+
+        return K.mean(
+            dual_weight_tensor *
             (relevant_target_tensor - relevant_prediction_tensor) ** 2
         )
 
