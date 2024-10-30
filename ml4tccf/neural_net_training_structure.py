@@ -537,6 +537,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
             residual_baseline_matrix[:, f] *= (
                 TARGET_NAME_TO_CONV_FACTOR[target_field_names[f]]
             )
+
+        residual_baseline_matrix *= target_shrink_factor
     else:
         residual_baseline_matrix = None
 
@@ -922,6 +924,8 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
                     this_resid_baseline_matrix[:, f] *= (
                         TARGET_NAME_TO_CONV_FACTOR[target_field_names[f]]
                     )
+
+                this_resid_baseline_matrix *= target_shrink_factor
             else:
                 this_resid_baseline_matrix = None
 
