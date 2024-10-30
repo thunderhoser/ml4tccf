@@ -14,7 +14,6 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import error_checking
 import architecture_utils
-import custom_metrics_structure
 import temporal_cnn_architecture as basic_arch
 
 try:
@@ -58,7 +57,7 @@ RMW_INDEX_KEY = 'rmw_index'
 USE_PHYSICAL_CONSTRAINTS_KEY = 'use_physical_constraints'
 DO_RESIDUAL_PREDICTION_KEY = 'do_residual_prediction'
 PREDICT_INTENSITY_ONLY_KEY = 'predict_intensity_only'
-METRICS_KEY = 'metric_functions'
+METRIC_FUNCTIONS_KEY = 'metric_functions'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: False,
@@ -196,7 +195,7 @@ def check_input_args(option_dict):
     option_dict = DEFAULT_OPTION_DICT.copy()
     option_dict.update(orig_option_dict)
 
-    error_checking.assert_is_list(option_dict[METRICS_KEY])
+    error_checking.assert_is_list(option_dict[METRIC_FUNCTIONS_KEY])
 
     error_checking.assert_is_boolean(option_dict[PREDICT_INTENSITY_ONLY_KEY])
     if option_dict[PREDICT_INTENSITY_ONLY_KEY]:
@@ -269,6 +268,7 @@ def create_model(option_dict):
     rmw_index = option_dict[RMW_INDEX_KEY]
     use_physical_constraints = option_dict[USE_PHYSICAL_CONSTRAINTS_KEY]
     do_residual_prediction = option_dict[DO_RESIDUAL_PREDICTION_KEY]
+    metric_functions = option_dict[METRIC_FUNCTIONS_KEY]
 
     input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
@@ -643,7 +643,7 @@ def create_model_for_intensity(option_dict):
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
     start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
-    metric_functions = option_dict[METRICS_KEY]
+    metric_functions = option_dict[METRIC_FUNCTIONS_KEY]
 
     input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())

@@ -873,7 +873,9 @@ def train_model(
         num_validation_batches_per_epoch, validation_option_dict,
         loss_function_string, optimizer_function_string,
         plateau_patience_epochs, plateau_learning_rate_multiplier,
-        early_stopping_patience_epochs, architecture_dict, is_model_bnn):
+        early_stopping_patience_epochs,
+        cnn_architecture_dict, temporal_cnn_architecture_dict,
+        u_net_architecture_dict):
     """Trains neural net.
 
     :param model_object: See doc for `neural_net_training_fancy.train_model`.
@@ -887,8 +889,9 @@ def train_model(
     :param plateau_patience_epochs: Same.
     :param plateau_learning_rate_multiplier: Same.
     :param early_stopping_patience_epochs: Same.
-    :param architecture_dict: Same.
-    :param is_model_bnn: Same.
+    :param cnn_architecture_dict: Same.
+    :param temporal_cnn_architecture_dict: Same.
+    :param u_net_architecture_dict: Same.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -907,7 +910,6 @@ def train_model(
     error_checking.assert_is_less_than(plateau_learning_rate_multiplier, 1.)
     error_checking.assert_is_integer(early_stopping_patience_epochs)
     error_checking.assert_is_geq(early_stopping_patience_epochs, 5)
-    error_checking.assert_is_boolean(is_model_bnn)
 
     validation_keys_to_keep = [SATELLITE_DIRECTORY_KEY, YEARS_KEY]
     for this_key in list(training_option_dict.keys()):
@@ -966,8 +968,10 @@ def train_model(
         plateau_patience_epochs=plateau_patience_epochs,
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
-        architecture_dict=architecture_dict,
-        is_model_bnn=is_model_bnn,
+        cnn_architecture_dict=cnn_architecture_dict,
+        temporal_cnn_architecture_dict=temporal_cnn_architecture_dict,
+        u_net_architecture_dict=u_net_architecture_dict,
+        structure_cnn_architecture_dict=None,
         data_type_string=neural_net_utils.CIRA_IR_DATA_TYPE_STRING,
         train_with_shuffled_data=False
     )

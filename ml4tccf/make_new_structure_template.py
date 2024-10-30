@@ -377,7 +377,7 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.USE_PHYSICAL_CONSTRAINTS_KEY: True,
     tcnn_architecture.DO_RESIDUAL_PREDICTION_KEY: True,
     tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY: False,
-    tcnn_architecture.METRICS_KEY: METRIC_FUNCTIONS
+    tcnn_architecture.METRIC_FUNCTIONS_KEY: METRIC_FUNCTIONS
 }
 
 
@@ -458,7 +458,7 @@ def _run():
     option_dict[tcnn_architecture.OPTIMIZER_FUNCTION_KEY] = (
         OPTIMIZER_FUNCTION_STRING
     )
-    option_dict[tcnn_architecture.METRICS_KEY] = (
+    option_dict[tcnn_architecture.METRIC_FUNCTIONS_KEY] = (
         METRIC_FUNCTION_STRINGS
     )
 
@@ -480,8 +480,10 @@ def _run():
         plateau_patience_epochs=10,
         plateau_learning_rate_multiplier=0.6,
         early_stopping_patience_epochs=50,
-        architecture_dict=option_dict,
-        is_model_bnn=False,
+        cnn_architecture_dict=None,
+        temporal_cnn_architecture_dict=None,
+        u_net_architecture_dict=None,
+        structure_cnn_architecture_dict=option_dict,
         data_type_string=neural_net_utils.RG_SIMPLE_DATA_TYPE_STRING,
         train_with_shuffled_data=True
     )
