@@ -45,7 +45,9 @@ def dwcrps_for_structure_params(channel_weights, function_name,
         target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
         # Compute dual weights (E-by-C-by-S tensor).
-        relevant_target_tensor = K.expand_dims(target_tensor, axis=-1)
+        relevant_target_tensor = K.expand_dims(
+            target_tensor[:, :len(channel_weights)], axis=-1
+        )
         relevant_prediction_tensor = prediction_tensor
         dual_weight_tensor = K.maximum(
             K.abs(relevant_target_tensor),
@@ -54,7 +56,7 @@ def dwcrps_for_structure_params(channel_weights, function_name,
 
         # Turn channel weights into E-by-C tensor.
         channel_weight_tensor = K.cast(
-            K.constant(channel_weights), target_tensor.dtype
+            K.constant(channel_weights), relevant_target_tensor.dtype
         )
         channel_weight_tensor = K.expand_dims(channel_weight_tensor, axis=0)
 
@@ -237,7 +239,9 @@ def constrained_dwcrps_for_structure_params(
         )
 
         # Compute dual weights (E-by-C-by-S tensor).
-        relevant_target_tensor = K.expand_dims(target_tensor, axis=-1)
+        relevant_target_tensor = K.expand_dims(
+            target_tensor[:, :len(channel_weights)], axis=-1
+        )
         relevant_prediction_tensor = prediction_tensor
         dual_weight_tensor = K.maximum(
             K.abs(relevant_target_tensor),
@@ -246,7 +250,7 @@ def constrained_dwcrps_for_structure_params(
 
         # Turn channel weights into E-by-C tensor.
         channel_weight_tensor = K.cast(
-            K.constant(channel_weights), target_tensor.dtype
+            K.constant(channel_weights), relevant_target_tensor.dtype
         )
         channel_weight_tensor = K.expand_dims(channel_weight_tensor, axis=0)
 
@@ -311,7 +315,7 @@ def dwmse_for_structure_params(channel_weights, function_name, test_mode=False):
         target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
 
         # Compute dual weights (E-by-C tensor).
-        relevant_target_tensor = target_tensor
+        relevant_target_tensor = target_tensor[:, :len(channel_weights)]
         relevant_prediction_tensor = K.mean(prediction_tensor, axis=-1)
         dual_weight_tensor = K.maximum(
             K.abs(relevant_target_tensor),
@@ -320,7 +324,7 @@ def dwmse_for_structure_params(channel_weights, function_name, test_mode=False):
 
         # Turn channel weights into E-by-C tensor.
         channel_weight_tensor = K.cast(
-            K.constant(channel_weights), target_tensor.dtype
+            K.constant(channel_weights), relevant_target_tensor.dtype
         )
         channel_weight_tensor = K.expand_dims(channel_weight_tensor, axis=0)
 
@@ -374,7 +378,7 @@ def constrained_dwmse_for_structure_params(
         )
 
         # Compute dual weights (E-by-C tensor).
-        relevant_target_tensor = target_tensor
+        relevant_target_tensor = target_tensor[:, :len(channel_weights)]
         relevant_prediction_tensor = K.mean(prediction_tensor, axis=-1)
         dual_weight_tensor = K.maximum(
             K.abs(relevant_target_tensor),
@@ -383,7 +387,7 @@ def constrained_dwmse_for_structure_params(
 
         # Turn channel weights into E-by-C tensor.
         channel_weight_tensor = K.cast(
-            K.constant(channel_weights), target_tensor.dtype
+            K.constant(channel_weights), relevant_target_tensor.dtype
         )
         channel_weight_tensor = K.expand_dims(channel_weight_tensor, axis=0)
 
@@ -391,6 +395,114 @@ def constrained_dwmse_for_structure_params(
             channel_weight_tensor * dual_weight_tensor *
             (relevant_target_tensor - relevant_prediction_tensor) ** 2
         )
+
+    loss.__name__ = function_name
+    return loss
+
+
+def dwcrpss_for_structure_params(channel_weights, function_name,
+                                 test_mode=False):
+    """Creates DWCRPSS loss function for TC-structure parameters.
+
+    DWCRPSS = dual-weighted continuous ranked probability *skill* score
+
+    DWCRPSS compares the actual model's DWCRPS to that of the baseline model.
+
+    E = number of examples
+    C = number of channels = number of target variables
+    S = ensemble size = number of ensemble members
+
+    :param channel_weights: length-C numpy array of weights.
+    :param function_name: Name of function.
+    :param test_mode: Leave this alone.
+    :return: loss: Loss function (defined below).
+    """
+
+    error_checking.assert_is_numpy_array(channel_weights, num_dimensions=1)
+    error_checking.assert_is_greater_numpy_array(channel_weights, 0.)
+    error_checking.assert_is_string(function_name)
+    error_checking.assert_is_boolean(test_mode)
+
+    def loss(target_tensor, prediction_tensor):
+        """Computes loss (DWCRPSS).
+
+        :param target_tensor: E-by-C numpy array of correct values.
+        :param prediction_tensor: E-by-C-by-S numpy array of predicted values.
+        :return: dwcrpss: DWCRPSS (scalar float).
+        """
+
+        target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
+
+        # Compute dual weights (E-by-C-by-S tensor).
+        relevant_target_tensor = K.expand_dims(
+            target_tensor[:, :len(channel_weights)], axis=-1
+        )
+        relevant_prediction_tensor = prediction_tensor
+        dual_weight_tensor = K.maximum(
+            K.abs(relevant_target_tensor),
+            K.abs(relevant_prediction_tensor)
+        )
+
+        # Turn channel weights into E-by-C tensor.
+        channel_weight_tensor = K.cast(
+            K.constant(channel_weights), relevant_target_tensor.dtype
+        )
+        channel_weight_tensor = K.expand_dims(channel_weight_tensor, axis=0)
+
+        # Compute mean absolute errors (E-by-C tensor).
+        absolute_error_tensor = K.abs(
+            relevant_prediction_tensor - relevant_target_tensor
+        )
+        mean_prediction_error_tensor = K.mean(
+            dual_weight_tensor * absolute_error_tensor, axis=-1
+        )
+
+        # Compute mean absolute pairwise differences (E-by-C tensor).
+        mean_prediction_diff_tensor = K.map_fn(
+            fn=lambda p: K.mean(
+                K.maximum(
+                    K.abs(K.expand_dims(p, axis=-1)),
+                    K.abs(K.expand_dims(p, axis=-2))
+                ) *
+                K.abs(
+                    K.expand_dims(p, axis=-1) -
+                    K.expand_dims(p, axis=-2)
+                ),
+                axis=(-2, -1)
+            ),
+            elems=prediction_tensor
+        )
+
+        # Compute DWCRPS of actual model.
+        error_tensor = channel_weight_tensor * (
+            mean_prediction_error_tensor -
+            0.5 * mean_prediction_diff_tensor
+        )
+        actual_dwcrps = K.mean(error_tensor)
+
+        # Create dual-weight tensor for baseline.
+        relevant_baseline_prediction_tensor = K.expand_dims(
+            target_tensor[:, len(channel_weights):], axis=-1
+        )
+        dual_weight_tensor = K.maximum(
+            K.abs(relevant_target_tensor),
+            K.abs(relevant_baseline_prediction_tensor)
+        )
+
+        # Compute mean absolute errors for baseline (E-by-C tensor).
+        absolute_error_tensor = K.abs(
+            relevant_baseline_prediction_tensor - relevant_target_tensor
+        )
+        mean_prediction_error_tensor = K.mean(
+            dual_weight_tensor * absolute_error_tensor, axis=-1
+        )
+        error_tensor = channel_weight_tensor * mean_prediction_error_tensor
+
+        # Compute DWCRPS of baseline model.
+        baseline_dwcrps = K.mean(error_tensor)
+
+        # Return negative skill score.
+        return (actual_dwcrps - baseline_dwcrps) / baseline_dwcrps
 
     loss.__name__ = function_name
     return loss

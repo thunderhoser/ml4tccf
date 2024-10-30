@@ -32,4 +32,4 @@ echo $PATH
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 
-python3 -u "${CODE_DIR_NAME}/make_templates_intensity_exp01.py"
+python3 -u "${CODE_DIR_NAME}/make_templates_structure_exp01.py"
