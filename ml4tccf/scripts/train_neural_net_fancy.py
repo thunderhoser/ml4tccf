@@ -122,10 +122,9 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
     )
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = nn_utils.read_metafile(model_metafile_name)
+    mmd = model_metadata_dict
     training_option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = (
-        model_metadata_dict[nn_utils.TRAINING_OPTIONS_KEY][
-            nn_utils.SEMANTIC_SEG_FLAG_KEY
-        ]
+        mmd[nn_utils.TRAINING_OPTIONS_KEY][nn_utils.SEMANTIC_SEG_FLAG_KEY]
     )
 
     nn_training.train_model(
@@ -135,14 +134,15 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
-        loss_function_string=model_metadata_dict[nn_utils.LOSS_FUNCTION_KEY],
-        optimizer_function_string=
-        model_metadata_dict[nn_utils.OPTIMIZER_FUNCTION_KEY],
+        loss_function_string=mmd[nn_utils.LOSS_FUNCTION_KEY],
+        optimizer_function_string=mmd[nn_utils.OPTIMIZER_FUNCTION_KEY],
         plateau_patience_epochs=plateau_patience_epochs,
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
-        architecture_dict=model_metadata_dict[nn_utils.ARCHITECTURE_KEY],
-        is_model_bnn=model_metadata_dict[nn_utils.IS_MODEL_BNN_KEY]
+        cnn_architecture_dict=mmd[nn_utils.CNN_ARCHITECTURE_KEY],
+        temporal_cnn_architecture_dict=
+        mmd[nn_utils.TEMPORAL_CNN_ARCHITECTURE_KEY],
+        u_net_architecture_dict=mmd[nn_utils.U_NET_ARCHITECTURE_KEY]
     )
 
 

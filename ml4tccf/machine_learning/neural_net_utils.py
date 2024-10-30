@@ -16,12 +16,8 @@ from ml4tccf.machine_learning import custom_losses_scalar
 from ml4tccf.machine_learning import custom_metrics_scalar
 from ml4tccf.machine_learning import custom_losses_gridded
 from ml4tccf.machine_learning import custom_metrics_gridded
+from ml4tccf.machine_learning import custom_losses_structure
 from ml4tccf.machine_learning import custom_metrics_structure
-from ml4tccf.machine_learning import cnn_architecture
-from ml4tccf.machine_learning import u_net_architecture
-from ml4tccf.machine_learning import \
-    temporal_cnn_architecture as tcnn_architecture
-from ml4tccf.outside_code import accum_grad_optimizer
 
 try:
     input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
@@ -116,17 +112,20 @@ OPTIMIZER_FUNCTION_KEY = 'optimizer_function_string'
 PLATEAU_PATIENCE_KEY = 'plateau_patience_epochs'
 PLATEAU_LR_MUTIPLIER_KEY = 'plateau_learning_rate_multiplier'
 EARLY_STOPPING_PATIENCE_KEY = 'early_stopping_patience_epochs'
-ARCHITECTURE_KEY = 'architecture_dict'
-IS_MODEL_BNN_KEY = 'is_model_bnn'
 DATA_TYPE_KEY = 'data_type_string'
 TRAIN_WITH_SHUFFLED_DATA_KEY = 'train_with_shuffled_data'
+CNN_ARCHITECTURE_KEY = 'cnn_architecture_dict'
+TEMPORAL_CNN_ARCHITECTURE_KEY = 'temporal_cnn_architecture_dict'
+STRUCTURE_CNN_ARCHITECTURE_KEY = 'structure_cnn_architecture_dict'
+U_NET_ARCHITECTURE_KEY = 'u_net_architecture_dict'
 
 METADATA_KEYS = [
     NUM_EPOCHS_KEY, NUM_TRAINING_BATCHES_KEY, TRAINING_OPTIONS_KEY,
     NUM_VALIDATION_BATCHES_KEY, VALIDATION_OPTIONS_KEY,
     LOSS_FUNCTION_KEY, OPTIMIZER_FUNCTION_KEY,
     PLATEAU_PATIENCE_KEY, PLATEAU_LR_MUTIPLIER_KEY, EARLY_STOPPING_PATIENCE_KEY,
-    ARCHITECTURE_KEY, IS_MODEL_BNN_KEY,
+    CNN_ARCHITECTURE_KEY, TEMPORAL_CNN_ARCHITECTURE_KEY,
+    STRUCTURE_CNN_ARCHITECTURE_KEY, U_NET_ARCHITECTURE_KEY,
     DATA_TYPE_KEY, TRAIN_WITH_SHUFFLED_DATA_KEY
 ]
 
@@ -836,7 +835,9 @@ def write_metafile(
         training_option_dict, num_validation_batches_per_epoch,
         validation_option_dict, loss_function_string, optimizer_function_string,
         plateau_patience_epochs, plateau_learning_rate_multiplier,
-        early_stopping_patience_epochs, architecture_dict, is_model_bnn,
+        early_stopping_patience_epochs,
+        cnn_architecture_dict, temporal_cnn_architecture_dict,
+        structure_cnn_architecture_dict, u_net_architecture_dict,
         data_type_string, train_with_shuffled_data):
     """Writes metadata to Pickle file.
 
@@ -851,8 +852,10 @@ def write_metafile(
     :param plateau_patience_epochs: Same.
     :param plateau_learning_rate_multiplier: Same.
     :param early_stopping_patience_epochs: Same.
-    :param architecture_dict: Same.
-    :param is_model_bnn: Same.
+    :param cnn_architecture_dict: Same.
+    :param temporal_cnn_architecture_dict: Same.
+    :param structure_cnn_architecture_dict: Same.
+    :param u_net_architecture_dict: Same.
     :param data_type_string: Data type (must be accepted by `check_data_type`).
     :param train_with_shuffled_data: Boolean flag.  If True, the model is
         trained with shuffled data files.  If False, the model is trained with
@@ -872,8 +875,10 @@ def write_metafile(
         PLATEAU_PATIENCE_KEY: plateau_patience_epochs,
         PLATEAU_LR_MUTIPLIER_KEY: plateau_learning_rate_multiplier,
         EARLY_STOPPING_PATIENCE_KEY: early_stopping_patience_epochs,
-        ARCHITECTURE_KEY: architecture_dict,
-        IS_MODEL_BNN_KEY: is_model_bnn,
+        CNN_ARCHITECTURE_KEY: cnn_architecture_dict,
+        TEMPORAL_CNN_ARCHITECTURE_KEY: temporal_cnn_architecture_dict,
+        STRUCTURE_CNN_ARCHITECTURE_KEY: structure_cnn_architecture_dict,
+        U_NET_ARCHITECTURE_KEY: u_net_architecture_dict,
         DATA_TYPE_KEY: data_type_string,
         TRAIN_WITH_SHUFFLED_DATA_KEY: train_with_shuffled_data
     }
@@ -901,8 +906,10 @@ def read_metafile(pickle_file_name):
     metadata_dict["plateau_patience_epochs"]: Same.
     metadata_dict["plateau_learning_rate_multiplier"]: Same.
     metadata_dict["early_stopping_patience_epochs"]: Same.
-    metadata_dict["architecture_dict"]: Same.
-    metadata_dict["is_model_bnn"]: Same.
+    metadata_dict["cnn_architecture_dict"]: Same.
+    metadata_dict["temporal_cnn_architecture_dict"]: Same.
+    metadata_dict["structure_cnn_architecture_dict"]: Same.
+    metadata_dict["u_net_architecture_dict"]: Same.
     metadata_dict["data_type_string"]: Data type (must be accepted by
         `check_data_type`).
     metadata_dict["train_with_shuffled_data"]: Boolean flag.  If True, the model
@@ -938,6 +945,14 @@ def read_metafile(pickle_file_name):
     if REMOVE_TROPICAL_KEY not in training_option_dict:
         training_option_dict[REMOVE_TROPICAL_KEY] = False
         validation_option_dict[REMOVE_TROPICAL_KEY] = False
+
+    if CNN_ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[TEMPORAL_CNN_ARCHITECTURE_KEY] = metadata_dict[
+            'architecture_dict'
+        ]
+        metadata_dict[CNN_ARCHITECTURE_KEY] = None
+        metadata_dict[STRUCTURE_CNN_ARCHITECTURE_KEY] = None
+        metadata_dict[U_NET_ARCHITECTURE_KEY] = None
 
     metadata_dict[TRAINING_OPTIONS_KEY] = training_option_dict
     metadata_dict[VALIDATION_OPTIONS_KEY] = validation_option_dict
@@ -1041,104 +1056,86 @@ def read_model(hdf5_file_name):
         raise_error_if_missing=True
     )
     metadata_dict = read_metafile(metafile_name)
-    architecture_dict = metadata_dict[ARCHITECTURE_KEY]
-    is_model_bnn = metadata_dict[IS_MODEL_BNN_KEY]
-    training_option_dict = metadata_dict[TRAINING_OPTIONS_KEY]
+    cnn_architecture_dict = metadata_dict[CNN_ARCHITECTURE_KEY]
+    temporal_cnn_architecture_dict = metadata_dict[
+        TEMPORAL_CNN_ARCHITECTURE_KEY
+    ]
+    structure_cnn_architecture_dict = metadata_dict[
+        STRUCTURE_CNN_ARCHITECTURE_KEY
+    ]
+    u_net_architecture_dict = metadata_dict[U_NET_ARCHITECTURE_KEY]
 
-    if SEMANTIC_SEG_FLAG_KEY in training_option_dict:
-        semantic_segmentation_flag = training_option_dict[SEMANTIC_SEG_FLAG_KEY]
-    else:
-        semantic_segmentation_flag = False
+    if u_net_architecture_dict is not None:
+        from ml4tccf.machine_learning import u_net_architecture
 
-    if is_model_bnn:
-        from ml4tccf.machine_learning import cnn_architecture_bayesian
-
-        for this_key in [
-                cnn_architecture_bayesian.LOSS_FUNCTION_KEY,
-                cnn_architecture_bayesian.OPTIMIZER_FUNCTION_KEY
-        ]:
-            try:
-                architecture_dict[this_key] = eval(
-                    architecture_dict[this_key]
-                )
-            except NameError:
-                architecture_dict[this_key] = eval(
-                    architecture_dict[this_key].replace(
-                        'custom_losses', 'custom_losses_scalar'
-                    )
-                )
-
-        model_object = cnn_architecture_bayesian.create_model(
-            architecture_dict
-        )
-        model_object.load_weights(hdf5_file_name)
-        return model_object
-
-    if semantic_segmentation_flag:
         for this_key in [
                 u_net_architecture.LOSS_FUNCTION_KEY,
                 u_net_architecture.OPTIMIZER_FUNCTION_KEY
         ]:
-            try:
-                architecture_dict[this_key] = eval(
-                    architecture_dict[this_key]
-                )
-            except NameError:
-                architecture_dict[this_key] = eval(
-                    architecture_dict[this_key].replace(
-                        'custom_losses', 'custom_losses_scalar'
-                    )
-                )
+            u_net_architecture_dict[this_key] = eval(
+                u_net_architecture_dict[this_key]
+            )
 
-        model_object = u_net_architecture.create_model(
-            architecture_dict
+        model_object = u_net_architecture.create_model(u_net_architecture_dict)
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
+    if cnn_architecture_dict is not None:
+        from ml4tccf.machine_learning import cnn_architecture
+
+        for this_key in [
+                cnn_architecture.LOSS_FUNCTION_KEY,
+                cnn_architecture.OPTIMIZER_FUNCTION_KEY
+        ]:
+            cnn_architecture_dict[this_key] = eval(
+                cnn_architecture_dict[this_key]
+            )
+
+        model_object = cnn_architecture.create_model(cnn_architecture_dict)
+        model_object.load_weights(hdf5_file_name)
+        return model_object
+
+    if temporal_cnn_architecture_dict is not None:
+        from ml4tccf.machine_learning import \
+            temporal_cnn_architecture as tcnn_architecture
+
+        for this_key in [
+                tcnn_architecture.LOSS_FUNCTION_KEY,
+                tcnn_architecture.OPTIMIZER_FUNCTION_KEY
+        ]:
+            temporal_cnn_architecture_dict[this_key] = eval(
+                temporal_cnn_architecture_dict[this_key]
+            )
+
+        model_object = tcnn_architecture.create_model(
+            temporal_cnn_architecture_dict
         )
         model_object.load_weights(hdf5_file_name)
         return model_object
+
+    from ml4tccf.machine_learning import \
+        temporal_cnn_arch_for_structure as structure_architecture
 
     for this_key in [
-            cnn_architecture.LOSS_FUNCTION_KEY,
-            cnn_architecture.OPTIMIZER_FUNCTION_KEY
+            structure_architecture.LOSS_FUNCTION_KEY,
+            structure_architecture.OPTIMIZER_FUNCTION_KEY
     ]:
-        try:
-            architecture_dict[this_key] = eval(
-                architecture_dict[this_key]
-            )
-        except NameError:
-            architecture_dict[this_key] = eval(
-                architecture_dict[this_key].replace(
-                    'custom_losses', 'custom_losses_scalar'
-                )
-            )
-
-    if tcnn_architecture.FC_MODULE_USE_3D_CONV not in architecture_dict:
-        try:
-            model_object = cnn_architecture.create_model(architecture_dict)
-        except:
-            model_object = cnn_architecture.create_intensity_model(
-                architecture_dict
-            )
-
-        model_object.load_weights(hdf5_file_name)
-        return model_object
-
-    if (
-            tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY in architecture_dict
-            and architecture_dict[tcnn_architecture.PREDICT_INTENSITY_ONLY_KEY]
-    ):
-        model_object = tcnn_architecture.create_model_for_intensity(
-            architecture_dict
+        structure_cnn_architecture_dict[this_key] = eval(
+            structure_cnn_architecture_dict[this_key]
         )
-    elif (
-            tcnn_architecture.INTENSITY_INDEX_KEY in architecture_dict
-            and architecture_dict[tcnn_architecture.INTENSITY_INDEX_KEY]
-            is not None
-    ):
-        model_object = tcnn_architecture.create_model_for_structure(
-            architecture_dict
-        )
-    else:
-        model_object = tcnn_architecture.create_model(architecture_dict)
 
+    metric_functions = structure_cnn_architecture_dict[
+        structure_architecture.METRIC_FUNCTIONS_KEY
+    ]
+    for i in range(len(metric_functions)):
+        metric_functions[i] = eval(metric_functions[i])
+
+    structure_cnn_architecture_dict[
+        structure_architecture.METRIC_FUNCTIONS_KEY
+    ] = metric_functions
+
+    model_object = structure_architecture.create_model(
+        structure_cnn_architecture_dict
+    )
     model_object.load_weights(hdf5_file_name)
     return model_object

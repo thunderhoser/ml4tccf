@@ -6,7 +6,6 @@ import keras.layers as layers
 from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import error_checking
 from gewittergefahr.deep_learning import architecture_utils
-from ml4tccf.machine_learning import custom_metrics_structure
 from ml4tccf.machine_learning import temporal_cnn_architecture as basic_arch
 
 try:
@@ -50,7 +49,7 @@ RMW_INDEX_KEY = 'rmw_index'
 USE_PHYSICAL_CONSTRAINTS_KEY = 'use_physical_constraints'
 DO_RESIDUAL_PREDICTION_KEY = 'do_residual_prediction'
 PREDICT_INTENSITY_ONLY_KEY = 'predict_intensity_only'
-METRICS_KEY = 'metric_functions'
+METRIC_FUNCTIONS_KEY = 'metric_functions'
 
 DEFAULT_OPTION_DICT = {
     INCLUDE_HIGH_RES_KEY: False,
@@ -188,7 +187,7 @@ def check_input_args(option_dict):
     option_dict = DEFAULT_OPTION_DICT.copy()
     option_dict.update(orig_option_dict)
 
-    error_checking.assert_is_list(option_dict[METRICS_KEY])
+    error_checking.assert_is_list(option_dict[METRIC_FUNCTIONS_KEY])
 
     error_checking.assert_is_boolean(option_dict[PREDICT_INTENSITY_ONLY_KEY])
     if option_dict[PREDICT_INTENSITY_ONLY_KEY]:
@@ -261,6 +260,7 @@ def create_model(option_dict):
     rmw_index = option_dict[RMW_INDEX_KEY]
     use_physical_constraints = option_dict[USE_PHYSICAL_CONSTRAINTS_KEY]
     do_residual_prediction = option_dict[DO_RESIDUAL_PREDICTION_KEY]
+    metric_functions = option_dict[METRIC_FUNCTIONS_KEY]
 
     input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())
@@ -593,259 +593,6 @@ def create_model(option_dict):
     if do_residual_prediction:
         input_layer_objects.append(input_layer_object_resid_baseline)
 
-    metric_functions = [
-        custom_metrics_structure.mean_squared_error(
-            channel_index=intensity_index,
-            function_name='mean_sq_error_intensity_kt2'
-        ),
-        custom_metrics_structure.mean_squared_error(
-            channel_index=r34_index, function_name='mean_sq_error_r34_km2'
-        ),
-        custom_metrics_structure.mean_squared_error(
-            channel_index=r50_index, function_name='mean_sq_error_r50_km2'
-        ),
-        custom_metrics_structure.mean_squared_error(
-            channel_index=r64_index, function_name='mean_sq_error_r64_km2'
-        ),
-        custom_metrics_structure.mean_squared_error(
-            channel_index=rmw_index, function_name='mean_sq_error_rmw_km2'
-        ),
-        custom_metrics_structure.min_target(
-            channel_index=intensity_index,
-            function_name='min_target_intensity_kt2'
-        ),
-        custom_metrics_structure.min_target(
-            channel_index=r34_index, function_name='min_target_r34_km2'
-        ),
-        custom_metrics_structure.min_target(
-            channel_index=r50_index, function_name='min_target_r50_km2'
-        ),
-        custom_metrics_structure.min_target(
-            channel_index=r64_index, function_name='min_target_r64_km2'
-        ),
-        custom_metrics_structure.min_target(
-            channel_index=rmw_index, function_name='min_target_rmw_km2'
-        ),
-        custom_metrics_structure.max_target(
-            channel_index=intensity_index,
-            function_name='max_target_intensity_kt2'
-        ),
-        custom_metrics_structure.max_target(
-            channel_index=r34_index, function_name='max_target_r34_km2'
-        ),
-        custom_metrics_structure.max_target(
-            channel_index=r50_index, function_name='max_target_r50_km2'
-        ),
-        custom_metrics_structure.max_target(
-            channel_index=r64_index, function_name='max_target_r64_km2'
-        ),
-        custom_metrics_structure.max_target(
-            channel_index=rmw_index, function_name='max_target_rmw_km2'
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=intensity_index,
-            function_name='min_ens_member_pred_intensity_kt2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=r34_index,
-            function_name='min_ens_member_pred_r34_km2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=r50_index,
-            function_name='min_ens_member_pred_r50_km2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=r64_index,
-            function_name='min_ens_member_pred_r64_km2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=rmw_index,
-            function_name='min_ens_member_pred_rmw_km2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=intensity_index,
-            function_name='max_ens_member_pred_intensity_kt2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=r34_index,
-            function_name='max_ens_member_pred_r34_km2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=r50_index,
-            function_name='max_ens_member_pred_r50_km2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=r64_index,
-            function_name='max_ens_member_pred_r64_km2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=rmw_index,
-            function_name='max_ens_member_pred_rmw_km2',
-            take_ensemble_mean=False
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=intensity_index,
-            function_name='min_ens_mean_pred_intensity_kt2',
-            take_ensemble_mean=True
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=r34_index,
-            function_name='min_ens_mean_pred_r34_km2',
-            take_ensemble_mean=True
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=r50_index,
-            function_name='min_ens_mean_pred_r50_km2',
-            take_ensemble_mean=True
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=r64_index,
-            function_name='min_ens_mean_pred_r64_km2',
-            take_ensemble_mean=True
-        ),
-        custom_metrics_structure.min_prediction(
-            channel_index=rmw_index,
-            function_name='min_ens_mean_pred_rmw_km2',
-            take_ensemble_mean=True
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=intensity_index,
-            function_name='max_ens_mean_pred_intensity_kt2',
-            take_ensemble_mean=True
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=r34_index,
-            function_name='max_ens_mean_pred_r34_km2',
-            take_ensemble_mean=True
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=r50_index,
-            function_name='max_ens_mean_pred_r50_km2',
-            take_ensemble_mean=True
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=r64_index,
-            function_name='max_ens_mean_pred_r64_km2',
-            take_ensemble_mean=True
-        ),
-        custom_metrics_structure.max_prediction(
-            channel_index=rmw_index,
-            function_name='max_ens_mean_pred_rmw_km2',
-            take_ensemble_mean=True
-        )
-    ]
-
-    if not use_physical_constraints:
-        metric_functions += [
-            custom_metrics_structure.mean_squared_error_with_constraints(
-                channel_index=r34_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='mse_constrained_r34_km2'
-            ),
-            custom_metrics_structure.mean_squared_error_with_constraints(
-                channel_index=r50_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='mse_constrained_r50_km2'
-            ),
-            custom_metrics_structure.min_prediction_with_constraints(
-                channel_index=r34_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='min_member_pred_constrained_r34_km2',
-                take_ensemble_mean=False
-            ),
-            custom_metrics_structure.min_prediction_with_constraints(
-                channel_index=r50_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='min_member_pred_constrained_r50_km2',
-                take_ensemble_mean=False
-            ),
-            custom_metrics_structure.max_prediction_with_constraints(
-                channel_index=r34_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='max_member_pred_constrained_r34_km2',
-                take_ensemble_mean=False
-            ),
-            custom_metrics_structure.max_prediction_with_constraints(
-                channel_index=r50_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='max_member_pred_constrained_r50_km2',
-                take_ensemble_mean=False
-            ),
-            custom_metrics_structure.min_prediction_with_constraints(
-                channel_index=r34_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='min_mean_pred_constrained_r34_km2',
-                take_ensemble_mean=True
-            ),
-            custom_metrics_structure.min_prediction_with_constraints(
-                channel_index=r50_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='min_mean_pred_constrained_r50_km2',
-                take_ensemble_mean=True
-            ),
-            custom_metrics_structure.max_prediction_with_constraints(
-                channel_index=r34_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='max_mean_pred_constrained_r34_km2',
-                take_ensemble_mean=True
-            ),
-            custom_metrics_structure.max_prediction_with_constraints(
-                channel_index=r50_index,
-                intensity_index=intensity_index,
-                r34_index=r34_index,
-                r50_index=r50_index,
-                r64_index=r64_index,
-                rmw_index=rmw_index,
-                function_name='max_mean_pred_constrained_r50_km2',
-                take_ensemble_mean=True
-            )
-        ]
-
     model_object = keras.models.Model(
         inputs=input_layer_objects, outputs=layer_object
     )
@@ -888,7 +635,7 @@ def create_model_for_intensity(option_dict):
     optimizer_function = option_dict[OPTIMIZER_FUNCTION_KEY]
     ensemble_size = option_dict[ENSEMBLE_SIZE_KEY]
     start_with_pooling_layer = option_dict[START_WITH_POOLING_KEY]
-    metric_functions = option_dict[METRICS_KEY]
+    metric_functions = option_dict[METRIC_FUNCTIONS_KEY]
 
     input_layer_object_low_res = layers.Input(
         shape=tuple(input_dimensions_low_res.tolist())

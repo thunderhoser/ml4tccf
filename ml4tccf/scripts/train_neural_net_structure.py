@@ -101,6 +101,7 @@ def _run(template_file_name, output_dir_name,
     )
     print('Reading model metadata from: "{0:s}"...'.format(model_metafile_name))
     model_metadata_dict = nn_utils.read_metafile(model_metafile_name)
+    mmd = model_metadata_dict
 
     nn_training.train_model(
         model_object=model_object,
@@ -110,13 +111,13 @@ def _run(template_file_name, output_dir_name,
         training_option_dict=training_option_dict,
         num_validation_batches_per_epoch=num_validation_batches_per_epoch,
         validation_option_dict=validation_option_dict,
-        loss_function_string=model_metadata_dict[nn_utils.LOSS_FUNCTION_KEY],
-        optimizer_function_string=
-        model_metadata_dict[nn_utils.OPTIMIZER_FUNCTION_KEY],
+        loss_function_string=mmd[nn_utils.LOSS_FUNCTION_KEY],
+        optimizer_function_string=mmd[nn_utils.OPTIMIZER_FUNCTION_KEY],
         plateau_patience_epochs=plateau_patience_epochs,
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
-        architecture_dict=model_metadata_dict[nn_utils.ARCHITECTURE_KEY]
+        architecture_dict=
+        model_metadata_dict[nn_utils.STRUCTURE_CNN_ARCHITECTURE_KEY]
     )
 
 

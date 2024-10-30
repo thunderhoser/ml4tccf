@@ -1797,7 +1797,9 @@ def train_model(
         num_validation_batches_per_epoch, validation_option_dict,
         loss_function_string, optimizer_function_string,
         plateau_patience_epochs, plateau_learning_rate_multiplier,
-        early_stopping_patience_epochs, architecture_dict, is_model_bnn):
+        early_stopping_patience_epochs,
+        cnn_architecture_dict, temporal_cnn_architecture_dict,
+        u_net_architecture_dict):
     """Trains neural net with generator.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1832,10 +1834,13 @@ def train_model(
     :param early_stopping_patience_epochs: Training will be stopped early if
         validation loss has not decreased in the last N epochs, where N =
         early_stopping_patience_epochs.
-    :param architecture_dict: Dictionary with architecture options for neural
-        network.
-    :param is_model_bnn: Boolean flag.  If True, will assume that model is a
-        Bayesian neural network.
+    :param cnn_architecture_dict: Dictionary with architecture options for basic
+        CNN.  If your architecture is something else, make this None.
+    :param temporal_cnn_architecture_dict: Dictionary with architecture options
+        for temporal CNN.  If your architecture is something else, make this
+        None.
+    :param u_net_architecture_dict: Dictionary with architecture options
+        for U-net.  If your architecture is something else, make this None.
     """
 
     file_system_utils.mkdir_recursive_if_necessary(
@@ -1854,7 +1859,6 @@ def train_model(
     error_checking.assert_is_less_than(plateau_learning_rate_multiplier, 1.)
     error_checking.assert_is_integer(early_stopping_patience_epochs)
     error_checking.assert_is_geq(early_stopping_patience_epochs, 5)
-    error_checking.assert_is_boolean(is_model_bnn)
 
     # TODO(thunderhoser): Maybe I should just max out the last 3 arguments and
     # not let the user set them?
@@ -1916,8 +1920,10 @@ def train_model(
         plateau_patience_epochs=plateau_patience_epochs,
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
-        architecture_dict=architecture_dict,
-        is_model_bnn=is_model_bnn,
+        cnn_architecture_dict=cnn_architecture_dict,
+        temporal_cnn_architecture_dict=temporal_cnn_architecture_dict,
+        u_net_architecture_dict=u_net_architecture_dict,
+        structure_cnn_architecture_dict=None,
         data_type_string=nn_utils.RG_FANCY_DATA_TYPE_STRING,
         train_with_shuffled_data=False
     )

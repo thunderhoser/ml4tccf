@@ -1165,8 +1165,10 @@ def train_model(
         plateau_patience_epochs=plateau_patience_epochs,
         plateau_learning_rate_multiplier=plateau_learning_rate_multiplier,
         early_stopping_patience_epochs=early_stopping_patience_epochs,
-        architecture_dict=architecture_dict,
-        is_model_bnn=False,
+        cnn_architecture_dict=None,
+        temporal_cnn_architecture_dict=None,
+        u_net_architecture_dict=None,
+        structure_cnn_architecture_dict=architecture_dict,
         data_type_string=nn_utils.RG_SIMPLE_DATA_TYPE_STRING,
         train_with_shuffled_data=True
     )
