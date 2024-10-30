@@ -659,7 +659,10 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
         resid_baseline_predictor_matrix: E-by-T numpy array of baseline
             predictions.
 
-    :return: target_matrix: E-by-T numpy array of target values.
+    :return: target_matrix: If no residual prediction, this is a simple E-by-T
+        numpy array of target values.  If doing residual prediction, this is an
+        E-by-2T numpy array, where target_matrix[:, :T] contains target values
+        and target_matrix[:, T:] contains baseline predictions.
     """
 
     option_dict = check_generator_args(option_dict)
@@ -986,6 +989,9 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
             predictor_matrices.append(scalar_predictor_matrix)
         if residual_baseline_matrix is not None:
             predictor_matrices.append(residual_baseline_matrix)
+            target_matrix = numpy.concatenate(
+                [target_matrix, residual_baseline_matrix], axis=1
+            )
 
         predictor_matrices = [p.astype('float32') for p in predictor_matrices]
 
