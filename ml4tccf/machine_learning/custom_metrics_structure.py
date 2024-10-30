@@ -2,18 +2,17 @@
 
 from tensorflow.keras import backend as K
 from gewittergefahr.gg_utils import error_checking
-from ml4tccf.machine_learning import custom_losses_scalar as custom_losses
+from ml4tccf.machine_learning import custom_losses_structure as custom_losses
 
 
-def mean_squared_error(
-        channel_index, function_name, convert_intensity_from_sigmoid=False,
-        target_shrink_factor=1., test_mode=False):
+def mean_squared_error(channel_index, function_name,
+                       target_shrink_factor=1., test_mode=False):
     """Computes mean squared error (MSE) for one channel (target variable).
 
     :param channel_index: Array index for the desired channel.
     :param function_name: Name of function.
-    :param convert_intensity_from_sigmoid: Boolean flag.
-    :param target_shrink_factor: Shrink factor used in loss function.
+    :param target_shrink_factor: Shrink factor used in data preparation.  This
+        will be undone inside the metric.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
@@ -21,7 +20,6 @@ def mean_squared_error(
     error_checking.assert_is_integer(channel_index)
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
-    error_checking.assert_is_boolean(convert_intensity_from_sigmoid)
     error_checking.assert_is_greater(target_shrink_factor, 0.)
     error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
@@ -44,15 +42,10 @@ def mean_squared_error(
             prediction_tensor[:, channel_index, :], axis=-1
         )
 
-        if convert_intensity_from_sigmoid:
-            relevant_prediction_tensor = 25. + relevant_prediction_tensor * 160
-        else:
-            relevant_prediction_tensor = (
-                relevant_prediction_tensor / target_shrink_factor
-            )
-            relevant_target_tensor = (
-                relevant_target_tensor / target_shrink_factor
-            )
+        relevant_prediction_tensor = (
+            relevant_prediction_tensor / target_shrink_factor
+        )
+        relevant_target_tensor = relevant_target_tensor / target_shrink_factor
 
         return K.mean(
             (relevant_target_tensor - relevant_prediction_tensor) ** 2
@@ -62,11 +55,13 @@ def mean_squared_error(
     return metric
 
 
-def min_target(channel_index, function_name, test_mode=False):
+def min_target(channel_index, function_name, target_shrink_factor=1.,
+               test_mode=False):
     """Computes minimum target value for one channel (target variable).
 
     :param channel_index: See documentation for `mean_squared_error`.
     :param function_name: Same.
+    :param target_shrink_factor: Same.
     :param test_mode: Same.
     :return: metric_function: Function defined below.
     """
@@ -74,6 +69,8 @@ def min_target(channel_index, function_name, test_mode=False):
     error_checking.assert_is_integer(channel_index)
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
+    error_checking.assert_is_greater(target_shrink_factor, 0.)
+    error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -84,17 +81,19 @@ def min_target(channel_index, function_name, test_mode=False):
         :return: min_target: Minimum target value. (scalar float).
         """
 
-        return K.min(target_tensor[:, channel_index])
+        return K.min(target_tensor[:, channel_index] / target_shrink_factor)
 
     metric.__name__ = function_name
     return metric
 
 
-def max_target(channel_index, function_name, test_mode=False):
+def max_target(channel_index, function_name, target_shrink_factor=1.,
+               test_mode=False):
     """Computes maximum target value for one channel (target variable).
 
     :param channel_index: See documentation for `mean_squared_error`.
     :param function_name: Same.
+    :param target_shrink_factor: Same.
     :param test_mode: Same.
     :return: metric_function: Function defined below.
     """
@@ -102,6 +101,8 @@ def max_target(channel_index, function_name, test_mode=False):
     error_checking.assert_is_integer(channel_index)
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
+    error_checking.assert_is_greater(target_shrink_factor, 0.)
+    error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -112,14 +113,14 @@ def max_target(channel_index, function_name, test_mode=False):
         :return: max_target: Maximum target value. (scalar float).
         """
 
-        return K.max(target_tensor[:, channel_index])
+        return K.max(target_tensor[:, channel_index] / target_shrink_factor)
 
     metric.__name__ = function_name
     return metric
 
 
 def min_prediction(channel_index, function_name, take_ensemble_mean,
-                   convert_intensity_from_sigmoid=False, test_mode=False):
+                   target_shrink_factor=1., test_mode=False):
     """Computes minimum predicted value for one channel (target variable).
 
     :param channel_index: Array index for the desired channel.
@@ -127,7 +128,8 @@ def min_prediction(channel_index, function_name, take_ensemble_mean,
     :param take_ensemble_mean: Boolean flag.  If True, will take minimum of
         ensemble-mean predictions.  If False, will take minimum of ensemble-
         member predictions.
-    :param convert_intensity_from_sigmoid: Boolean flag.
+    :param target_shrink_factor: Shrink factor used in data preparation.  This
+        will be undone inside the metric.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
@@ -136,7 +138,8 @@ def min_prediction(channel_index, function_name, take_ensemble_mean,
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
     error_checking.assert_is_boolean(take_ensemble_mean)
-    error_checking.assert_is_boolean(convert_intensity_from_sigmoid)
+    error_checking.assert_is_greater(target_shrink_factor, 0.)
+    error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -147,9 +150,6 @@ def min_prediction(channel_index, function_name, take_ensemble_mean,
         :return: min_prediction: Minimum predicted value. (scalar float).
         """
 
-        if convert_intensity_from_sigmoid:
-            prediction_tensor = 25. + prediction_tensor * 160
-
         if take_ensemble_mean:
             relevant_prediction_tensor = K.mean(
                 prediction_tensor[:, channel_index, :], axis=-1
@@ -157,22 +157,23 @@ def min_prediction(channel_index, function_name, take_ensemble_mean,
         else:
             relevant_prediction_tensor = prediction_tensor[:, channel_index, :]
 
-        return K.min(relevant_prediction_tensor)
+        return K.min(relevant_prediction_tensor / target_shrink_factor)
 
     metric.__name__ = function_name
     return metric
 
 
 def max_prediction(channel_index, function_name, take_ensemble_mean,
-                   convert_intensity_from_sigmoid=False, test_mode=False):
+                   target_shrink_factor=1., test_mode=False):
     """Computes maximum predicted value for one channel (target variable).
 
     :param channel_index: Array index for the desired channel.
     :param function_name: Name of function (string).
-    :param convert_intensity_from_sigmoid: Boolean flag.
     :param take_ensemble_mean: Boolean flag.  If True, will take maximum of
         ensemble-mean predictions.  If False, will take maximum of ensemble-
         member predictions.
+    :param target_shrink_factor: Shrink factor used in data preparation.  This
+        will be undone inside the metric.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
@@ -181,7 +182,8 @@ def max_prediction(channel_index, function_name, take_ensemble_mean,
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
     error_checking.assert_is_boolean(take_ensemble_mean)
-    error_checking.assert_is_boolean(convert_intensity_from_sigmoid)
+    error_checking.assert_is_greater(target_shrink_factor, 0.)
+    error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -192,9 +194,6 @@ def max_prediction(channel_index, function_name, take_ensemble_mean,
         :return: max_prediction: Maximum predicted value. (scalar float).
         """
 
-        if convert_intensity_from_sigmoid:
-            prediction_tensor = 25. + prediction_tensor * 160
-
         if take_ensemble_mean:
             relevant_prediction_tensor = K.mean(
                 prediction_tensor[:, channel_index, :], axis=-1
@@ -202,7 +201,7 @@ def max_prediction(channel_index, function_name, take_ensemble_mean,
         else:
             relevant_prediction_tensor = prediction_tensor[:, channel_index, :]
 
-        return K.max(relevant_prediction_tensor)
+        return K.max(relevant_prediction_tensor / target_shrink_factor)
 
     metric.__name__ = function_name
     return metric
@@ -211,7 +210,7 @@ def max_prediction(channel_index, function_name, take_ensemble_mean,
 def mean_squared_error_with_constraints(
         channel_index,
         intensity_index, r34_index, r50_index, r64_index, rmw_index,
-        function_name, test_mode=False):
+        function_name, target_shrink_factor=1., test_mode=False):
     """Same as `mean_squared_error` but after applying physical constraints.
 
     :param channel_index: Array index for the desired channel.
@@ -221,6 +220,8 @@ def mean_squared_error_with_constraints(
     :param r64_index: Array index for radius-of-64-kt-wind prediction.
     :param rmw_index: Array index of radius-of-max-wind prediction.
     :param function_name: Name of function (string).
+    :param target_shrink_factor: Shrink factor used in data preparation.  This
+        will be undone inside the metric.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
@@ -228,6 +229,8 @@ def mean_squared_error_with_constraints(
     error_checking.assert_is_integer(channel_index)
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
+    error_checking.assert_is_greater(target_shrink_factor, 0.)
+    error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -260,6 +263,11 @@ def mean_squared_error_with_constraints(
             prediction_tensor[:, channel_index, :], axis=-1
         )
 
+        relevant_prediction_tensor = (
+            relevant_prediction_tensor / target_shrink_factor
+        )
+        relevant_target_tensor = relevant_target_tensor / target_shrink_factor
+
         return K.mean(
             (relevant_target_tensor - relevant_prediction_tensor) ** 2
         )
@@ -271,7 +279,7 @@ def mean_squared_error_with_constraints(
 def min_target_with_constraints(
         channel_index,
         intensity_index, r34_index, r50_index, r64_index, rmw_index,
-        function_name, test_mode=False):
+        function_name, target_shrink_factor=1., test_mode=False):
     """Same as `min_target` but after applying physical constraints.
 
     :param channel_index: Array index for the desired channel.
@@ -281,6 +289,8 @@ def min_target_with_constraints(
     :param r64_index: Array index for radius-of-64-kt-wind prediction.
     :param rmw_index: Array index of radius-of-max-wind prediction.
     :param function_name: Name of function (string).
+    :param target_shrink_factor: Shrink factor used in data preparation.  This
+        will be undone inside the metric.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
@@ -288,6 +298,8 @@ def min_target_with_constraints(
     error_checking.assert_is_integer(channel_index)
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
+    error_checking.assert_is_greater(target_shrink_factor, 0.)
+    error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -310,7 +322,7 @@ def min_target_with_constraints(
             )
         )
 
-        return K.min(target_tensor[:, channel_index])
+        return K.min(target_tensor[:, channel_index] / target_shrink_factor)
 
     metric.__name__ = function_name
     return metric
@@ -319,7 +331,7 @@ def min_target_with_constraints(
 def max_target_with_constraints(
         channel_index,
         intensity_index, r34_index, r50_index, r64_index, rmw_index,
-        function_name, test_mode=False):
+        function_name, target_shrink_factor=1., test_mode=False):
     """Same as `max_target` but after applying physical constraints.
 
     :param channel_index: Array index for the desired channel.
@@ -329,6 +341,8 @@ def max_target_with_constraints(
     :param r64_index: Array index for radius-of-64-kt-wind prediction.
     :param rmw_index: Array index of radius-of-max-wind prediction.
     :param function_name: Name of function (string).
+    :param target_shrink_factor: Shrink factor used in data preparation.  This
+        will be undone inside the metric.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
@@ -336,6 +350,8 @@ def max_target_with_constraints(
     error_checking.assert_is_integer(channel_index)
     error_checking.assert_is_geq(channel_index, 0)
     error_checking.assert_is_string(function_name)
+    error_checking.assert_is_greater(target_shrink_factor, 0.)
+    error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -358,7 +374,7 @@ def max_target_with_constraints(
             )
         )
 
-        return K.max(target_tensor[:, channel_index])
+        return K.max(target_tensor[:, channel_index] / target_shrink_factor)
 
     metric.__name__ = function_name
     return metric
@@ -367,7 +383,8 @@ def max_target_with_constraints(
 def min_prediction_with_constraints(
         channel_index,
         intensity_index, r34_index, r50_index, r64_index, rmw_index,
-        take_ensemble_mean, function_name, test_mode=False):
+        take_ensemble_mean, function_name,
+        target_shrink_factor=1., test_mode=False):
     """Same as `min_prediction` but after applying physical constraints.
 
     :param channel_index: Array index for the desired channel.
@@ -380,14 +397,18 @@ def min_prediction_with_constraints(
         ensemble-mean predictions.  If False, will take minimum of ensemble-
         member predictions.
     :param function_name: Name of function (string).
+    :param target_shrink_factor: Shrink factor used in data preparation.  This
+        will be undone inside the metric.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
 
     error_checking.assert_is_integer(channel_index)
     error_checking.assert_is_geq(channel_index, 0)
-    error_checking.assert_is_string(function_name)
     error_checking.assert_is_boolean(take_ensemble_mean)
+    error_checking.assert_is_string(function_name)
+    error_checking.assert_is_greater(target_shrink_factor, 0.)
+    error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -417,7 +438,7 @@ def min_prediction_with_constraints(
         else:
             relevant_prediction_tensor = prediction_tensor[:, channel_index, :]
 
-        return K.min(relevant_prediction_tensor)
+        return K.min(relevant_prediction_tensor / target_shrink_factor)
 
     metric.__name__ = function_name
     return metric
@@ -426,7 +447,8 @@ def min_prediction_with_constraints(
 def max_prediction_with_constraints(
         channel_index,
         intensity_index, r34_index, r50_index, r64_index, rmw_index,
-        take_ensemble_mean, function_name, test_mode=False):
+        take_ensemble_mean, function_name,
+        target_shrink_factor=1., test_mode=False):
     """Same as `max_prediction` but after applying physical constraints.
 
     :param channel_index: Array index for the desired channel.
@@ -439,14 +461,18 @@ def max_prediction_with_constraints(
         ensemble-mean predictions.  If False, will take maximum of ensemble-
         member predictions.
     :param function_name: Name of function (string).
+    :param target_shrink_factor: Shrink factor used in data preparation.  This
+        will be undone inside the metric.
     :param test_mode: Leave this alone.
     :return: metric_function: Function defined below.
     """
 
     error_checking.assert_is_integer(channel_index)
     error_checking.assert_is_geq(channel_index, 0)
-    error_checking.assert_is_string(function_name)
     error_checking.assert_is_boolean(take_ensemble_mean)
+    error_checking.assert_is_string(function_name)
+    error_checking.assert_is_greater(target_shrink_factor, 0.)
+    error_checking.assert_is_leq(target_shrink_factor, 1.)
     error_checking.assert_is_boolean(test_mode)
 
     def metric(target_tensor, prediction_tensor):
@@ -476,7 +502,7 @@ def max_prediction_with_constraints(
         else:
             relevant_prediction_tensor = prediction_tensor[:, channel_index, :]
 
-        return K.max(relevant_prediction_tensor)
+        return K.max(relevant_prediction_tensor / target_shrink_factor)
 
     metric.__name__ = function_name
     return metric

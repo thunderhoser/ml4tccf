@@ -436,6 +436,7 @@ def _run(evaluation_file_name, confidence_level, output_dir_name):
                 t[scalar_evaluation.CORRELATION_KEY].values[j, :]
             ),
             marker_colour=TAYLOR_MARKER_COLOUR,
+            axes_object=axes_object,
             figure_object=figure_object
         )
 

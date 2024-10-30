@@ -877,12 +877,13 @@ def plot_inset_histogram(
     num_bins = len(bin_centers)
     expected_dim = numpy.array([num_bins], dtype=int)
 
-    error_checking.assert_is_integer_numpy_array(bin_counts)
-    error_checking.assert_is_geq_numpy_array(bin_counts, 0)
+    # error_checking.assert_is_integer_numpy_array(bin_counts)
+    error_checking.assert_is_geq_numpy_array(bin_counts, 0., allow_nan=True)
     error_checking.assert_is_numpy_array(
         bin_counts, exact_dimensions=expected_dim
     )
 
+    bin_counts[numpy.isnan(bin_counts)] = 0.
     bin_frequencies = bin_counts.astype(float) / numpy.sum(bin_counts)
 
     if has_predictions:
@@ -915,10 +916,24 @@ def plot_inset_histogram(
         tick_indices = tick_indices[:-1]
 
     x_tick_values = fake_bin_centers[tick_indices]
-    x_tick_labels = ['{0:.1f}'.format(b) for b in bin_centers[tick_indices]]
+
+    if numpy.any(numpy.absolute(bin_centers[tick_indices]) > 100):
+        x_tick_labels = ['{0:.0f}'.format(b) for b in bin_centers[tick_indices]]
+    else:
+        x_tick_labels = ['{0:.1f}'.format(b) for b in bin_centers[tick_indices]]
+
     inset_axes_object.set_xticks(x_tick_values)
     inset_axes_object.set_xticklabels(
         x_tick_labels, fontsize=HISTOGRAM_FONT_SIZE, rotation=90.
+    )
+
+    inset_axes_object.set_ylim(top=0.05)
+    y_tick_values = numpy.linspace(0, 0.05, num=6)
+    y_tick_labels = ['{0:.2f}'.format(v) for v in y_tick_values]
+
+    inset_axes_object.set_yticks(y_tick_values)
+    inset_axes_object.set_yticklabels(
+        y_tick_labels, fontsize=HISTOGRAM_FONT_SIZE
     )
 
     inset_axes_object.tick_params(axis='x', labelsize=HISTOGRAM_FONT_SIZE)
@@ -979,8 +994,10 @@ def plot_attributes_diagram(
     plot_prediction_histogram = example_counts is not None
 
     if plot_prediction_histogram:
-        error_checking.assert_is_integer_numpy_array(example_counts)
-        error_checking.assert_is_geq_numpy_array(example_counts, 0)
+        # error_checking.assert_is_integer_numpy_array(example_counts)
+        error_checking.assert_is_geq_numpy_array(
+            example_counts, 0., allow_nan=True
+        )
         error_checking.assert_is_numpy_array(
             example_counts, exact_dimensions=expected_dim
         )
@@ -990,7 +1007,7 @@ def plot_attributes_diagram(
     if max_value_to_plot == min_value_to_plot:
         max_value_to_plot = min_value_to_plot + 1.
 
-    plot_obs_histogram = not(
+    plot_obs_histogram = not (
         inv_mean_observations is None and inv_example_counts is None
     )
 
@@ -999,8 +1016,10 @@ def plot_attributes_diagram(
             inv_mean_observations, exact_dimensions=expected_dim
         )
 
-        error_checking.assert_is_integer_numpy_array(inv_example_counts)
-        error_checking.assert_is_geq_numpy_array(inv_example_counts, 0)
+        # error_checking.assert_is_integer_numpy_array(inv_example_counts)
+        error_checking.assert_is_geq_numpy_array(
+            inv_example_counts, 0., allow_nan=True
+        )
         error_checking.assert_is_numpy_array(
             inv_example_counts, exact_dimensions=expected_dim
         )
@@ -1034,7 +1053,7 @@ def plot_attributes_diagram(
 
 
 def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
-                        marker_colour, figure_object):
+                        marker_colour, axes_object, figure_object):
     """Plots Taylor diagram.
 
     :param target_stdev: Standard deviation of target (actual) values.
@@ -1042,6 +1061,8 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
     :param correlation: Correlation between actual and predicted values.
     :param marker_colour: Colour for markers (in any format accepted by
         matplotlib).
+    :param axes_object: Will plot on these axes (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
     :param figure_object: Will plot on this figure (instance of
         `matplotlib.figure.Figure`).
     :return: taylor_diagram_object: Handle for Taylor diagram (instance of
@@ -1053,6 +1074,8 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
     error_checking.assert_is_geq(correlation, -1., allow_nan=True)
     error_checking.assert_is_leq(correlation, 1., allow_nan=True)
 
+    axes_object.set_xticks([], [])
+    axes_object.set_yticks([], [])
     taylor_diagram_object = taylor_diagram.TaylorDiagram(
         refstd=target_stdev, fig=figure_object, srange=(0, 2), extend=False
     )
@@ -1081,6 +1104,5 @@ def plot_taylor_diagram(target_stdev, prediction_stdev, correlation,
 
     taylor_diagram_object.add_grid()
     taylor_diagram_object._ax.axis[:].major_ticks.set_tick_out(True)
-    taylor_diagram_object._ax.axis['left'].label.set_text('')
 
     return taylor_diagram_object
