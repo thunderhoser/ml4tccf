@@ -48,15 +48,6 @@ def train_models(prediction_table_xarray):
     target_field_to_model_object = dict()
 
     for f in range(num_target_fields):
-        print(
-            numpy.mean(
-                ptx[prediction_utils.PREDICTION_KEY].values[:, f, :],
-                axis=-1
-            )[:20]
-        )
-        print(ptx[prediction_utils.TARGET_KEY].values[:, f][:20])
-        print('\n\n')
-
         this_model_object = IsotonicRegression(
             increasing=True, out_of_bounds='clip'
         )
