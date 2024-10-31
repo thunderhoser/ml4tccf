@@ -381,6 +381,15 @@ def _run(prediction_file_pattern, output_dir_name):
         else:
             baseline_predicted_values = baseline_prediction_matrix[:, f]
 
+        print((
+            'Mean difference between NN and baseline for {0:s} = {1:.4f}'
+        ).format(
+            target_field_names[f],
+            numpy.mean(numpy.absolute(
+                predicted_values - baseline_predicted_values
+            ))
+        ))
+
         (
             mean_predictions, mean_observations, example_counts
         ) = scalar_evaluation._get_reliability_curve_one_variable(
