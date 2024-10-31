@@ -123,6 +123,11 @@ def apply_models(prediction_table_xarray, target_field_to_model_object):
     except:
         pass
 
+    print('NaN fraction = {0:s}'.format(
+        str(numpy.mean(numpy.isnan(prediction_matrix), axis=(0, 2)))
+    ))
+    prediction_matrix = numpy.maximum(prediction_matrix, 0.)
+
     return ptx.assign({
         prediction_utils.PREDICTION_KEY: (
             ptx[prediction_utils.PREDICTION_KEY].dims,
