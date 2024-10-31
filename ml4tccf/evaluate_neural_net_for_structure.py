@@ -47,19 +47,6 @@ INPUT_ARG_PARSER.add_argument(
     help=OUTPUT_DIR_HELP_STRING
 )
 
-# for i in range(num_files):
-#     print('Reading data from: "{0:s}"...'.format(prediction_file_names[i]))
-#     ensemble_prediction_tables_xarray[i] = prediction_io.read_file(
-#         prediction_file_names[i]
-#     )
-#
-# ensemble_prediction_table_xarray = prediction_utils.concat_over_examples(
-#     ensemble_prediction_tables_xarray
-# )
-# mean_prediction_table_xarray = prediction_utils.get_ensemble_mean(
-#     copy.deepcopy(ensemble_prediction_table_xarray)
-# )
-
 
 def _run(prediction_file_pattern, output_dir_name):
     """Evaluates neural net for TC-structure parameters.
@@ -138,6 +125,11 @@ def _run(prediction_file_pattern, output_dir_name):
             ])
 
     print(SEPARATOR_STRING)
+
+    if numpy.max(target_matrix) < 50:
+        target_matrix *= 100.
+        prediction_matrix *= 100.
+        baseline_prediction_matrix *= 100.
 
     model_metafile_name = nn_utils.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],

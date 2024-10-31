@@ -130,6 +130,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     vod[nn_training.A_DECK_FILE_KEY] = a_deck_file_name
     vod[nn_training.TARGET_FILE_KEY] = target_file_name
     vod[nn_training.SYNOPTIC_TIMES_ONLY_KEY] = synoptic_times_only
+    target_shrink_factor = vod[nn_training.TARGET_SHRINK_FACTOR_KEY]
     validation_option_dict = vod
 
     data_dict = nn_training.create_data(
@@ -170,9 +171,10 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     print('Writing results to: "{0:s}"...'.format(output_file_name))
     structure_prediction_io.write_file(
         netcdf_file_name=output_file_name,
-        target_matrix=target_matrix,
-        prediction_matrix=prediction_matrix,
-        baseline_prediction_matrix=resid_baseline_prediction_matrix,
+        target_matrix=target_matrix / target_shrink_factor,
+        prediction_matrix=prediction_matrix / target_shrink_factor,
+        baseline_prediction_matrix=
+        resid_baseline_prediction_matrix / target_shrink_factor,
         cyclone_id_string=cyclone_id_string,
         target_times_unix_sec=target_times_unix_sec,
         model_file_name=model_file_name
