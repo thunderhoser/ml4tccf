@@ -143,12 +143,17 @@ def _run(prediction_file_pattern, output_dir_name):
     num_target_fields = len(target_field_names)
 
     for f in range(num_target_fields):
+        baseline_predicted_values = numpy.array([])
+
         if target_field_names[f] == nn_training.INTENSITY_FIELD_NAME:
             min_bin_edge = 15
             max_bin_edge = 180
             num_bins = 33
             target_values = target_matrix[:, f]
             predicted_values = prediction_matrix[:, f]
+            if numpy.size(baseline_prediction_matrix) > 0:
+                baseline_predicted_values = baseline_prediction_matrix[:, f]
+
         elif target_field_names[f] == nn_training.R34_FIELD_NAME:
             min_bin_edge = 0
             max_bin_edge = 1700
@@ -164,9 +169,15 @@ def _run(prediction_file_pattern, output_dir_name):
                 ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
+                if numpy.size(baseline_prediction_matrix) > 0:
+                    baseline_predicted_values = baseline_prediction_matrix[
+                        good_indices, f
+                    ]
             except:
                 target_values = target_matrix[:, f]
                 predicted_values = prediction_matrix[:, f]
+                if numpy.size(baseline_prediction_matrix) > 0:
+                    baseline_predicted_values = baseline_prediction_matrix[:, f]
                 
         elif target_field_names[f] == nn_training.R50_FIELD_NAME:
             min_bin_edge = 0
@@ -183,9 +194,15 @@ def _run(prediction_file_pattern, output_dir_name):
                 ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
+                if numpy.size(baseline_prediction_matrix) > 0:
+                    baseline_predicted_values = baseline_prediction_matrix[
+                        good_indices, f
+                    ]
             except:
                 target_values = target_matrix[:, f]
                 predicted_values = prediction_matrix[:, f]
+                if numpy.size(baseline_prediction_matrix) > 0:
+                    baseline_predicted_values = baseline_prediction_matrix[:, f]
             
         elif target_field_names[f] == nn_training.R64_FIELD_NAME:
             min_bin_edge = 0
@@ -202,9 +219,15 @@ def _run(prediction_file_pattern, output_dir_name):
                 ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
+                if numpy.size(baseline_prediction_matrix) > 0:
+                    baseline_predicted_values = baseline_prediction_matrix[
+                        good_indices, f
+                    ]
             except:
                 target_values = target_matrix[:, f]
                 predicted_values = prediction_matrix[:, f]
+                if numpy.size(baseline_prediction_matrix) > 0:
+                    baseline_predicted_values = baseline_prediction_matrix[:, f]
             
         else:
             min_bin_edge = 0
@@ -213,6 +236,18 @@ def _run(prediction_file_pattern, output_dir_name):
 
             target_values = target_matrix[:, f]
             predicted_values = prediction_matrix[:, f]
+            if numpy.size(baseline_prediction_matrix) > 0:
+                baseline_predicted_values = baseline_prediction_matrix[:, f]
+
+        if numpy.size(baseline_prediction_matrix) > 0:
+            print((
+                'Mean difference between NN and baseline for {0:s} = {1:.4f}'
+            ).format(
+                target_field_names[f],
+                numpy.mean(numpy.absolute(
+                    predicted_values - baseline_predicted_values
+                ))
+            ))
 
         (
             mean_predictions, mean_observations, example_counts
@@ -380,15 +415,6 @@ def _run(prediction_file_pattern, output_dir_name):
 
         else:
             baseline_predicted_values = baseline_prediction_matrix[:, f]
-
-        print((
-            'Mean difference between NN and baseline for {0:s} = {1:.4f}'
-        ).format(
-            target_field_names[f],
-            numpy.mean(numpy.absolute(
-                predicted_values - baseline_predicted_values
-            ))
-        ))
 
         (
             mean_predictions, mean_observations, example_counts
