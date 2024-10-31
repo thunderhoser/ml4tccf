@@ -97,17 +97,7 @@ def apply_models(prediction_table_xarray, target_field_to_model_object):
         this_model_object = target_field_to_model_object[target_field_names[f]]
 
         orig_mean_predictions = numpy.mean(prediction_matrix[:, f, :], axis=-1)
-        print('NaN fraction for orig mean predictions for {0:s} = {1:.4f}'.format(
-            target_field_names[f],
-            numpy.mean(numpy.isnan(orig_mean_predictions))
-        ))
-
         new_mean_predictions = this_model_object.predict(orig_mean_predictions)
-        print('NaN fraction for new mean predictions for {0:s} = {1:.4f}'.format(
-            target_field_names[f],
-            numpy.mean(numpy.isnan(new_mean_predictions))
-        ))
-
         diff_matrix = numpy.expand_dims(
             new_mean_predictions - orig_mean_predictions, axis=-1
         )
@@ -133,9 +123,6 @@ def apply_models(prediction_table_xarray, target_field_to_model_object):
     except:
         pass
 
-    print('NaN fraction = {0:s}'.format(
-        str(numpy.mean(numpy.isnan(prediction_matrix), axis=(0, 2)))
-    ))
     prediction_matrix = numpy.maximum(prediction_matrix, 0.)
 
     return ptx.assign({
