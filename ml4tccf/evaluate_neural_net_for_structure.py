@@ -147,28 +147,78 @@ def _run(prediction_file_pattern, output_dir_name):
             min_bin_edge = 15
             max_bin_edge = 180
             num_bins = 33
+            target_values = target_matrix[:, f]
+            predicted_values = prediction_matrix[:, f]
         elif target_field_names[f] == nn_training.R34_FIELD_NAME:
             min_bin_edge = 0
             max_bin_edge = 1700
             num_bins = 170
+            
+            try:
+                f_intensity = target_field_names.index(
+                    nn_training.INTENSITY_FIELD_NAME
+                )
+                good_indices = numpy.where(numpy.logical_and(
+                    target_matrix[:, f_intensity] >= 34.,
+                    prediction_matrix[:, f_intensity] >= 34.
+                ))
+                target_values = target_matrix[good_indices, f]
+                predicted_values = prediction_matrix[good_indices, f]
+            except:
+                target_values = target_matrix[:, f]
+                predicted_values = prediction_matrix[:, f]
+                
         elif target_field_names[f] == nn_training.R50_FIELD_NAME:
             min_bin_edge = 0
             max_bin_edge = 1000
             num_bins = 100
+
+            try:
+                f_intensity = target_field_names.index(
+                    nn_training.INTENSITY_FIELD_NAME
+                )
+                good_indices = numpy.where(numpy.logical_and(
+                    target_matrix[:, f_intensity] >= 50.,
+                    prediction_matrix[:, f_intensity] >= 50.
+                ))
+                target_values = target_matrix[good_indices, f]
+                predicted_values = prediction_matrix[good_indices, f]
+            except:
+                target_values = target_matrix[:, f]
+                predicted_values = prediction_matrix[:, f]
+            
         elif target_field_names[f] == nn_training.R64_FIELD_NAME:
             min_bin_edge = 0
             max_bin_edge = 500
             num_bins = 50
+
+            try:
+                f_intensity = target_field_names.index(
+                    nn_training.INTENSITY_FIELD_NAME
+                )
+                good_indices = numpy.where(numpy.logical_and(
+                    target_matrix[:, f_intensity] >= 64.,
+                    prediction_matrix[:, f_intensity] >= 64.
+                ))
+                target_values = target_matrix[good_indices, f]
+                predicted_values = prediction_matrix[good_indices, f]
+            except:
+                target_values = target_matrix[:, f]
+                predicted_values = prediction_matrix[:, f]
+            
         else:
             min_bin_edge = 0
             max_bin_edge = 1000
             num_bins = 100
 
+            target_values = target_matrix[:, f]
+            predicted_values = prediction_matrix[:, f]
+
         (
             mean_predictions, mean_observations, example_counts
         ) = scalar_evaluation._get_reliability_curve_one_variable(
-            target_values=target_matrix[:, f],
-            predicted_values=prediction_matrix[:, f],
+            target_values=target_values,
+            predicted_values=predicted_values,
             is_var_direction=False,
             num_bins=num_bins,
             min_bin_edge=min_bin_edge,
@@ -179,8 +229,8 @@ def _run(prediction_file_pattern, output_dir_name):
         (
             _, inv_mean_observations, inv_example_counts
         ) = scalar_evaluation._get_reliability_curve_one_variable(
-            target_values=target_matrix[:, f],
-            predicted_values=prediction_matrix[:, f],
+            target_values=target_values,
+            predicted_values=predicted_values,
             is_var_direction=False,
             num_bins=num_bins,
             min_bin_edge=min_bin_edge,
@@ -196,7 +246,7 @@ def _run(prediction_file_pattern, output_dir_name):
             axes_object=axes_object,
             mean_predictions=mean_predictions,
             mean_observations=mean_observations,
-            mean_value_in_training=numpy.mean(target_matrix[:, f]),
+            mean_value_in_training=numpy.mean(target_values),
             min_value_to_plot=min_bin_edge,
             max_value_to_plot=max_bin_edge
         )
@@ -223,22 +273,22 @@ def _run(prediction_file_pattern, output_dir_name):
         )
 
         mean_absolute_error = numpy.mean(
-            numpy.absolute(prediction_matrix[:, f] - target_matrix[:, f])
+            numpy.absolute(predicted_values - target_values)
         )
-        bias = numpy.mean(prediction_matrix[:, f] - target_matrix[:, f])
+        bias = numpy.mean(predicted_values - target_values)
         rmse = numpy.sqrt(
-            numpy.mean((prediction_matrix[:, f] - target_matrix[:, f]) ** 2)
+            numpy.mean((predicted_values - target_values) ** 2)
         )
 
         numerator = numpy.sum(
-            (target_matrix[:, f] - numpy.mean(target_matrix[:, f])) *
-            (prediction_matrix[:, f] - numpy.mean(prediction_matrix[:, f]))
+            (target_values - numpy.mean(target_values)) *
+            (predicted_values - numpy.mean(predicted_values))
         )
         sum_squared_target_diffs = numpy.sum(
-            (target_matrix[:, f] - numpy.mean(target_matrix[:, f])) ** 2
+            (target_values - numpy.mean(target_values)) ** 2
         )
         sum_squared_prediction_diffs = numpy.sum(
-            (prediction_matrix[:, f] - numpy.mean(prediction_matrix[:, f])) ** 2
+            (predicted_values - numpy.mean(predicted_values)) ** 2
         )
         correlation = (
             numerator /
@@ -275,11 +325,67 @@ def _run(prediction_file_pattern, output_dir_name):
         if numpy.size(baseline_prediction_matrix) == 0:
             continue
 
+        if target_field_names[f] == nn_training.INTENSITY_FIELD_NAME:
+            baseline_predicted_values = baseline_prediction_matrix[:, f]
+        elif target_field_names[f] == nn_training.R34_FIELD_NAME:
+            try:
+                f_intensity = target_field_names.index(
+                    nn_training.INTENSITY_FIELD_NAME
+                )
+                good_indices = numpy.where(numpy.logical_and(
+                    target_matrix[:, f_intensity] >= 34.,
+                    baseline_prediction_matrix[:, f_intensity] >= 34.
+                ))
+
+                target_values = target_matrix[good_indices, f]
+                baseline_predicted_values = baseline_prediction_matrix[
+                    good_indices, f
+                ]
+            except:
+                baseline_predicted_values = baseline_prediction_matrix[:, f]
+
+        elif target_field_names[f] == nn_training.R50_FIELD_NAME:
+            try:
+                f_intensity = target_field_names.index(
+                    nn_training.INTENSITY_FIELD_NAME
+                )
+                good_indices = numpy.where(numpy.logical_and(
+                    target_matrix[:, f_intensity] >= 50.,
+                    baseline_prediction_matrix[:, f_intensity] >= 50.
+                ))
+
+                target_values = target_matrix[good_indices, f]
+                baseline_predicted_values = baseline_prediction_matrix[
+                    good_indices, f
+                ]
+            except:
+                baseline_predicted_values = baseline_prediction_matrix[:, f]
+
+        elif target_field_names[f] == nn_training.R64_FIELD_NAME:
+            try:
+                f_intensity = target_field_names.index(
+                    nn_training.INTENSITY_FIELD_NAME
+                )
+                good_indices = numpy.where(numpy.logical_and(
+                    target_matrix[:, f_intensity] >= 64.,
+                    baseline_prediction_matrix[:, f_intensity] >= 64.
+                ))
+
+                target_values = target_matrix[good_indices, f]
+                baseline_predicted_values = baseline_prediction_matrix[
+                    good_indices, f
+                ]
+            except:
+                baseline_predicted_values = baseline_prediction_matrix[:, f]
+
+        else:
+            baseline_predicted_values = baseline_prediction_matrix[:, f]
+
         (
             mean_predictions, mean_observations, example_counts
         ) = scalar_evaluation._get_reliability_curve_one_variable(
-            target_values=target_matrix[:, f],
-            predicted_values=baseline_prediction_matrix[:, f],
+            target_values=target_values,
+            predicted_values=baseline_predicted_values,
             is_var_direction=False,
             num_bins=num_bins,
             min_bin_edge=min_bin_edge,
@@ -290,8 +396,8 @@ def _run(prediction_file_pattern, output_dir_name):
         (
             _, inv_mean_observations, inv_example_counts
         ) = scalar_evaluation._get_reliability_curve_one_variable(
-            target_values=target_matrix[:, f],
-            predicted_values=baseline_prediction_matrix[:, f],
+            target_values=target_values,
+            predicted_values=baseline_predicted_values,
             is_var_direction=False,
             num_bins=num_bins,
             min_bin_edge=min_bin_edge,
@@ -307,7 +413,7 @@ def _run(prediction_file_pattern, output_dir_name):
             axes_object=axes_object,
             mean_predictions=mean_predictions,
             mean_observations=mean_observations,
-            mean_value_in_training=numpy.mean(target_matrix[:, f]),
+            mean_value_in_training=numpy.mean(target_values),
             min_value_to_plot=min_bin_edge,
             max_value_to_plot=max_bin_edge
         )
@@ -334,26 +440,26 @@ def _run(prediction_file_pattern, output_dir_name):
         )
 
         mean_absolute_error = numpy.mean(numpy.absolute(
-            baseline_prediction_matrix[:, f] - target_matrix[:, f]
+            baseline_predicted_values - target_values
         ))
         bias = numpy.mean(
-            baseline_prediction_matrix[:, f] - target_matrix[:, f]
+            baseline_predicted_values - target_values
         )
         rmse = numpy.sqrt(numpy.mean(
-            (baseline_prediction_matrix[:, f] - target_matrix[:, f]) ** 2
+            (baseline_predicted_values - target_values) ** 2
         ))
 
         numerator = numpy.sum(
-            (target_matrix[:, f] - numpy.mean(target_matrix[:, f])) *
-            (baseline_prediction_matrix[:, f] -
-             numpy.mean(baseline_prediction_matrix[:, f]))
+            (target_values - numpy.mean(target_values)) *
+            (baseline_predicted_values -
+             numpy.mean(baseline_predicted_values))
         )
         sum_squared_target_diffs = numpy.sum(
-            (target_matrix[:, f] - numpy.mean(target_matrix[:, f])) ** 2
+            (target_values - numpy.mean(target_values)) ** 2
         )
         sum_squared_prediction_diffs = numpy.sum(
-            (baseline_prediction_matrix[:, f] -
-             numpy.mean(baseline_prediction_matrix[:, f])) ** 2
+            (baseline_predicted_values -
+             numpy.mean(baseline_predicted_values)) ** 2
         )
         correlation = (
             numerator /
