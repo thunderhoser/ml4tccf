@@ -161,7 +161,7 @@ def _run(prediction_file_pattern, output_dir_name):
                 good_indices = numpy.where(numpy.logical_and(
                     target_matrix[:, f_intensity] >= 34.,
                     prediction_matrix[:, f_intensity] >= 34.
-                ))
+                ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
             except:
@@ -180,7 +180,7 @@ def _run(prediction_file_pattern, output_dir_name):
                 good_indices = numpy.where(numpy.logical_and(
                     target_matrix[:, f_intensity] >= 50.,
                     prediction_matrix[:, f_intensity] >= 50.
-                ))
+                ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
             except:
@@ -199,7 +199,7 @@ def _run(prediction_file_pattern, output_dir_name):
                 good_indices = numpy.where(numpy.logical_and(
                     target_matrix[:, f_intensity] >= 64.,
                     prediction_matrix[:, f_intensity] >= 64.
-                ))
+                ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
             except:
@@ -335,7 +335,7 @@ def _run(prediction_file_pattern, output_dir_name):
                 good_indices = numpy.where(numpy.logical_and(
                     target_matrix[:, f_intensity] >= 34.,
                     baseline_prediction_matrix[:, f_intensity] >= 34.
-                ))
+                ))[0]
 
                 target_values = target_matrix[good_indices, f]
                 baseline_predicted_values = baseline_prediction_matrix[
@@ -352,7 +352,7 @@ def _run(prediction_file_pattern, output_dir_name):
                 good_indices = numpy.where(numpy.logical_and(
                     target_matrix[:, f_intensity] >= 50.,
                     baseline_prediction_matrix[:, f_intensity] >= 50.
-                ))
+                ))[0]
 
                 target_values = target_matrix[good_indices, f]
                 baseline_predicted_values = baseline_prediction_matrix[
@@ -369,7 +369,7 @@ def _run(prediction_file_pattern, output_dir_name):
                 good_indices = numpy.where(numpy.logical_and(
                     target_matrix[:, f_intensity] >= 64.,
                     baseline_prediction_matrix[:, f_intensity] >= 64.
-                ))
+                ))[0]
 
                 target_values = target_matrix[good_indices, f]
                 baseline_predicted_values = baseline_prediction_matrix[
