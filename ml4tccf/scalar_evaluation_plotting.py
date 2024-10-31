@@ -920,8 +920,12 @@ def plot_inset_histogram(
         real_indices[::this_spacing], real_indices[[-1]]
     ))
     tick_indices = numpy.unique(tick_indices)
-    if numpy.diff(tick_indices[-2:])[0] < 2:
-        tick_indices = tick_indices[:-1]
+
+    try:
+        if numpy.diff(tick_indices[-2:])[0] < 2:
+            tick_indices = tick_indices[:-1]
+    except:
+        pass
 
     x_tick_values = fake_bin_centers[tick_indices]
 
