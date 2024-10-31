@@ -49,7 +49,7 @@ def train_models(prediction_table_xarray):
 
     for f in range(num_target_fields):
         this_model_object = IsotonicRegression(
-            increasing=True, out_of_bounds='clip'
+            increasing=True, y_min=0.
         )
         this_model_object.fit(
             X=numpy.mean(
