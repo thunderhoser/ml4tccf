@@ -286,23 +286,13 @@ def check_generator_args(option_dict):
         option_dict[REMOVE_NONTROPICAL_KEY] and option_dict[REMOVE_TROPICAL_KEY]
     )
 
-    if option_dict[REMOVE_NONTROPICAL_KEY] or option_dict[REMOVE_TROPICAL_KEY]:
-        assert option_dict[A_DECK_FILE_KEY] is not None
-    elif len(option_dict[SCALAR_A_DECK_FIELDS_KEY]) > 0:
-        assert option_dict[A_DECK_FILE_KEY] is not None
-    else:
-        option_dict[A_DECK_FILE_KEY] = None
-
-    if option_dict[A_DECK_FILE_KEY] is not None:
-        error_checking.assert_is_string(option_dict[A_DECK_FILE_KEY])
+    error_checking.assert_is_string(option_dict[A_DECK_FILE_KEY])
     if len(option_dict[SCALAR_A_DECK_FIELDS_KEY]) > 0:
         error_checking.assert_is_string_list(
             option_dict[SCALAR_A_DECK_FIELDS_KEY]
         )
 
     error_checking.assert_is_boolean(option_dict[DO_RESIDUAL_PREDICTION_KEY])
-    if option_dict[DO_RESIDUAL_PREDICTION_KEY]:
-        assert option_dict[A_DECK_FILE_KEY] is not None
 
     return option_dict
 
@@ -705,28 +695,27 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
 
     first_scalar_a_deck_field_names = copy.deepcopy(scalar_a_deck_field_names)
 
-    if do_residual_prediction:
-        for this_target_field_name in target_field_names:
-            if this_target_field_name == INTENSITY_FIELD_NAME:
-                scalar_a_deck_field_names.append(
-                    a_deck_io.UNNORM_INTENSITY_KEY
-                )
-            elif this_target_field_name == R34_FIELD_NAME:
-                scalar_a_deck_field_names.append(
-                    a_deck_io.UNNORM_WIND_RADIUS_34KT_KEY
-                )
-            elif this_target_field_name == R50_FIELD_NAME:
-                scalar_a_deck_field_names.append(
-                    a_deck_io.UNNORM_WIND_RADIUS_50KT_KEY
-                )
-            elif this_target_field_name == R64_FIELD_NAME:
-                scalar_a_deck_field_names.append(
-                    a_deck_io.UNNORM_WIND_RADIUS_64KT_KEY
-                )
-            elif this_target_field_name == RMW_FIELD_NAME:
-                scalar_a_deck_field_names.append(
-                    a_deck_io.UNNORM_MAX_WIND_RADIUS_KEY
-                )
+    for this_target_field_name in target_field_names:
+        if this_target_field_name == INTENSITY_FIELD_NAME:
+            scalar_a_deck_field_names.append(
+                a_deck_io.UNNORM_INTENSITY_KEY
+            )
+        elif this_target_field_name == R34_FIELD_NAME:
+            scalar_a_deck_field_names.append(
+                a_deck_io.UNNORM_WIND_RADIUS_34KT_KEY
+            )
+        elif this_target_field_name == R50_FIELD_NAME:
+            scalar_a_deck_field_names.append(
+                a_deck_io.UNNORM_WIND_RADIUS_50KT_KEY
+            )
+        elif this_target_field_name == R64_FIELD_NAME:
+            scalar_a_deck_field_names.append(
+                a_deck_io.UNNORM_WIND_RADIUS_64KT_KEY
+            )
+        elif this_target_field_name == RMW_FIELD_NAME:
+            scalar_a_deck_field_names.append(
+                a_deck_io.UNNORM_MAX_WIND_RADIUS_KEY
+            )
 
     (
         cyclone_id_strings_by_file,
@@ -887,41 +876,38 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
                 target_shrink_factor * numpy.vstack(target_values_by_sample)
             )
 
-            if a_deck_file_name is None:
+            prev_idx = file_index - 1
+
+            row_indices = numpy.array([
+                numpy.where(numpy.logical_and(
+                    numpy.array(cyclone_id_strings_by_file[prev_idx]) == c,
+                    target_times_by_file_unix_sec[prev_idx] == t
+                ))[0][0]
+                for c, t in zip(
+                    data_dict[CYCLONE_IDS_KEY], data_dict[TARGET_TIMES_KEY]
+                )
+            ], dtype=int)
+
+            this_scalar_predictor_matrix = (
+                scalar_predictor_matrix_by_file[prev_idx][row_indices, :]
+            )
+
+            this_resid_baseline_matrix = this_scalar_predictor_matrix[
+                :, len(first_scalar_a_deck_field_names):
+            ]
+            this_scalar_predictor_matrix = this_scalar_predictor_matrix[
+                :, :len(first_scalar_a_deck_field_names)
+            ]
+
+            if len(first_scalar_a_deck_field_names) == 0:
                 this_scalar_predictor_matrix = None
-            else:
-                prev_idx = file_index - 1
 
-                row_indices = numpy.array([
-                    numpy.where(numpy.logical_and(
-                        numpy.array(cyclone_id_strings_by_file[prev_idx]) == c,
-                        target_times_by_file_unix_sec[prev_idx] == t
-                    ))[0][0]
-                    for c, t in zip(
-                        data_dict[CYCLONE_IDS_KEY], data_dict[TARGET_TIMES_KEY]
-                    )
-                ], dtype=int)
-
-                this_scalar_predictor_matrix = (
-                    scalar_predictor_matrix_by_file[prev_idx][row_indices, :]
+            for f in range(len(target_field_names)):
+                this_resid_baseline_matrix[:, f] *= (
+                    TARGET_NAME_TO_CONV_FACTOR[target_field_names[f]]
                 )
 
-            if do_residual_prediction:
-                this_resid_baseline_matrix = this_scalar_predictor_matrix[
-                    :, len(first_scalar_a_deck_field_names):
-                ]
-                this_scalar_predictor_matrix = this_scalar_predictor_matrix[
-                    :, :len(first_scalar_a_deck_field_names)
-                ]
-
-                for f in range(len(target_field_names)):
-                    this_resid_baseline_matrix[:, f] *= (
-                        TARGET_NAME_TO_CONV_FACTOR[target_field_names[f]]
-                    )
-
-                this_resid_baseline_matrix *= target_shrink_factor
-            else:
-                this_resid_baseline_matrix = None
+            this_resid_baseline_matrix *= target_shrink_factor
 
             this_vector_predictor_matrix = (
                 nn_utils.combine_lag_times_and_wavelengths(
@@ -992,10 +978,12 @@ def data_generator_shuffled(option_dict, return_cyclone_ids=False):
         if scalar_predictor_matrix is not None:
             predictor_matrices.append(scalar_predictor_matrix)
         if residual_baseline_matrix is not None:
-            predictor_matrices.append(residual_baseline_matrix)
             target_matrix = numpy.concatenate(
                 [target_matrix, residual_baseline_matrix], axis=1
             )
+
+            if do_residual_prediction:
+                predictor_matrices.append(residual_baseline_matrix)
 
         predictor_matrices = [p.astype('float32') for p in predictor_matrices]
 
