@@ -29,11 +29,16 @@ FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 INPUT_FILE_PATTERN_ARG_NAME = 'input_prediction_file_pattern'
+EVAL_RECENT_CHANGES_ARG_NAME = 'eval_recent_changes'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 INPUT_FILE_PATTERN_HELP_STRING = (
     'Glob pattern for input files.  Each input file will be read by '
     '`structure_prediction_io.read_file`.'
+)
+EVAL_RECENT_CHANGES_HELP_STRING = (
+    'Boolean flag.  If 1, will evaluate recent changes (departure from A-deck '
+    '6-12 hours ago).  If 0, will evaluate absolute values.'
 )
 OUTPUT_DIR_HELP_STRING = 'Path to output directory.  Stuff will be saved here.'
 
@@ -43,17 +48,22 @@ INPUT_ARG_PARSER.add_argument(
     help=INPUT_FILE_PATTERN_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + EVAL_RECENT_CHANGES_ARG_NAME, type=int, required=False, default=0,
+    help=EVAL_RECENT_CHANGES_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
-def _run(prediction_file_pattern, output_dir_name):
+def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
     """Evaluates neural net for TC-structure parameters.
 
     This is effectively the main method.
 
     :param prediction_file_pattern: See documentation at top of file.
+    :param eval_recent_changes: Same.
     :param output_dir_name: Same.
     :raises: ValueError: if no prediction files could be found.
     """
@@ -124,6 +134,11 @@ def _run(prediction_file_pattern, output_dir_name):
                 baseline_prediction_matrix, this_baseline_prediction_matrix
             ])
 
+    if eval_recent_changes:
+        prediction_matrix = prediction_matrix - baseline_prediction_matrix
+        target_matrix = target_matrix - baseline_prediction_matrix
+        baseline_prediction_matrix = numpy.array([])
+
     print(SEPARATOR_STRING)
 
     model_metafile_name = nn_utils.find_metafile(
@@ -141,19 +156,30 @@ def _run(prediction_file_pattern, output_dir_name):
         baseline_predicted_values = numpy.array([])
 
         if target_field_names[f] == nn_training.INTENSITY_FIELD_NAME:
-            min_bin_edge = 15
-            max_bin_edge = 180
-            num_bins = 33
+            if eval_recent_changes:
+                min_bin_edge = -30
+                max_bin_edge = 30
+                num_bins = 30
+            else:
+                min_bin_edge = 15
+                max_bin_edge = 180
+                num_bins = 33
+
             target_values = target_matrix[:, f]
             predicted_values = prediction_matrix[:, f]
             if numpy.size(baseline_prediction_matrix) > 0:
                 baseline_predicted_values = baseline_prediction_matrix[:, f]
 
         elif target_field_names[f] == nn_training.R34_FIELD_NAME:
-            min_bin_edge = 0
-            max_bin_edge = 1700
-            num_bins = 170
-            
+            if eval_recent_changes:
+                min_bin_edge = -200
+                max_bin_edge = 200
+                num_bins = 40
+            else:
+                min_bin_edge = 0
+                max_bin_edge = 1700
+                num_bins = 170
+
             try:
                 f_intensity = target_field_names.index(
                     nn_training.INTENSITY_FIELD_NAME
@@ -173,11 +199,16 @@ def _run(prediction_file_pattern, output_dir_name):
                 predicted_values = prediction_matrix[:, f]
                 if numpy.size(baseline_prediction_matrix) > 0:
                     baseline_predicted_values = baseline_prediction_matrix[:, f]
-                
+
         elif target_field_names[f] == nn_training.R50_FIELD_NAME:
-            min_bin_edge = 0
-            max_bin_edge = 1000
-            num_bins = 100
+            if eval_recent_changes:
+                min_bin_edge = -150
+                max_bin_edge = 150
+                num_bins = 30
+            else:
+                min_bin_edge = 0
+                max_bin_edge = 1000
+                num_bins = 100
 
             try:
                 f_intensity = target_field_names.index(
@@ -198,11 +229,16 @@ def _run(prediction_file_pattern, output_dir_name):
                 predicted_values = prediction_matrix[:, f]
                 if numpy.size(baseline_prediction_matrix) > 0:
                     baseline_predicted_values = baseline_prediction_matrix[:, f]
-            
+
         elif target_field_names[f] == nn_training.R64_FIELD_NAME:
-            min_bin_edge = 0
-            max_bin_edge = 500
-            num_bins = 50
+            if eval_recent_changes:
+                min_bin_edge = -100
+                max_bin_edge = 100
+                num_bins = 20
+            else:
+                min_bin_edge = 0
+                max_bin_edge = 500
+                num_bins = 50
 
             try:
                 f_intensity = target_field_names.index(
@@ -223,11 +259,16 @@ def _run(prediction_file_pattern, output_dir_name):
                 predicted_values = prediction_matrix[:, f]
                 if numpy.size(baseline_prediction_matrix) > 0:
                     baseline_predicted_values = baseline_prediction_matrix[:, f]
-            
+
         else:
-            min_bin_edge = 0
-            max_bin_edge = 1000
-            num_bins = 100
+            if eval_recent_changes:
+                min_bin_edge = -100
+                max_bin_edge = 100
+                num_bins = 20
+            else:
+                min_bin_edge = 0
+                max_bin_edge = 1000
+                num_bins = 100
 
             target_values = target_matrix[:, f]
             predicted_values = prediction_matrix[:, f]
@@ -530,6 +571,9 @@ if __name__ == '__main__':
     _run(
         prediction_file_pattern=getattr(
             INPUT_ARG_OBJECT, INPUT_FILE_PATTERN_ARG_NAME
+        ),
+        eval_recent_changes=bool(
+            getattr(INPUT_ARG_OBJECT, EVAL_RECENT_CHANGES_ARG_NAME)
         ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
