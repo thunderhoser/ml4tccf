@@ -3,6 +3,7 @@
 import glob
 import pickle
 import argparse
+import warnings
 import numpy
 from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import number_rounding
@@ -88,11 +89,26 @@ def _find_short_track_file(directory_name, cyclone_id_string,
         fake_cyclone_id_string,
         file_time_string
     )
-
     pickle_file_names = glob.glob(pickle_file_pattern)
-    print(pickle_file_pattern)
-    print(pickle_file_names)
-    assert len(pickle_file_names) == 1
+
+    if len(pickle_file_names) == 0:
+        pickle_file_pattern = (
+            '{0:s}/{1:s}/storm_track_interp_a{1:s}_*_{2:s}.pkl'
+        ).format(
+            directory_name,
+            fake_cyclone_id_string,
+            file_time_string
+        )
+        pickle_file_names = glob.glob(pickle_file_pattern)
+
+    if len(pickle_file_names) != 1:
+        warning_string = (
+            'POTENTIAL ERROR: Cannot find file with pattern: "{0:s}"'
+        ).format(pickle_file_pattern)
+
+        warnings.warn(warning_string)
+        return None
+
     return pickle_file_names[0]
 
 
@@ -182,12 +198,18 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
             stx[satellite_utils.LONGITUDE_LOW_RES_KEY].values
         )
 
+        keep_time_flags = numpy.full(num_times, False, dtype=bool)
+
         for j in range(num_times):
             short_track_file_name = _find_short_track_file(
                 directory_name=short_track_dir_name,
                 cyclone_id_string=cyclone_id_string,
                 target_time_unix_sec=target_times_unix_sec[j]
             )
+            if short_track_file_name is None:
+                continue
+
+            keep_time_flags[j] = True
 
             print('Reading data from: "{0:s}"...'.format(short_track_file_name))
             short_track_latitude_deg_n, short_track_longitude_deg_e = (
@@ -297,8 +319,6 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
             good_indices = numpy.where(this_lat_vector > -999.)[0]
             bad_indices = numpy.where(this_lat_vector < -999.)[0]
 
-            print(this_lat_vector)
-
             if len(bad_indices) > 0:
                 interp_object = interp1d(
                     x=good_indices.astype(float),
@@ -359,6 +379,10 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                 stx[satellite_utils.LONGITUDE_LOW_RES_KEY].dims,
                 grid_longitude_matrix_deg_e
             )
+        })
+
+        stx = stx.isel({
+            satellite_utils.TIME_DIM: numpy.where(keep_time_flags)[0]
         })
 
         this_output_file_name = satellite_io.find_file(
