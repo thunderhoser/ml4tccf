@@ -266,9 +266,7 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
             row_translation = half_num_grid_rows - new_center_row
             column_translation = half_num_grid_columns - new_center_column
 
-            this_bt_matrix = numpy.expand_dims(
-                brightness_temp_matrix_kelvins[[j], ...], axis=-2
-            )
+            this_bt_matrix = brightness_temp_matrix_kelvins[[j], ...]
             _, this_bt_matrix = data_augmentation.augment_data_specific_trans(
                 bidirectional_reflectance_matrix=None,
                 brightness_temp_matrix_kelvins=this_bt_matrix,
@@ -278,12 +276,9 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                 numpy.array([column_translation], dtype=int),
                 sentinel_value=-10.
             )
-            brightness_temp_matrix_kelvins[j, ...] = (
-                this_bt_matrix[0, :, :, 0, :]
-            )
+            brightness_temp_matrix_kelvins[j, ...] = this_bt_matrix[0, ...]
 
             this_lat_matrix = grid_latitude_matrix_deg_n[[j], :]
-            this_lat_matrix = numpy.expand_dims(this_lat_matrix, axis=-1)
             this_lat_matrix = numpy.expand_dims(this_lat_matrix, axis=-1)
             this_lat_matrix = numpy.expand_dims(this_lat_matrix, axis=-1)
             _, this_lat_matrix = data_augmentation.augment_data_specific_trans(
@@ -296,7 +291,7 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                 sentinel_value=-1000.
             )
 
-            this_lat_vector = this_lat_matrix[0, :, 0, 0, 0]
+            this_lat_vector = this_lat_matrix[0, :, 0, 0]
             good_indices = numpy.where(this_lat_vector > -999.)[0]
             bad_indices = numpy.where(this_lat_vector < -999.)[0]
 
@@ -318,7 +313,6 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
             this_lng_matrix = grid_longitude_matrix_deg_e[[j], :]
             this_lng_matrix = numpy.expand_dims(this_lng_matrix, axis=-2)
             this_lng_matrix = numpy.expand_dims(this_lng_matrix, axis=-1)
-            this_lng_matrix = numpy.expand_dims(this_lng_matrix, axis=-1)
             _, this_lng_matrix = data_augmentation.augment_data_specific_trans(
                 bidirectional_reflectance_matrix=None,
                 brightness_temp_matrix_kelvins=this_lng_matrix,
@@ -329,7 +323,7 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                 sentinel_value=-1000.
             )
 
-            this_lng_vector = this_lng_matrix[0, 0, :, 0, 0]
+            this_lng_vector = this_lng_matrix[0, 0, :, 0]
             good_indices = numpy.where(this_lng_vector > -999.)[0]
             bad_indices = numpy.where(this_lng_vector < -999.)[0]
 
