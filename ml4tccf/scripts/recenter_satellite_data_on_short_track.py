@@ -287,7 +287,7 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                 row_translations_low_res_px=
                 numpy.array([row_translation], dtype=int),
                 column_translations_low_res_px=
-                numpy.array([column_translation], dtype=int),
+                numpy.array([0], dtype=int),
                 sentinel_value=-1000.
             )
 
