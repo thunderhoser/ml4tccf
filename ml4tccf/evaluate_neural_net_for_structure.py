@@ -136,7 +136,10 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
 
     if eval_recent_changes:
         prediction_matrix = prediction_matrix - baseline_prediction_matrix
+        print('NAN FRACTIONS')
+        print(numpy.mean(numpy.isnan(target_matrix)))
         target_matrix = target_matrix - baseline_prediction_matrix
+        print(numpy.mean(numpy.isnan(target_matrix)))
         baseline_prediction_matrix = numpy.array([])
 
     print(SEPARATOR_STRING)
