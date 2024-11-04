@@ -306,9 +306,9 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                     bounds_error=False,
                     fill_value='extrapolate'
                 )
-                this_lat_vector[bad_indices] = interp_object[
+                this_lat_vector[bad_indices] = interp_object(
                     bad_indices.astype(float)
-                ]
+                )
 
             grid_latitude_matrix_deg_n[j, :] = this_lat_vector + 0.
 
@@ -319,7 +319,7 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                 bidirectional_reflectance_matrix=None,
                 brightness_temp_matrix_kelvins=this_lng_matrix,
                 row_translations_low_res_px=
-                numpy.array([row_translation], dtype=int),
+                numpy.array([0], dtype=int),
                 column_translations_low_res_px=
                 numpy.array([column_translation], dtype=int),
                 sentinel_value=-1000.
@@ -338,9 +338,9 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                     bounds_error=False,
                     fill_value='extrapolate'
                 )
-                this_lng_vector[bad_indices] = interp_object[
+                this_lng_vector[bad_indices] = interp_object(
                     bad_indices.astype(float)
-                ]
+                )
 
             grid_longitude_matrix_deg_e[j, :] = this_lng_vector + 0.
 
