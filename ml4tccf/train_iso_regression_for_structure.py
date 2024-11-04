@@ -4,6 +4,7 @@ import os
 import sys
 import glob
 import argparse
+import numpy
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -71,6 +72,11 @@ def _run(prediction_file_pattern, output_file_name):
         prediction_tables_xarray[i] = prediction_io.read_file(
             prediction_file_names[i]
         )
+        print(numpy.min(prediction_tables_xarray[i][prediction_utils.TARGET_KEY], axis=0))
+        print(numpy.max(prediction_tables_xarray[i][prediction_utils.TARGET_KEY], axis=0))
+        print(numpy.min(prediction_tables_xarray[i][prediction_utils.PREDICTION_KEY], axis=(0, 2)))
+        print(numpy.max(prediction_tables_xarray[i][prediction_utils.PREDICTION_KEY], axis=(0, 2)))
+        print('\n\n')
 
     prediction_table_xarray = prediction_utils.concat_over_examples(
         prediction_tables_xarray
