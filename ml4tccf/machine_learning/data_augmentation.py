@@ -322,6 +322,13 @@ def augment_data_specific_trans(
     """
 
     # Check input args.
+
+    # TODO(thunderhoser): This is a HACK.
+    print('NaN fraction in brightness_temp_matrix_kelvins = {0:.4f}'.format(
+        numpy.mean(numpy.isnan(brightness_temp_matrix_kelvins))
+    ))
+    brightness_temp_matrix_kelvins[numpy.isnan(brightness_temp_matrix_kelvins)] = sentinel_value
+
     error_checking.assert_is_numpy_array_without_nan(
         brightness_temp_matrix_kelvins
     )
