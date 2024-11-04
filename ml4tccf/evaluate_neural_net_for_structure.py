@@ -136,10 +136,7 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
 
     if eval_recent_changes:
         prediction_matrix = prediction_matrix - baseline_prediction_matrix
-        print('NAN FRACTIONS')
-        print(numpy.mean(numpy.isnan(target_matrix)))
         target_matrix = target_matrix - baseline_prediction_matrix
-        print(numpy.mean(numpy.isnan(target_matrix)))
         baseline_prediction_matrix = numpy.array([])
 
     print(SEPARATOR_STRING)
@@ -315,6 +312,9 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
+        print(target_values)
+        print(numpy.mean(numpy.isnan(target_values)))
+        print(numpy.mean(target_values))
         scalar_eval_plotting.plot_attributes_diagram(
             figure_object=figure_object,
             axes_object=axes_object,
