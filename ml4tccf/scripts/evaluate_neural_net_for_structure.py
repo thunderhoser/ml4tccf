@@ -120,11 +120,6 @@ def _run(prediction_file_pattern, output_dir_name):
 
     print(SEPARATOR_STRING)
 
-    if numpy.max(target_matrix) < 50:
-        target_matrix *= 100.
-        prediction_matrix *= 100.
-        baseline_prediction_matrix *= 100.
-
     model_metafile_name = nn_utils.find_metafile(
         model_dir_name=os.path.split(model_file_name)[0],
         raise_error_if_missing=True
