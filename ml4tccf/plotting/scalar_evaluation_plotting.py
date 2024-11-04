@@ -1028,6 +1028,19 @@ def plot_attributes_diagram(
             inv_example_counts, exact_dimensions=expected_dim
         )
 
+    if not numpy.all(numpy.isnan(mean_observations)):
+        this_min = min([
+            numpy.nanmin(mean_observations),
+            numpy.nanmin(mean_predictions)
+        ])
+        min_value_to_plot = max([min_value_to_plot, this_min])
+
+        this_max = max([
+            numpy.nanmax(mean_observations),
+            numpy.nanmax(mean_predictions)
+        ])
+        max_value_to_plot = min([max_value_to_plot, this_max])
+
     _plot_attr_diagram_background(
         axes_object=axes_object, mean_value_in_training=mean_value_in_training,
         min_value_in_plot=min_value_to_plot, max_value_in_plot=max_value_to_plot
