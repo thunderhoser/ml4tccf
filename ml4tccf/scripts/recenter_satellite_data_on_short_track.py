@@ -213,6 +213,16 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                 ]
             )
 
+            print((
+                'Recentering from ({0:.4f} deg N, {1:.4f} deg E) to '
+                '({2:.4f} deg N, {3:.4f} deg E)...'
+            ).format(
+                orig_latitude_deg_n,
+                orig_longitude_deg_e,
+                short_track_latitude_deg_n,
+                short_track_longitude_deg_e
+            ))
+
             latitude_diff_deg = numpy.absolute(
                 short_track_latitude_deg_n - orig_latitude_deg_n
             )
