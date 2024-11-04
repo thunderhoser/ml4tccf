@@ -90,6 +90,7 @@ def _find_short_track_file(directory_name, cyclone_id_string,
     )
 
     pickle_file_names = glob.glob(pickle_file_pattern)
+    print(pickle_file_pattern)
     print(pickle_file_names)
     assert len(pickle_file_names) == 1
     return pickle_file_names[0]
