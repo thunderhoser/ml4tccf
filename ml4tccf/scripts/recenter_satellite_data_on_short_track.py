@@ -295,6 +295,8 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
             good_indices = numpy.where(this_lat_vector > -999.)[0]
             bad_indices = numpy.where(this_lat_vector < -999.)[0]
 
+            print(this_lat_vector)
+
             if len(bad_indices) > 0:
                 interp_object = interp1d(
                     x=good_indices.astype(float),
