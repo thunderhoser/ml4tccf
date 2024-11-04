@@ -98,6 +98,14 @@ def apply_models(prediction_table_xarray, target_field_to_model_object):
 
         orig_mean_predictions = numpy.mean(prediction_matrix[:, f, :], axis=-1)
         new_mean_predictions = this_model_object.predict(orig_mean_predictions)
+
+        print(target_field_names[f])
+        print(numpy.min(orig_mean_predictions))
+        print(numpy.max(orig_mean_predictions))
+        print(numpy.min(new_mean_predictions))
+        print(numpy.max(new_mean_predictions))
+        print('\n\n\n')
+
         diff_matrix = numpy.expand_dims(
             new_mean_predictions - orig_mean_predictions, axis=-1
         )
