@@ -92,41 +92,6 @@ def _run(input_prediction_file_pattern, model_file_name,
             input_prediction_file_names[i]
         )
 
-        ptx = prediction_table_xarray
-        target_matrix = ptx[prediction_utils.TARGET_KEY].values
-
-        if numpy.max(target_matrix) < 50:
-            target_matrix *= 100.
-            prediction_matrix = (
-                100 * ptx[prediction_utils.PREDICTION_KEY].values
-            )
-
-            try:
-                baseline_prediction_matrix = (
-                    100 * ptx[prediction_utils.BASELINE_PREDICTION_KEY].values
-                )
-            except:
-                baseline_prediction_matrix = None
-
-            ptx = ptx.assign({
-                prediction_utils.TARGET_KEY: (
-                    ptx[prediction_utils.TARGET_KEY].dims, target_matrix
-                ),
-                prediction_utils.PREDICTION_KEY: (
-                    ptx[prediction_utils.PREDICTION_KEY].dims, prediction_matrix
-                )
-            })
-
-            if baseline_prediction_matrix is not None:
-                ptx = ptx.assign({
-                    prediction_utils.BASELINE_PREDICTION_KEY: (
-                        ptx[prediction_utils.BASELINE_PREDICTION_KEY].dims,
-                        baseline_prediction_matrix
-                    )
-                })
-
-            prediction_table_xarray = ptx
-
         prediction_table_xarray = isotonic_regression.apply_models(
             prediction_table_xarray=prediction_table_xarray,
             target_field_to_model_object=target_field_to_model_object
