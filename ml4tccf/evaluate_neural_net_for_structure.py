@@ -134,6 +134,9 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                 baseline_prediction_matrix, this_baseline_prediction_matrix
             ])
 
+    orig_prediction_matrix = prediction_matrix + 0.
+    orig_target_matrix = target_matrix + 0.
+
     if eval_recent_changes:
         prediction_matrix = prediction_matrix - baseline_prediction_matrix
         target_matrix = target_matrix - baseline_prediction_matrix
@@ -185,8 +188,8 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    target_matrix[:, f_intensity] >= 34.,
-                    prediction_matrix[:, f_intensity] >= 34.
+                    orig_target_matrix[:, f_intensity] >= 34.,
+                    orig_prediction_matrix[:, f_intensity] >= 34.
                 ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
@@ -215,8 +218,8 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    target_matrix[:, f_intensity] >= 50.,
-                    prediction_matrix[:, f_intensity] >= 50.
+                    orig_target_matrix[:, f_intensity] >= 50.,
+                    orig_prediction_matrix[:, f_intensity] >= 50.
                 ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
@@ -245,8 +248,8 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    target_matrix[:, f_intensity] >= 64.,
-                    prediction_matrix[:, f_intensity] >= 64.
+                    orig_target_matrix[:, f_intensity] >= 64.,
+                    orig_prediction_matrix[:, f_intensity] >= 64.
                 ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
@@ -312,9 +315,6 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
         figure_object, axes_object = pyplot.subplots(
             1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
         )
-        print(target_values)
-        print(numpy.mean(numpy.isnan(target_values)))
-        print(numpy.mean(target_values))
         scalar_eval_plotting.plot_attributes_diagram(
             figure_object=figure_object,
             axes_object=axes_object,
@@ -407,7 +407,7 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    target_matrix[:, f_intensity] >= 34.,
+                    orig_target_matrix[:, f_intensity] >= 34.,
                     baseline_prediction_matrix[:, f_intensity] >= 34.
                 ))[0]
 
@@ -424,7 +424,7 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    target_matrix[:, f_intensity] >= 50.,
+                    orig_target_matrix[:, f_intensity] >= 50.,
                     baseline_prediction_matrix[:, f_intensity] >= 50.
                 ))[0]
 
@@ -441,7 +441,7 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    target_matrix[:, f_intensity] >= 64.,
+                    orig_target_matrix[:, f_intensity] >= 64.,
                     baseline_prediction_matrix[:, f_intensity] >= 64.
                 ))[0]
 
