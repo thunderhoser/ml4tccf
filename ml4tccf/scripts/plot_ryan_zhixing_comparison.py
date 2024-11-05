@@ -24,12 +24,12 @@ COLOUR_BAR_TIME_FORMAT = '%HZ %b %-d'
 DATE_PATTERN_STRING = '[0-9][0-9][0-9][0-9][0-1][0-9][0-3][0-9]'
 HOUR_MINUTE_PATTERN_STRING = '[0-2][0-9][0-5][0-9]'
 
-RYAN_MARKER_SIZE = 36
+RYAN_MARKER_SIZE = 24
 RYAN_MARKER_TYPE = 's'
 RYAN_MARKER_EDGE_WIDTH = 1.5
 RYAN_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
-ZHIXING_MARKER_SIZE = 36
+ZHIXING_MARKER_SIZE = 24
 ZHIXING_MARKER_TYPE = 'o'
 ZHIXING_MARKER_EDGE_WIDTH = 1.5
 ZHIXING_MARKER_EDGE_COLOUR = numpy.full(3, 152. / 255)
@@ -56,12 +56,14 @@ OUTPUT_FILE_ARG_NAME = 'output_file_name'
 RYAN_DIR_HELP_STRING = (
     'Path to directory with estimates from Ryan -- stored as CSV files with '
     'names like "<bbnnyyyy>_<yyyymmdd>_<HHMM>.txt", where <bbnnyyyy> is the '
-    'cyclone ID.'
+    'cyclone ID.  If you only want to plot Zhixing''s estimates, make this '
+    'argument an empty string.'
 )
 ZHIXING_DIR_HELP_STRING = (
     'Path to directory with estimates from Zhixing -- stored as CSV files with '
     'names like "<bbnnyyyy>_<yyyymmdd>_<HHMM>.txt", where <bbnnyyyy> is the '
-    'cyclone ID.'
+    'cyclone ID.  If you only want to plot Ryan''s estimates, make this '
+    'argument an empty string.'
 )
 RAW_BT_FILE_HELP_STRING = (
     'Path to file with raw best tracks for the same cyclone.  Should be named '
@@ -229,6 +231,12 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
     :param output_file_name: Same.
     """
 
+    if ryan_dir_name == '':
+        ryan_dir_name = None
+    if zhixing_dir_name == '':
+        zhixing_dir_name = None
+    assert not (ryan_dir_name is None and zhixing_dir_name is None)
+
     year, basin_id_string, cyclone_number = misc_utils.parse_cyclone_id(
         cyclone_id_string
     )
@@ -238,114 +246,125 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         year
     )
 
-    ryan_file_pattern = '{0:s}/{1:s}_{2:s}_{3:s}.txt'.format(
-        ryan_dir_name,
-        fake_cyclone_id_string,
-        DATE_PATTERN_STRING,
-        HOUR_MINUTE_PATTERN_STRING
-    )
-    ryan_file_names = glob.glob(ryan_file_pattern)
+    if ryan_dir_name is None:
+        ryan_file_names = []
+    else:
+        ryan_file_pattern = '{0:s}/{1:s}_{2:s}_{3:s}.txt'.format(
+            ryan_dir_name,
+            fake_cyclone_id_string,
+            DATE_PATTERN_STRING,
+            HOUR_MINUTE_PATTERN_STRING
+        )
+        ryan_file_names = glob.glob(ryan_file_pattern)
 
-    if len(ryan_file_names) == 0:
-        error_string = (
-            'Could not find any files with the following pattern:\n{0:s}'
-        ).format(ryan_file_pattern)
+        if len(ryan_file_names) == 0:
+            error_string = (
+                'Could not find any files with the following pattern:\n{0:s}'
+            ).format(ryan_file_pattern)
 
-        raise ValueError(error_string)
+            raise ValueError(error_string)
 
-    zhixing_file_pattern = '{0:s}/{1:s}_{2:s}_{3:s}.txt'.format(
-        zhixing_dir_name,
-        fake_cyclone_id_string,
-        DATE_PATTERN_STRING,
-        HOUR_MINUTE_PATTERN_STRING
-    )
-    zhixing_file_names = glob.glob(zhixing_file_pattern)
+    if zhixing_dir_name is None:
+        zhixing_file_names = []
+    else:
+        zhixing_file_pattern = '{0:s}/{1:s}_{2:s}_{3:s}.txt'.format(
+            zhixing_dir_name,
+            fake_cyclone_id_string,
+            DATE_PATTERN_STRING,
+            HOUR_MINUTE_PATTERN_STRING
+        )
+        zhixing_file_names = glob.glob(zhixing_file_pattern)
 
-    if len(zhixing_file_names) == 0:
-        error_string = (
-            'Could not find any files with the following pattern:\n{0:s}'
-        ).format(zhixing_file_pattern)
+        if len(zhixing_file_names) == 0:
+            error_string = (
+                'Could not find any files with the following pattern:\n{0:s}'
+            ).format(zhixing_file_pattern)
 
-        raise ValueError(error_string)
+            raise ValueError(error_string)
 
-    ryan_file_names.sort()
-    zhixing_file_names.sort()
+    if len(ryan_file_names) > 0:
+        ryan_file_names.sort()
 
-    num_files_ryan = len(ryan_file_names)
-    ryan_latitudes_deg_n = numpy.full(num_files_ryan, numpy.nan)
-    ryan_longitudes_deg_e = numpy.full(num_files_ryan, numpy.nan)
-    ryan_times_unix_sec = numpy.full(num_files_ryan, -1, dtype=int)
+        num_files_ryan = len(ryan_file_names)
+        ryan_latitudes_deg_n = numpy.full(num_files_ryan, numpy.nan)
+        ryan_longitudes_deg_e = numpy.full(num_files_ryan, numpy.nan)
+        ryan_times_unix_sec = numpy.full(num_files_ryan, -1, dtype=int)
 
-    for i in range(num_files_ryan):
-        print('Reading data from: "{0:s}"...'.format(ryan_file_names[i]))
+        for i in range(num_files_ryan):
+            print('Reading data from: "{0:s}"...'.format(ryan_file_names[i]))
 
-        with open(ryan_file_names[i], 'r') as file_handle:
-            csv_reader_object = csv.reader(file_handle)
-            these_words = next(csv_reader_object)
-            ryan_latitudes_deg_n[i] = float(these_words[-2])
-            ryan_longitudes_deg_e[i] = float(these_words[-1])
-
-            this_time_string = '{0:s}{1:s}'.format(
-                these_words[-4].strip(), these_words[-3].strip()
-            )
-            ryan_times_unix_sec[i] = time_conversion.string_to_unix_sec(
-                this_time_string, '%Y%m%d%H%M'
-            )
-
-    sort_indices = numpy.argsort(ryan_times_unix_sec)
-    ryan_times_unix_sec = ryan_times_unix_sec[sort_indices]
-    ryan_latitudes_deg_n = ryan_latitudes_deg_n[sort_indices]
-    ryan_longitudes_deg_e = ryan_longitudes_deg_e[sort_indices]
-
-    error_checking.assert_is_valid_lat_numpy_array(
-        ryan_latitudes_deg_n, allow_nan=False
-    )
-    ryan_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
-        ryan_longitudes_deg_e, allow_nan=False
-    )
-
-    num_files_zhixing = len(zhixing_file_names)
-    zhixing_latitudes_deg_n = numpy.full(num_files_zhixing, numpy.nan)
-    zhixing_longitudes_deg_e = numpy.full(num_files_zhixing, numpy.nan)
-    zhixing_times_unix_sec = numpy.full(num_files_zhixing, -1, dtype=int)
-
-    for i in range(num_files_zhixing):
-        print('Reading data from: "{0:s}"...'.format(zhixing_file_names[i]))
-
-        try:
-            with open(zhixing_file_names[i], 'r') as file_handle:
+            with open(ryan_file_names[i], 'r') as file_handle:
                 csv_reader_object = csv.reader(file_handle)
                 these_words = next(csv_reader_object)
-                zhixing_latitudes_deg_n[i] = float(these_words[-3])
-                zhixing_longitudes_deg_e[i] = float(these_words[-2])
+                ryan_latitudes_deg_n[i] = float(these_words[-2])
+                ryan_longitudes_deg_e[i] = float(these_words[-1])
 
                 this_time_string = '{0:s}{1:s}'.format(
-                    these_words[-5].strip(), these_words[-4].strip()
+                    these_words[-4].strip(), these_words[-3].strip()
                 )
-                zhixing_times_unix_sec[i] = time_conversion.string_to_unix_sec(
+                ryan_times_unix_sec[i] = time_conversion.string_to_unix_sec(
                     this_time_string, '%Y%m%d%H%M'
                 )
-        except:
-            pass
 
-    good_indices = numpy.where(
-        numpy.invert(numpy.isnan(zhixing_latitudes_deg_n))
-    )[0]
-    zhixing_times_unix_sec = zhixing_times_unix_sec[good_indices]
-    zhixing_latitudes_deg_n = zhixing_latitudes_deg_n[good_indices]
-    zhixing_longitudes_deg_e = zhixing_longitudes_deg_e[good_indices]
+        sort_indices = numpy.argsort(ryan_times_unix_sec)
+        ryan_times_unix_sec = ryan_times_unix_sec[sort_indices]
+        ryan_latitudes_deg_n = ryan_latitudes_deg_n[sort_indices]
+        ryan_longitudes_deg_e = ryan_longitudes_deg_e[sort_indices]
 
-    sort_indices = numpy.argsort(zhixing_times_unix_sec)
-    zhixing_times_unix_sec = zhixing_times_unix_sec[sort_indices]
-    zhixing_latitudes_deg_n = zhixing_latitudes_deg_n[sort_indices]
-    zhixing_longitudes_deg_e = zhixing_longitudes_deg_e[sort_indices]
+        error_checking.assert_is_valid_lat_numpy_array(
+            ryan_latitudes_deg_n, allow_nan=False
+        )
+        ryan_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+            ryan_longitudes_deg_e, allow_nan=False
+        )
 
-    error_checking.assert_is_valid_lat_numpy_array(
-        zhixing_latitudes_deg_n, allow_nan=False
-    )
-    zhixing_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
-        zhixing_longitudes_deg_e, allow_nan=False
-    )
+    if len(zhixing_file_names) > 0:
+        zhixing_file_names.sort()
+
+        num_files_zhixing = len(zhixing_file_names)
+        zhixing_latitudes_deg_n = numpy.full(num_files_zhixing, numpy.nan)
+        zhixing_longitudes_deg_e = numpy.full(num_files_zhixing, numpy.nan)
+        zhixing_times_unix_sec = numpy.full(num_files_zhixing, -1, dtype=int)
+
+        for i in range(num_files_zhixing):
+            print('Reading data from: "{0:s}"...'.format(zhixing_file_names[i]))
+
+            try:
+                with open(zhixing_file_names[i], 'r') as file_handle:
+                    csv_reader_object = csv.reader(file_handle)
+                    these_words = next(csv_reader_object)
+                    zhixing_latitudes_deg_n[i] = float(these_words[-3])
+                    zhixing_longitudes_deg_e[i] = float(these_words[-2])
+
+                    this_time_string = '{0:s}{1:s}'.format(
+                        these_words[-5].strip(), these_words[-4].strip()
+                    )
+                    zhixing_times_unix_sec[i] = (
+                        time_conversion.string_to_unix_sec(
+                            this_time_string, '%Y%m%d%H%M'
+                        )
+                    )
+            except:
+                pass
+
+        good_indices = numpy.where(
+            numpy.invert(numpy.isnan(zhixing_latitudes_deg_n))
+        )[0]
+        zhixing_times_unix_sec = zhixing_times_unix_sec[good_indices]
+        zhixing_latitudes_deg_n = zhixing_latitudes_deg_n[good_indices]
+        zhixing_longitudes_deg_e = zhixing_longitudes_deg_e[good_indices]
+
+        sort_indices = numpy.argsort(zhixing_times_unix_sec)
+        zhixing_times_unix_sec = zhixing_times_unix_sec[sort_indices]
+        zhixing_latitudes_deg_n = zhixing_latitudes_deg_n[sort_indices]
+        zhixing_longitudes_deg_e = zhixing_longitudes_deg_e[sort_indices]
+
+        error_checking.assert_is_valid_lat_numpy_array(
+            zhixing_latitudes_deg_n, allow_nan=False
+        )
+        zhixing_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+            zhixing_longitudes_deg_e, allow_nan=False
+        )
 
     print('Reading data from: "{0:s}"...'.format(raw_best_track_file_name))
     bt_latitudes_deg_n, bt_longitudes_deg_e, bt_times_unix_sec = (
@@ -368,35 +387,48 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         axes_object=axes_object
     )
 
-    min_time_unix_sec = min([
-        numpy.min(ryan_times_unix_sec),
-        numpy.min(zhixing_times_unix_sec),
-        numpy.min(bt_times_unix_sec)
-    ])
-    max_time_unix_sec = max([
-        numpy.max(ryan_times_unix_sec),
-        numpy.max(zhixing_times_unix_sec),
-        numpy.max(bt_times_unix_sec)
-    ])
+    these_min = [numpy.min(bt_times_unix_sec)]
+    if len(ryan_file_names) > 0:
+        these_min.append(numpy.min(ryan_times_unix_sec))
+    if len(zhixing_file_names) > 0:
+        these_min.append(numpy.min(zhixing_times_unix_sec))
+    min_time_unix_sec = min(these_min)
+
+    these_max = [numpy.max(bt_times_unix_sec)]
+    if len(ryan_file_names) > 0:
+        these_max.append(numpy.max(ryan_times_unix_sec))
+    if len(zhixing_file_names) > 0:
+        these_max.append(numpy.max(zhixing_times_unix_sec))
+    max_time_unix_sec = max(these_max)
+
     colour_norm_object = pyplot.Normalize(
         vmin=min_time_unix_sec, vmax=max_time_unix_sec
     )
 
-    axes_object.scatter(
-        x=ryan_longitudes_deg_e, y=ryan_latitudes_deg_n,
-        s=RYAN_MARKER_SIZE, marker=RYAN_MARKER_TYPE,
-        linewidths=RYAN_MARKER_EDGE_WIDTH, edgecolors=RYAN_MARKER_EDGE_COLOUR,
-        c=ryan_times_unix_sec, cmap=COLOUR_MAP_OBJECT, norm=colour_norm_object
-    )
-    axes_object.scatter(
-        x=zhixing_longitudes_deg_e, y=zhixing_latitudes_deg_n,
-        s=ZHIXING_MARKER_SIZE, marker=ZHIXING_MARKER_TYPE,
-        linewidths=ZHIXING_MARKER_EDGE_WIDTH,
-        edgecolors=ZHIXING_MARKER_EDGE_COLOUR,
-        c=zhixing_times_unix_sec,
-        cmap=COLOUR_MAP_OBJECT,
-        norm=colour_norm_object
-    )
+    if len(ryan_file_names) > 0:
+        axes_object.scatter(
+            x=ryan_longitudes_deg_e, y=ryan_latitudes_deg_n,
+            s=RYAN_MARKER_SIZE,
+            marker=RYAN_MARKER_TYPE,
+            linewidths=RYAN_MARKER_EDGE_WIDTH,
+            edgecolors=RYAN_MARKER_EDGE_COLOUR,
+            c=ryan_times_unix_sec,
+            cmap=COLOUR_MAP_OBJECT,
+            norm=colour_norm_object
+        )
+
+    if len(zhixing_file_names) > 0:
+        axes_object.scatter(
+            x=zhixing_longitudes_deg_e, y=zhixing_latitudes_deg_n,
+            s=ZHIXING_MARKER_SIZE,
+            marker=ZHIXING_MARKER_TYPE,
+            linewidths=ZHIXING_MARKER_EDGE_WIDTH,
+            edgecolors=ZHIXING_MARKER_EDGE_COLOUR,
+            c=zhixing_times_unix_sec,
+            cmap=COLOUR_MAP_OBJECT,
+            norm=colour_norm_object
+        )
+
     axes_object.scatter(
         x=bt_longitudes_deg_e, y=bt_latitudes_deg_n,
         s=BEST_TRACK_MARKER_SIZE, marker=BEST_TRACK_MARKER_TYPE,
@@ -405,12 +437,26 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         c=bt_times_unix_sec, cmap=COLOUR_MAP_OBJECT, norm=colour_norm_object
     )
 
-    all_latitudes_deg_n = numpy.concatenate(
-        [ryan_latitudes_deg_n, zhixing_latitudes_deg_n, bt_latitudes_deg_n]
-    )
-    all_longitudes_deg_e = numpy.concatenate(
-        [ryan_longitudes_deg_e, zhixing_longitudes_deg_e, bt_longitudes_deg_e]
-    )
+    all_latitudes_deg_n = bt_latitudes_deg_n + 0.
+    if len(ryan_file_names) > 0:
+        all_latitudes_deg_n = numpy.concatenate(
+            [all_latitudes_deg_n, ryan_latitudes_deg_n]
+        )
+    if len(zhixing_file_names) > 0:
+        all_latitudes_deg_n = numpy.concatenate(
+            [all_latitudes_deg_n, zhixing_latitudes_deg_n]
+        )
+
+    all_longitudes_deg_e = bt_longitudes_deg_e + 0.
+    if len(ryan_file_names) > 0:
+        all_longitudes_deg_e = numpy.concatenate(
+            [all_longitudes_deg_e, ryan_longitudes_deg_e]
+        )
+    if len(zhixing_file_names) > 0:
+        all_longitudes_deg_e = numpy.concatenate(
+            [all_longitudes_deg_e, zhixing_longitudes_deg_e]
+        )
+
     plotting_utils.plot_grid_lines(
         plot_latitudes_deg_n=all_latitudes_deg_n,
         plot_longitudes_deg_e=all_longitudes_deg_e,
@@ -436,45 +482,63 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         axes_object.get_yticklabels(), fontsize=TICK_LABEL_FONT_SIZE
     )
 
-    ryan_mean_error_km, ryan_median_error_km, ryan_num_samples = (
-        _compute_errors(
-            bt_latitudes_deg_n=bt_latitudes_deg_n,
-            bt_longitudes_deg_e=bt_longitudes_deg_e,
-            bt_times_unix_sec=bt_times_unix_sec,
-            pred_latitudes_deg_n=ryan_latitudes_deg_n,
-            pred_longitudes_deg_e=ryan_longitudes_deg_e,
-            pred_times_unix_sec=ryan_times_unix_sec
-        )
+    title_string = 'Track comparison for {0:s}; BT = stars'.format(
+        cyclone_id_string
     )
 
-    zhixing_mean_error_km, zhixing_median_error_km, zhixing_num_samples = (
-        _compute_errors(
-            bt_latitudes_deg_n=bt_latitudes_deg_n,
-            bt_longitudes_deg_e=bt_longitudes_deg_e,
-            bt_times_unix_sec=bt_times_unix_sec,
-            pred_latitudes_deg_n=zhixing_latitudes_deg_n,
-            pred_longitudes_deg_e=zhixing_longitudes_deg_e,
-            pred_times_unix_sec=zhixing_times_unix_sec
+    if len(ryan_file_names) > 0:
+        ryan_mean_error_km, ryan_median_error_km, ryan_num_samples = (
+            _compute_errors(
+                bt_latitudes_deg_n=bt_latitudes_deg_n,
+                bt_longitudes_deg_e=bt_longitudes_deg_e,
+                bt_times_unix_sec=bt_times_unix_sec,
+                pred_latitudes_deg_n=ryan_latitudes_deg_n,
+                pred_longitudes_deg_e=ryan_longitudes_deg_e,
+                pred_times_unix_sec=ryan_times_unix_sec
+            )
         )
-    )
 
-    title_string = (
-        'Track comparison for {0:s}; BT = black outline\n'
-        'Ryan (no outline): mean err = {1:.1f} km; '
-        'median err = {2:.1f} km; err sample size = {3:d}\n'
-        'Zhixing (grey outline): mean err = {4:.1f} km; '
-        'median err = {5:.1f} km; err sample size = {6:d}'
-    ).format(
-        cyclone_id_string,
-        ryan_mean_error_km, ryan_median_error_km, ryan_num_samples,
-        zhixing_mean_error_km, zhixing_median_error_km, zhixing_num_samples
-    )
+        title_string += (
+            '\nRyan (squares): mean err = {0:.1f} km; '
+            'median err = {1:.1f} km; err sample size = {2:d}'
+        ).format(
+            ryan_mean_error_km, ryan_median_error_km, ryan_num_samples
+        )
+
+    if len(zhixing_file_names) > 0:
+        zhixing_mean_error_km, zhixing_median_error_km, zhixing_num_samples = (
+            _compute_errors(
+                bt_latitudes_deg_n=bt_latitudes_deg_n,
+                bt_longitudes_deg_e=bt_longitudes_deg_e,
+                bt_times_unix_sec=bt_times_unix_sec,
+                pred_latitudes_deg_n=zhixing_latitudes_deg_n,
+                pred_longitudes_deg_e=zhixing_longitudes_deg_e,
+                pred_times_unix_sec=zhixing_times_unix_sec
+            )
+        )
+
+        title_string += (
+            '\nZhixing (circles): mean err = {0:.1f} km; '
+            'median err = {1:.1f} km; err sample size = {2:d}'
+        ).format(
+            zhixing_mean_error_km, zhixing_median_error_km, zhixing_num_samples
+        )
 
     axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
 
+    all_times_unix_sec = bt_times_unix_sec + 0
+    if len(ryan_file_names) > 0:
+        all_times_unix_sec = numpy.concatenate(
+            [all_times_unix_sec, ryan_times_unix_sec]
+        )
+    if len(zhixing_file_names) > 0:
+        all_times_unix_sec = numpy.concatenate(
+            [all_times_unix_sec, zhixing_times_unix_sec]
+        )
+
     colour_bar_object = gg_plotting_utils.plot_colour_bar(
         axes_object_or_matrix=axes_object,
-        data_matrix=ryan_times_unix_sec.astype(float),
+        data_matrix=all_times_unix_sec.astype(float),
         colour_map_object=COLOUR_MAP_OBJECT,
         colour_norm_object=colour_norm_object,
         orientation_string='vertical',
@@ -482,9 +546,6 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         extend_max=False
     )
 
-    all_times_unix_sec = numpy.concatenate([
-        ryan_times_unix_sec, zhixing_times_unix_sec, bt_times_unix_sec
-    ])
     tick_times_unix_sec = time_periods.range_and_interval_to_list(
         start_time_unix_sec=numpy.min(all_times_unix_sec),
         end_time_unix_sec=numpy.max(all_times_unix_sec),
