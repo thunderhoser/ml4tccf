@@ -26,6 +26,7 @@ even in real time.
 
 import os
 import argparse
+import numpy
 from ml4tccf.io import prediction_io
 from ml4tccf.io import scalar_prediction_io
 from ml4tccf.io import gridded_prediction_io
@@ -51,6 +52,7 @@ DISABLE_GPUS_ARG_NAME = 'disable_gpus'
 NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
 STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
+RANDOM_SEED_ARG_NAME = 'random_seed'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
@@ -105,6 +107,13 @@ STDEV_TRANSLATION_DIST_HELP_STRING = (
 ).format(
     NUM_TRANSLATIONS_ARG_NAME
 )
+RANDOM_SEED_HELP_STRING = (
+    'Random seed.  This will determine, among other things, the exact '
+    'translations used in data augmentation.  For example, suppose you want to '
+    'ensure that for a given cyclone object, two models see the same random '
+    'translations.  Then you would set this seed to be equal for the two '
+    'models.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Results will be written by '
     '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`, '
@@ -157,6 +166,10 @@ INPUT_ARG_PARSER.add_argument(
     default=-1., help=STDEV_TRANSLATION_DIST_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + RANDOM_SEED_ARG_NAME, type=int, required=False, default=6695,
+    help=RANDOM_SEED_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=False, default='',
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -169,7 +182,7 @@ INPUT_ARG_PARSER.add_argument(
 def _run(model_file_name, satellite_dir_name, a_deck_file_name,
          cyclone_id_string, valid_date_string, disable_gpus,
          data_aug_num_translations, data_aug_mean_translation_low_res_px,
-         data_aug_stdev_translation_low_res_px,
+         data_aug_stdev_translation_low_res_px, random_seed,
          output_dir_name, output_file_name):
     """Real-time version of apply_neural_net.py.
 
@@ -184,12 +197,16 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param data_aug_num_translations: Same.
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
+    :param random_seed: Same.
     :param output_dir_name: Same.
     :param output_file_name: Same.
     """
 
     if disable_gpus:
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
+    if random_seed != -1:
+        numpy.random.seed(random_seed)
     if valid_date_string == '':
         valid_date_string = None
 
@@ -356,6 +373,7 @@ if __name__ == '__main__':
         data_aug_stdev_translation_low_res_px=getattr(
             INPUT_ARG_OBJECT, STDEV_TRANSLATION_DIST_ARG_NAME
         ),
+        random_seed=getattr(INPUT_ARG_OBJECT, RANDOM_SEED_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )
