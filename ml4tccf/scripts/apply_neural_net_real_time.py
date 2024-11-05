@@ -52,6 +52,7 @@ DISABLE_GPUS_ARG_NAME = 'disable_gpus'
 NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
 STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
+NUM_TRANSLATIONS_PER_STEP_ARG_NAME = 'data_aug_num_translations_per_step'
 RANDOM_SEED_ARG_NAME = 'random_seed'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
@@ -104,6 +105,20 @@ STDEV_TRANSLATION_DIST_HELP_STRING = (
     '[used only if {0:s} > 0] Standard deviation of translation distance '
     '(units of IR pixels).  If you want to keep the same stdev translation '
     'distance used in training, leave this argument alone.'
+).format(
+    NUM_TRANSLATIONS_ARG_NAME
+)
+NUM_TRANSLATIONS_PER_STEP_HELP_STRING = (
+    '[used only if {0:s} > 0] Number of random translations per step.  This '
+    'argument is useful if you are doing a large number of random translations '
+    '(>~ 20).  For example, if you are doing 100 random translations, the '
+    'predictor matrix must be 100 times larger than usual -- which will cause '
+    'an out-of-memory error on most systems.  You may instead wish to do the '
+    'random translations in 5 steps, for example.  In this case, each step '
+    'will consist of 100/5 = 20 random translations, followed by applying the '
+    'NN to the predictor matrix, then promptly deleting the predictor matrix '
+    'so that it doesn''t cause an out-of-memory error.  If you would rather do '
+    'all translations at once, leave this argument alone.'
 ).format(
     NUM_TRANSLATIONS_ARG_NAME
 )
@@ -166,6 +181,10 @@ INPUT_ARG_PARSER.add_argument(
     default=-1., help=STDEV_TRANSLATION_DIST_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_TRANSLATIONS_PER_STEP_ARG_NAME, type=int, required=False,
+    default=-1, help=NUM_TRANSLATIONS_PER_STEP_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + RANDOM_SEED_ARG_NAME, type=int, required=False, default=6695,
     help=RANDOM_SEED_HELP_STRING
 )
@@ -182,7 +201,8 @@ INPUT_ARG_PARSER.add_argument(
 def _run(model_file_name, satellite_dir_name, a_deck_file_name,
          cyclone_id_string, valid_date_string, disable_gpus,
          data_aug_num_translations, data_aug_mean_translation_low_res_px,
-         data_aug_stdev_translation_low_res_px, random_seed,
+         data_aug_stdev_translation_low_res_px,
+         data_aug_num_translations_per_step, random_seed,
          output_dir_name, output_file_name):
     """Real-time version of apply_neural_net.py.
 
@@ -197,6 +217,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param data_aug_num_translations: Same.
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
+    :param data_aug_num_translations_per_step: Same.
     :param random_seed: Same.
     :param output_dir_name: Same.
     :param output_file_name: Same.
@@ -228,6 +249,14 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         data_aug_mean_translation_low_res_px = None
     if data_aug_stdev_translation_low_res_px < 0:
         data_aug_stdev_translation_low_res_px = None
+    if data_aug_num_translations_per_step <= 0:
+        data_aug_num_translations_per_step = None
+
+    if data_aug_num_translations is None:
+        data_aug_num_translations_per_step = None
+    else:
+        if data_aug_num_translations_per_step is not None:
+            data_aug_num_translations_per_step = data_aug_num_translations + 0
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = nn_utils.read_model(model_file_name)
@@ -274,51 +303,101 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     validation_option_dict[nn_utils.A_DECK_FILE_KEY] = a_deck_file_name
 
     data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
+    target_matrix = numpy.array([], dtype=float)
+    prediction_matrix = numpy.array([], dtype=float)
+    grid_spacings_km = numpy.array([], dtype=float)
+    cyclone_center_latitudes_deg_n = numpy.array([], dtype=float)
+    target_times_unix_sec = numpy.array([], dtype=int)
 
-    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
-        assert valid_date_string is None
+    while True:
+        if data_aug_num_translations is not None:
+            num_translations_done = target_matrix.shape[0]
+            this_num_translations = min([
+                data_aug_num_translations - num_translations_done,
+                data_aug_num_translations_per_step
+            ])
 
-        data_dict = nn_training_cira_ir.create_data(
-            option_dict=validation_option_dict,
-            cyclone_id_string=cyclone_id_string,
-            num_target_times=LARGE_INTEGER
+            validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
+                this_num_translations
+            )
+
+        if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
+            assert valid_date_string is None
+
+            data_dict = nn_training_cira_ir.create_data(
+                option_dict=validation_option_dict,
+                cyclone_id_string=cyclone_id_string,
+                num_target_times=LARGE_INTEGER
+            )
+        elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
+            data_dict = nn_training_simple.create_data(
+                option_dict=validation_option_dict,
+                cyclone_id_string=cyclone_id_string,
+                valid_date_string=valid_date_string,
+                num_target_times=LARGE_INTEGER
+            )
+        else:
+            assert valid_date_string is None
+
+            data_dict = nn_training_fancy.create_data(
+                option_dict=validation_option_dict,
+                cyclone_id_string=cyclone_id_string,
+                num_target_times=LARGE_INTEGER
+            )
+
+        if data_dict is None:
+            return
+
+        these_predictor_matrices = data_dict[nn_utils.PREDICTOR_MATRICES_KEY]
+        this_target_matrix = data_dict[nn_utils.TARGET_MATRIX_KEY]
+        these_grid_spacings_km = data_dict[nn_utils.GRID_SPACINGS_KEY]
+        these_center_latitudes_deg_n = data_dict[nn_utils.CENTER_LATITUDES_KEY]
+        these_target_times_unix_sec = data_dict[nn_utils.TARGET_TIMES_KEY]
+
+        if len(this_target_matrix.shape) == 4:
+            this_target_matrix = this_target_matrix[..., 0]
+
+        print(SEPARATOR_STRING)
+        this_prediction_matrix = nn_utils.apply_model(
+            model_object=model_object,
+            predictor_matrices=these_predictor_matrices,
+            num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+            verbose=True
         )
-    elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
-        data_dict = nn_training_simple.create_data(
-            option_dict=validation_option_dict,
-            cyclone_id_string=cyclone_id_string,
-            valid_date_string=valid_date_string,
-            num_target_times=LARGE_INTEGER
-        )
-    else:
-        assert valid_date_string is None
+        print(SEPARATOR_STRING)
 
-        data_dict = nn_training_fancy.create_data(
-            option_dict=validation_option_dict,
-            cyclone_id_string=cyclone_id_string,
-            num_target_times=LARGE_INTEGER
-        )
+        del these_predictor_matrices
 
-    if data_dict is None:
-        return
+        if target_matrix.size == 0:
+            target_matrix = this_target_matrix + 0.
+            prediction_matrix = this_prediction_matrix + 0.
+            grid_spacings_km = these_grid_spacings_km + 0.
+            cyclone_center_latitudes_deg_n = these_center_latitudes_deg_n + 0.
+            target_times_unix_sec = these_target_times_unix_sec + 0
+        else:
+            target_matrix = numpy.concatenate(
+                [target_matrix, this_target_matrix], axis=0
+            )
+            prediction_matrix = numpy.concatenate(
+                [prediction_matrix, this_prediction_matrix], axis=0
+            )
+            grid_spacings_km = numpy.concatenate(
+                [grid_spacings_km, these_grid_spacings_km], axis=0
+            )
+            cyclone_center_latitudes_deg_n = numpy.concatenate(
+                [cyclone_center_latitudes_deg_n, these_center_latitudes_deg_n],
+                axis=0
+            )
+            target_times_unix_sec = numpy.concatenate(
+                [target_times_unix_sec, these_target_times_unix_sec], axis=0
+            )
 
-    predictor_matrices = data_dict[nn_utils.PREDICTOR_MATRICES_KEY]
-    target_matrix = data_dict[nn_utils.TARGET_MATRIX_KEY]
-    grid_spacings_km = data_dict[nn_utils.GRID_SPACINGS_KEY]
-    cyclone_center_latitudes_deg_n = data_dict[nn_utils.CENTER_LATITUDES_KEY]
-    target_times_unix_sec = data_dict[nn_utils.TARGET_TIMES_KEY]
+        if data_aug_num_translations is None:
+            break
 
-    if len(target_matrix.shape) == 4:
-        target_matrix = target_matrix[..., 0]
-
-    print(SEPARATOR_STRING)
-    prediction_matrix = nn_utils.apply_model(
-        model_object=model_object, predictor_matrices=predictor_matrices,
-        num_examples_per_batch=NUM_EXAMPLES_PER_BATCH, verbose=True
-    )
-    print(SEPARATOR_STRING)
-
-    del predictor_matrices
+        num_translations_done = target_matrix.shape[0]
+        if num_translations_done >= data_aug_num_translations:
+            break
 
     if output_file_name is None:
         output_file_name = prediction_io.find_file(
@@ -372,6 +451,9 @@ if __name__ == '__main__':
         ),
         data_aug_stdev_translation_low_res_px=getattr(
             INPUT_ARG_OBJECT, STDEV_TRANSLATION_DIST_ARG_NAME
+        ),
+        data_aug_num_translations_per_step=getattr(
+            INPUT_ARG_OBJECT, NUM_TRANSLATIONS_PER_STEP_ARG_NAME
         ),
         random_seed=getattr(INPUT_ARG_OBJECT, RANDOM_SEED_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),
