@@ -393,6 +393,8 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
                 [target_times_unix_sec, these_target_times_unix_sec], axis=0
             )
 
+        print('Shape of target_matrix = {0:s}'.format(str(target_matrix)))
+
         if data_aug_num_translations is None:
             break
 
