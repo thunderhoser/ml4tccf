@@ -308,10 +308,12 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     grid_spacings_km = numpy.array([], dtype=float)
     cyclone_center_latitudes_deg_n = numpy.array([], dtype=float)
     target_times_unix_sec = numpy.array([], dtype=int)
+    num_translations_done = 0
 
     while True:
-        if data_aug_num_translations is not None:
-            num_translations_done = target_matrix.shape[0]
+        if data_aug_num_translations is None:
+            this_num_translations = 0
+        else:
             this_num_translations = min([
                 data_aug_num_translations - num_translations_done,
                 data_aug_num_translations_per_step
@@ -398,7 +400,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         if data_aug_num_translations is None:
             break
 
-        num_translations_done = target_matrix.shape[0]
+        num_translations_done += this_num_translations
         if num_translations_done >= data_aug_num_translations:
             break
 
