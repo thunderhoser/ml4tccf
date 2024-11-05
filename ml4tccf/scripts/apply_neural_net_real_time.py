@@ -320,6 +320,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
             validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
                 this_num_translations
             )
+            print('this_num_translations = {0:d}'.format(this_num_translations))
 
         if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
             assert valid_date_string is None
