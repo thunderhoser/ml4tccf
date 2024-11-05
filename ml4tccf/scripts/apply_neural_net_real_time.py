@@ -321,6 +321,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
                 this_num_translations
             )
             print('this_num_translations = {0:d}'.format(this_num_translations))
+            print(data_aug_num_translations_per_step)
 
         if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
             assert valid_date_string is None
