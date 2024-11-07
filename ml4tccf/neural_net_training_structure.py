@@ -522,8 +522,6 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         scalar_predictor_matrix = (
             scalar_predictor_matrix[:, :len(first_scalar_a_deck_field_names)]
         )
-        if len(first_scalar_a_deck_field_names) == 0:
-            scalar_predictor_matrix = None
 
         for f in range(len(target_field_names)):
             residual_baseline_matrix[:, f] *= (
@@ -533,6 +531,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         residual_baseline_matrix *= target_shrink_factor
     else:
         residual_baseline_matrix = None
+
+    if len(first_scalar_a_deck_field_names) == 0:
+        scalar_predictor_matrix = None
 
     # TODO(thunderhoser): This is a HACK.  Should be controlled by an input
     # arg.
