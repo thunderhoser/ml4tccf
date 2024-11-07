@@ -27,7 +27,6 @@ for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
         --valid_date_string="${valid_date_string}" \
         --data_aug_num_translations=-1 \
         --random_seed=6695 \
-        --synoptic_times_only=0 \
         --disable_gpus=1 \
         --output_file_name="${model_dir_name}/real_time_predictions_new_short_track/predictions_${CYCLONE_ID_STRING}_${valid_date_string}.nc"
     done
