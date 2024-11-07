@@ -7,7 +7,7 @@ INPUT_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/proces
 OUTPUT_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_for_paper/recentered_on_short_track"
 SHORT_TRACK_DIR_NAME="/mnt/shnas10/users/galka/track_interpolated/short_track"
 
-CYCLONE_ID_STRING="2024AL99"
+CYCLONE_ID_STRING="2024AL15"
 LOG_FILE_NAME="recenter_satellite_data_on_short_track_${CYCLONE_ID_STRING}.out"
 
 python3 -u "${CODE_DIR_NAME}/recenter_satellite_data_on_short_track.py" &> ${LOG_FILE_NAME} \
