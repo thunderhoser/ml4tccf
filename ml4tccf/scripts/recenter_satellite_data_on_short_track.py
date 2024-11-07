@@ -199,18 +199,18 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
         raise_error_if_all_missing=True
     )
 
-    if cyclone_id_string == '2024AL09':
-        input_satellite_file_names = [input_satellite_file_names[-1]]
-    elif cyclone_id_string == '2024AL11':
-        input_satellite_file_names = input_satellite_file_names[-2:]
-    elif cyclone_id_string == '2024AL12':
-        input_satellite_file_names = [input_satellite_file_names[-1]]
-    elif cyclone_id_string == '2024AL13':
-        input_satellite_file_names = [input_satellite_file_names[-1]]
-    elif cyclone_id_string == '2024AL15':
-        input_satellite_file_names = [input_satellite_file_names[-1]]
-    else:
-        input_satellite_file_names = []
+    # if cyclone_id_string == '2024AL09':
+    #     input_satellite_file_names = [input_satellite_file_names[-1]]
+    # elif cyclone_id_string == '2024AL11':
+    #     input_satellite_file_names = input_satellite_file_names[-2:]
+    # elif cyclone_id_string == '2024AL12':
+    #     input_satellite_file_names = [input_satellite_file_names[-1]]
+    # elif cyclone_id_string == '2024AL13':
+    #     input_satellite_file_names = [input_satellite_file_names[-1]]
+    # elif cyclone_id_string == '2024AL15':
+    #     input_satellite_file_names = [input_satellite_file_names[-1]]
+    # else:
+    #     input_satellite_file_names = []
 
     num_files = len(input_satellite_file_names)
 
