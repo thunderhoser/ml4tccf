@@ -522,6 +522,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         scalar_predictor_matrix = (
             scalar_predictor_matrix[:, :len(first_scalar_a_deck_field_names)]
         )
+        if len(first_scalar_a_deck_field_names) == 0:
+            scalar_predictor_matrix = None
 
         for f in range(len(target_field_names)):
             residual_baseline_matrix[:, f] *= (
