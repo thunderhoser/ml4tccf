@@ -135,6 +135,18 @@ def _read_short_track_file(pickle_file_name, target_time_unix_sec):
     ], dtype=int)
 
     good_indices = numpy.where(valid_times_unix_sec == target_time_unix_sec)[0]
+    if len(good_indices) == 0:
+        warning_string = (
+            'POTENTIAL ERROR: Cannot find valid time {0:s} in file "{1:s}".'
+        ).format(
+            time_conversion.unix_sec_to_string(
+                target_time_unix_sec, '%Y-%m-%d-%H%M'
+            ),
+            pickle_file_name
+        )
+
+        warnings.warn(warning_string)
+        return None, None
 
     if len(good_indices) > 1:
         warning_string = (
@@ -242,8 +254,6 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
             if short_track_file_name is None:
                 continue
 
-            keep_time_flags[j] = True
-
             print('Reading data from: "{0:s}"...'.format(short_track_file_name))
             short_track_latitude_deg_n, short_track_longitude_deg_e = (
                 _read_short_track_file(
@@ -251,6 +261,11 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
                     target_time_unix_sec=target_times_unix_sec[j]
                 )
             )
+
+            if short_track_latitude_deg_n is None:
+                continue
+
+            keep_time_flags[j] = True
 
             grid_latitudes_deg_n = (
                 stx[satellite_utils.LATITUDE_LOW_RES_KEY].values[j, :]
