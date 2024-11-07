@@ -135,7 +135,27 @@ def _read_short_track_file(pickle_file_name, target_time_unix_sec):
     ], dtype=int)
 
     good_indices = numpy.where(valid_times_unix_sec == target_time_unix_sec)[0]
-    assert len(good_indices) == 1
+
+    if len(good_indices) > 1:
+        warning_string = (
+            'POTENTIAL ERROR: Found {0:d} entries with valid time {1:s} in '
+            'file "{2:s}".'
+        ).format(
+            len(good_indices),
+            time_conversion.unix_sec_to_string(
+                target_time_unix_sec, '%Y-%m-%d-%H%M'
+            ),
+            pickle_file_name
+        )
+
+        warnings.warn(warning_string)
+
+        for k in good_indices:
+            print('{0:.4f} deg N, {1:.4f} deg E'.format(
+                short_track_dict['st_one_sec_lats'][k],
+                short_track_dict['st_one_sec_lond'][k]
+            ))
+
     good_index = good_indices[0]
 
     latitude_deg_n = short_track_dict['st_one_sec_lats'][good_index]
@@ -166,6 +186,19 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
         cyclone_id_string=cyclone_id_string,
         raise_error_if_all_missing=True
     )
+
+    if cyclone_id_string == '2024AL09':
+        input_satellite_file_names = [input_satellite_file_names[-1]]
+    elif cyclone_id_string == '2024AL11':
+        input_satellite_file_names = input_satellite_file_names[-2:]
+    elif cyclone_id_string == '2024AL12':
+        input_satellite_file_names = [input_satellite_file_names[-1]]
+    elif cyclone_id_string == '2024AL13':
+        input_satellite_file_names = [input_satellite_file_names[-1]]
+    elif cyclone_id_string == '2024AL15':
+        input_satellite_file_names = [input_satellite_file_names[-1]]
+    else:
+        input_satellite_file_names = []
 
     num_files = len(input_satellite_file_names)
 
