@@ -526,6 +526,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     else:
         residual_baseline_matrix = None
 
+    if len(first_scalar_a_deck_field_names) == 0:
+        scalar_predictor_matrix = None
+
     # TODO(thunderhoser): This is a HACK.  Should be controlled by an input
     # arg.
     final_axis_length = len(low_res_wavelengths_microns)

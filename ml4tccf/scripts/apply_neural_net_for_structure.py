@@ -167,8 +167,10 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         netcdf_file_name=output_file_name,
         target_matrix=target_matrix / target_shrink_factor,
         prediction_matrix=prediction_matrix / target_shrink_factor,
-        baseline_prediction_matrix=
-        resid_baseline_prediction_matrix / target_shrink_factor,
+        baseline_prediction_matrix=(
+            None if resid_baseline_prediction_matrix is None
+            else resid_baseline_prediction_matrix / target_shrink_factor
+        ),
         cyclone_id_string=cyclone_id_string,
         target_times_unix_sec=target_times_unix_sec,
         model_file_name=model_file_name
