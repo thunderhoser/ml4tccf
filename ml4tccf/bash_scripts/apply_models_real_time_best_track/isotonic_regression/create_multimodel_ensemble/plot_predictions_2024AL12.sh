@@ -14,7 +14,7 @@ python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" &> ${log_file_name} \
 --input_prediction_file_name="${ENSEMBLE_DIR_NAME}/real_time_predictions_best_track/isotonic_regression/2024AL12_20241006.nc" \
 --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
 --input_normalization_file_name="${SATELLITE_NORM_FILE_NAME}" \
---target_time_strings "2024-10-06-1800" "2024-10-06-1700" "2024-10-06-1730" "2024-10-06-1830" "2024-10-06-1900" \
+--target_time_strings "2024-10-06-1810" "2024-10-06-1710" "2024-10-06-1740" "2024-10-06-1840" "2024-10-06-1910" \
 --num_samples_per_target_time=1 \
 --lag_times_minutes 0 \
 --wavelengths_microns 3.9  6.185  6.95  7.34  8.5  9.61  10.35  11.2  12.3  13.3 \
