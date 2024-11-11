@@ -16,6 +16,7 @@ TIME_FORMAT_IN_OUTPUT_FILES = '%Y%m%d, %H%M'
 
 INPUT_FILE_ARG_NAME = 'input_prediction_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
+USE_FIRST_GUESS_ARG_NAME = 'use_first_guess'
 OUTPUT_DIR_ARG_NAME = 'output_prediction_dir_name'
 
 INPUT_FILE_HELP_STRING = (
@@ -24,6 +25,10 @@ INPUT_FILE_HELP_STRING = (
 SATELLITE_DIR_HELP_STRING = (
     'Path to directory with satellite data.  Files therein will be found by '
     '`satellite_io.find_file` and read by `satellite_io.read_file`.'
+)
+USE_FIRST_GUESS_HELP_STRING = (
+    'Boolean flag.  If 1, will create prediction files with first-guess '
+    'centers, not neural-net centers.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Path to output directory.  This script will write one CSV file per time '
@@ -40,6 +45,10 @@ INPUT_ARG_PARSER.add_argument(
     help=SATELLITE_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + USE_FIRST_GUESS_ARG_NAME, type=int, required=False, default=0,
+    help=USE_FIRST_GUESS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
@@ -47,14 +56,15 @@ INPUT_ARG_PARSER.add_argument(
 
 def _convert_predictions_one_sample(
         prediction_table_xarray, cyclone_id_string, target_time_unix_sec,
-        satellite_dir_name, output_prediction_dir_name):
+        use_first_guess, satellite_dir_name, output_prediction_dir_name):
     """Converts predictions to new file format for one TC sample.
 
     :param prediction_table_xarray: xarray table in format returned by
         `prediction_io.read_file`.
     :param cyclone_id_string: Cyclone ID.
     :param target_time_unix_sec: Target time.
-    :param satellite_dir_name: See documentation at top of this script.
+    :param use_first_guess: See documentation at top of this script.
+    :param satellite_dir_name: Same.
     :param output_prediction_dir_name: Same.
     """
 
@@ -131,12 +141,21 @@ def _convert_predictions_one_sample(
     new_ptx = ptx.isel({prediction_utils.EXAMPLE_DIM_KEY: sample_idxs})
     print(new_ptx)
 
-    predicted_row_index = center_row_index + numpy.mean(
-        ptx[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[sample_idxs, :]
-    )
-    predicted_column_index = center_column_index + numpy.mean(
-        ptx[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[sample_idxs, :]
-    )
+    if use_first_guess:
+        predicted_row_index = center_row_index + numpy.mean(
+            ptx[prediction_utils.ACTUAL_ROW_OFFSET_KEY].values[sample_idxs]
+        )
+        predicted_column_index = center_column_index + numpy.mean(
+            ptx[prediction_utils.ACTUAL_COLUMN_OFFSET_KEY].values[sample_idxs]
+        )
+    else:
+        predicted_row_index = center_row_index + numpy.mean(
+            ptx[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values[sample_idxs, :]
+        )
+        predicted_column_index = center_column_index + numpy.mean(
+            ptx[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values[sample_idxs, :]
+        )
+
     predicted_latitude_deg_n = latitude_interp_object(predicted_row_index)
     predicted_longitude_deg_e = longitude_interp_object(predicted_column_index)
 
@@ -168,7 +187,7 @@ def _convert_predictions_one_sample(
         ))
 
 
-def _run(input_prediction_file_name, satellite_dir_name,
+def _run(input_prediction_file_name, satellite_dir_name, use_first_guess,
          output_prediction_dir_name):
     """Converts prediction file to Zhixing's CSV format.
 
@@ -176,6 +195,7 @@ def _run(input_prediction_file_name, satellite_dir_name,
 
     :param input_prediction_file_name: See documentation at top of this script.
     :param satellite_dir_name: Same.
+    :param use_first_guess: Same.
     :param output_prediction_dir_name: Same.
     """
 
@@ -199,6 +219,7 @@ def _run(input_prediction_file_name, satellite_dir_name,
             prediction_table_xarray=prediction_table_xarray,
             cyclone_id_string=unique_id_time_matrix[i, 0],
             target_time_unix_sec=int(unique_id_time_matrix[i, 1]),
+            use_first_guess=use_first_guess,
             satellite_dir_name=satellite_dir_name,
             output_prediction_dir_name=output_prediction_dir_name
         )
@@ -212,6 +233,9 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, INPUT_FILE_ARG_NAME
         ),
         satellite_dir_name=getattr(INPUT_ARG_OBJECT, SATELLITE_DIR_ARG_NAME),
+        use_first_guess=bool(
+            getattr(INPUT_ARG_OBJECT, USE_FIRST_GUESS_ARG_NAME)
+        ),
         output_prediction_dir_name=getattr(
             INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME
         )
