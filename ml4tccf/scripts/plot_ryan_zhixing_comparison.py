@@ -329,15 +329,18 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         for i in range(num_files_zhixing):
             print('Reading data from: "{0:s}"...'.format(zhixing_file_names[i]))
 
+            # TODO(thunderhoser): HACK!
+            is_first_guess = '/first_guess/' in zhixing_file_names[i]
+
             try:
                 with open(zhixing_file_names[i], 'r') as file_handle:
                     csv_reader_object = csv.reader(file_handle)
                     these_words = next(csv_reader_object)
-                    zhixing_latitudes_deg_n[i] = float(these_words[-3])
-                    zhixing_longitudes_deg_e[i] = float(these_words[-2])
+                    zhixing_latitudes_deg_n[i] = float(these_words[-3 + int(is_first_guess)])
+                    zhixing_longitudes_deg_e[i] = float(these_words[-2 + int(is_first_guess)])
 
                     this_time_string = '{0:s}{1:s}'.format(
-                        these_words[-5].strip(), these_words[-4].strip()
+                        these_words[-5 + int(is_first_guess)].strip(), these_words[-4 + int(is_first_guess)].strip()
                     )
                     zhixing_times_unix_sec[i] = (
                         time_conversion.string_to_unix_sec(
