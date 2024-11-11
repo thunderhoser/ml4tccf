@@ -113,7 +113,7 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.INPUT_DIMENSIONS_SCALAR_KEY:
         numpy.array([NUM_SCALAR_PREDICTORS], dtype=int),
     tcnn_architecture.INCLUDE_HIGH_RES_KEY: False,
-    tcnn_architecture.INCLUDE_SCALAR_DATA_KEY: False,
+    tcnn_architecture.INCLUDE_SCALAR_DATA_KEY: True,
     # tcnn_architecture.NUM_CONV_LAYERS_KEY: numpy.full(
     #     NUM_CONV_BLOCKS, 1, dtype=int
     # ),
