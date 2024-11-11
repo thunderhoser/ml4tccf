@@ -10,7 +10,7 @@
 #SBATCH --ntasks-per-node=8  # 8 GPUs per node
 #SBATCH --exclusive
 #SBATCH --time=48:00:00
-#SBATCH --array=20-39
+#SBATCH --array=0-19
 #SBATCH --exclude=h28n12
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
