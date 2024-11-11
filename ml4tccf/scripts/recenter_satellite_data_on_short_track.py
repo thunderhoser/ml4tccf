@@ -93,6 +93,16 @@ def _find_short_track_file(directory_name, cyclone_id_string,
 
     if len(pickle_file_names) == 0:
         pickle_file_pattern = (
+            '{0:s}/a{1:s}/storm_track_interp_a{1:s}_{2:s}.pkl'
+        ).format(
+            directory_name,
+            fake_cyclone_id_string,
+            file_time_string
+        )
+        pickle_file_names = glob.glob(pickle_file_pattern)
+
+    if len(pickle_file_names) == 0:
+        pickle_file_pattern = (
             '{0:s}/{1:s}/storm_track_interp_a{1:s}_*_{2:s}.pkl'
         ).format(
             directory_name,
@@ -198,6 +208,19 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
         cyclone_id_string=cyclone_id_string,
         raise_error_if_all_missing=True
     )
+
+    date_strings = [
+        satellite_io.file_name_to_date(f) for f in input_satellite_file_names
+    ]
+
+    if cyclone_id_string == '2024AL12':
+        input_satellite_file_names = [
+            input_satellite_file_names[date_strings.index('2024-10-06')]
+        ]
+    if cyclone_id_string == '2024AL14':
+        input_satellite_file_names = [
+            input_satellite_file_names[date_strings.index('2024-10-11')]
+        ]
 
     # if cyclone_id_string == '2024AL09':
     #     input_satellite_file_names = [input_satellite_file_names[-1]]

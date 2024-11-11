@@ -8,7 +8,7 @@ SATELLITE_NORM_FILE_NAME="/mnt/shnas10/users/lagerquist/ml4tccf_project/ir_satel
 
 ENSEMBLE_DIR_NAME="/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/ensemble"
 
-log_file_name="plot_predictions_2024AL14_first.out"
+log_file_name="plot_predictions_2024AL14_fifth.out"
 
 python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" &> ${log_file_name} \
 --input_prediction_file_name="${ENSEMBLE_DIR_NAME}/real_time_predictions_best_track/isotonic_regression/2024AL14_20241010.nc" \
