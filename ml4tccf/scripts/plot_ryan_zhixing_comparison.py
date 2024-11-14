@@ -141,9 +141,11 @@ def _compute_errors(
     )[0]
     num_samples = len(numpy.unique(bt_times_unix_sec[good_indices]))
 
-    import sys
-    numpy.set_printoptions(threshold=sys.maxsize)
-    print(distance_errors_km)
+    array_string = ', '.join([
+        '{0:.10f}'.format(d) for d in
+        distance_errors_km[numpy.isfinite(distance_errors_km)]
+    ])
+    print(array_string)
 
     return (
         numpy.nanmean(distance_errors_km),
