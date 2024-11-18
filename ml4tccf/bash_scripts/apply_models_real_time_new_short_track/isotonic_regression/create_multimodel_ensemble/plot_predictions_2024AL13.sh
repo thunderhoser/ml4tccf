@@ -6,8 +6,8 @@ CODE_DIR_NAME="/home/lagerquist/ml4tccf/ml4tccf/waf2024"
 SATELLITE_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_for_paper/recentered_on_best_track/simplified_700x700"
 SATELLITE_NORM_FILE_NAME="/mnt/shnas10/users/lagerquist/ml4tccf_project/ir_satellite_normalization_params.zarr"
 
-CYCLONE_ID_STRING="2024AL14"
-VALID_DATE_STRINGS=("20241005" "20241006" "20241007" "20241008" "20241009" "20241010" "20241011")
+CYCLONE_ID_STRING="2024AL13"
+VALID_DATE_STRINGS=("20241002" "20241003" "20241004" "20241005" "20241006" "20241007" "20241008" "20241009" "20241010" "20241011" "20241012" "20241013")
 ENSEMBLE_DIR_NAME="/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/ensemble"
 
 for valid_date_string in "${VALID_DATE_STRINGS[@]}"; do

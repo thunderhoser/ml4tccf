@@ -16,7 +16,7 @@ python3 -u "${CODE_DIR_NAME}/waf2024_plot_predictions.py" &> ${log_file_name} \
 --input_normalization_file_name="${SATELLITE_NORM_FILE_NAME}" \
 --num_samples_per_target_time=1 \
 --lag_times_minutes 0 \
---wavelengths_microns 3.9  6.185  6.95  7.34  8.5  9.61  10.35  11.2  12.3  13.3 \
+--wavelengths_microns 3.9 6.95 10.35 \
 --prediction_plotting_format_string="probability_contours" \
 --prob_colour_map_name="BuGn" \
 --prob_contour_smoothing_radius_px=2 \
