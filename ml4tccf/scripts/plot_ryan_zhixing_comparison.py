@@ -34,7 +34,7 @@ ZHIXING_MARKER_TYPE = 'o'
 ZHIXING_MARKER_EDGE_WIDTH = 1.5
 ZHIXING_MARKER_EDGE_COLOUR = numpy.full(3, 152. / 255)
 
-BEST_TRACK_MARKER_SIZE = 100
+BEST_TRACK_MARKER_SIZE = 150
 BEST_TRACK_MARKER_TYPE = '*'
 BEST_TRACK_MARKER_EDGE_WIDTH = 1.5
 BEST_TRACK_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
@@ -324,6 +324,8 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
             ryan_longitudes_deg_e, allow_nan=False
         )
 
+    is_first_guess = False
+
     if len(zhixing_file_names) > 0:
         zhixing_file_names.sort()
 
@@ -342,11 +344,16 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
                 with open(zhixing_file_names[i], 'r') as file_handle:
                     csv_reader_object = csv.reader(file_handle)
                     these_words = next(csv_reader_object)
-                    zhixing_latitudes_deg_n[i] = float(these_words[-3 + int(is_first_guess)])
-                    zhixing_longitudes_deg_e[i] = float(these_words[-2 + int(is_first_guess)])
+                    zhixing_latitudes_deg_n[i] = float(
+                        these_words[-3 + int(is_first_guess)]
+                    )
+                    zhixing_longitudes_deg_e[i] = float(
+                        these_words[-2 + int(is_first_guess)]
+                    )
 
                     this_time_string = '{0:s}{1:s}'.format(
-                        these_words[-5 + int(is_first_guess)].strip(), these_words[-4 + int(is_first_guess)].strip()
+                        these_words[-5 + int(is_first_guess)].strip(),
+                        these_words[-4 + int(is_first_guess)].strip()
                     )
                     zhixing_times_unix_sec[i] = (
                         time_conversion.string_to_unix_sec(
@@ -396,19 +403,27 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         axes_object=axes_object
     )
 
-    these_min = [numpy.min(bt_times_unix_sec)]
+    these_min = []
     if len(ryan_file_names) > 0:
         these_min.append(numpy.min(ryan_times_unix_sec))
     if len(zhixing_file_names) > 0:
         these_min.append(numpy.min(zhixing_times_unix_sec))
     min_time_unix_sec = min(these_min)
 
-    these_max = [numpy.max(bt_times_unix_sec)]
+    these_max = []
     if len(ryan_file_names) > 0:
         these_max.append(numpy.max(ryan_times_unix_sec))
     if len(zhixing_file_names) > 0:
         these_max.append(numpy.max(zhixing_times_unix_sec))
     max_time_unix_sec = max(these_max)
+
+    good_indices = numpy.where(numpy.logical_and(
+        bt_times_unix_sec >= min_time_unix_sec - 3 * HOURS_TO_SECONDS,
+        bt_times_unix_sec <= max_time_unix_sec + 3 * HOURS_TO_SECONDS
+    ))
+    bt_times_unix_sec = bt_times_unix_sec[good_indices]
+    bt_latitudes_deg_n = bt_latitudes_deg_n[good_indices]
+    bt_longitudes_deg_e = bt_longitudes_deg_e[good_indices]
 
     colour_norm_object = pyplot.Normalize(
         vmin=min_time_unix_sec, vmax=max_time_unix_sec
@@ -421,9 +436,10 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
             marker=RYAN_MARKER_TYPE,
             linewidths=RYAN_MARKER_EDGE_WIDTH,
             edgecolors=RYAN_MARKER_EDGE_COLOUR,
-            c=ryan_times_unix_sec,
-            cmap=COLOUR_MAP_OBJECT,
-            norm=colour_norm_object
+            c=RYAN_MARKER_EDGE_COLOUR
+            # c=ryan_times_unix_sec,
+            # cmap=COLOUR_MAP_OBJECT,
+            # norm=colour_norm_object
         )
 
     if len(zhixing_file_names) > 0:
@@ -433,9 +449,10 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
             marker=ZHIXING_MARKER_TYPE,
             linewidths=ZHIXING_MARKER_EDGE_WIDTH,
             edgecolors=ZHIXING_MARKER_EDGE_COLOUR,
-            c=zhixing_times_unix_sec,
-            cmap=COLOUR_MAP_OBJECT,
-            norm=colour_norm_object
+            c=ZHIXING_MARKER_EDGE_COLOUR
+            # c=zhixing_times_unix_sec,
+            # cmap=COLOUR_MAP_OBJECT,
+            # norm=colour_norm_object
         )
 
     axes_object.scatter(
@@ -470,8 +487,8 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         plot_latitudes_deg_n=all_latitudes_deg_n,
         plot_longitudes_deg_e=all_longitudes_deg_e,
         axes_object=axes_object,
-        parallel_spacing_deg=1.,
-        meridian_spacing_deg=1.
+        parallel_spacing_deg=2.,
+        meridian_spacing_deg=2.
     )
 
     axes_object.set_xlim([
@@ -491,7 +508,7 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         axes_object.get_yticklabels(), fontsize=TICK_LABEL_FONT_SIZE
     )
 
-    title_string = 'Track comparison for {0:s}; BT = stars'.format(
+    title_string = 'Track comparison for {0:s}\nStars = best track'.format(
         cyclone_id_string
     )
 
@@ -508,8 +525,8 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         )
 
         title_string += (
-            '\nRyan (squares): mean err = {0:.1f} km; '
-            'median err = {1:.1f} km; err sample size = {2:d}'
+            '\nError of GeoCenter (squares): mean = {0:.1f} km; '
+            'median = {1:.1f} km; sample size = {2:d}'
         ).format(
             ryan_mean_error_km, ryan_median_error_km, ryan_num_samples
         )
@@ -527,10 +544,13 @@ def _run(ryan_dir_name, zhixing_dir_name, raw_best_track_file_name,
         )
 
         title_string += (
-            '\nZhixing (circles): mean err = {0:.1f} km; '
-            'median err = {1:.1f} km; err sample size = {2:d}'
+            '\nError of {0:s} (circles): mean = {1:.1f} km; '
+            'median = {2:.1f} km; sample size = {3:d}'
         ).format(
-            zhixing_mean_error_km, zhixing_median_error_km, zhixing_num_samples
+            'short track' if is_first_guess else 'Zhixing',
+            zhixing_mean_error_km,
+            zhixing_median_error_km,
+            zhixing_num_samples
         )
 
     axes_object.set_title(title_string, fontsize=TITLE_FONT_SIZE)
