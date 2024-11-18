@@ -3,7 +3,7 @@
 conda activate base
 
 CODE_DIR_NAME="/home/lagerquist/ml4tccf/ml4tccf/waf2024"
-SATELLITE_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_for_paper/recentered_on_best_track/simplified_700x700"
+SATELLITE_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_for_paper/recentered_on_short_track/simplified_700x700"
 SATELLITE_NORM_FILE_NAME="/mnt/shnas10/users/lagerquist/ml4tccf_project/ir_satellite_normalization_params.zarr"
 
 CYCLONE_ID_STRING="2024WP20"
