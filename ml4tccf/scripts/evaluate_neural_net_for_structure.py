@@ -18,6 +18,30 @@ from ml4tccf.machine_learning import \
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
+TARGET_FIELD_NAME_TO_VERBOSE = {
+    nn_training.INTENSITY_FIELD_NAME: 'intensity',
+    nn_training.R34_FIELD_NAME: 'R34',
+    nn_training.R50_FIELD_NAME: 'R50',
+    nn_training.R64_FIELD_NAME: 'R64',
+    nn_training.RMW_FIELD_NAME: 'RMW'
+}
+
+TARGET_FIELD_TO_UNITS = {
+    nn_training.INTENSITY_FIELD_NAME: 'kt',
+    nn_training.R34_FIELD_NAME: 'km',
+    nn_training.R50_FIELD_NAME: 'km',
+    nn_training.R64_FIELD_NAME: 'km',
+    nn_training.RMW_FIELD_NAME: 'km'
+}
+
+TARGET_FIELD_TO_SQUARED_UNITS = {
+    nn_training.INTENSITY_FIELD_NAME: r'kt$^2$',
+    nn_training.R34_FIELD_NAME: r'km$^2$',
+    nn_training.R50_FIELD_NAME: r'km$^2$',
+    nn_training.R64_FIELD_NAME: r'km$^2$',
+    nn_training.RMW_FIELD_NAME: r'km$^2$'
+}
+
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
@@ -362,15 +386,16 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
 
         title_string = (
             'NN for {0:s}\n'
-            'MAE = {1:.2f}; bias = {2:.2f}; RMSE = {3:.2f}; REL = {4:.2f}; '
-            'corr = {5:.2f}'
+            'MAE = {1:.2f} {2:s}; RMSE = {3:.2f} {2:s};\n'
+            'bias = {4:.2f} {2:s}; REL = {5:.2f} {6:s}'
         ).format(
-            target_field_names[f],
+            TARGET_FIELD_NAME_TO_VERBOSE[target_field_names[f]],
             mean_absolute_error,
-            bias,
+            TARGET_FIELD_TO_UNITS[target_field_names[f]],
             rmse,
+            bias,
             reliability,
-            correlation
+            TARGET_FIELD_TO_SQUARED_UNITS[target_field_names[f]]
         )
 
         print(title_string)
@@ -533,15 +558,16 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
 
         title_string = (
             'Baseline for {0:s}\n'
-            'MAE = {1:.2f}; bias = {2:.2f}; RMSE = {3:.2f}; REL = {4:.2f}; '
-            'corr = {5:.2f}'
+            'MAE = {1:.2f} {2:s}; RMSE = {3:.2f} {2:s};\n'
+            'bias = {4:.2f} {2:s}; REL = {5:.2f} {6:s}'
         ).format(
-            target_field_names[f],
+            TARGET_FIELD_NAME_TO_VERBOSE[target_field_names[f]],
             mean_absolute_error,
-            bias,
+            TARGET_FIELD_TO_UNITS[target_field_names[f]],
             rmse,
+            bias,
             reliability,
-            correlation
+            TARGET_FIELD_TO_SQUARED_UNITS[target_field_names[f]]
         )
 
         print(title_string)
