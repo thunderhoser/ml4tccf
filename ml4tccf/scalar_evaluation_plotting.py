@@ -16,7 +16,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import grids
 import error_checking
-import plotting_utils as gg_plotting_utils
+import gg_plotting_utils
 import misc_utils
 import scalar_evaluation
 import taylor_diagram
@@ -939,8 +939,8 @@ def plot_inset_histogram(
         x_tick_labels, fontsize=HISTOGRAM_FONT_SIZE, rotation=90.
     )
 
-    inset_axes_object.set_ylim(top=0.05)
-    y_tick_values = numpy.linspace(0, 0.05, num=6)
+    inset_axes_object.set_ylim(top=0.15)
+    y_tick_values = numpy.linspace(0, 0.15, num=6)
     y_tick_labels = ['{0:.2f}'.format(v) for v in y_tick_values]
 
     inset_axes_object.set_yticks(y_tick_values)

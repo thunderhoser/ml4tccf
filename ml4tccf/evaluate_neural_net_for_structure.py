@@ -24,6 +24,30 @@ import neural_net_training_structure as nn_training
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
+TARGET_FIELD_NAME_TO_VERBOSE = {
+    nn_training.INTENSITY_FIELD_NAME: 'intensity',
+    nn_training.R34_FIELD_NAME: 'R34',
+    nn_training.R50_FIELD_NAME: 'R50',
+    nn_training.R64_FIELD_NAME: 'R64',
+    nn_training.RMW_FIELD_NAME: 'RMW'
+}
+
+TARGET_FIELD_TO_UNITS = {
+    nn_training.INTENSITY_FIELD_NAME: 'kt',
+    nn_training.R34_FIELD_NAME: 'km',
+    nn_training.R50_FIELD_NAME: 'km',
+    nn_training.R64_FIELD_NAME: 'km',
+    nn_training.RMW_FIELD_NAME: 'km'
+}
+
+TARGET_FIELD_TO_SQUARED_UNITS = {
+    nn_training.INTENSITY_FIELD_NAME: r'kt$^2$',
+    nn_training.R34_FIELD_NAME: r'km$^2$',
+    nn_training.R50_FIELD_NAME: r'km$^2$',
+    nn_training.R64_FIELD_NAME: r'km$^2$',
+    nn_training.RMW_FIELD_NAME: r'km$^2$'
+}
+
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
@@ -134,9 +158,6 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                 baseline_prediction_matrix, this_baseline_prediction_matrix
             ])
 
-    orig_prediction_matrix = prediction_matrix + 0.
-    orig_target_matrix = target_matrix + 0.
-
     if eval_recent_changes:
         prediction_matrix = prediction_matrix - baseline_prediction_matrix
         target_matrix = target_matrix - baseline_prediction_matrix
@@ -188,8 +209,8 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    orig_target_matrix[:, f_intensity] >= 34.,
-                    orig_prediction_matrix[:, f_intensity] >= 34.
+                    target_matrix[:, f_intensity] >= 34.,
+                    prediction_matrix[:, f_intensity] >= 34.
                 ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
@@ -218,8 +239,8 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    orig_target_matrix[:, f_intensity] >= 50.,
-                    orig_prediction_matrix[:, f_intensity] >= 50.
+                    target_matrix[:, f_intensity] >= 50.,
+                    prediction_matrix[:, f_intensity] >= 50.
                 ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
@@ -248,8 +269,8 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    orig_target_matrix[:, f_intensity] >= 64.,
-                    orig_prediction_matrix[:, f_intensity] >= 64.
+                    target_matrix[:, f_intensity] >= 64.,
+                    prediction_matrix[:, f_intensity] >= 64.
                 ))[0]
                 target_values = target_matrix[good_indices, f]
                 predicted_values = prediction_matrix[good_indices, f]
@@ -371,15 +392,16 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
 
         title_string = (
             'NN for {0:s}\n'
-            'MAE = {1:.2f}; bias = {2:.2f}; RMSE = {3:.2f}; REL = {4:.2f}; '
-            'corr = {5:.2f}'
+            'MAE = {1:.2f} {2:s}; RMSE = {3:.2f} {2:s};\n'
+            'bias = {4:.2f} {2:s}; REL = {5:.2f} {6:s}'
         ).format(
-            target_field_names[f],
+            TARGET_FIELD_NAME_TO_VERBOSE[target_field_names[f]],
             mean_absolute_error,
-            bias,
+            TARGET_FIELD_TO_UNITS[target_field_names[f]],
             rmse,
+            bias,
             reliability,
-            correlation
+            TARGET_FIELD_TO_SQUARED_UNITS[target_field_names[f]]
         )
 
         print(title_string)
@@ -407,7 +429,7 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    orig_target_matrix[:, f_intensity] >= 34.,
+                    target_matrix[:, f_intensity] >= 34.,
                     baseline_prediction_matrix[:, f_intensity] >= 34.
                 ))[0]
 
@@ -424,7 +446,7 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    orig_target_matrix[:, f_intensity] >= 50.,
+                    target_matrix[:, f_intensity] >= 50.,
                     baseline_prediction_matrix[:, f_intensity] >= 50.
                 ))[0]
 
@@ -441,7 +463,7 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
                     nn_training.INTENSITY_FIELD_NAME
                 )
                 good_indices = numpy.where(numpy.logical_and(
-                    orig_target_matrix[:, f_intensity] >= 64.,
+                    target_matrix[:, f_intensity] >= 64.,
                     baseline_prediction_matrix[:, f_intensity] >= 64.
                 ))[0]
 
@@ -542,15 +564,16 @@ def _run(prediction_file_pattern, eval_recent_changes, output_dir_name):
 
         title_string = (
             'Baseline for {0:s}\n'
-            'MAE = {1:.2f}; bias = {2:.2f}; RMSE = {3:.2f}; REL = {4:.2f}; '
-            'corr = {5:.2f}'
+            'MAE = {1:.2f} {2:s}; RMSE = {3:.2f} {2:s};\n'
+            'bias = {4:.2f} {2:s}; REL = {5:.2f} {6:s}'
         ).format(
-            target_field_names[f],
+            TARGET_FIELD_NAME_TO_VERBOSE[target_field_names[f]],
             mean_absolute_error,
-            bias,
+            TARGET_FIELD_TO_UNITS[target_field_names[f]],
             rmse,
+            bias,
             reliability,
-            correlation
+            TARGET_FIELD_TO_SQUARED_UNITS[target_field_names[f]]
         )
 
         print(title_string)
