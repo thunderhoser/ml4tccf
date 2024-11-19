@@ -496,6 +496,18 @@ def _plot_prob_contours_1panel(
         linewidths=2.5, linestyles='solid', alpha=contour_opacity, zorder=1e12
     )
 
+    half_num_rows = len(grid_latitudes_deg_n) // 2
+    half_num_columns = len(grid_longitudes_deg_e) // 2
+    mean_latitude_deg_n = numpy.mean(
+        grid_latitudes_deg_n[(half_num_rows - 1):(half_num_rows + 1)]
+    )
+    mean_longitude_deg_e = numpy.mean(
+        grid_longitudes_deg_e[(half_num_columns - 1):(half_num_columns + 1)]
+    )
+
+    axes_object.set_ylim([mean_latitude_deg_n - 2., mean_latitude_deg_n + 2.])
+    axes_object.set_xlim([mean_longitude_deg_e - 2., mean_longitude_deg_e + 2.])
+
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
 
     print('Saving figure to file: "{0:s}"...'.format(output_file_name))
