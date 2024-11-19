@@ -17,7 +17,7 @@ for valid_date_string in "${VALID_DATE_STRINGS[@]}"; do
     --input_prediction_file_name="${ENSEMBLE_DIR_NAME}/real_time_predictions_new_short_track/isotonic_regression/${CYCLONE_ID_STRING}_${valid_date_string}.nc" \
     --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
     --input_normalization_file_name="${SATELLITE_NORM_FILE_NAME}" \
-    --input_best_track_dir_name="/mnt/shnas10/users/galka/track_interpolated/best_track/bal122024" \
+    --input_best_track_dir_name="/mnt/shnas10/users/galka/track_interpolated/best_track/bal142024" \
     --num_samples_per_target_time=1 \
     --lag_times_minutes 0 \
     --wavelengths_microns 3.9 6.95 10.35 \
