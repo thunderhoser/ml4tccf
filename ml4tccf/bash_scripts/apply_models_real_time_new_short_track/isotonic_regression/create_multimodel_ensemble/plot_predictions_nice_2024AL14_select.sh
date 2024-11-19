@@ -32,7 +32,7 @@ python3 -u "${CODE_DIR_NAME}/wpo2025_plot_predictions.py" &>> ${log_file_name} \
 --input_best_track_dir_name="/mnt/shnas10/users/galka/track_interpolated/best_track/bal142024" \
 --target_time_strings "2024-10-08-2350" \
 --lag_times_minutes 0 \
---wavelengths_microns 3.9 6.95 10.35 \
+--wavelengths_microns 10.35 \
 --prediction_plotting_format_string="probability_contours" \
 --prob_colour_map_name="BuGn" \
 --prob_contour_smoothing_radius_px=2 \
