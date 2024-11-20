@@ -35,6 +35,7 @@ python3 -u "${CODE_DIR_NAME}/wpo2025_plot_predictions.py" &>> ${log_file_name} \
 --wavelengths_microns 10.35 \
 --prediction_plotting_format_string="probability_contours" \
 --prob_colour_map_name="BuGn" \
+--point_prediction_marker_size=30 \
 --prob_contour_smoothing_radius_px=2 \
 --prob_contour_opacity=0.7 \
 --output_dir_name="${ENSEMBLE_DIR_NAME}/real_time_predictions_new_short_track/isotonic_regression/${CYCLONE_ID_STRING}_select"
