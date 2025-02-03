@@ -35,7 +35,7 @@ def find_file(directory_name, cyclone_id_string, raise_error_if_missing=True):
     error_checking.assert_is_boolean(raise_error_if_missing)
 
     _ = misc_utils.parse_cyclone_id(cyclone_id_string)
-    short_track_file_name = '{0:s}/short_track_{1:d}.nc'.format(
+    short_track_file_name = '{0:s}/short_track_{1:s}.nc'.format(
         directory_name, cyclone_id_string
     )
 
