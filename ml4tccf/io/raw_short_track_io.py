@@ -1,6 +1,7 @@
 """Methods for reading and converting raw short-track data."""
 
 import os
+import glob
 import pickle
 import numpy
 import xarray
@@ -20,6 +21,8 @@ TIME_FORMAT_IN_FILE_NAMES = '%Y-%m-%d-%H-%M-%S'
 VALID_TIME_KEY = 'st_one_sec_time'
 LATITUDE_KEY = 'st_one_sec_lats'
 LONGITUDE_KEY = 'st_one_sec_lond'
+
+TIME_REGEX = '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]-[0-2][0-9]-[0-5][0-9]-[0-5][0-9]'
 
 
 def _cyclone_id_orig_to_new(orig_cyclone_id_string):
@@ -93,6 +96,47 @@ def find_file(directory_name, cyclone_id_string, init_time_unix_sec,
     error_string = 'Cannot find short-track file.  Expected at: "{0:s}"'.format(
         short_track_file_name
     )
+    raise ValueError(error_string)
+
+
+def find_files_one_cyclone(
+        directory_name, cyclone_id_string, raise_error_if_all_missing=True):
+    """Finds all short-track files for one tropical cyclone.
+
+    :param directory_name: Name of directory.
+    :param cyclone_id_string: Cyclone ID.
+    :param raise_error_if_all_missing: Boolean flag.  If no files are found and
+        `raise_error_if_all_missing == True`, this method will raise an error.
+        If no files are found and `raise_error_if_all_missing == False`, this
+        method will return an empty list.
+    :return: short_track_file_names: 1-D list of paths to existing files.
+    :raises: ValueError: if no files are found and
+        `raise_error_if_all_missing == True`.
+    """
+
+    error_checking.assert_is_string(directory_name)
+    error_checking.assert_is_boolean(raise_error_if_all_missing)
+
+    cyclone_year = misc_utils.parse_cyclone_id(cyclone_id_string)[0]
+    file_pattern = (
+        '{0:s}/{1:04d}/a{2:s}/storm_track_interp_a{2:s}_{3:s}.pkl'
+    ).format(
+        directory_name,
+        cyclone_year,
+        _cyclone_id_new_to_orig(cyclone_id_string),
+        TIME_REGEX
+    )
+
+    short_track_file_names = glob.glob(file_pattern)
+    short_track_file_names.sort()
+
+    if len(short_track_file_names) > 0 or not raise_error_if_all_missing:
+        return short_track_file_names
+
+    error_string = (
+        'No files were found for cyclone {0:s} in directory: "{1:s}"'
+    ).format(cyclone_id_string, directory_name)
+
     raise ValueError(error_string)
 
 
