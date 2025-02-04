@@ -229,7 +229,7 @@ def read_file(pickle_file_name, num_minutes_back, num_minutes_ahead):
     good_indices = []
     for this_time in desired_valid_times_unix_sec:
         these_indices = numpy.where(valid_times_unix_sec == this_time)[0]
-        assert len(these_indices) == 1
+        assert len(these_indices) > 0
         good_indices.append(these_indices[0])
 
     good_indices = numpy.array(good_indices, dtype=int)
