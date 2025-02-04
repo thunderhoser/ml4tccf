@@ -127,13 +127,16 @@ def file_name_to_cyclone_id(short_track_file_name):
     )
 
 
-def read_file(pickle_file_name, num_minutes_back):
+def read_file(pickle_file_name, num_minutes_back, num_minutes_ahead):
     """Reads estimated TC-center locations from short-track file.
 
     :param pickle_file_name: Path to input file.
     :param num_minutes_back: Number of minutes back.  Letting
         M = `num_minutes_back`, this method will read estimated TC-center
         locations valid over the time period [init_time - M minutes, init_time].
+    :param num_minutes_ahead: Number of minutes ahead.  Letting
+        M = `num_minutes_ahead`, this method will read estimated TC-center
+        locations valid over the time period [init_time, init_time + M minutes].
     :return: short_track_table_xarray: xarray table with estimated TC-center
         locations.
     """
@@ -145,9 +148,19 @@ def read_file(pickle_file_name, num_minutes_back):
         0
     )
 
-    last_valid_time_unix_sec = file_name_to_init_time(pickle_file_name)
+    error_checking.assert_is_integer(num_minutes_ahead)
+    error_checking.assert_is_greater(num_minutes_ahead, 0)
+    error_checking.assert_equals(
+        numpy.mod(num_minutes_ahead, 10),
+        0
+    )
+
+    init_time_unix_sec = file_name_to_init_time(pickle_file_name)
+    last_valid_time_unix_sec = (
+        init_time_unix_sec + num_minutes_ahead * MINUTES_TO_SECONDS
+    )
     first_valid_time_unix_sec = (
-        last_valid_time_unix_sec - num_minutes_back * MINUTES_TO_SECONDS
+        init_time_unix_sec - num_minutes_back * MINUTES_TO_SECONDS
     )
     desired_valid_times_unix_sec = time_periods.range_and_interval_to_list(
         start_time_unix_sec=first_valid_time_unix_sec,
@@ -189,10 +202,10 @@ def read_file(pickle_file_name, num_minutes_back):
 
     coord_dict = {
         short_track_io.INIT_TIME_DIM: numpy.array(
-            [desired_valid_times_unix_sec[-1]], dtype=int
+            [init_time_unix_sec], dtype=int
         ),
         short_track_io.LEAD_TIME_DIM: (
-            desired_valid_times_unix_sec - desired_valid_times_unix_sec[-1]
+            desired_valid_times_unix_sec - init_time_unix_sec
         )
     }
 

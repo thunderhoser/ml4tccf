@@ -16,6 +16,7 @@ CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 FIRST_INIT_TIME_ARG_NAME = 'first_init_time_string'
 LAST_INIT_TIME_ARG_NAME = 'last_init_time_string'
 NUM_MINUTES_BACK_ARG_NAME = 'num_minutes_back'
+NUM_MINUTES_AHEAD_ARG_NAME = 'num_minutes_ahead'
 OUTPUT_DIR_ARG_NAME = 'output_processed_dir_name'
 
 INPUT_DIR_HELP_STRING = (
@@ -36,6 +37,10 @@ LAST_INIT_TIME_HELP_STRING = FIRST_INIT_TIME_HELP_STRING
 NUM_MINUTES_BACK_HELP_STRING = (
     'For each init time, will process short-track forecasts valid this many '
     'minutes into the past.'
+)
+NUM_MINUTES_AHEAD_HELP_STRING = (
+    'For each init time, will process short-track forecasts valid this many '
+    'minutes into the future.'
 )
 OUTPUT_DIR_HELP_STRING = (
     'Path to output directory.  The processed NetCDF file will be written here '
@@ -65,13 +70,18 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_MINUTES_BACK_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_MINUTES_AHEAD_ARG_NAME, type=int, required=True,
+    help=NUM_MINUTES_AHEAD_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
     help=OUTPUT_DIR_HELP_STRING
 )
 
 
 def _run(input_dir_name, cyclone_id_string, first_init_time_string,
-         last_init_time_string, num_minutes_back, output_dir_name):
+         last_init_time_string, num_minutes_back, num_minutes_ahead,
+         output_dir_name):
     """Converts short-track data from raw Pickle format to NetCDF format.
 
     This is effectively the main method.
@@ -81,6 +91,7 @@ def _run(input_dir_name, cyclone_id_string, first_init_time_string,
     :param first_init_time_string: Same.
     :param last_init_time_string: Same.
     :param num_minutes_back: Same.
+    :param num_minutes_ahead: Same.
     :param output_dir_name: Same.
     """
 
@@ -121,7 +132,8 @@ def _run(input_dir_name, cyclone_id_string, first_init_time_string,
         print('Reading data from: "{0:s}"...'.format(raw_file_names[i]))
         short_track_tables_xarray[i] = raw_short_track_io.read_file(
             pickle_file_name=raw_file_names[i],
-            num_minutes_back=num_minutes_back
+            num_minutes_back=num_minutes_back,
+            num_minutes_ahead=num_minutes_ahead
         )
 
     short_track_table_xarray = short_track_io.concat_over_init_time(
@@ -154,5 +166,6 @@ if __name__ == '__main__':
             INPUT_ARG_OBJECT, LAST_INIT_TIME_ARG_NAME
         ),
         num_minutes_back=getattr(INPUT_ARG_OBJECT, NUM_MINUTES_BACK_ARG_NAME),
+        num_minutes_ahead=getattr(INPUT_ARG_OBJECT, NUM_MINUTES_AHEAD_ARG_NAME),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME)
     )
