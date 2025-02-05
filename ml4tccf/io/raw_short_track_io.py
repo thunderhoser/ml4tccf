@@ -232,7 +232,7 @@ def read_file(pickle_file_name, num_minutes_back, num_minutes_ahead):
         these_indices = numpy.where(valid_times_unix_sec == this_time)[0]
 
         assert len(these_indices) < 2
-        if desired_valid_times_unix_sec <= init_time_unix_sec:
+        if this_time <= init_time_unix_sec:
             assert len(these_indices) == 1
 
         if len(these_indices) > 0:
