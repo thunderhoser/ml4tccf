@@ -3,6 +3,7 @@
 import os
 import glob
 import pickle
+import warnings
 import numpy
 import xarray
 from gewittergefahr.gg_utils import time_conversion
@@ -229,8 +230,27 @@ def read_file(pickle_file_name, num_minutes_back, num_minutes_ahead):
     good_indices = []
     for this_time in desired_valid_times_unix_sec:
         these_indices = numpy.where(valid_times_unix_sec == this_time)[0]
-        assert len(these_indices) > 0
-        good_indices.append(these_indices[0])
+
+        assert len(these_indices) < 2
+        if desired_valid_times_unix_sec <= init_time_unix_sec:
+            assert len(these_indices) == 1
+
+        if len(these_indices) > 0:
+            good_indices.append(these_indices[0])
+            continue
+
+        warning_string = (
+            'POTENTIAL ERROR: Cannot find short-track forecast init {0:s} and '
+            'valid {1:s}.'
+        ).format(
+            time_conversion.unix_sec_to_string(
+                init_time_unix_sec, '%Y-%m-%d-%H%M'
+            ),
+            time_conversion.unix_sec_to_string(this_time, '%Y-%m-%d-%H%M')
+        )
+
+        warnings.warn(warning_string)
+        good_indices.append(-1)
 
     good_indices = numpy.array(good_indices, dtype=int)
 
@@ -238,11 +258,13 @@ def read_file(pickle_file_name, num_minutes_back, num_minutes_ahead):
     error_checking.assert_is_valid_lat_numpy_array(
         desired_latitudes_deg_n, allow_nan=False
     )
+    desired_latitudes_deg_n[good_indices == -1] = numpy.nan
 
     desired_longitudes_deg_e = short_track_dict[LONGITUDE_KEY][good_indices]
     desired_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
         desired_longitudes_deg_e, allow_nan=False
     )
+    desired_longitudes_deg_e[good_indices == -1] = numpy.nan
 
     coord_dict = {
         short_track_io.INIT_TIME_DIM: numpy.array(
