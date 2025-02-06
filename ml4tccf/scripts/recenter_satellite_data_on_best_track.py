@@ -5,8 +5,6 @@ import pickle
 import argparse
 import warnings
 import numpy
-from scipy.interpolate import interp1d
-from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
@@ -58,7 +56,7 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _find_best_track_file(directory_name, cyclone_id_string,
-                           target_time_unix_sec):
+                          target_time_unix_sec):
     """Finds Pickle file containing best-track data.
 
     :param directory_name: Path to directory.
@@ -313,70 +311,6 @@ def _run(input_satellite_dir_name, best_track_dir_name, cyclone_id_string,
                 sentinel_value=-10.
             )
             brightness_temp_matrix_kelvins[j, ...] = this_bt_matrix[0, ...]
-
-            this_lat_matrix = grid_latitude_matrix_deg_n[[j], :]
-            this_lat_matrix = numpy.expand_dims(this_lat_matrix, axis=-1)
-            this_lat_matrix = numpy.expand_dims(this_lat_matrix, axis=-1)
-            _, this_lat_matrix = data_augmentation.augment_data_specific_trans(
-                bidirectional_reflectance_matrix=None,
-                brightness_temp_matrix_kelvins=this_lat_matrix,
-                row_translations_low_res_px=
-                numpy.array([row_translation], dtype=int),
-                column_translations_low_res_px=
-                numpy.array([0], dtype=int),
-                sentinel_value=-1000.
-            )
-
-            this_lat_vector = this_lat_matrix[0, :, 0, 0]
-            good_indices = numpy.where(this_lat_vector > -999.)[0]
-            bad_indices = numpy.where(this_lat_vector < -999.)[0]
-
-            if len(bad_indices) > 0:
-                interp_object = interp1d(
-                    x=good_indices.astype(float),
-                    y=this_lat_vector[good_indices],
-                    kind='linear',
-                    assume_sorted=True,
-                    bounds_error=False,
-                    fill_value='extrapolate'
-                )
-                this_lat_vector[bad_indices] = interp_object(
-                    bad_indices.astype(float)
-                )
-
-            grid_latitude_matrix_deg_n[j, :] = this_lat_vector + 0.
-
-            this_lng_matrix = grid_longitude_matrix_deg_e[[j], :]
-            this_lng_matrix = numpy.expand_dims(this_lng_matrix, axis=-2)
-            this_lng_matrix = numpy.expand_dims(this_lng_matrix, axis=-1)
-            _, this_lng_matrix = data_augmentation.augment_data_specific_trans(
-                bidirectional_reflectance_matrix=None,
-                brightness_temp_matrix_kelvins=this_lng_matrix,
-                row_translations_low_res_px=
-                numpy.array([0], dtype=int),
-                column_translations_low_res_px=
-                numpy.array([column_translation], dtype=int),
-                sentinel_value=-1000.
-            )
-
-            this_lng_vector = this_lng_matrix[0, 0, :, 0]
-            good_indices = numpy.where(this_lng_vector > -999.)[0]
-            bad_indices = numpy.where(this_lng_vector < -999.)[0]
-
-            if len(bad_indices) > 0:
-                interp_object = interp1d(
-                    x=good_indices.astype(float),
-                    y=this_lng_vector[good_indices],
-                    kind='linear',
-                    assume_sorted=True,
-                    bounds_error=False,
-                    fill_value='extrapolate'
-                )
-                this_lng_vector[bad_indices] = interp_object(
-                    bad_indices.astype(float)
-                )
-
-            grid_longitude_matrix_deg_e[j, :] = this_lng_vector + 0.
 
         stx = stx.assign({
             satellite_utils.BRIGHTNESS_TEMPERATURE_KEY: (
