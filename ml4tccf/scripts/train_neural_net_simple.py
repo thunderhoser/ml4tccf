@@ -14,11 +14,14 @@ INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 def _run(template_file_name, output_dir_name,
          lag_times_minutes, low_res_wavelengths_microns,
          num_examples_per_batch, max_examples_per_cyclone,
-         num_rows_low_res, num_columns_low_res, data_aug_num_translations,
+         num_rows_low_res, num_columns_low_res,
+         short_track_dir_name, short_track_max_lead_minutes,
+         short_track_center_each_lag_diffly, data_aug_num_translations,
          data_aug_mean_translation_low_res_px,
-         data_aug_stdev_translation_low_res_px, synoptic_times_only,
-         a_deck_file_name, scalar_a_deck_field_names,
-         remove_nontropical_systems, use_xy_coords_as_predictors,
+         data_aug_stdev_translation_low_res_px,
+         data_aug_within_mean_trans_px, data_aug_within_stdev_trans_px,
+         synoptic_times_only, a_deck_file_name, scalar_a_deck_field_names,
+         remove_nontropical_systems,
          use_shuffled_data, satellite_dir_name_for_training, training_years,
          satellite_dir_name_for_validation, validation_years,
          num_epochs,
@@ -37,14 +40,18 @@ def _run(template_file_name, output_dir_name,
     :param max_examples_per_cyclone: Same.
     :param num_rows_low_res: Same.
     :param num_columns_low_res: Same.
+    :param short_track_dir_name: Same.
+    :param short_track_max_lead_minutes: Same.
+    :param short_track_center_each_lag_diffly: Same.
     :param data_aug_num_translations: Same.
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
+    :param data_aug_within_mean_trans_px: Same.
+    :param data_aug_within_stdev_trans_px: Same.
     :param synoptic_times_only: Same.
     :param a_deck_file_name: Same.
     :param scalar_a_deck_field_names: Same.
     :param remove_nontropical_systems: Same.
-    :param use_xy_coords_as_predictors: Same.
     :param use_shuffled_data: Same.
     :param satellite_dir_name_for_training: Same.
     :param training_years: Same.
@@ -58,6 +65,8 @@ def _run(template_file_name, output_dir_name,
     :param early_stopping_patience_epochs: Same.
     """
 
+    if short_track_dir_name == '':
+        short_track_dir_name = None
     if num_rows_low_res <= 0:
         num_rows_low_res = None
     if num_columns_low_res <= 0:
@@ -73,11 +82,18 @@ def _run(template_file_name, output_dir_name,
         nn_utils.MAX_EXAMPLES_PER_CYCLONE_KEY: max_examples_per_cyclone,
         nn_utils.NUM_GRID_ROWS_KEY: num_rows_low_res,
         nn_utils.NUM_GRID_COLUMNS_KEY: num_columns_low_res,
+        nn_training.SHORT_TRACK_DIR_KEY: short_track_dir_name,
+        nn_training.SHORT_TRACK_MAX_LEAD_KEY: short_track_max_lead_minutes,
+        nn_training.SHORT_TRACK_DIFF_CENTERS_KEY:
+            short_track_center_each_lag_diffly,
         nn_utils.DATA_AUG_NUM_TRANS_KEY: data_aug_num_translations,
-        nn_utils.DATA_AUG_MEAN_TRANS_KEY:
-            data_aug_mean_translation_low_res_px,
+        nn_utils.DATA_AUG_MEAN_TRANS_KEY: data_aug_mean_translation_low_res_px,
         nn_utils.DATA_AUG_STDEV_TRANS_KEY:
             data_aug_stdev_translation_low_res_px,
+        nn_training.DATA_AUG_WITHIN_MEAN_TRANS_KEY:
+            data_aug_within_mean_trans_px,
+        nn_training.DATA_AUG_WITHIN_STDEV_TRANS_KEY:
+            data_aug_within_stdev_trans_px,
         nn_utils.LAG_TIME_TOLERANCE_KEY: 0,
         nn_utils.MAX_MISSING_LAG_TIMES_KEY: 0,
         nn_utils.MAX_INTERP_GAP_KEY: 0,
@@ -87,7 +103,6 @@ def _run(template_file_name, output_dir_name,
         nn_utils.A_DECK_FILE_KEY: a_deck_file_name,
         nn_utils.SCALAR_A_DECK_FIELDS_KEY: scalar_a_deck_field_names,
         nn_utils.REMOVE_NONTROPICAL_KEY: remove_nontropical_systems,
-        nn_utils.USE_XY_COORDS_KEY: use_xy_coords_as_predictors,
         nn_utils.TRAIN_WITH_SHUFFLED_DATA_KEY: use_shuffled_data
     }
 
@@ -165,14 +180,29 @@ if __name__ == '__main__':
         num_columns_low_res=getattr(
             INPUT_ARG_OBJECT, training_args.NUM_GRID_COLUMNS_ARG_NAME
         ),
+        short_track_dir_name=getattr(
+            INPUT_ARG_OBJECT, training_args.SHORT_TRACK_DIR_ARG_NAME
+        ),
+        short_track_max_lead_minutes=getattr(
+            INPUT_ARG_OBJECT, training_args.SHORT_TRACK_MAX_LEAD_ARG_NAME
+        ),
+        short_track_center_each_lag_diffly=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.SHORT_TRACK_DIFF_CENTERS_ARG_NAME
+        )),
         data_aug_num_translations=getattr(
-            INPUT_ARG_OBJECT, training_args.DATA_AUG_NUM_TRANS_ARG_NAME
+            INPUT_ARG_OBJECT, training_args.NUM_TRANSLATIONS_ARG_NAME
         ),
         data_aug_mean_translation_low_res_px=getattr(
-            INPUT_ARG_OBJECT, training_args.DATA_AUG_MEAN_TRANS_ARG_NAME
+            INPUT_ARG_OBJECT, training_args.MEAN_TRANSLATION_DIST_ARG_NAME
         ),
         data_aug_stdev_translation_low_res_px=getattr(
-            INPUT_ARG_OBJECT, training_args.DATA_AUG_STDEV_TRANS_ARG_NAME
+            INPUT_ARG_OBJECT, training_args.STDEV_TRANSLATION_DIST_ARG_NAME
+        ),
+        data_aug_within_mean_trans_px=getattr(
+            INPUT_ARG_OBJECT, training_args.MEAN_TRANS_DIST_WITHIN_ARG_NAME
+        ),
+        data_aug_within_stdev_trans_px=getattr(
+            INPUT_ARG_OBJECT, training_args.STDEV_TRANS_DIST_WITHIN_ARG_NAME
         ),
         synoptic_times_only=bool(getattr(
             INPUT_ARG_OBJECT, training_args.SYNOPTIC_TIMES_ONLY_ARG_NAME
@@ -185,9 +215,6 @@ if __name__ == '__main__':
         ),
         remove_nontropical_systems=bool(getattr(
             INPUT_ARG_OBJECT, training_args.REMOVE_NONTROPICAL_ARG_NAME
-        )),
-        use_xy_coords_as_predictors=bool(getattr(
-            INPUT_ARG_OBJECT, training_args.USE_XY_COORDS_ARG_NAME
         )),
         use_shuffled_data=bool(getattr(
             INPUT_ARG_OBJECT, training_args.USE_SHUFFLED_DATA_ARG_NAME

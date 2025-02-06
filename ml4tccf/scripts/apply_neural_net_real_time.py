@@ -49,9 +49,14 @@ A_DECK_FILE_ARG_NAME = 'input_a_deck_file_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 VALID_DATE_ARG_NAME = 'valid_date_string'
 DISABLE_GPUS_ARG_NAME = 'disable_gpus'
+SHORT_TRACK_DIR_ARG_NAME = 'input_short_track_dir_name'
+SHORT_TRACK_MAX_LEAD_ARG_NAME = 'short_track_max_lead_minutes'
+SHORT_TRACK_DIFF_CENTERS_ARG_NAME = 'short_track_center_each_lag_diffly'
 NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
 STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
+MEAN_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_mean_trans_px'
+STDEV_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_stdev_trans_px'
 NUM_TRANSLATIONS_PER_STEP_ARG_NAME = 'data_aug_num_translations_per_step'
 RANDOM_SEED_ARG_NAME = 'random_seed'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
@@ -83,30 +88,53 @@ DISABLE_GPUS_HELP_STRING = (
     'where every job runs on a different node), where this script could be '
     'running multiple times at once.'
 )
+SHORT_TRACK_DIR_HELP_STRING = (
+    'Path to directory with short-track data (files therein will be found by '
+    '`short_track_io.find_file` and read by `short_track_io.read_file`).  To '
+    'use the same setting as during training, leave this argument alone.  To '
+    'omit short track in the first guess and use random translations only, '
+    'make this argument the empty string "".'
+)
+SHORT_TRACK_MAX_LEAD_HELP_STRING = (
+    '[used only if `{0:s}` is specified] Max lead time for short-track '
+    'forecasts (any longer-lead forecast will not be used in first guess).  To '
+    'use the same setting as during training, leave this argument alone.'
+).format(
+    SHORT_TRACK_DIR_ARG_NAME
+)
+SHORT_TRACK_DIFF_CENTERS_HELP_STRING = (
+    '[used only if `{0:s}` is specified] Boolean flag.  If 1 (0), for a given '
+    'data sample, the first guess will involve a different (the same) lat/long '
+    'center for each lag time.  To use the same setting as during training, '
+    'leave this argument alone.'
+).format(
+    SHORT_TRACK_DIR_ARG_NAME
+)
 NUM_TRANSLATIONS_HELP_STRING = (
-    'Number of random translations to apply to each TC snapshot (one snapshot '
-    '= one TC at one time).  Total number of TC samples will be num_snapshots '
-    '* {0:s}.  WARNING: Use this argument only if you want to add random '
-    'translations to the first-guess TC center.  If you want to just leave the '
-    'first-guess TC center alone and use this as the image center (which is '
-    'the default behaviour for the real-time version of GeoCenter), then make '
-    'this argument 0.'
+    'Number of translations for each TC object.  Total number of data samples '
+    'will be num_tc_objects * {0:s}.'
 ).format(
     NUM_TRANSLATIONS_ARG_NAME
 )
 MEAN_TRANSLATION_DIST_HELP_STRING = (
-    '[used only if {0:s} > 0] Mean translation distance (units of IR pixels).  '
-    'If you want to keep the same mean translation distance used in training, '
-    'leave this argument alone.'
-).format(
-    NUM_TRANSLATIONS_ARG_NAME
+    'Mean whole-track translation distance (units of IR pixels, or low-res '
+    'pixels).  To use the same setting as during training, leave this argument '
+    'alone.'
 )
 STDEV_TRANSLATION_DIST_HELP_STRING = (
-    '[used only if {0:s} > 0] Standard deviation of translation distance '
-    '(units of IR pixels).  If you want to keep the same stdev translation '
-    'distance used in training, leave this argument alone.'
-).format(
-    NUM_TRANSLATIONS_ARG_NAME
+    'Standard deviation of whole-track translation distance (units of IR '
+    'pixels, or low-res pixels).  To use the same setting as during training, '
+    'leave this argument alone.'
+)
+MEAN_TRANS_DIST_WITHIN_HELP_STRING = (
+    'Mean within-track translation distance (units of IR pixels, or low-res '
+    'pixels).  To use the same setting as during training, leave this argument '
+    'alone.'
+)
+STDEV_TRANS_DIST_WITHIN_HELP_STRING = (
+    'Standard deviation of within-track translation distance (units of IR '
+    'pixels, or low-res pixels).  To use the same setting as during training, '
+    'leave this argument alone.'
 )
 NUM_TRANSLATIONS_PER_STEP_HELP_STRING = (
     '[used only if {0:s} > 0] Number of random translations per step.  This '
@@ -169,7 +197,19 @@ INPUT_ARG_PARSER.add_argument(
     default=0, help=DISABLE_GPUS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
-    '--' + NUM_TRANSLATIONS_ARG_NAME, type=int, required=False, default=-1,
+    '--' + SHORT_TRACK_DIR_ARG_NAME, type=str, required=False, default='same',
+    help=SHORT_TRACK_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SHORT_TRACK_MAX_LEAD_ARG_NAME, type=int, required=False, default=-1,
+    help=SHORT_TRACK_MAX_LEAD_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SHORT_TRACK_DIFF_CENTERS_ARG_NAME, type=int, required=False,
+    default=-2, help=SHORT_TRACK_DIFF_CENTERS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_TRANSLATIONS_ARG_NAME, type=int, required=True,
     help=NUM_TRANSLATIONS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
@@ -179,6 +219,14 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + STDEV_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
     default=-1., help=STDEV_TRANSLATION_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MEAN_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=False,
+    default=-1., help=MEAN_TRANS_DIST_WITHIN_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + STDEV_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=False,
+    default=-1., help=STDEV_TRANS_DIST_WITHIN_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_TRANSLATIONS_PER_STEP_ARG_NAME, type=int, required=False,
@@ -200,8 +248,11 @@ INPUT_ARG_PARSER.add_argument(
 
 def _run(model_file_name, satellite_dir_name, a_deck_file_name,
          cyclone_id_string, valid_date_string, disable_gpus,
-         data_aug_num_translations, data_aug_mean_translation_low_res_px,
+         short_track_dir_name, short_track_max_lead_minutes,
+         short_track_center_each_lag_diffly, data_aug_num_translations,
+         data_aug_mean_translation_low_res_px,
          data_aug_stdev_translation_low_res_px,
+         data_aug_within_mean_trans_px, data_aug_within_stdev_trans_px,
          data_aug_num_translations_per_step, random_seed,
          output_dir_name, output_file_name):
     """Real-time version of apply_neural_net.py.
@@ -214,9 +265,14 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param cyclone_id_string: Same.
     :param valid_date_string: Same.
     :param disable_gpus: Same.
+    :param short_track_dir_name: Same.
+    :param short_track_max_lead_minutes: Same.
+    :param short_track_center_each_lag_diffly: Same.
     :param data_aug_num_translations: Same.
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
+    :param data_aug_within_mean_trans_px: Same.
+    :param data_aug_within_stdev_trans_px: Same.
     :param data_aug_num_translations_per_step: Same.
     :param random_seed: Same.
     :param output_dir_name: Same.
@@ -243,14 +299,25 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
 
     assert not (output_dir_name is None and output_file_name is None)
 
-    if data_aug_num_translations < 0:
-        data_aug_num_translations = None
+    if short_track_dir_name == 'same':
+        short_track_dir_name = None
+    if short_track_max_lead_minutes <= 0:
+        short_track_max_lead_minutes = None
+    if short_track_center_each_lag_diffly < 0:
+        short_track_center_each_lag_diffly = None
+    else:
+        short_track_center_each_lag_diffly = bool(
+            short_track_center_each_lag_diffly
+        )
+
     if data_aug_mean_translation_low_res_px < 0:
         data_aug_mean_translation_low_res_px = None
     if data_aug_stdev_translation_low_res_px < 0:
         data_aug_stdev_translation_low_res_px = None
-    if data_aug_num_translations_per_step <= 0:
-        data_aug_num_translations_per_step = None
+    if data_aug_within_mean_trans_px < 0:
+        data_aug_within_mean_trans_px = None
+    if data_aug_within_stdev_trans_px < 0:
+        data_aug_within_stdev_trans_px = None
 
     if data_aug_num_translations is None:
         data_aug_num_translations_per_step = None
@@ -271,36 +338,42 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     validation_option_dict = (
         model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
     )
-    validation_option_dict[nn_utils.REMOVE_TROPICAL_KEY] = False
-    validation_option_dict[nn_utils.REMOVE_NONTROPICAL_KEY] = False
-    validation_option_dict[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = False
+    vod = validation_option_dict
+    vod[nn_utils.REMOVE_TROPICAL_KEY] = False
+    vod[nn_utils.REMOVE_NONTROPICAL_KEY] = False
+    vod[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = False
+    vod[nn_utils.SATELLITE_DIRECTORY_KEY] = satellite_dir_name
+    vod[nn_utils.A_DECK_FILE_KEY] = a_deck_file_name
+    vod[nn_utils.DATA_AUG_NUM_TRANS_KEY] = data_aug_num_translations
 
-    if data_aug_num_translations is None:
-
-        # First-guess TC center will be left alone.
-        validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 1
-        validation_option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = 1e-6
-        validation_option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = 1e-6
-    else:
-
-        # First-guess TC center will be perturbed.
-        validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
-            data_aug_num_translations
+    if short_track_dir_name is not None:
+        vod[nn_training_simple.SHORT_TRACK_DIR_KEY] = short_track_dir_name
+    if short_track_max_lead_minutes is not None:
+        vod[nn_training_simple.SHORT_TRACK_MAX_LEAD_KEY] = (
+            short_track_max_lead_minutes
+        )
+    if short_track_center_each_lag_diffly is not None:
+        vod[nn_training_simple.SHORT_TRACK_DIFF_CENTERS_KEY] = (
+            short_track_center_each_lag_diffly
+        )
+    if data_aug_mean_translation_low_res_px is not None:
+        vod[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = (
+            data_aug_mean_translation_low_res_px
+        )
+    if data_aug_stdev_translation_low_res_px is not None:
+        vod[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = (
+            data_aug_stdev_translation_low_res_px
+        )
+    if data_aug_within_mean_trans_px is not None:
+        vod[nn_training_simple.DATA_AUG_WITHIN_MEAN_TRANS_KEY] = (
+            data_aug_within_mean_trans_px
+        )
+    if data_aug_within_stdev_trans_px is not None:
+        vod[nn_training_simple.DATA_AUG_WITHIN_STDEV_TRANS_KEY] = (
+            data_aug_within_stdev_trans_px
         )
 
-        if data_aug_mean_translation_low_res_px is not None:
-            validation_option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = (
-                data_aug_mean_translation_low_res_px
-            )
-        if data_aug_stdev_translation_low_res_px is not None:
-            validation_option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = (
-                data_aug_stdev_translation_low_res_px
-            )
-
-    validation_option_dict[nn_utils.SATELLITE_DIRECTORY_KEY] = (
-        satellite_dir_name
-    )
-    validation_option_dict[nn_utils.A_DECK_FILE_KEY] = a_deck_file_name
+    validation_option_dict = vod
 
     data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
     target_matrix = numpy.array([], dtype=float)
@@ -448,6 +521,15 @@ if __name__ == '__main__':
         disable_gpus=bool(
             getattr(INPUT_ARG_OBJECT, DISABLE_GPUS_ARG_NAME)
         ),
+        short_track_dir_name=getattr(
+            INPUT_ARG_OBJECT, SHORT_TRACK_DIR_ARG_NAME
+        ),
+        short_track_max_lead_minutes=getattr(
+            INPUT_ARG_OBJECT, SHORT_TRACK_MAX_LEAD_ARG_NAME
+        ),
+        short_track_center_each_lag_diffly=getattr(
+            INPUT_ARG_OBJECT, SHORT_TRACK_DIFF_CENTERS_ARG_NAME
+        ),
         data_aug_num_translations=getattr(
             INPUT_ARG_OBJECT, NUM_TRANSLATIONS_ARG_NAME
         ),
@@ -456,6 +538,12 @@ if __name__ == '__main__':
         ),
         data_aug_stdev_translation_low_res_px=getattr(
             INPUT_ARG_OBJECT, STDEV_TRANSLATION_DIST_ARG_NAME
+        ),
+        data_aug_within_mean_trans_px=getattr(
+            INPUT_ARG_OBJECT, MEAN_TRANS_DIST_WITHIN_ARG_NAME
+        ),
+        data_aug_within_stdev_trans_px=getattr(
+            INPUT_ARG_OBJECT, STDEV_TRANS_DIST_WITHIN_ARG_NAME
         ),
         data_aug_num_translations_per_step=getattr(
             INPUT_ARG_OBJECT, NUM_TRANSLATIONS_PER_STEP_ARG_NAME

@@ -25,9 +25,14 @@ SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
 A_DECK_FILE_ARG_NAME = 'input_a_deck_file_name'
 CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
 VALID_DATE_ARG_NAME = 'valid_date_string'
+SHORT_TRACK_DIR_ARG_NAME = 'input_short_track_dir_name'
+SHORT_TRACK_MAX_LEAD_ARG_NAME = 'short_track_max_lead_minutes'
+SHORT_TRACK_DIFF_CENTERS_ARG_NAME = 'short_track_center_each_lag_diffly'
 NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
 STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
+MEAN_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_mean_trans_px'
+STDEV_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_stdev_trans_px'
 RANDOM_SEED_ARG_NAME = 'random_seed'
 REMOVE_TROPICAL_SYSTEMS_ARG_NAME = 'remove_tropical_systems'
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
@@ -55,22 +60,53 @@ VALID_DATE_HELP_STRING = (
     'on this date.  If you want to apply the NN to all valid times for the '
     'cyclone, leave this argument alone.'
 )
+SHORT_TRACK_DIR_HELP_STRING = (
+    'Path to directory with short-track data (files therein will be found by '
+    '`short_track_io.find_file` and read by `short_track_io.read_file`).  To '
+    'use the same setting as during training, leave this argument alone.  To '
+    'omit short track in the first guess and use random translations only, '
+    'make this argument the empty string "".'
+)
+SHORT_TRACK_MAX_LEAD_HELP_STRING = (
+    '[used only if `{0:s}` is specified] Max lead time for short-track '
+    'forecasts (any longer-lead forecast will not be used in first guess).  To '
+    'use the same setting as during training, leave this argument alone.'
+).format(
+    SHORT_TRACK_DIR_ARG_NAME
+)
+SHORT_TRACK_DIFF_CENTERS_HELP_STRING = (
+    '[used only if `{0:s}` is specified] Boolean flag.  If 1 (0), for a given '
+    'data sample, the first guess will involve a different (the same) lat/long '
+    'center for each lag time.  To use the same setting as during training, '
+    'leave this argument alone.'
+).format(
+    SHORT_TRACK_DIR_ARG_NAME
+)
 NUM_TRANSLATIONS_HELP_STRING = (
-    'Number of translations for each cyclone snapshot (one snapshot = one '
-    'cyclone at one target time).  Total number of data samples will be '
-    'num_snapshots * {0:s}.'
+    'Number of translations for each TC object.  Total number of data samples '
+    'will be num_tc_objects * {0:s}.'
 ).format(
     NUM_TRANSLATIONS_ARG_NAME
 )
 MEAN_TRANSLATION_DIST_HELP_STRING = (
-    'Mean translation distance (units of IR pixels or low-res pixels).  If you '
-    'want to keep the same mean translation distance used in training, leave '
-    'this argument alone.'
+    'Mean whole-track translation distance (units of IR pixels, or low-res '
+    'pixels).  To use the same setting as during training, leave this argument '
+    'alone.'
 )
 STDEV_TRANSLATION_DIST_HELP_STRING = (
-    'Standard deviation of translation distance (units of IR pixels or low-res '
-    'pixels).  If you want to keep the same stdev translation distance used in '
-    'training, leave this argument alone.'
+    'Standard deviation of whole-track translation distance (units of IR '
+    'pixels, or low-res pixels).  To use the same setting as during training, '
+    'leave this argument alone.'
+)
+MEAN_TRANS_DIST_WITHIN_HELP_STRING = (
+    'Mean within-track translation distance (units of IR pixels, or low-res '
+    'pixels).  To use the same setting as during training, leave this argument '
+    'alone.'
+)
+STDEV_TRANS_DIST_WITHIN_HELP_STRING = (
+    'Standard deviation of within-track translation distance (units of IR '
+    'pixels, or low-res pixels).  To use the same setting as during training, '
+    'leave this argument alone.'
 )
 RANDOM_SEED_HELP_STRING = (
     'Random seed.  This will determine, among other things, the exact '
@@ -129,6 +165,18 @@ INPUT_ARG_PARSER.add_argument(
     help=VALID_DATE_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + SHORT_TRACK_DIR_ARG_NAME, type=str, required=False, default='same',
+    help=SHORT_TRACK_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SHORT_TRACK_MAX_LEAD_ARG_NAME, type=int, required=False, default=-1,
+    help=SHORT_TRACK_MAX_LEAD_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SHORT_TRACK_DIFF_CENTERS_ARG_NAME, type=int, required=False,
+    default=-2, help=SHORT_TRACK_DIFF_CENTERS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + NUM_TRANSLATIONS_ARG_NAME, type=int, required=True,
     help=NUM_TRANSLATIONS_HELP_STRING
 )
@@ -139,6 +187,14 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + STDEV_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
     default=-1., help=STDEV_TRANSLATION_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MEAN_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=False,
+    default=-1., help=MEAN_TRANS_DIST_WITHIN_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + STDEV_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=False,
+    default=-1., help=STDEV_TRANS_DIST_WITHIN_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + RANDOM_SEED_ARG_NAME, type=int, required=False, default=-1,
@@ -167,9 +223,12 @@ INPUT_ARG_PARSER.add_argument(
 
 
 def _run(model_file_name, satellite_dir_name, a_deck_file_name,
-         cyclone_id_string, valid_date_string, data_aug_num_translations,
+         cyclone_id_string, valid_date_string,
+         short_track_dir_name, short_track_max_lead_minutes,
+         short_track_center_each_lag_diffly, data_aug_num_translations,
          data_aug_mean_translation_low_res_px,
          data_aug_stdev_translation_low_res_px,
+         data_aug_within_mean_trans_px, data_aug_within_stdev_trans_px,
          random_seed, remove_tropical_systems, synoptic_times_only,
          disable_gpus, output_dir_name, output_file_name):
     """Applies trained neural net -- inference time!
@@ -181,9 +240,14 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param a_deck_file_name: Same.
     :param cyclone_id_string: Same.
     :param valid_date_string: Same.
+    :param short_track_dir_name: Same.
+    :param short_track_max_lead_minutes: Same.
+    :param short_track_center_each_lag_diffly: Same.
     :param data_aug_num_translations: Same.
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
+    :param data_aug_within_mean_trans_px: Same.
+    :param data_aug_within_stdev_trans_px: Same.
     :param random_seed: Same.
     :param remove_tropical_systems: Same.
     :param synoptic_times_only: Same.
@@ -212,10 +276,25 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
 
     assert not (output_dir_name is None and output_file_name is None)
 
+    if short_track_dir_name == 'same':
+        short_track_dir_name = None
+    if short_track_max_lead_minutes <= 0:
+        short_track_max_lead_minutes = None
+    if short_track_center_each_lag_diffly < 0:
+        short_track_center_each_lag_diffly = None
+    else:
+        short_track_center_each_lag_diffly = bool(
+            short_track_center_each_lag_diffly
+        )
+
     if data_aug_mean_translation_low_res_px < 0:
         data_aug_mean_translation_low_res_px = None
     if data_aug_stdev_translation_low_res_px < 0:
         data_aug_stdev_translation_low_res_px = None
+    if data_aug_within_mean_trans_px < 0:
+        data_aug_within_mean_trans_px = None
+    if data_aug_within_stdev_trans_px < 0:
+        data_aug_within_stdev_trans_px = None
 
     error_checking.assert_is_geq(data_aug_num_translations, 1)
 
@@ -234,6 +313,16 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     vod[nn_utils.A_DECK_FILE_KEY] = a_deck_file_name
     vod[nn_utils.DATA_AUG_NUM_TRANS_KEY] = data_aug_num_translations
 
+    if short_track_dir_name is not None:
+        vod[nn_training_simple.SHORT_TRACK_DIR_KEY] = short_track_dir_name
+    if short_track_max_lead_minutes is not None:
+        vod[nn_training_simple.SHORT_TRACK_MAX_LEAD_KEY] = (
+            short_track_max_lead_minutes
+        )
+    if short_track_center_each_lag_diffly is not None:
+        vod[nn_training_simple.SHORT_TRACK_DIFF_CENTERS_KEY] = (
+            short_track_center_each_lag_diffly
+        )
     if data_aug_mean_translation_low_res_px is not None:
         vod[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = (
             data_aug_mean_translation_low_res_px
@@ -242,6 +331,15 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         vod[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = (
             data_aug_stdev_translation_low_res_px
         )
+    if data_aug_within_mean_trans_px is not None:
+        vod[nn_training_simple.DATA_AUG_WITHIN_MEAN_TRANS_KEY] = (
+            data_aug_within_mean_trans_px
+        )
+    if data_aug_within_stdev_trans_px is not None:
+        vod[nn_training_simple.DATA_AUG_WITHIN_STDEV_TRANS_KEY] = (
+            data_aug_within_stdev_trans_px
+        )
+
     if remove_tropical_systems:
         vod[nn_utils.REMOVE_TROPICAL_KEY] = True
         vod[nn_utils.REMOVE_NONTROPICAL_KEY] = False
@@ -338,6 +436,15 @@ if __name__ == '__main__':
         a_deck_file_name=getattr(INPUT_ARG_OBJECT, A_DECK_FILE_ARG_NAME),
         cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
         valid_date_string=getattr(INPUT_ARG_OBJECT, VALID_DATE_ARG_NAME),
+        short_track_dir_name=getattr(
+            INPUT_ARG_OBJECT, SHORT_TRACK_DIR_ARG_NAME
+        ),
+        short_track_max_lead_minutes=getattr(
+            INPUT_ARG_OBJECT, SHORT_TRACK_MAX_LEAD_ARG_NAME
+        ),
+        short_track_center_each_lag_diffly=getattr(
+            INPUT_ARG_OBJECT, SHORT_TRACK_DIFF_CENTERS_ARG_NAME
+        ),
         data_aug_num_translations=getattr(
             INPUT_ARG_OBJECT, NUM_TRANSLATIONS_ARG_NAME
         ),
@@ -346,6 +453,12 @@ if __name__ == '__main__':
         ),
         data_aug_stdev_translation_low_res_px=getattr(
             INPUT_ARG_OBJECT, STDEV_TRANSLATION_DIST_ARG_NAME
+        ),
+        data_aug_within_mean_trans_px=getattr(
+            INPUT_ARG_OBJECT, MEAN_TRANS_DIST_WITHIN_ARG_NAME
+        ),
+        data_aug_within_stdev_trans_px=getattr(
+            INPUT_ARG_OBJECT, STDEV_TRANS_DIST_WITHIN_ARG_NAME
         ),
         random_seed=getattr(INPUT_ARG_OBJECT, RANDOM_SEED_ARG_NAME),
         remove_tropical_systems=bool(

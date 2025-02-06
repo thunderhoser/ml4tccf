@@ -5,6 +5,12 @@ import xarray
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import satellite_utils
 
+BIDIRECTIONAL_REFLS_KEY = 'bidirectional_reflectance_matrix'
+BRIGHTNESS_TEMPS_KEY = 'brightness_temp_matrix_kelvins'
+ROW_TRANSLATIONS_KEY = 'row_translations_low_res_px'
+COLUMN_TRANSLATIONS_KEY = 'column_translations_low_res_px'
+ORIG_EXAMPLE_INDICES_KEY = 'orig_example_indices'
+
 
 def _get_random_signs(array_length):
     """Returns array of random signs (1 for positive, -1 for negative).
@@ -204,13 +210,18 @@ def augment_data(
     :param stdev_translation_low_res_px: Standard deviation of translation
         distance (in units of low-resolution pixels).
     :param sentinel_value: Sentinel value (used for padded pixels around edge).
-    :return: bidirectional_reflectance_matrix: ET-by-M-by-N-by-L-by-W numpy
-        array of reflectance values (unitless).  This may also be None.
-    :return: brightness_temp_matrix_kelvins: ET-by-m-by-n-by-L-by-w numpy array
-        of brightness temperatures.
-    :return: row_translations_low_res_px: length-(ET) numpy array of translation
-        distances applied (in units of low-resolution pixels).
-    :return: column_translations_low_res_px: Same but for columns.
+    :return: translation_dict: Dictionary with the following keys.
+    translation_dict["bidirectional_reflectance_matrix"]:
+        ET-by-M-by-N-by-L-by-W numpy array of reflectance values (unitless).
+        This may also be None.
+    translation_dict["brightness_temp_matrix_kelvins"]: ET-by-m-by-n-by-L-by-w
+        numpy array of brightness temperatures.
+    translation_dict["row_translations_low_res_px"]: length-(ET) numpy array of
+        translation distances applied (in units of low-resolution pixels).
+    translation_dict["column_translations_low_res_px"]: Same but for columns.
+    translation_dict["orig_example_indices"]: length-(ET) numpy array, where
+        orig_example_indices[i] is the index of the original example used to
+        create the [i]th translated example.
     """
 
     # Check input args.
@@ -261,6 +272,7 @@ def augment_data(
         (num_examples_new,) + brightness_temp_matrix_kelvins.shape[1:],
         numpy.nan
     )
+    orig_example_indices = numpy.full(num_examples_new, -1, dtype=int)
 
     if bidirectional_reflectance_matrix is None:
         new_reflectance_matrix = None
@@ -275,6 +287,8 @@ def augment_data(
         last_index = first_index + num_translations_per_example
 
         for j in range(first_index, last_index):
+            orig_example_indices[j] = i
+
             new_bt_matrix_kelvins[j, ...] = _translate_images(
                 image_matrix=brightness_temp_matrix_kelvins[[i], ...],
                 row_translation_px=row_translations_low_res_px[j],
@@ -292,10 +306,13 @@ def augment_data(
                 padding_value=sentinel_value
             )[0, ...]
 
-    return (
-        new_reflectance_matrix, new_bt_matrix_kelvins,
-        row_translations_low_res_px, column_translations_low_res_px
-    )
+    return {
+        BIDIRECTIONAL_REFLS_KEY: new_reflectance_matrix,
+        BRIGHTNESS_TEMPS_KEY: new_bt_matrix_kelvins,
+        ROW_TRANSLATIONS_KEY: row_translations_low_res_px,
+        COLUMN_TRANSLATIONS_KEY: column_translations_low_res_px,
+        ORIG_EXAMPLE_INDICES_KEY: orig_example_indices
+    }
 
 
 def augment_data_specific_trans(

@@ -23,10 +23,6 @@ from ml4tccf.machine_learning import \
 from ml4tccf.plotting import plotting_utils
 from ml4tccf.plotting import satellite_plotting
 
-# TODO(thunderhoser): Keep in mind that data augmentation is not applied to
-# lat/long coordinates, so all images plotted by this script will NOT line up
-# properly with lat/long coordinates.  I could fix this, but meh... later.
-
 TOLERANCE = 1e-6
 TIME_FORMAT = '%Y-%m-%d-%H%M'
 

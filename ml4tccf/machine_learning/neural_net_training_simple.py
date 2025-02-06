@@ -6,7 +6,6 @@ import numpy
 import keras
 import xarray
 from scipy.interpolate import interp1d
-from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
@@ -14,6 +13,7 @@ from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import a_deck_io
 from ml4tccf.io import satellite_io
+from ml4tccf.io import short_track_io
 from ml4tccf.utils import misc_utils
 from ml4tccf.utils import satellite_utils
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
@@ -28,6 +28,7 @@ METRES_TO_KM = 0.001
 MINUTES_TO_SECONDS = 60
 DAYS_TO_SECONDS = 86400
 
+SENTINEL_VALUE = -1000.
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
 
 BRIGHTNESS_TEMPS_KEY = nn_utils.BRIGHTNESS_TEMPS_KEY
@@ -37,7 +38,6 @@ TARGET_TIMES_KEY = nn_utils.TARGET_TIMES_KEY
 CYCLONE_IDS_KEY = 'cyclone_id_strings'
 LOW_RES_LATITUDES_KEY = nn_utils.LOW_RES_LATITUDES_KEY
 LOW_RES_LONGITUDES_KEY = nn_utils.LOW_RES_LONGITUDES_KEY
-NORMALIZED_XY_COORDS_KEY = 'normalized_xy_coord_matrix'
 
 PREDICTOR_MATRICES_KEY = nn_utils.PREDICTOR_MATRICES_KEY
 TARGET_MATRIX_KEY = nn_utils.TARGET_MATRIX_KEY
@@ -52,22 +52,430 @@ BATCH_SIZE_KEY = nn_utils.BATCH_SIZE_KEY
 MAX_EXAMPLES_PER_CYCLONE_KEY = nn_utils.MAX_EXAMPLES_PER_CYCLONE_KEY
 NUM_GRID_ROWS_KEY = nn_utils.NUM_GRID_ROWS_KEY
 NUM_GRID_COLUMNS_KEY = nn_utils.NUM_GRID_COLUMNS_KEY
+SHORT_TRACK_DIR_KEY = 'short_track_dir_name'
+SHORT_TRACK_MAX_LEAD_KEY = 'short_track_max_lead_minutes'
+SHORT_TRACK_DIFF_CENTERS_KEY = 'short_track_center_each_lag_diffly'
 DATA_AUG_NUM_TRANS_KEY = nn_utils.DATA_AUG_NUM_TRANS_KEY
 DATA_AUG_MEAN_TRANS_KEY = nn_utils.DATA_AUG_MEAN_TRANS_KEY
 DATA_AUG_STDEV_TRANS_KEY = nn_utils.DATA_AUG_STDEV_TRANS_KEY
+DATA_AUG_WITHIN_MEAN_TRANS_KEY = 'data_aug_within_mean_trans_px'
+DATA_AUG_WITHIN_STDEV_TRANS_KEY = 'data_aug_within_stdev_trans_px'
 SYNOPTIC_TIMES_ONLY_KEY = nn_utils.SYNOPTIC_TIMES_ONLY_KEY
 A_DECK_FILE_KEY = nn_utils.A_DECK_FILE_KEY
 SCALAR_A_DECK_FIELDS_KEY = nn_utils.SCALAR_A_DECK_FIELDS_KEY
 REMOVE_NONTROPICAL_KEY = nn_utils.REMOVE_NONTROPICAL_KEY
 REMOVE_TROPICAL_KEY = nn_utils.REMOVE_TROPICAL_KEY
-USE_XY_COORDS_KEY = nn_utils.USE_XY_COORDS_KEY
 SEMANTIC_SEG_FLAG_KEY = nn_utils.SEMANTIC_SEG_FLAG_KEY
 TARGET_SMOOOTHER_STDEV_KEY = nn_utils.TARGET_SMOOOTHER_STDEV_KEY
+USE_XY_COORDS_KEY = nn_utils.USE_XY_COORDS_KEY
+
+
+def __are_satellite_data_empty(satellite_data_dict):
+    """Determines whether satellite data are empty.
+
+    :param satellite_data_dict: Dictionary returned by
+        `_read_satellite_data_1cyclone` or
+        `_read_satellite_data_1shuffled_file`.
+    :return: empty_flag: Boolean flag.
+    """
+
+    return (
+        satellite_data_dict is None
+        or satellite_data_dict[BRIGHTNESS_TEMPS_KEY] is None
+        or satellite_data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
+    )
+
+
+def _check_generator_args(option_dict):
+    """Error-checks input arguments for generator.
+
+    :param option_dict: See documentation for `data_generator`.
+    :return: option_dict: Same as input, except defaults may have been added.
+    """
+
+    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
+    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
+    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
+    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
+    option_dict[nn_utils.SENTINEL_VALUE_KEY] = SENTINEL_VALUE
+    option_dict[USE_XY_COORDS_KEY] = False
+
+    option_dict = nn_utils.check_generator_args(option_dict)
+
+    if option_dict[SHORT_TRACK_DIR_KEY] is None:
+        option_dict[SHORT_TRACK_MAX_LEAD_KEY] = -1
+        option_dict[SHORT_TRACK_DIFF_CENTERS_KEY] = False
+    else:
+        error_checking.assert_is_string(option_dict[SHORT_TRACK_DIR_KEY])
+        error_checking.assert_is_integer(option_dict[SHORT_TRACK_MAX_LEAD_KEY])
+        error_checking.assert_is_greater(
+            option_dict[SHORT_TRACK_MAX_LEAD_KEY], 0
+        )
+        error_checking.assert_is_boolean(
+            option_dict[SHORT_TRACK_DIFF_CENTERS_KEY]
+        )
+
+    error_checking.assert_is_greater(
+        option_dict[DATA_AUG_WITHIN_MEAN_TRANS_KEY], 0.
+    )
+    error_checking.assert_is_greater(
+        option_dict[DATA_AUG_WITHIN_STDEV_TRANS_KEY], 0.
+    )
+
+    return option_dict
+
+
+def _recenter_1example_on_short_track(
+        satellite_data_dict, example_index,
+        satellite_lag_times_minutes, short_track_dir_name,
+        max_short_track_lead_time_minutes, center_each_lag_time_differently):
+    """Recenters one example (TC object) on short-track center.
+
+    :param satellite_data_dict: See documentation for
+        `_recenter_satellite_on_short_track`.
+    :param example_index: Will recenter the [i]th example, where
+        i = example_index.
+    :param satellite_lag_times_minutes: Same.
+    :param short_track_dir_name: Same.
+    :param max_short_track_lead_time_minutes: Same.
+    :param center_each_lag_time_differently: Same.
+    :return: satellite_data_dict: Same as input but with recentered imagery for
+        the [i]th example.
+    :return: row_trans_label_low_res_px: Row translation (in units of low-res
+        pixels) needed to recenter image on best track, which was the original
+        image center.  This is the first half of the label vector for training.
+    :return: column_trans_label_low_res_px: Same as above but for columns.
+        This is the second half of the label vector for training.
+    """
+
+    i = example_index
+    cyclone_id_string = satellite_data_dict[CYCLONE_IDS_KEY][i]
+    target_time_unix_sec = satellite_data_dict[TARGET_TIMES_KEY][i]
+
+    satellite_valid_times_unix_sec = (
+        target_time_unix_sec - satellite_lag_times_minutes * MINUTES_TO_SECONDS
+    )
+    error_checking.assert_is_greater_numpy_array(
+        numpy.diff(satellite_valid_times_unix_sec), 0
+    )
+    error_checking.assert_equals(satellite_lag_times_minutes[-1], 0)
+
+    short_track_file_name = short_track_io.find_file(
+        directory_name=short_track_dir_name,
+        cyclone_id_string=cyclone_id_string,
+        raise_error_if_missing=True
+    )
+
+    print('Reading short-track forecasts from: "{0:s}"...'.format(
+        short_track_file_name
+    ))
+    short_track_table_xarray = short_track_io.read_file(
+        short_track_file_name
+    )
+    sttx = short_track_table_xarray
+
+    short_track_init_time_unix_sec = target_time_unix_sec + 0
+    min_allowed_init_time_unix_sec = (
+        target_time_unix_sec -
+        max_short_track_lead_time_minutes * MINUTES_TO_SECONDS
+    )
+
+    init_time_idx = -1
+    lead_time_idxs = []
+
+    while short_track_init_time_unix_sec >= min_allowed_init_time_unix_sec:
+        these_indices = numpy.where(
+            sttx.coords[short_track_io.INIT_TIME_DIM].values ==
+            short_track_init_time_unix_sec
+        )[0]
+
+        if len(these_indices) == 0:
+            short_track_init_time_unix_sec -= 10 * MINUTES_TO_SECONDS
+            continue
+
+        init_time_idx = these_indices[0]
+        lead_time_idxs = []
+
+        desired_lead_times_sec = (
+            satellite_valid_times_unix_sec - short_track_init_time_unix_sec
+        )
+
+        if not center_each_lag_time_differently:
+            desired_lead_times_sec[:] = (
+                satellite_valid_times_unix_sec[-1] -
+                short_track_init_time_unix_sec
+            )
+
+        for this_lead_time in desired_lead_times_sec:
+            first_flags = (
+                sttx.coords[short_track_io.LEAD_TIME_DIM].values ==
+                this_lead_time
+            )
+
+            second_flags = numpy.invert(numpy.logical_or(
+                numpy.isnan(
+                    sttx[short_track_io.LATITUDE_KEY].values[init_time_idx, :]
+                ),
+                numpy.isnan(
+                    sttx[short_track_io.LONGITUDE_KEY].values[init_time_idx, :]
+                )
+            ))
+
+            these_indices = numpy.where(
+                numpy.logical_and(first_flags, second_flags)
+            )[0]
+
+            if len(these_indices) == 0:
+                init_time_idx = -1
+                break
+
+            lead_time_idxs.append(these_indices[0])
+
+        if init_time_idx == -1:
+            short_track_init_time_unix_sec -= 10 * MINUTES_TO_SECONDS
+            continue
+
+        lead_time_idxs = numpy.array(lead_time_idxs, dtype=int)
+        break
+
+    if init_time_idx == -1:
+        warning_string = (
+            'POTENTIAL ERROR: Cannot find short-track forecasts for {0:s} '
+            'initialized between {1:s} and {2:s}.'
+        ).format(
+            cyclone_id_string,
+            time_conversion.unix_sec_to_string(
+                min_allowed_init_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+            ),
+            time_conversion.unix_sec_to_string(
+                target_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+            )
+        )
+
+        warnings.warn(warning_string)
+        return satellite_data_dict, None, None
+
+    info_string = (
+        'WANTED short-track forecasts for {0:s} init at {1:s}.  FOUND '
+        'forecasts init at {2:s}.'
+    ).format(
+        cyclone_id_string,
+        time_conversion.unix_sec_to_string(
+            target_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+        ),
+        time_conversion.unix_sec_to_string(
+            sttx.coords[short_track_io.INIT_TIME_DIM].values[init_time_idx],
+            TIME_FORMAT_FOR_LOG_MESSAGES
+        )
+    )
+
+    print(info_string)
+
+    short_track_latitudes_deg_n = sttx[short_track_io.LATITUDE_KEY].values[
+        init_time_idx, lead_time_idxs
+    ]
+    short_track_longitudes_deg_e = sttx[short_track_io.LONGITUDE_KEY].values[
+        init_time_idx, lead_time_idxs
+    ]
+
+    sdd = satellite_data_dict
+    half_num_grid_rows = sdd[BRIGHTNESS_TEMPS_KEY].shape[1] // 2
+    half_num_grid_columns = sdd[BRIGHTNESS_TEMPS_KEY].shape[2] // 2
+
+    row_translation_px = None
+    column_translation_px = None
+    num_lag_times = len(satellite_valid_times_unix_sec)
+
+    for j in range(num_lag_times):
+        grid_latitudes_deg_n = sdd[LOW_RES_LATITUDES_KEY][i, :, j]
+        grid_longitudes_deg_e = sdd[LOW_RES_LONGITUDES_KEY][i, :, j]
+
+        hr = half_num_grid_rows
+        hc = half_num_grid_columns
+        orig_latitude_deg_n = numpy.mean(
+            grid_latitudes_deg_n[(hr - 1):(hr + 1)]
+        )
+        orig_longitude_deg_e = numpy.mean(
+            grid_longitudes_deg_e[(hc - 1):(hc + 1)]
+        )
+
+        print((
+            'Recentering ({0:s}, target {1:s}, {2:d}-min lag) from '
+            '({3:.4f} deg N, {4:.4f} deg E) to '
+            '({5:.4f} deg N, {6:.4f} deg E)...'
+        ).format(
+            cyclone_id_string,
+            time_conversion.unix_sec_to_string(
+                target_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+            ),
+            satellite_lag_times_minutes[j],
+            orig_latitude_deg_n,
+            orig_longitude_deg_e,
+            short_track_latitudes_deg_n[j],
+            short_track_longitudes_deg_e[j]
+        ))
+
+        latitude_diff_deg = numpy.absolute(
+            short_track_latitudes_deg_n[j] - orig_latitude_deg_n
+        )
+        if latitude_diff_deg > 5:
+            warning_string = (
+                'POTENTIAL ERROR: Difference between original ({0:.4f} deg N) '
+                'and short-track ({1:.4f} deg N) latitudes is too big.'
+            ).format(
+                orig_latitude_deg_n,
+                short_track_latitudes_deg_n[j]
+            )
+
+            warnings.warn(warning_string)
+            return satellite_data_dict, None, None
+
+        longitude_diff_deg = numpy.absolute(
+            short_track_longitudes_deg_e[j] - orig_longitude_deg_e
+        )
+        if longitude_diff_deg > 7.5:
+            warning_string = (
+                'POTENTIAL ERROR: Difference between original ({0:.4f} deg E) '
+                'and short-track ({1:.4f} deg E) longitudes is too big.'
+            ).format(
+                orig_longitude_deg_e,
+                short_track_longitudes_deg_e[j]
+            )
+
+            warnings.warn(warning_string)
+            return satellite_data_dict, None, None
+
+        latitude_diffs_deg = numpy.absolute(
+            grid_latitudes_deg_n - short_track_latitudes_deg_n[j]
+        )
+        assert numpy.min(latitude_diffs_deg) < 0.03
+        new_center_row = numpy.argmin(latitude_diffs_deg)
+
+        longitude_diffs_deg = numpy.absolute(
+            grid_longitudes_deg_e - short_track_longitudes_deg_e[j]
+        )
+        assert numpy.min(longitude_diffs_deg) < 0.05
+        new_center_column = numpy.argmin(longitude_diffs_deg)
+
+        row_translation_px = half_num_grid_rows - new_center_row
+        column_translation_px = half_num_grid_columns - new_center_column
+
+        (
+            _, satellite_data_dict[BRIGHTNESS_TEMPS_KEY][[0], :, :, j, ...]
+        ) = data_augmentation.augment_data_specific_trans(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=
+            satellite_data_dict[BRIGHTNESS_TEMPS_KEY][[0], :, :, j, ...],
+            row_translations_low_res_px=
+            numpy.array([row_translation_px], dtype=int),
+            column_translations_low_res_px=
+            numpy.array([column_translation_px], dtype=int),
+            sentinel_value=SENTINEL_VALUE
+        )
+
+    return satellite_data_dict, row_translation_px, column_translation_px
+
+
+def _recenter_satellite_on_short_track(
+        satellite_data_dict, satellite_lag_times_minutes, short_track_dir_name,
+        max_short_track_lead_time_minutes, center_each_lag_time_differently):
+    """Centers satellite data on short-track, instead of best-track, TC center.
+
+    E = number of examples (TC objects)
+    L = number of lag times
+
+    :param satellite_data_dict: Dictionary returned by
+        `_read_satellite_data_1cyclone` or
+        `_read_satellite_data_1shuffled_file`.
+    :param satellite_lag_times_minutes: length-L numpy array of lag times.
+    :param short_track_dir_name: Path to directory with short-track data.
+        Relevant file therein will be found by `short_track_io.find_file` and
+        read by `short_track_io.read_file`.
+    :param max_short_track_lead_time_minutes: Max lead time for short-track
+        forecasts.
+    :param center_each_lag_time_differently: Boolean flag.  If True, the
+        satellite imagery for each lag time will be centered at a different
+        location.  If False, the satellite imagery for every lag time will be
+        centered at the short-track center for the last lag time.
+    :return: satellite_data_dict: Same as input but with different
+        image center(s).
+    :return: row_trans_labels_low_res_px: length-E numpy array of row
+        translations (units of low-res pixels) needed to recenter image on
+        best track, which was the original image center.  This is the first
+        half of the label matrix for training.
+    :return: column_trans_labels_low_res_px: Same as above but for columns.
+        This is the second half of the label matrix for training.
+    """
+
+    # Check input args.
+    brightness_temp_matrix_kelvins = satellite_data_dict[BRIGHTNESS_TEMPS_KEY]
+    num_lag_times = len(satellite_lag_times_minutes)
+    error_checking.assert_equals(
+        num_lag_times, brightness_temp_matrix_kelvins.shape[3]
+    )
+
+    # Do actual stuff.
+    num_cyclone_objects = len(satellite_data_dict[CYCLONE_IDS_KEY])
+    row_trans_labels_low_res_px = numpy.full(num_cyclone_objects, 0)
+    column_trans_labels_low_res_px = numpy.full(num_cyclone_objects, 0)
+    good_indices = []
+
+    for i in range(num_cyclone_objects):
+        (
+            satellite_data_dict, this_row_trans, this_column_trans
+        ) = _recenter_1example_on_short_track(
+            satellite_data_dict=satellite_data_dict,
+            example_index=i,
+            satellite_lag_times_minutes=satellite_lag_times_minutes,
+            short_track_dir_name=short_track_dir_name,
+            max_short_track_lead_time_minutes=max_short_track_lead_time_minutes,
+            center_each_lag_time_differently=center_each_lag_time_differently
+        )
+
+        if this_row_trans is None:
+            continue
+
+        good_indices.append(i)
+        row_trans_labels_low_res_px[i] = this_row_trans + 0
+        column_trans_labels_low_res_px[i] = this_column_trans + 0
+
+    good_indices = numpy.array(good_indices, dtype=int)
+    row_trans_labels_low_res_px = row_trans_labels_low_res_px[good_indices]
+    column_trans_labels_low_res_px = column_trans_labels_low_res_px[
+        good_indices
+    ]
+
+    for this_key in [
+            BRIGHTNESS_TEMPS_KEY, GRID_SPACINGS_KEY,
+            CENTER_LATITUDES_KEY, TARGET_TIMES_KEY
+    ]:
+        satellite_data_dict[this_key] = satellite_data_dict[this_key][
+            good_indices, ...
+        ]
+
+    for this_key in [CYCLONE_IDS_KEY]:
+        satellite_data_dict[this_key] = [
+            satellite_data_dict[this_key][k] for k in good_indices
+        ]
+
+    for this_key in [LOW_RES_LATITUDES_KEY, LOW_RES_LONGITUDES_KEY]:
+        if satellite_data_dict[this_key] is None:
+            continue
+
+        satellite_data_dict[this_key] = satellite_data_dict[this_key][
+            good_indices, ...
+        ]
+
+    return (
+        satellite_data_dict,
+        row_trans_labels_low_res_px,
+        column_trans_labels_low_res_px
+    )
 
 
 def _read_satellite_data_1shuffled_file(
         input_file_name, lag_times_minutes, low_res_wavelengths_microns,
-        num_rows_low_res, num_columns_low_res, return_coords, return_xy_coords,
+        num_rows_low_res, num_columns_low_res, return_coords,
         cyclone_id_strings, target_times_unix_sec):
     """Reads satellite data from one shuffled file.
 
@@ -82,19 +490,17 @@ def _read_satellite_data_1shuffled_file(
     :param lag_times_minutes: length-L numpy array of lag times for predictors.
     :param low_res_wavelengths_microns: length-w numpy array of desired
         wavelengths.
-    :param num_rows_low_res: m in the above discussion.
-    :param num_columns_low_res: n in the above discussion.
+    :param num_rows_low_res: m in the above discussion.  If None, this method
+        will not subset the grid.
+    :param num_columns_low_res: n in the above discussion.  If None, this method
+        will not subset the grid.
     :param return_coords: Boolean flag.  If True, will return coordinates.
-    :param return_xy_coords: Boolean flag.  If True, will return xy-coordinates
-        for use as predictors.
     :param cyclone_id_strings: length-T list of cyclone IDs.
     :param target_times_unix_sec: length-T numpy array of target times.
 
     :return: data_dict: Dictionary with the following keys.  If
         `return_coords == False`, then keys "low_res_latitude_matrix_deg_n" and
-        "low_res_longitude_matrix_deg_e" will be None.  If
-        `return_xy_coords == False`, then key "normalized_xy_coord_matrix" will
-        be None.
+        "low_res_longitude_matrix_deg_e" will be None.
 
     data_dict["brightness_temp_matrix_kelvins"]: T-by-m-by-n-by-L-by-w numpy
         array of brightness temperatures.
@@ -108,8 +514,6 @@ def _read_satellite_data_1shuffled_file(
         latitudes (deg north).
     data_dict["low_res_longitude_matrix_deg_e"]: T-by-n-by-L numpy array of
         longitudes (deg east).
-    data_dict["normalized_xy_coord_matrix"]: T-by-m-by-n-by-L-by-2 numpy
-        array of normalized xy-coordinates.
     """
 
     print('Reading data from: "{0:s}"...'.format(input_file_name))
@@ -120,12 +524,14 @@ def _read_satellite_data_1shuffled_file(
         wavelengths_to_keep_microns=low_res_wavelengths_microns,
         for_high_res=False
     )
-    satellite_table_xarray = satellite_utils.subset_grid(
-        satellite_table_xarray=satellite_table_xarray,
-        num_rows_to_keep=num_rows_low_res,
-        num_columns_to_keep=num_columns_low_res,
-        for_high_res=False
-    )
+
+    if not (num_rows_low_res is None or num_columns_low_res is None):
+        satellite_table_xarray = satellite_utils.subset_grid(
+            satellite_table_xarray=satellite_table_xarray,
+            num_rows_to_keep=num_rows_low_res,
+            num_columns_to_keep=num_columns_low_res,
+            for_high_res=False
+        )
 
     num_cyclone_objects = len(target_times_unix_sec)
     num_lag_times = len(lag_times_minutes)
@@ -153,14 +559,6 @@ def _read_satellite_data_1shuffled_file(
     else:
         low_res_latitude_matrix_deg_n = None
         low_res_longitude_matrix_deg_e = None
-
-    if return_xy_coords:
-        these_dim = (
-            num_cyclone_objects, num_rows, num_columns, num_lag_times, 2
-        )
-        normalized_xy_coord_matrix = numpy.full(these_dim, numpy.nan)
-    else:
-        normalized_xy_coord_matrix = None
 
     grid_spacings_low_res_km = numpy.full(num_cyclone_objects, numpy.nan)
     cyclone_center_latitudes_deg_n = numpy.full(num_cyclone_objects, numpy.nan)
@@ -258,27 +656,6 @@ def _read_satellite_data_1shuffled_file(
                 new_stx[satellite_utils.LONGITUDE_LOW_RES_KEY].values, 0, 1
             )
 
-        if return_xy_coords:
-            for j in range(num_lag_times):
-                these_x_coords, these_y_coords = (
-                    misc_utils.get_xy_grid_one_tc_object(
-                        cyclone_id_string=cyclone_id_strings[i],
-                        grid_latitudes_deg_n=
-                        new_stx[satellite_utils.LATITUDE_LOW_RES_KEY].values[j, :],
-                        grid_longitudes_deg_e=
-                        new_stx[satellite_utils.LONGITUDE_LOW_RES_KEY].values[j, :],
-                        normalize_to_minmax=True
-                    )
-                )
-
-                (
-                    normalized_xy_coord_matrix[i, ..., j, 0],
-                    normalized_xy_coord_matrix[i, ..., j, 1]
-                ) = grids.xy_vectors_to_matrices(
-                    x_unique_metres=these_x_coords,
-                    y_unique_metres=these_y_coords
-                )
-
     good_indices = numpy.where(cyclone_object_success_flags)[0]
     cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
     target_times_unix_sec = target_times_unix_sec[good_indices]
@@ -300,11 +677,6 @@ def _read_satellite_data_1shuffled_file(
             good_indices, ...
         ]
 
-    if return_xy_coords:
-        normalized_xy_coord_matrix = normalized_xy_coord_matrix[
-            good_indices, ...
-        ]
-
     return {
         BRIGHTNESS_TEMPS_KEY: brightness_temp_matrix_kelvins,
         GRID_SPACINGS_KEY: grid_spacings_low_res_km,
@@ -312,8 +684,7 @@ def _read_satellite_data_1shuffled_file(
         CYCLONE_IDS_KEY: cyclone_id_strings,
         TARGET_TIMES_KEY: target_times_unix_sec,
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
-        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e,
-        NORMALIZED_XY_COORDS_KEY: normalized_xy_coord_matrix
+        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
     }
 
 
@@ -415,7 +786,7 @@ def _extrap_based_forecasts_to_rowcol(
 
 def _read_satellite_data_1cyclone(
         input_file_names, lag_times_minutes, low_res_wavelengths_microns,
-        num_rows_low_res, num_columns_low_res, return_coords, return_xy_coords,
+        num_rows_low_res, num_columns_low_res, return_coords,
         target_times_unix_sec):
     """Reads satellite data for one cyclone.
 
@@ -430,18 +801,16 @@ def _read_satellite_data_1cyclone(
     :param lag_times_minutes: length-L numpy array of lag times for predictors.
     :param low_res_wavelengths_microns: length-w numpy array of desired
         wavelengths.
-    :param num_rows_low_res: m in the above discussion.
-    :param num_columns_low_res: n in the above discussion.
+    :param num_rows_low_res: m in the above discussion.  If None, this method
+        will not subset the grid.
+    :param num_columns_low_res: n in the above discussion.  If None, this method
+        will not subset the grid.
     :param return_coords: Boolean flag.  If True, will return coordinates.
-    :param return_xy_coords: Boolean flag.  If True, will return xy-coordinates
-        for use as predictors.
     :param target_times_unix_sec: length-T numpy array of target times.
 
     :return: data_dict: Dictionary with the following keys.  If
         `return_coords == False`, then keys "low_res_latitude_matrix_deg_n" and
-        "low_res_longitude_matrix_deg_e" will be None.  If
-        `return_xy_coords == False`, then key "normalized_xy_coord_matrix" will
-        be None.
+        "low_res_longitude_matrix_deg_e" will be None.
 
     data_dict["brightness_temp_matrix_kelvins"]: T-by-m-by-n-by-L-by-w numpy
         array of brightness temperatures.
@@ -449,13 +818,12 @@ def _read_satellite_data_1cyclone(
         for low-resolution data.
     data_dict["cyclone_center_latitudes_deg_n"]: length-T numpy array of
         center latitudes (deg north).
+    data_dict["cyclone_id_strings"]: length-T list of cyclone IDs.
     data_dict["target_times_unix_sec"]: length-T numpy array of target times.
     data_dict["low_res_latitude_matrix_deg_n"]: T-by-m-by-L numpy array of
         latitudes (deg north).
     data_dict["low_res_longitude_matrix_deg_e"]: T-by-n-by-L numpy array of
         longitudes (deg east).
-    data_dict["normalized_xy_coord_matrix"]: T-by-m-by-n-by-L-by-2 numpy
-        array of normalized xy-coordinates.
     """
 
     # TODO(thunderhoser): This could be simplified more.
@@ -495,12 +863,13 @@ def _read_satellite_data_1cyclone(
             for_high_res=False
         )
 
-        orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
-            satellite_table_xarray=orig_satellite_tables_xarray[i],
-            num_rows_to_keep=num_rows_low_res,
-            num_columns_to_keep=num_columns_low_res,
-            for_high_res=False
-        )
+        if not (num_rows_low_res is None or num_columns_low_res is None):
+            orig_satellite_tables_xarray[i] = satellite_utils.subset_grid(
+                satellite_table_xarray=orig_satellite_tables_xarray[i],
+                num_rows_to_keep=num_rows_low_res,
+                num_columns_to_keep=num_columns_low_res,
+                for_high_res=False
+            )
 
     satellite_table_xarray = satellite_utils.concat_over_time(
         orig_satellite_tables_xarray
@@ -536,14 +905,6 @@ def _read_satellite_data_1cyclone(
     else:
         low_res_latitude_matrix_deg_n = None
         low_res_longitude_matrix_deg_e = None
-
-    if return_xy_coords:
-        these_dim = (
-            num_target_times, this_num_rows, this_num_columns, num_lag_times, 2
-        )
-        normalized_xy_coord_matrix = numpy.full(these_dim, numpy.nan)
-    else:
-        normalized_xy_coord_matrix = None
 
     grid_spacings_low_res_km = numpy.full(num_target_times, numpy.nan)
     cyclone_center_latitudes_deg_n = numpy.full(num_target_times, numpy.nan)
@@ -611,28 +972,6 @@ def _read_satellite_data_1cyclone(
                 t[satellite_utils.LONGITUDE_LOW_RES_KEY].values, 0, 1
             )
 
-        if return_xy_coords:
-            for j in range(num_lag_times):
-                these_x_coords, these_y_coords = (
-                    misc_utils.get_xy_grid_one_tc_object(
-                        cyclone_id_string=
-                        t[satellite_utils.CYCLONE_ID_KEY].values[j],
-                        grid_latitudes_deg_n=
-                        t[satellite_utils.LATITUDE_LOW_RES_KEY].values[j, :],
-                        grid_longitudes_deg_e=
-                        t[satellite_utils.LONGITUDE_LOW_RES_KEY].values[j, :],
-                        normalize_to_minmax=True
-                    )
-                )
-
-                (
-                    normalized_xy_coord_matrix[i, ..., j, 0],
-                    normalized_xy_coord_matrix[i, ..., j, 1]
-                ) = grids.xy_vectors_to_matrices(
-                    x_unique_metres=these_x_coords,
-                    y_unique_metres=these_y_coords
-                )
-
     good_indices = numpy.where(target_time_success_flags)[0]
     target_times_unix_sec = target_times_unix_sec[good_indices]
     brightness_temp_matrix_kelvins = (
@@ -653,19 +992,19 @@ def _read_satellite_data_1cyclone(
             good_indices, ...
         ]
 
-    if return_xy_coords:
-        normalized_xy_coord_matrix = normalized_xy_coord_matrix[
-            good_indices, ...
-        ]
+    t = satellite_table_xarray
+    cyclone_id_strings = (
+        [t[satellite_utils.CYCLONE_ID_KEY].values[0]] * len(good_indices)
+    )
 
     return {
         BRIGHTNESS_TEMPS_KEY: brightness_temp_matrix_kelvins,
         GRID_SPACINGS_KEY: grid_spacings_low_res_km,
         CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
+        CYCLONE_IDS_KEY: cyclone_id_strings,
         TARGET_TIMES_KEY: target_times_unix_sec,
         LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
-        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e,
-        NORMALIZED_XY_COORDS_KEY: normalized_xy_coord_matrix
+        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
     }
 
 
@@ -869,17 +1208,11 @@ def data_generator_shuffled(option_dict):
     :return: target_matrix: Same.
     """
 
-    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
-    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
-    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
-    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
-    option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
     option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
     option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
     option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY] = option_dict[BATCH_SIZE_KEY]
     option_dict[SYNOPTIC_TIMES_ONLY_KEY] = False
-
-    option_dict = nn_utils.check_generator_args(option_dict)
+    option_dict = _check_generator_args(option_dict)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     years = option_dict[YEARS_KEY]
@@ -888,26 +1221,24 @@ def data_generator_shuffled(option_dict):
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
     num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
     num_columns_low_res = option_dict[NUM_GRID_COLUMNS_KEY]
+    short_track_dir_name = option_dict[SHORT_TRACK_DIR_KEY]
+    short_track_max_lead_minutes = option_dict[SHORT_TRACK_MAX_LEAD_KEY]
+    short_track_center_each_lag_diffly = option_dict[
+        SHORT_TRACK_DIFF_CENTERS_KEY
+    ]
     data_aug_num_translations = option_dict[DATA_AUG_NUM_TRANS_KEY]
     data_aug_mean_translation_low_res_px = option_dict[DATA_AUG_MEAN_TRANS_KEY]
-    data_aug_stdev_translation_low_res_px = (
-        option_dict[DATA_AUG_STDEV_TRANS_KEY]
-    )
+    data_aug_stdev_translation_low_res_px = option_dict[
+        DATA_AUG_STDEV_TRANS_KEY
+    ]
+    data_aug_within_mean_trans_px = option_dict[DATA_AUG_WITHIN_MEAN_TRANS_KEY]
+    data_aug_within_stdev_trans_px = option_dict[
+        DATA_AUG_WITHIN_STDEV_TRANS_KEY
+    ]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
-    use_xy_coords_as_predictors = option_dict[USE_XY_COORDS_KEY]
-
-    orig_num_rows_low_res = num_rows_low_res + 0
-    orig_num_columns_low_res = num_columns_low_res + 0
-
-    num_extra_rowcols = 2 * int(numpy.ceil(
-        data_aug_mean_translation_low_res_px +
-        5 * data_aug_stdev_translation_low_res_px
-    ))
-    num_rows_low_res += num_extra_rowcols
-    num_columns_low_res += num_extra_rowcols
 
     satellite_file_names = satellite_io.find_shuffled_files(
         directory_name=satellite_dir_name, raise_error_if_all_missing=True
@@ -941,6 +1272,8 @@ def data_generator_shuffled(option_dict):
         scalar_predictor_matrix = None
         grid_spacings_km = None
         cyclone_center_latitudes_deg_n = None
+        row_translations_low_res_px = None
+        column_translations_low_res_px = None
         num_examples_in_memory = 0
 
         while num_examples_in_memory < num_examples_per_batch:
@@ -969,24 +1302,43 @@ def data_generator_shuffled(option_dict):
                 input_file_name=satellite_file_names[file_index],
                 lag_times_minutes=lag_times_minutes,
                 low_res_wavelengths_microns=low_res_wavelengths_microns,
-                num_rows_low_res=num_rows_low_res,
-                num_columns_low_res=num_columns_low_res,
-                return_coords=use_extrap_based_forecasts,
+                num_rows_low_res=None,
+                num_columns_low_res=None,
+                return_coords=(
+                    use_extrap_based_forecasts or
+                    short_track_dir_name is not None
+                ),
                 cyclone_id_strings=these_cyclone_id_strings,
-                target_times_unix_sec=these_target_times_unix_sec,
-                return_xy_coords=use_xy_coords_as_predictors
+                target_times_unix_sec=these_target_times_unix_sec
             )
             file_index += 1
 
-            if (
-                    data_dict is None
-                    or data_dict[BRIGHTNESS_TEMPS_KEY] is None
-                    or data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
-            ):
+            if __are_satellite_data_empty(data_dict):
+                continue
+
+            if short_track_dir_name is None:
+                this_num_examples = data_dict[BRIGHTNESS_TEMPS_KEY].shape[0]
+                these_row_trans_px = numpy.full(this_num_examples, 0, dtype=int)
+                these_column_trans_px = numpy.full(
+                    this_num_examples, 0, dtype=int
+                )
+            else:
+                (
+                    data_dict, these_row_trans_px, these_column_trans_px
+                ) = _recenter_satellite_on_short_track(
+                    satellite_data_dict=data_dict,
+                    satellite_lag_times_minutes=lag_times_minutes,
+                    short_track_dir_name=short_track_dir_name,
+                    max_short_track_lead_time_minutes=
+                    short_track_max_lead_minutes,
+                    center_each_lag_time_differently=
+                    short_track_center_each_lag_diffly
+                )
+
+            if __are_satellite_data_empty(data_dict):
                 continue
 
             this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
-            this_xy_coord_matrix = data_dict[NORMALIZED_XY_COORDS_KEY]
             these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
             these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
 
@@ -1019,22 +1371,11 @@ def data_generator_shuffled(option_dict):
                         )
                     )
 
-            this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
-                this_bt_matrix_kelvins
+            this_vector_predictor_matrix = (
+                nn_utils.combine_lag_times_and_wavelengths(
+                    this_bt_matrix_kelvins
+                )
             )
-
-            if use_xy_coords_as_predictors:
-                this_xy_coord_matrix = (
-                    nn_utils.combine_lag_times_and_wavelengths(
-                        this_xy_coord_matrix
-                    )
-                )
-
-                this_vector_predictor_matrix = numpy.concatenate(
-                    (this_bt_matrix_kelvins, this_xy_coord_matrix), axis=-1
-                )
-            else:
-                this_vector_predictor_matrix = this_bt_matrix_kelvins
 
             if vector_predictor_matrix is None:
                 these_dim = (
@@ -1046,6 +1387,12 @@ def data_generator_shuffled(option_dict):
                 grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
                 cyclone_center_latitudes_deg_n = numpy.full(
                     num_examples_per_batch, numpy.nan
+                )
+                row_translations_low_res_px = numpy.full(
+                    num_examples_per_batch, 0, dtype=int
+                )
+                column_translations_low_res_px = numpy.full(
+                    num_examples_per_batch, 0, dtype=int
                 )
 
                 if this_scalar_predictor_matrix is not None:
@@ -1064,6 +1411,12 @@ def data_generator_shuffled(option_dict):
             cyclone_center_latitudes_deg_n[first_index:last_index] = (
                 these_center_latitudes_deg_n
             )
+            row_translations_low_res_px[first_index:last_index] = (
+                these_row_trans_px
+            )
+            column_translations_low_res_px[first_index:last_index] = (
+                these_column_trans_px
+            )
 
             if this_scalar_predictor_matrix is not None:
                 scalar_predictor_matrix[first_index:last_index, ...] = (
@@ -1072,24 +1425,79 @@ def data_generator_shuffled(option_dict):
 
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
-        (
-            _, vector_predictor_matrix,
-            row_translations_low_res_px, column_translations_low_res_px
-        ) = data_augmentation.augment_data(
+        translation_dict = data_augmentation.augment_data(
             bidirectional_reflectance_matrix=None,
             brightness_temp_matrix_kelvins=vector_predictor_matrix,
             num_translations_per_example=data_aug_num_translations,
             mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
-            sentinel_value=-10.
+            sentinel_value=SENTINEL_VALUE
+        )
+        vector_predictor_matrix = translation_dict[
+            data_augmentation.BRIGHTNESS_TEMPS_KEY
+        ]
+        new_row_trans_px = translation_dict[
+            data_augmentation.ROW_TRANSLATIONS_KEY
+        ]
+        new_column_trans_px = translation_dict[
+            data_augmentation.COLUMN_TRANSLATIONS_KEY
+        ]
+        orig_idxs = translation_dict[
+            data_augmentation.ORIG_EXAMPLE_INDICES_KEY
+        ]
+        del translation_dict
+
+        row_translations_low_res_px = (
+            row_translations_low_res_px[orig_idxs] + new_row_trans_px
+        )
+        column_translations_low_res_px = (
+            column_translations_low_res_px[orig_idxs] + new_column_trans_px
         )
 
+        vector_predictor_matrix = nn_utils.separate_lag_times_and_wavelengths(
+            satellite_data_matrix=vector_predictor_matrix,
+            num_lag_times=len(lag_times_minutes)
+        )
+
+        for j in range(len(lag_times_minutes)):
+            translation_dict = data_augmentation.augment_data(
+                bidirectional_reflectance_matrix=None,
+                brightness_temp_matrix_kelvins=
+                vector_predictor_matrix[..., j, :],
+                num_translations_per_example=1,
+                mean_translation_low_res_px=data_aug_within_mean_trans_px,
+                stdev_translation_low_res_px=data_aug_within_stdev_trans_px,
+                sentinel_value=SENTINEL_VALUE
+            )
+            vector_predictor_matrix[..., j, :] = translation_dict[
+                data_augmentation.BRIGHTNESS_TEMPS_KEY
+            ]
+
+            if j != len(lag_times_minutes) - 1:
+                del translation_dict
+                break
+
+            new_row_trans_px = translation_dict[
+                data_augmentation.ROW_TRANSLATIONS_KEY
+            ]
+            new_column_trans_px = translation_dict[
+                data_augmentation.COLUMN_TRANSLATIONS_KEY
+            ]
+            del translation_dict
+
+            row_translations_low_res_px += new_row_trans_px
+            column_translations_low_res_px += new_column_trans_px
+
+        vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
+            vector_predictor_matrix
+        )
         vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
             data_matrix=vector_predictor_matrix,
-            num_rows_to_keep=orig_num_rows_low_res,
-            num_columns_to_keep=orig_num_columns_low_res,
+            num_rows_to_keep=num_rows_low_res,
+            num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )
+        assert numpy.all(vector_predictor_matrix > SENTINEL_VALUE + 1)
 
         grid_spacings_km = numpy.repeat(
             grid_spacings_km, repeats=data_aug_num_translations
@@ -1120,25 +1528,15 @@ def data_generator_shuffled(option_dict):
                 column_translations_low_res_px
             )
 
-        # TODO(thunderhoser): This is a HACK.  Should be controlled by an input
-        # arg.
-        final_axis_length = (
-            len(low_res_wavelengths_microns) +
-            2 * int(use_xy_coords_as_predictors)
-        )
-        new_dimensions = (
-            vector_predictor_matrix.shape[:3] +
-            (len(lag_times_minutes), final_axis_length)
-        )
-        vector_predictor_matrix = numpy.reshape(
-            vector_predictor_matrix, new_dimensions
+        vector_predictor_matrix = nn_utils.separate_lag_times_and_wavelengths(
+            satellite_data_matrix=vector_predictor_matrix,
+            num_lag_times=len(lag_times_minutes)
         )
 
         predictor_matrices = [vector_predictor_matrix]
         if scalar_predictor_matrix is not None:
             predictor_matrices.append(scalar_predictor_matrix)
 
-        # TODO(thunderhoser): This could be simplified more.
         target_matrix = numpy.transpose(numpy.vstack((
             row_translations_low_res_px, column_translations_low_res_px,
             grid_spacings_km, cyclone_center_latitudes_deg_n
@@ -1175,6 +1573,22 @@ def data_generator(option_dict):
         the above definitions.
     option_dict["num_columns_low_res"]: Number of grid columns to keep.  This is
         n in the above definitions.
+    option_dict["short_track_dir_name"]: Path to directory with short-track data
+        (files therein will be found by `short_track_io.find_file` and read by
+        `short_track_io.read_file`).  If you do not want to use short track as a
+        first guess -- i.e., if you want to use data augmentation only -- make
+        this argument None.
+    option_dict["short_track_max_lead_minutes"]:
+        (used only if `short_track_dir_name is not None`)
+        Max lead time for short-track forecasts.  Any forecast with a longer
+        lead time will not be used for the first guess.
+    option_dict["short_track_center_each_lag_diffly"]:
+        (used only if `short_track_dir_name is not None`)
+        Boolean flag.  If True, the first guess will involve a different
+        lat/long center for each lag time, based on the short-track forecast
+        valid at that lag time.  If False, the first guess will involve one
+        center for all lag times, based on the short-track forecast for lag time
+        = 0.
     option_dict["data_aug_num_translations"]: Number of translations for each
         example.  Total batch size will be
         num_examples_per_batch * data_aug_num_translations.
@@ -1183,6 +1597,10 @@ def data_generator(option_dict):
     option_dict["data_aug_stdev_translation_low_res_px"]: Standard deviation of
         translation distance (in units of low-resolution pixels) for data
         augmentation.
+    option_dict["data_aug_within_mean_trans_px"]: Mean translation distance for
+        within-track data augmentation.
+    option_dict["data_aug_within_stdev_trans_px"]: Standard deviation of
+        translation distance for within-track data augmentation.
     option_dict["synoptic_times_only"]: Boolean flag.  If True, only synoptic
         times (0000 UTC, 0600 UTC, 1200 UTC, 1800 UTC) can be used as target
         times.  If False, any time can be a target time.
@@ -1193,7 +1611,6 @@ def data_generator(option_dict):
     option_dict["remove_tropical_systems"]: Boolean flag.  If True, only
         non-tropical systems will be used for training.  If False, all systems
         (including subtropical, post-tropical, etc.) will be used.
-    option_dict["use_xy_coords_as_predictors"]: Boolean flag.
     option_dict["a_deck_file_name"]: Path to A-deck file, which is needed if
         `len(scalar_a_deck_field_names) > 0 or remove_nontropical_systems or
         remove_tropical_systems`.  If A-deck file is not needed, you can make
@@ -1203,11 +1620,8 @@ def data_generator(option_dict):
         list with [vector_predictor_matrix, scalar_predictor_matrix].
         Otherwise, this will be a list with only the first item.
 
-        vector_predictor_matrix: If `use_xy_coords_as_predictors == False`, this
-            is a E-by-m-by-n-by-(w * L) numpy array of brightness temperatures.
-            If `use_xy_coords_as_predictors == True`, this
-            is a E-by-m-by-n-by-([w + 2] * L) numpy array with both brightness
-            temperatures and xy-coords.
+        vector_predictor_matrix: E-by-m-by-n-by-(w * L) numpy array of
+            brightness temperatures.
 
         scalar_predictor_matrix: E-by-F numpy array of scalar predictors.
 
@@ -1233,15 +1647,9 @@ def data_generator(option_dict):
         deg north.
     """
 
-    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
-    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
-    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
-    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
-    option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
     option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
     option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
-
-    option_dict = nn_utils.check_generator_args(option_dict)
+    option_dict = _check_generator_args(option_dict)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     years = option_dict[YEARS_KEY]
@@ -1251,27 +1659,25 @@ def data_generator(option_dict):
     max_examples_per_cyclone = option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
     num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
     num_columns_low_res = option_dict[NUM_GRID_COLUMNS_KEY]
+    short_track_dir_name = option_dict[SHORT_TRACK_DIR_KEY]
+    short_track_max_lead_minutes = option_dict[SHORT_TRACK_MAX_LEAD_KEY]
+    short_track_center_each_lag_diffly = option_dict[
+        SHORT_TRACK_DIFF_CENTERS_KEY
+    ]
     data_aug_num_translations = option_dict[DATA_AUG_NUM_TRANS_KEY]
     data_aug_mean_translation_low_res_px = option_dict[DATA_AUG_MEAN_TRANS_KEY]
-    data_aug_stdev_translation_low_res_px = (
-        option_dict[DATA_AUG_STDEV_TRANS_KEY]
-    )
+    data_aug_stdev_translation_low_res_px = option_dict[
+        DATA_AUG_STDEV_TRANS_KEY
+    ]
+    data_aug_within_mean_trans_px = option_dict[DATA_AUG_WITHIN_MEAN_TRANS_KEY]
+    data_aug_within_stdev_trans_px = option_dict[
+        DATA_AUG_WITHIN_STDEV_TRANS_KEY
+    ]
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
-    use_xy_coords_as_predictors = option_dict[USE_XY_COORDS_KEY]
-
-    orig_num_rows_low_res = num_rows_low_res + 0
-    orig_num_columns_low_res = num_columns_low_res + 0
-
-    num_extra_rowcols = 2 * int(numpy.ceil(
-        data_aug_mean_translation_low_res_px +
-        5 * data_aug_stdev_translation_low_res_px
-    ))
-    num_rows_low_res += num_extra_rowcols
-    num_columns_low_res += num_extra_rowcols
 
     cyclone_id_strings = satellite_io.find_cyclones(
         directory_name=satellite_dir_name, raise_error_if_all_missing=True
@@ -1319,6 +1725,8 @@ def data_generator(option_dict):
         scalar_predictor_matrix = None
         grid_spacings_km = None
         cyclone_center_latitudes_deg_n = None
+        row_translations_low_res_px = None
+        column_translations_low_res_px = None
         num_examples_in_memory = 0
 
         while num_examples_in_memory < num_examples_per_batch:
@@ -1346,23 +1754,42 @@ def data_generator(option_dict):
                 input_file_names=satellite_file_names_by_cyclone[cyclone_index],
                 lag_times_minutes=lag_times_minutes,
                 low_res_wavelengths_microns=low_res_wavelengths_microns,
-                num_rows_low_res=num_rows_low_res,
-                num_columns_low_res=num_columns_low_res,
-                return_coords=use_extrap_based_forecasts,
-                target_times_unix_sec=new_target_times_unix_sec,
-                return_xy_coords=use_xy_coords_as_predictors
+                num_rows_low_res=None,
+                num_columns_low_res=None,
+                return_coords=(
+                    use_extrap_based_forecasts or
+                    short_track_dir_name is not None
+                ),
+                target_times_unix_sec=new_target_times_unix_sec
             )
             cyclone_index += 1
 
-            if (
-                    data_dict is None
-                    or data_dict[BRIGHTNESS_TEMPS_KEY] is None
-                    or data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
-            ):
+            if __are_satellite_data_empty(data_dict):
+                continue
+
+            if short_track_dir_name is None:
+                this_num_examples = data_dict[BRIGHTNESS_TEMPS_KEY].shape[0]
+                these_row_trans_px = numpy.full(this_num_examples, 0, dtype=int)
+                these_column_trans_px = numpy.full(
+                    this_num_examples, 0, dtype=int
+                )
+            else:
+                (
+                    data_dict, these_row_trans_px, these_column_trans_px
+                ) = _recenter_satellite_on_short_track(
+                    satellite_data_dict=data_dict,
+                    satellite_lag_times_minutes=lag_times_minutes,
+                    short_track_dir_name=short_track_dir_name,
+                    max_short_track_lead_time_minutes=
+                    short_track_max_lead_minutes,
+                    center_each_lag_time_differently=
+                    short_track_center_each_lag_diffly
+                )
+
+            if __are_satellite_data_empty(data_dict):
                 continue
 
             this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
-            this_xy_coord_matrix = data_dict[NORMALIZED_XY_COORDS_KEY]
             these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
             these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
 
@@ -1392,21 +1819,11 @@ def data_generator(option_dict):
                         )
                     )
 
-            this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
-                this_bt_matrix_kelvins
+            this_vector_predictor_matrix = (
+                nn_utils.combine_lag_times_and_wavelengths(
+                    this_bt_matrix_kelvins
+                )
             )
-            if use_xy_coords_as_predictors:
-                this_xy_coord_matrix = (
-                    nn_utils.combine_lag_times_and_wavelengths(
-                        this_xy_coord_matrix
-                    )
-                )
-
-                this_vector_predictor_matrix = numpy.concatenate(
-                    (this_bt_matrix_kelvins, this_xy_coord_matrix), axis=-1
-                )
-            else:
-                this_vector_predictor_matrix = this_bt_matrix_kelvins
 
             if vector_predictor_matrix is None:
                 these_dim = (
@@ -1418,6 +1835,12 @@ def data_generator(option_dict):
                 grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
                 cyclone_center_latitudes_deg_n = numpy.full(
                     num_examples_per_batch, numpy.nan
+                )
+                row_translations_low_res_px = numpy.full(
+                    num_examples_per_batch, 0, dtype=int
+                )
+                column_translations_low_res_px = numpy.full(
+                    num_examples_per_batch, 0, dtype=int
                 )
 
                 if this_scalar_predictor_matrix is not None:
@@ -1436,6 +1859,12 @@ def data_generator(option_dict):
             cyclone_center_latitudes_deg_n[first_index:last_index] = (
                 these_center_latitudes_deg_n
             )
+            row_translations_low_res_px[first_index:last_index] = (
+                these_row_trans_px
+            )
+            column_translations_low_res_px[first_index:last_index] = (
+                these_column_trans_px
+            )
 
             if this_scalar_predictor_matrix is not None:
                 scalar_predictor_matrix[first_index:last_index, ...] = (
@@ -1444,24 +1873,79 @@ def data_generator(option_dict):
 
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
-        (
-            _, vector_predictor_matrix,
-            row_translations_low_res_px, column_translations_low_res_px
-        ) = data_augmentation.augment_data(
+        translation_dict = data_augmentation.augment_data(
             bidirectional_reflectance_matrix=None,
             brightness_temp_matrix_kelvins=vector_predictor_matrix,
             num_translations_per_example=data_aug_num_translations,
             mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
-            sentinel_value=-10.
+            sentinel_value=SENTINEL_VALUE
+        )
+        vector_predictor_matrix = translation_dict[
+            data_augmentation.BRIGHTNESS_TEMPS_KEY
+        ]
+        new_row_trans_px = translation_dict[
+            data_augmentation.ROW_TRANSLATIONS_KEY
+        ]
+        new_column_trans_px = translation_dict[
+            data_augmentation.COLUMN_TRANSLATIONS_KEY
+        ]
+        orig_idxs = translation_dict[
+            data_augmentation.ORIG_EXAMPLE_INDICES_KEY
+        ]
+        del translation_dict
+
+        row_translations_low_res_px = (
+            row_translations_low_res_px[orig_idxs] + new_row_trans_px
+        )
+        column_translations_low_res_px = (
+            column_translations_low_res_px[orig_idxs] + new_column_trans_px
         )
 
+        vector_predictor_matrix = nn_utils.separate_lag_times_and_wavelengths(
+            satellite_data_matrix=vector_predictor_matrix,
+            num_lag_times=len(lag_times_minutes)
+        )
+
+        for j in range(len(lag_times_minutes)):
+            translation_dict = data_augmentation.augment_data(
+                bidirectional_reflectance_matrix=None,
+                brightness_temp_matrix_kelvins=
+                vector_predictor_matrix[..., j, :],
+                num_translations_per_example=1,
+                mean_translation_low_res_px=data_aug_within_mean_trans_px,
+                stdev_translation_low_res_px=data_aug_within_stdev_trans_px,
+                sentinel_value=SENTINEL_VALUE
+            )
+            vector_predictor_matrix[..., j, :] = translation_dict[
+                data_augmentation.BRIGHTNESS_TEMPS_KEY
+            ]
+
+            if j != len(lag_times_minutes) - 1:
+                del translation_dict
+                break
+
+            new_row_trans_px = translation_dict[
+                data_augmentation.ROW_TRANSLATIONS_KEY
+            ]
+            new_column_trans_px = translation_dict[
+                data_augmentation.COLUMN_TRANSLATIONS_KEY
+            ]
+            del translation_dict
+
+            row_translations_low_res_px += new_row_trans_px
+            column_translations_low_res_px += new_column_trans_px
+
+        vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
+            vector_predictor_matrix
+        )
         vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
             data_matrix=vector_predictor_matrix,
-            num_rows_to_keep=orig_num_rows_low_res,
-            num_columns_to_keep=orig_num_columns_low_res,
+            num_rows_to_keep=num_rows_low_res,
+            num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )
+        assert numpy.all(vector_predictor_matrix > SENTINEL_VALUE + 1)
 
         grid_spacings_km = numpy.repeat(
             grid_spacings_km, repeats=data_aug_num_translations
@@ -1492,11 +1976,15 @@ def data_generator(option_dict):
                 column_translations_low_res_px
             )
 
+        vector_predictor_matrix = nn_utils.separate_lag_times_and_wavelengths(
+            satellite_data_matrix=vector_predictor_matrix,
+            num_lag_times=len(lag_times_minutes)
+        )
+
         predictor_matrices = [vector_predictor_matrix]
         if scalar_predictor_matrix is not None:
             predictor_matrices.append(scalar_predictor_matrix)
 
-        # TODO(thunderhoser): This could be simplified more.
         target_matrix = numpy.transpose(numpy.vstack((
             row_translations_low_res_px, column_translations_low_res_px,
             grid_spacings_km, cyclone_center_latitudes_deg_n
@@ -1562,11 +2050,6 @@ def train_model(
             continue
 
         validation_option_dict[this_key] = training_option_dict[this_key]
-
-    training_option_dict = nn_utils.check_generator_args(training_option_dict)
-    validation_option_dict = nn_utils.check_generator_args(
-        validation_option_dict
-    )
 
     model_file_name = '{0:s}/model.h5'.format(output_dir_name)
 
@@ -1668,25 +2151,27 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
 
     error_checking.assert_is_integer(num_target_times)
     error_checking.assert_is_greater(num_target_times, 0)
-
-    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
-    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
-    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
-    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
-    option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
-
-    option_dict = nn_utils.check_generator_args(option_dict)
+    option_dict = _check_generator_args(option_dict)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
     lag_times_minutes = option_dict[LAG_TIMES_KEY]
     low_res_wavelengths_microns = option_dict[LOW_RES_WAVELENGTHS_KEY]
     num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
     num_columns_low_res = option_dict[NUM_GRID_COLUMNS_KEY]
+    short_track_dir_name = option_dict[SHORT_TRACK_DIR_KEY]
+    short_track_max_lead_minutes = option_dict[SHORT_TRACK_MAX_LEAD_KEY]
+    short_track_center_each_lag_diffly = option_dict[
+        SHORT_TRACK_DIFF_CENTERS_KEY
+    ]
     data_aug_num_translations = option_dict[DATA_AUG_NUM_TRANS_KEY]
     data_aug_mean_translation_low_res_px = option_dict[DATA_AUG_MEAN_TRANS_KEY]
-    data_aug_stdev_translation_low_res_px = (
-        option_dict[DATA_AUG_STDEV_TRANS_KEY]
-    )
+    data_aug_stdev_translation_low_res_px = option_dict[
+        DATA_AUG_STDEV_TRANS_KEY
+    ]
+    data_aug_within_mean_trans_px = option_dict[DATA_AUG_WITHIN_MEAN_TRANS_KEY]
+    data_aug_within_stdev_trans_px = option_dict[
+        DATA_AUG_WITHIN_STDEV_TRANS_KEY
+    ]
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
@@ -1694,17 +2179,6 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
-    use_xy_coords_as_predictors = option_dict[USE_XY_COORDS_KEY]
-
-    orig_num_rows_low_res = num_rows_low_res + 0
-    orig_num_columns_low_res = num_columns_low_res + 0
-
-    num_extra_rowcols = 2 * int(numpy.ceil(
-        data_aug_mean_translation_low_res_px +
-        5 * data_aug_stdev_translation_low_res_px
-    ))
-    num_rows_low_res += num_extra_rowcols
-    num_columns_low_res += num_extra_rowcols
 
     satellite_file_names = satellite_io.find_files_one_cyclone(
         directory_name=satellite_dir_name,
@@ -1748,10 +2222,6 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
             all_scalar_predictor_matrix[good_indices, :]
         )
 
-    all_target_time_strings = [time_conversion.unix_sec_to_string(t, TIME_FORMAT_FOR_LOG_MESSAGES) for t in all_target_times_unix_sec]
-    for t in all_target_time_strings:
-        print(t)
-
     conservative_num_target_times = max([
         int(numpy.round(num_target_times * 1.25)),
         num_target_times + 2
@@ -1769,17 +2239,36 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         target_times_unix_sec=chosen_target_times_unix_sec,
         lag_times_minutes=lag_times_minutes,
         low_res_wavelengths_microns=low_res_wavelengths_microns,
-        num_rows_low_res=num_rows_low_res,
-        num_columns_low_res=num_columns_low_res,
-        return_coords=True,
-        return_xy_coords=use_xy_coords_as_predictors
+        num_rows_low_res=None,
+        num_columns_low_res=None,
+        return_coords=True
     )
 
-    if (
-            data_dict is None
-            or data_dict[BRIGHTNESS_TEMPS_KEY] is None
-            or data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
-    ):
+    if __are_satellite_data_empty(data_dict):
+        return None
+
+    if short_track_dir_name is None:
+        this_num_examples = data_dict[BRIGHTNESS_TEMPS_KEY].shape[0]
+        row_translations_low_res_px = numpy.full(
+            this_num_examples, 0, dtype=int
+        )
+        column_translations_low_res_px = numpy.full(
+            this_num_examples, 0, dtype=int
+        )
+    else:
+        (
+            data_dict,
+            row_translations_low_res_px,
+            column_translations_low_res_px
+        ) = _recenter_satellite_on_short_track(
+            satellite_data_dict=data_dict,
+            satellite_lag_times_minutes=lag_times_minutes,
+            short_track_dir_name=short_track_dir_name,
+            max_short_track_lead_time_minutes=short_track_max_lead_minutes,
+            center_each_lag_time_differently=short_track_center_each_lag_diffly
+        )
+
+    if __are_satellite_data_empty(data_dict):
         return None
 
     use_extrap_based_forecasts = (
@@ -1826,40 +2315,83 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         data_dict[LOW_RES_LONGITUDES_KEY][:num_target_times, ...]
     )
 
-    brightness_temp_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
+    vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
     )
-    if use_xy_coords_as_predictors:
-        xy_coord_matrix = (
-            data_dict[NORMALIZED_XY_COORDS_KEY][:num_target_times, ...]
-        )
-        xy_coord_matrix = nn_utils.combine_lag_times_and_wavelengths(
-            xy_coord_matrix
-        )
-        vector_predictor_matrix = numpy.concatenate(
-            (brightness_temp_matrix_kelvins, xy_coord_matrix), axis=-1
-        )
-    else:
-        vector_predictor_matrix = brightness_temp_matrix_kelvins
 
-    (
-        _, vector_predictor_matrix,
-        row_translations_low_res_px, column_translations_low_res_px
-    ) = data_augmentation.augment_data(
+    translation_dict = data_augmentation.augment_data(
         bidirectional_reflectance_matrix=None,
         brightness_temp_matrix_kelvins=vector_predictor_matrix,
         num_translations_per_example=data_aug_num_translations,
         mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
         stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
-        sentinel_value=-10.
+        sentinel_value=SENTINEL_VALUE
+    )
+    vector_predictor_matrix = translation_dict[
+        data_augmentation.BRIGHTNESS_TEMPS_KEY
+    ]
+    new_row_trans_px = translation_dict[
+        data_augmentation.ROW_TRANSLATIONS_KEY
+    ]
+    new_column_trans_px = translation_dict[
+        data_augmentation.COLUMN_TRANSLATIONS_KEY
+    ]
+    orig_idxs = translation_dict[
+        data_augmentation.ORIG_EXAMPLE_INDICES_KEY
+    ]
+    del translation_dict
+
+    row_translations_low_res_px = (
+        row_translations_low_res_px[orig_idxs] + new_row_trans_px
+    )
+    column_translations_low_res_px = (
+        column_translations_low_res_px[orig_idxs] + new_column_trans_px
     )
 
+    vector_predictor_matrix = nn_utils.separate_lag_times_and_wavelengths(
+        satellite_data_matrix=vector_predictor_matrix,
+        num_lag_times=len(lag_times_minutes)
+    )
+
+    for j in range(len(lag_times_minutes)):
+        translation_dict = data_augmentation.augment_data(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=
+            vector_predictor_matrix[..., j, :],
+            num_translations_per_example=1,
+            mean_translation_low_res_px=data_aug_within_mean_trans_px,
+            stdev_translation_low_res_px=data_aug_within_stdev_trans_px,
+            sentinel_value=SENTINEL_VALUE
+        )
+        vector_predictor_matrix[..., j, :] = translation_dict[
+            data_augmentation.BRIGHTNESS_TEMPS_KEY
+        ]
+
+        if j != len(lag_times_minutes) - 1:
+            del translation_dict
+            break
+
+        new_row_trans_px = translation_dict[
+            data_augmentation.ROW_TRANSLATIONS_KEY
+        ]
+        new_column_trans_px = translation_dict[
+            data_augmentation.COLUMN_TRANSLATIONS_KEY
+        ]
+        del translation_dict
+
+        row_translations_low_res_px += new_row_trans_px
+        column_translations_low_res_px += new_column_trans_px
+
+    vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
+        vector_predictor_matrix
+    )
     vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
         data_matrix=vector_predictor_matrix,
-        num_rows_to_keep=orig_num_rows_low_res,
-        num_columns_to_keep=orig_num_columns_low_res,
+        num_rows_to_keep=num_rows_low_res,
+        num_columns_to_keep=num_columns_low_res,
         for_high_res=False
     )
+    assert numpy.all(vector_predictor_matrix > SENTINEL_VALUE + 1)
 
     # TODO(thunderhoser): This should work, but I'm not 100% sure yet.
     low_res_latitude_matrix_deg_n = numpy.repeat(
@@ -1877,38 +2409,19 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         )
     )
 
-    _, low_res_latitude_matrix_deg_n = (
-        data_augmentation.augment_data_specific_trans(
-            bidirectional_reflectance_matrix=None,
-            brightness_temp_matrix_kelvins=low_res_latitude_matrix_deg_n,
-            row_translations_low_res_px=row_translations_low_res_px,
-            column_translations_low_res_px=column_translations_low_res_px,
-            sentinel_value=-10.
-        )
-    )
-    _, low_res_longitude_matrix_deg_e = (
-        data_augmentation.augment_data_specific_trans(
-            bidirectional_reflectance_matrix=None,
-            brightness_temp_matrix_kelvins=low_res_longitude_matrix_deg_e,
-            row_translations_low_res_px=row_translations_low_res_px,
-            column_translations_low_res_px=column_translations_low_res_px,
-            sentinel_value=-10.
-        )
-    )
-
     low_res_latitude_matrix_deg_n = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_latitude_matrix_deg_n,
-            num_rows_to_keep=orig_num_rows_low_res,
-            num_columns_to_keep=orig_num_columns_low_res,
+            num_rows_to_keep=num_rows_low_res,
+            num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )[:, :, 0, :]
     )
     low_res_longitude_matrix_deg_e = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_longitude_matrix_deg_e,
-            num_rows_to_keep=orig_num_rows_low_res,
-            num_columns_to_keep=orig_num_columns_low_res,
+            num_rows_to_keep=num_rows_low_res,
+            num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )[:, 0, :, :]
     )
@@ -1946,17 +2459,9 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
             column_translations_low_res_px
         )
 
-    # TODO(thunderhoser): This is a HACK.  Should be controlled by an input arg.
-    final_axis_length = (
-        len(low_res_wavelengths_microns) +
-        2 * int(use_xy_coords_as_predictors)
-    )
-    new_dimensions = (
-        vector_predictor_matrix.shape[:3] +
-        (len(lag_times_minutes), final_axis_length)
-    )
-    vector_predictor_matrix = numpy.reshape(
-        vector_predictor_matrix, new_dimensions
+    vector_predictor_matrix = nn_utils.separate_lag_times_and_wavelengths(
+        satellite_data_matrix=vector_predictor_matrix,
+        num_lag_times=len(lag_times_minutes)
     )
 
     predictor_matrices = [vector_predictor_matrix]
@@ -1970,8 +2475,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
             grid_spacings_km=grid_spacings_km,
             cyclone_center_latitudes_deg_n=cyclone_center_latitudes_deg_n,
             gaussian_smoother_stdev_km=target_smoother_stdev_km,
-            num_grid_rows=orig_num_rows_low_res,
-            num_grid_columns=orig_num_columns_low_res
+            num_grid_rows=num_rows_low_res,
+            num_grid_columns=num_columns_low_res
         )
     else:
         target_matrix = numpy.transpose(numpy.vstack((
@@ -2014,6 +2519,12 @@ def create_data_specific_trans(
     :return: data_dict: See documentation for `create_data`.
     """
 
+    # TODO(thunderhoser): The input args `row_translations_low_res_px`
+    # and `column_translations_low_res_px` should have dimensions E x L,
+    # allowing for a different translation at each lag time.  However, this
+    # method is currently used only for plotting purposes, so I won't bother for
+    # now.
+
     # Check input args.
     error_checking.assert_is_integer_numpy_array(target_times_unix_sec)
     error_checking.assert_is_numpy_array(
@@ -2041,16 +2552,10 @@ def create_data_specific_trans(
     #     0
     # )
 
-    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
-    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
-    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
-    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
-    option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
     option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 5
     option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = 10.
     option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = 10.
-
-    option_dict = nn_utils.check_generator_args(option_dict)
+    option_dict = _check_generator_args(option_dict)
 
     # Do actual stuff.
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
@@ -2064,17 +2569,6 @@ def create_data_specific_trans(
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
-    use_xy_coords_as_predictors = option_dict[USE_XY_COORDS_KEY]
-
-    orig_num_rows_low_res = num_rows_low_res + 0
-    orig_num_columns_low_res = num_columns_low_res + 0
-
-    num_extra_rowcols = 2 * max([
-        numpy.max(numpy.absolute(row_translations_low_res_px)),
-        numpy.max(numpy.absolute(column_translations_low_res_px))
-    ])
-    num_rows_low_res += num_extra_rowcols
-    num_columns_low_res += num_extra_rowcols
 
     satellite_file_names = satellite_io.find_files_one_cyclone(
         directory_name=satellite_dir_name, cyclone_id_string=cyclone_id_string,
@@ -2088,17 +2582,12 @@ def create_data_specific_trans(
         target_times_unix_sec=unique_target_times_unix_sec,
         lag_times_minutes=lag_times_minutes,
         low_res_wavelengths_microns=low_res_wavelengths_microns,
-        num_rows_low_res=num_rows_low_res,
-        num_columns_low_res=num_columns_low_res,
-        return_coords=True,
-        return_xy_coords=use_xy_coords_as_predictors
+        num_rows_low_res=None,
+        num_columns_low_res=None,
+        return_coords=True
     )
 
-    if (
-            data_dict is None
-            or data_dict[BRIGHTNESS_TEMPS_KEY] is None
-            or data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
-    ):
+    if __are_satellite_data_empty(data_dict):
         return None
 
     use_extrap_based_forecasts = (
@@ -2134,10 +2623,6 @@ def create_data_specific_trans(
     cyclone_center_latitudes_deg_n = dd[CENTER_LATITUDES_KEY][idxs, ...]
     low_res_latitude_matrix_deg_n = dd[LOW_RES_LATITUDES_KEY][idxs, ...]
     low_res_longitude_matrix_deg_e = dd[LOW_RES_LONGITUDES_KEY][idxs, ...]
-    if use_xy_coords_as_predictors:
-        xy_coord_matrix = dd[NORMALIZED_XY_COORDS_KEY][idxs, ...]
-    else:
-        xy_coord_matrix = None
 
     if scalar_predictor_matrix is None:
         good_time_indices = numpy.linspace(
@@ -2159,8 +2644,6 @@ def create_data_specific_trans(
     target_times_unix_sec = target_times_unix_sec[idxs, ...]
     low_res_latitude_matrix_deg_n = low_res_latitude_matrix_deg_n[idxs, ...]
     low_res_longitude_matrix_deg_e = low_res_longitude_matrix_deg_e[idxs, ...]
-    if use_xy_coords_as_predictors:
-        xy_coord_matrix = xy_coord_matrix[idxs, ...]
 
     if use_extrap_based_forecasts:
         scalar_predictor_matrix = _extrap_based_forecasts_to_rowcol(
@@ -2188,31 +2671,22 @@ def create_data_specific_trans(
             column_translations_low_res_px
         )
 
-    brightness_temp_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
+    vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
         brightness_temp_matrix_kelvins
     )
-    if use_xy_coords_as_predictors:
-        xy_coord_matrix = nn_utils.combine_lag_times_and_wavelengths(
-            xy_coord_matrix
-        )
-        vector_predictor_matrix = numpy.concatenate(
-            (brightness_temp_matrix_kelvins, xy_coord_matrix), axis=-1
-        )
-    else:
-        vector_predictor_matrix = brightness_temp_matrix_kelvins
 
     _, vector_predictor_matrix = data_augmentation.augment_data_specific_trans(
         bidirectional_reflectance_matrix=None,
         brightness_temp_matrix_kelvins=vector_predictor_matrix,
         row_translations_low_res_px=row_translations_low_res_px,
         column_translations_low_res_px=column_translations_low_res_px,
-        sentinel_value=-10.
+        sentinel_value=SENTINEL_VALUE
     )
 
     vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
         data_matrix=vector_predictor_matrix,
-        num_rows_to_keep=orig_num_rows_low_res,
-        num_columns_to_keep=orig_num_columns_low_res,
+        num_rows_to_keep=num_rows_low_res,
+        num_columns_to_keep=num_columns_low_res,
         for_high_res=False
     )
 
@@ -2223,53 +2697,26 @@ def create_data_specific_trans(
         )
     )
 
-    _, low_res_latitude_matrix_deg_n = (
-        data_augmentation.augment_data_specific_trans(
-            bidirectional_reflectance_matrix=None,
-            brightness_temp_matrix_kelvins=low_res_latitude_matrix_deg_n,
-            row_translations_low_res_px=row_translations_low_res_px,
-            column_translations_low_res_px=column_translations_low_res_px,
-            sentinel_value=-10.
-        )
-    )
-    _, low_res_longitude_matrix_deg_e = (
-        data_augmentation.augment_data_specific_trans(
-            bidirectional_reflectance_matrix=None,
-            brightness_temp_matrix_kelvins=low_res_longitude_matrix_deg_e,
-            row_translations_low_res_px=row_translations_low_res_px,
-            column_translations_low_res_px=column_translations_low_res_px,
-            sentinel_value=-10.
-        )
-    )
-
     low_res_latitude_matrix_deg_n = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_latitude_matrix_deg_n,
-            num_rows_to_keep=orig_num_rows_low_res,
-            num_columns_to_keep=orig_num_columns_low_res,
+            num_rows_to_keep=num_rows_low_res,
+            num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )[:, :, 0, :]
     )
     low_res_longitude_matrix_deg_e = (
         data_augmentation.subset_grid_after_data_aug(
             data_matrix=low_res_longitude_matrix_deg_e,
-            num_rows_to_keep=orig_num_rows_low_res,
-            num_columns_to_keep=orig_num_columns_low_res,
+            num_rows_to_keep=num_rows_low_res,
+            num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )[:, 0, :, :]
     )
 
-    # TODO(thunderhoser): This is a HACK.  Should be controlled by an input arg.
-    final_axis_length = (
-        len(low_res_wavelengths_microns) +
-        2 * int(use_xy_coords_as_predictors)
-    )
-    new_dimensions = (
-        vector_predictor_matrix.shape[:3] +
-        (len(lag_times_minutes), final_axis_length)
-    )
-    vector_predictor_matrix = numpy.reshape(
-        vector_predictor_matrix, new_dimensions
+    vector_predictor_matrix = nn_utils.separate_lag_times_and_wavelengths(
+        satellite_data_matrix=vector_predictor_matrix,
+        num_lag_times=len(lag_times_minutes)
     )
 
     predictor_matrices = [vector_predictor_matrix]
@@ -2283,8 +2730,8 @@ def create_data_specific_trans(
             grid_spacings_km=grid_spacings_km,
             cyclone_center_latitudes_deg_n=cyclone_center_latitudes_deg_n,
             gaussian_smoother_stdev_km=target_smoother_stdev_km,
-            num_grid_rows=orig_num_rows_low_res,
-            num_grid_columns=orig_num_columns_low_res
+            num_grid_rows=num_rows_low_res,
+            num_grid_columns=num_columns_low_res
         )
     else:
         target_matrix = numpy.transpose(numpy.vstack((
