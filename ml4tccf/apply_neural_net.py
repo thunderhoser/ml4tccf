@@ -19,6 +19,10 @@ import neural_net_training_cira_ir as nn_training_cira_ir
 import neural_net_training_simple as nn_training_simple
 import neural_net_training_fancy as nn_training_fancy
 
+# TODO(thunderhoser): This script does not deal with new data-aug options
+# (like short-track recentering and within-track data aug).  Since I have not
+# used the script in a long time, I'm just calling it deprecated.
+
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 LARGE_INTEGER = int(1e10)
