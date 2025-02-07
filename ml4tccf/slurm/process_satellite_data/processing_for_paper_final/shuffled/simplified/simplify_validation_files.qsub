@@ -1,9 +1,9 @@
-#!/bin/tcsh
+#!/bin/bash
 
 #SBATCH --job-name="simplify_validation_files"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
-#SBATCH --qos="gpu"
+#SBATCH --qos="gpuwf"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -12,7 +12,7 @@
 ##SBATCH --cpus-per-task=1
 ##SBATCH --ntasks-per-node=1
 #SBATCH --time=02:00:00
-#SBATCH --array=1-94
+#SBATCH --array=0-93
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -20,25 +20,27 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=simplify_validation_files_%A_%a.out
 
-module load cuda/10.1
-source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda init
 conda activate base
 
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-set INPUT_DIR_NAME="/scratch2/BMC/gsd-hpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/shuffled_8hour_chunks/validation"
-set OUTPUT_DIR_NAME="${INPUT_DIR_NAME}/800x800_grids"
+echo `which conda`
+echo `which python3`
 
-set FILE_NUMBER_SET_STRINGS=("0 1" "2 3" "4 5" "6 7" "8 9" "10 11" "12 13" "14 15" "16 17" "18 19" "20 21" "22 23" "24 25" "26 27" "28 29" "30 31" "32 33" "34 35" "36 37" "38 39" "40 41" "42 43" "44 45" "46 47" "48 49" "50 51" "52 53" "54 55" "56 57" "58 59" "60 61" "62 63" "64 65" "66 67" "68 69" "70 71" "72 73" "74 75" "76 77" "78 79" "80 81" "82 83" "84 85" "86 87" "88 89" "90 91" "92 93" "94 95" "96 97" "98 99" "100 10000" "10001 10002" "10003 10004" "10005 10006" "10007 10008" "10009 10010" "10011 10012" "10013 10014" "10015 10016" "10017 10018" "10019 10020" "10021 10022" "10023 10024" "10025 10026" "10027 10028" "10029 10030" "10031 10032" "10033 10034" "10035 10036" "10037 10038" "10039 10040" "10041 10042" "10043 10044" "10045 10046" "10047 10048" "10049 10050" "10051 10052" "10053 10054" "10055 10056" "10057 10058" "10059 10060" "10061 10062" "10063 10064" "10065 10066" "10067 10068" "10069 10070" "10071 10072" "10073 10074" "10075 10076" "10077 10078" "10079 10080" "10081 10082" "10083 10084" "10085 10086")
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/shuffled_8hour_chunks/validation"
+OUTPUT_DIR_NAME="${INPUT_DIR_NAME}/900x900_grids"
 
-set file_number_set_string="${FILE_NUMBER_SET_STRINGS[$SLURM_ARRAY_TASK_ID]}"
-set file_numbers=($file_number_set_string:as/ / /)
+# FILE_NUMBER_SET_STRINGS=("0 1" "2 3" "4 5" "6 7" "8 9" "10 11" "12 13" "14 15" "16 17" "18 19" "20 21" "22 23" "24 25" "26 27" "28 29" "30 31" "32 33" "34 35" "36 37" "38 39" "40 41" "42 43" "44 45" "46 47" "48 49" "50 51" "52 53" "54 55" "56 57" "58 59" "60 61" "62 63" "64 65" "66 67" "68 69" "70 71" "72 73" "74 75" "76 77" "78 79" "80 81" "82 83" "84 85" "86 87" "88 89" "90 91" "92 93" "94 95" "96 97" "98 99" "100 10000" "10001 10002" "10003 10004" "10005 10006" "10007 10008" "10009 10010" "10011 10012" "10013 10014" "10015 10016" "10017 10018" "10019 10020" "10021 10022" "10023 10024" "10025 10026" "10027 10028" "10029 10030" "10031 10032" "10033 10034" "10035 10036" "10037 10038" "10039 10040" "10041 10042" "10043 10044" "10045 10046" "10047 10048" "10049 10050" "10051 10052" "10053 10054" "10055 10056" "10057 10058" "10059 10060" "10061 10062" "10063 10064" "10065 10066" "10067 10068" "10069 10070" "10071 10072" "10073 10074" "10075 10076" "10077 10078" "10079 10080" "10081 10082" "10083 10084" "10085 10086")
 
-foreach file_number ($file_numbers)
+file_number_set_string="${FILE_NUMBER_SET_STRINGS[$SLURM_ARRAY_TASK_ID]}"
+read -r -a file_numbers <<< "$file_number_set_string"
+
+for file_number in "${file_numbers[@]}"; do
     python3 -u "${CODE_DIR_NAME}/simplify_satellite_files.py" \
     --input_dir_name="${INPUT_DIR_NAME}" \
     --shuffled_file_number=${file_number} \
     --wavelengths_to_keep_microns 3.9 6.185 6.95 7.34 8.5 9.61 10.35 11.2 12.3 13.3 \
-    --num_grid_rows_to_keep=800 \
-    --num_grid_columns_to_keep=800 \
+    --num_grid_rows_to_keep=900 \
+    --num_grid_columns_to_keep=900 \
     --output_dir_name="${OUTPUT_DIR_NAME}"
-end
+done
