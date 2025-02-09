@@ -1545,7 +1545,7 @@ def data_generator_shuffled(option_dict):
         )))
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
-        yield predictor_matrices, target_matrix
+        yield tuple(predictor_matrices), target_matrix
 
 
 def data_generator(option_dict):
@@ -1994,7 +1994,7 @@ def data_generator(option_dict):
         )))
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
-        yield predictor_matrices, target_matrix
+        yield tuple(predictor_matrices), target_matrix
 
 
 def train_model(
