@@ -5,6 +5,7 @@ import warnings
 import numpy
 import keras
 import xarray
+import pandas
 from scipy.interpolate import interp1d
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
@@ -2032,6 +2033,11 @@ def train_model(
         directory_name=output_dir_name
     )
 
+    backup_dir_name = '{0:s}/backup_and_restore'.format(output_dir_name)
+    file_system_utils.mkdir_recursive_if_necessary(
+        directory_name=backup_dir_name
+    )
+
     error_checking.assert_is_integer(num_epochs)
     error_checking.assert_is_geq(num_epochs, 2)
     error_checking.assert_is_integer(num_training_batches_per_epoch)
@@ -2053,16 +2059,27 @@ def train_model(
 
         validation_option_dict[this_key] = training_option_dict[this_key]
 
-    model_file_name = '{0:s}/model.h5'.format(output_dir_name)
+    model_file_name = '{0:s}/model.weights.h5'.format(output_dir_name)
+    history_file_name = '{0:s}/history.csv'.format(output_dir_name)
+
+    try:
+        history_table_pandas = pandas.read_csv(history_file_name)
+        initial_epoch = history_table_pandas['epoch'].max() + 1
+        best_validation_loss = history_table_pandas['val_loss'].min()
+    except:
+        initial_epoch = 0
+        best_validation_loss = numpy.inf
 
     history_object = keras.callbacks.CSVLogger(
-        filename='{0:s}/history.csv'.format(output_dir_name),
-        separator=',', append=False
+        filename=history_file_name, separator=',', append=True
     )
     checkpoint_object = keras.callbacks.ModelCheckpoint(
         filepath=model_file_name, monitor='val_loss', verbose=1,
-        save_best_only=True, save_weights_only=False, mode='min', period=1
+        save_best_only=True, save_weights_only=True, mode='min',
+        save_freq='epoch'
     )
+    checkpoint_object.best = best_validation_loss
+
     early_stopping_object = keras.callbacks.EarlyStopping(
         monitor='val_loss', min_delta=0.,
         patience=early_stopping_patience_epochs, verbose=1, mode='min'
@@ -2072,9 +2089,14 @@ def train_model(
         patience=plateau_patience_epochs, verbose=1, mode='min',
         min_delta=0., cooldown=0
     )
+    backup_object = keras.callbacks.BackupAndRestore(
+        backup_dir_name, save_freq='epoch', delete_checkpoint=False
+    )
 
     list_of_callback_objects = [
-        history_object, checkpoint_object, early_stopping_object, plateau_object
+        history_object, checkpoint_object,
+        early_stopping_object, plateau_object,
+        backup_object
     ]
 
     if use_shuffled_data:
@@ -2108,10 +2130,13 @@ def train_model(
         train_with_shuffled_data=use_shuffled_data
     )
 
-    model_object.fit_generator(
-        generator=training_generator,
+    model_object.fit(
+        x=training_generator,
         steps_per_epoch=num_training_batches_per_epoch,
-        epochs=num_epochs, verbose=1, callbacks=list_of_callback_objects,
+        epochs=num_epochs,
+        initial_epoch=initial_epoch,
+        verbose=1,
+        callbacks=list_of_callback_objects,
         validation_data=validation_generator,
         validation_steps=num_validation_batches_per_epoch
     )
