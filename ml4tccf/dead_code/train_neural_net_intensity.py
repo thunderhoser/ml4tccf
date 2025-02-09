@@ -103,7 +103,7 @@ def _run(template_file_name, center_fixing_model_file_name, output_dir_name,
     }
 
     print('Reading model template from: "{0:s}"...'.format(template_file_name))
-    model_object = nn_utils.read_model(hdf5_file_name=template_file_name)
+    model_object = nn_utils.read_model(keras_file_name=template_file_name)
 
     # TODO(thunderhoser): This is a HACKY way to switch between training with
     # and without data augmentation.  But then again, all of the intensity-
@@ -118,7 +118,7 @@ def _run(template_file_name, center_fixing_model_file_name, output_dir_name,
             center_fixing_model_file_name
         ))
         center_fixing_model_object = nn_utils.read_model(
-            hdf5_file_name=center_fixing_model_file_name
+            keras_file_name=center_fixing_model_file_name
         )
 
     model_metafile_name = nn_utils.find_metafile(
