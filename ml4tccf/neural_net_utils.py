@@ -1048,18 +1048,18 @@ def apply_model(
     return prediction_matrix
 
 
-def read_model(hdf5_file_name):
-    """Reads model from HDF5 file.
+def read_model(keras_file_name):
+    """Reads model from .keras file.
 
-    :param hdf5_file_name: Path to input file.
+    :param keras_file_name: Path to input file.
     :return: model_object: Instance of `keras.models.Model` or
         `keras.models.Sequential`.
     """
 
-    error_checking.assert_file_exists(hdf5_file_name)
+    error_checking.assert_file_exists(keras_file_name)
 
     metafile_name = find_metafile(
-        model_dir_name=os.path.split(hdf5_file_name)[0],
+        model_dir_name=os.path.split(keras_file_name)[0],
         raise_error_if_missing=True
     )
     metadata_dict = read_metafile(metafile_name)
@@ -1084,7 +1084,7 @@ def read_model(hdf5_file_name):
             )
 
         model_object = u_net_architecture.create_model(u_net_architecture_dict)
-        model_object.load_weights(hdf5_file_name)
+        model_object.load_weights(keras_file_name)
         return model_object
 
     if cnn_architecture_dict is not None:
@@ -1099,7 +1099,7 @@ def read_model(hdf5_file_name):
             )
 
         model_object = cnn_architecture.create_model(cnn_architecture_dict)
-        model_object.load_weights(hdf5_file_name)
+        model_object.load_weights(keras_file_name)
         return model_object
 
     if temporal_cnn_architecture_dict is not None:
@@ -1117,7 +1117,7 @@ def read_model(hdf5_file_name):
         model_object = tcnn_architecture.create_model(
             temporal_cnn_architecture_dict
         )
-        model_object.load_weights(hdf5_file_name)
+        model_object.load_weights(keras_file_name)
         return model_object
 
     import \
@@ -1144,5 +1144,5 @@ def read_model(hdf5_file_name):
     model_object = structure_architecture.create_model(
         structure_cnn_architecture_dict
     )
-    model_object.load_weights(hdf5_file_name)
+    model_object.load_weights(keras_file_name)
     return model_object
