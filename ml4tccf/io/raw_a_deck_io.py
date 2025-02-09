@@ -18,8 +18,6 @@ from ml4tccf.io import a_deck_io
 from ml4tccf.utils import misc_utils
 from atcf import ABRead
 
-# TODO(thunderhoser): These files are garbage and need way more quality control.
-
 # TODO(thunderhoser): Not putting this file in the stand-alone repository,
 # since it depends on Chris Slocum's ATCF library.
 
