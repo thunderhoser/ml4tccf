@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/bin/bash
 
 #SBATCH --job-name="create_templates"
 #SBATCH --partition="fge"
@@ -19,10 +19,16 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=create_templates_%A.out
 
-module load cuda/10.1
-source /scratch2/BMC/gsd-hpcs/Jebb.Q.Stewart/conda3.7/etc/profile.d/conda.csh
+conda init
 conda activate base
 
-set CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 
 python3 -u "${CODE_DIR_NAME}/make_templates_paper_exp02_short_track.py"
