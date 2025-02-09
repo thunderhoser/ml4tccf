@@ -8,14 +8,20 @@ BATCH_SIZE_ARG_NAME = 'num_examples_per_batch'
 MAX_EXAMPLES_PER_CYCLONE_ARG_NAME = 'max_examples_per_cyclone'
 NUM_GRID_ROWS_ARG_NAME = 'num_rows_low_res'
 NUM_GRID_COLUMNS_ARG_NAME = 'num_columns_low_res'
-DATA_AUG_NUM_TRANS_ARG_NAME = 'data_aug_num_translations'
-DATA_AUG_MEAN_TRANS_ARG_NAME = 'data_aug_mean_translation_low_res_px'
-DATA_AUG_STDEV_TRANS_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
+
+SHORT_TRACK_DIR_ARG_NAME = 'input_short_track_dir_name'
+SHORT_TRACK_MAX_LEAD_ARG_NAME = 'short_track_max_lead_minutes'
+SHORT_TRACK_DIFF_CENTERS_ARG_NAME = 'short_track_center_each_lag_diffly'
+NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
+MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
+STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
+MEAN_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_mean_trans_px'
+STDEV_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_stdev_trans_px'
+
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
 A_DECK_FILE_ARG_NAME = 'a_deck_file_name'
 SCALAR_A_DECK_FIELDS_ARG_NAME = 'scalar_a_deck_field_names'
 REMOVE_NONTROPICAL_ARG_NAME = 'remove_nontropical_systems'
-USE_XY_COORDS_ARG_NAME = 'use_xy_coords_as_predictors'
 USE_SHUFFLED_DATA_ARG_NAME = 'use_shuffled_data'
 
 SATELLITE_DIR_FOR_TRAINING_ARG_NAME = 'satellite_dir_name_for_training'
@@ -54,19 +60,49 @@ NUM_GRID_COLUMNS_HELP_STRING = (
     'Number of grid columns to retain in low-resolution (infrared) satellite '
     'data.'
 )
-DATA_AUG_NUM_TRANS_HELP_STRING = (
-    'Number of translations for each cyclone.  Total batch size will be '
-    '{0:s} * {1:s}.'
-).format(BATCH_SIZE_ARG_NAME, DATA_AUG_NUM_TRANS_ARG_NAME)
 
-DATA_AUG_MEAN_TRANS_HELP_STRING = (
-    'Mean translation distance (in units of low-resolution pixels) for data '
-    'augmentation.'
+SHORT_TRACK_DIR_HELP_STRING = (
+    'Path to directory with short-track data (files therein will be found by '
+    '`short_track_io.find_file` and read by `short_track_io.read_file`).  If '
+    'you do not want the first guess centered on short track, make this '
+    'argument the empty string "".'
 )
-DATA_AUG_STDEV_TRANS_HELP_STRING = (
-    'Standard deviation of translation distance (in units of low-resolution '
-    'pixels) for data augmentation.'
+SHORT_TRACK_MAX_LEAD_HELP_STRING = (
+    '[used only if `{0:s}` is specified] Max lead time for short-track '
+    'forecasts (any longer-lead forecast will not be used in first guess).'
+).format(
+    SHORT_TRACK_DIR_ARG_NAME
 )
+SHORT_TRACK_DIFF_CENTERS_HELP_STRING = (
+    '[used only if `{0:s}` is specified] Boolean flag.  If 1 (0), for a given '
+    'data sample, the first guess will involve a different (the same) lat/long '
+    'center for each lag time.'
+).format(
+    SHORT_TRACK_DIR_ARG_NAME
+)
+NUM_TRANSLATIONS_HELP_STRING = (
+    'Number of translations for each TC object.  Total number of data samples '
+    'will be num_tc_objects * {0:s}.'
+).format(
+    NUM_TRANSLATIONS_ARG_NAME
+)
+MEAN_TRANSLATION_DIST_HELP_STRING = (
+    'Mean whole-track translation distance (units of IR pixels, or low-res '
+    'pixels).'
+)
+STDEV_TRANSLATION_DIST_HELP_STRING = (
+    'Standard deviation of whole-track translation distance (units of IR '
+    'pixels, or low-res pixels).'
+)
+MEAN_TRANS_DIST_WITHIN_HELP_STRING = (
+    'Mean within-track translation distance (units of IR pixels, or low-res '
+    'pixels).'
+)
+STDEV_TRANS_DIST_WITHIN_HELP_STRING = (
+    'Standard deviation of within-track translation distance (units of IR '
+    'pixels, or low-res pixels).'
+)
+
 SYNOPTIC_TIMES_ONLY_HELP_STRING = (
     '[used only if model is trained with Robert/Galina data] Boolean flag.  If '
     '1, only synoptic times can be target times.  If 0, any time can be a '
@@ -84,10 +120,6 @@ SCALAR_A_DECK_FIELDS_HELP_STRING = (
 REMOVE_NONTROPICAL_HELP_STRING = (
     'Boolean flag.  If 1 (0), will train with only tropical systems (all '
     'systems).'
-)
-USE_XY_COORDS_HELP_STRING = (
-    'Boolean flag.  If 1, will use xy-coordinates (zonal and meridional '
-    'distance from nadir) as predictors.'
 )
 USE_SHUFFLED_DATA_HELP_STRING = (
     'Boolean flag.  If 1, with train with shuffled files.  If 0, will train '
@@ -164,18 +196,40 @@ def add_input_args(parser_object):
         '--' + NUM_GRID_COLUMNS_ARG_NAME, type=int, required=False, default=626,
         help=NUM_GRID_COLUMNS_HELP_STRING
     )
+
     parser_object.add_argument(
-        '--' + DATA_AUG_NUM_TRANS_ARG_NAME, type=int, required=False, default=8,
-        help=DATA_AUG_NUM_TRANS_HELP_STRING
+        '--' + SHORT_TRACK_DIR_ARG_NAME, type=str, required=True,
+        help=SHORT_TRACK_DIR_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + DATA_AUG_MEAN_TRANS_ARG_NAME, type=float, required=False,
-        default=15, help=DATA_AUG_MEAN_TRANS_HELP_STRING
+        '--' + SHORT_TRACK_MAX_LEAD_ARG_NAME, type=int, required=False,
+        default=350, help=SHORT_TRACK_MAX_LEAD_HELP_STRING
     )
     parser_object.add_argument(
-        '--' + DATA_AUG_STDEV_TRANS_ARG_NAME, type=float, required=False,
-        default=7.5, help=DATA_AUG_STDEV_TRANS_HELP_STRING
+        '--' + SHORT_TRACK_DIFF_CENTERS_ARG_NAME, type=int, required=False,
+        default=0, help=SHORT_TRACK_DIFF_CENTERS_HELP_STRING
     )
+    parser_object.add_argument(
+        '--' + NUM_TRANSLATIONS_ARG_NAME, type=int, required=False, default=8,
+        help=NUM_TRANSLATIONS_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + MEAN_TRANSLATION_DIST_ARG_NAME, type=float, required=True,
+        help=MEAN_TRANSLATION_DIST_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + STDEV_TRANSLATION_DIST_ARG_NAME, type=float, required=True,
+        help=STDEV_TRANSLATION_DIST_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + MEAN_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=True,
+        help=MEAN_TRANS_DIST_WITHIN_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + STDEV_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=True,
+        help=STDEV_TRANS_DIST_WITHIN_HELP_STRING
+    )
+
     parser_object.add_argument(
         '--' + SYNOPTIC_TIMES_ONLY_ARG_NAME, type=int, required=False,
         default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
@@ -191,10 +245,6 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + REMOVE_NONTROPICAL_ARG_NAME, type=int, required=False, default=0,
         help=REMOVE_NONTROPICAL_HELP_STRING
-    )
-    parser_object.add_argument(
-        '--' + USE_XY_COORDS_ARG_NAME, type=int, required=True,
-        help=USE_XY_COORDS_HELP_STRING
     )
     parser_object.add_argument(
         '--' + USE_SHUFFLED_DATA_ARG_NAME, type=int, required=True,

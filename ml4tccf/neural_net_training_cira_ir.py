@@ -821,10 +821,7 @@ def data_generator(option_dict):
 
             num_examples_in_memory += this_bt_matrix_kelvins.shape[0]
 
-        (
-            _, brightness_temp_matrix_kelvins,
-            row_translations_low_res_px, column_translations_low_res_px
-        ) = data_augmentation.augment_data(
+        translation_dict = data_augmentation.augment_data(
             bidirectional_reflectance_matrix=None,
             brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
             num_translations_per_example=data_aug_num_translations,
@@ -832,6 +829,16 @@ def data_generator(option_dict):
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=-10.
         )
+        brightness_temp_matrix_kelvins = translation_dict[
+            data_augmentation.BRIGHTNESS_TEMPS_KEY
+        ]
+        row_translations_low_res_px = translation_dict[
+            data_augmentation.ROW_TRANSLATIONS_KEY
+        ]
+        column_translations_low_res_px = translation_dict[
+            data_augmentation.COLUMN_TRANSLATIONS_KEY
+        ]
+        del translation_dict
 
         brightness_temp_matrix_kelvins = (
             data_augmentation.subset_grid_after_data_aug(
@@ -1141,10 +1148,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         )
     )
 
-    (
-        _, brightness_temp_matrix_kelvins,
-        row_translations_low_res_px, column_translations_low_res_px
-    ) = data_augmentation.augment_data(
+    translation_dict = data_augmentation.augment_data(
         bidirectional_reflectance_matrix=None,
         brightness_temp_matrix_kelvins=brightness_temp_matrix_kelvins,
         num_translations_per_example=data_aug_num_translations,
@@ -1152,6 +1156,16 @@ def create_data(option_dict, cyclone_id_string, num_target_times):
         stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
         sentinel_value=-10.
     )
+    brightness_temp_matrix_kelvins = translation_dict[
+        data_augmentation.BRIGHTNESS_TEMPS_KEY
+    ]
+    row_translations_low_res_px = translation_dict[
+        data_augmentation.ROW_TRANSLATIONS_KEY
+    ]
+    column_translations_low_res_px = translation_dict[
+        data_augmentation.COLUMN_TRANSLATIONS_KEY
+    ]
+    del translation_dict
 
     brightness_temp_matrix_kelvins = (
         data_augmentation.subset_grid_after_data_aug(
