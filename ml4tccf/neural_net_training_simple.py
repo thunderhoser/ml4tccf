@@ -341,7 +341,7 @@ def _recenter_1example_on_short_track(
         longitude_diff_deg = numpy.absolute(
             short_track_longitudes_deg_e[j] - orig_longitude_deg_e
         )
-        if longitude_diff_deg > 7.5:
+        if longitude_diff_deg > 5:
             warning_string = (
                 'POTENTIAL ERROR: Difference between original ({0:.4f} deg E) '
                 'and short-track ({1:.4f} deg E) longitudes is too big.'
@@ -1506,7 +1506,6 @@ def data_generator_shuffled(option_dict):
             num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )
-        assert numpy.all(vector_predictor_matrix > SENTINEL_VALUE + 1)
 
         grid_spacings_km = numpy.repeat(
             grid_spacings_km, repeats=data_aug_num_translations
@@ -1551,7 +1550,31 @@ def data_generator_shuffled(option_dict):
             grid_spacings_km, cyclone_center_latitudes_deg_n
         )))
 
-        predictor_matrices = [p.astype('float16') for p in predictor_matrices]
+        bad_example_flags = numpy.any(
+            vector_predictor_matrix < SENTINEL_VALUE + 1,
+            axis=(1, 2, 3, 4)
+        )
+
+        if numpy.any(bad_example_flags):
+            warning_string = (
+                'POTENTIAL ERROR: {0:d} of {1:d} examples contain sentinel '
+                'value, which means that translation was too large.'
+            ).format(
+                numpy.sum(bad_example_flags),
+                len(bad_example_flags)
+            )
+
+            warnings.warn(warning_string)
+
+        if numpy.all(bad_example_flags):
+            continue
+
+        good_indices = numpy.where(numpy.invert(bad_example_flags))[0]
+        predictor_matrices = [
+            p.astype('float16')[good_indices, ...] for p in predictor_matrices
+        ]
+        target_matrix = target_matrix[good_indices, ...]
+
         yield tuple(predictor_matrices), target_matrix
 
 
@@ -1955,7 +1978,6 @@ def data_generator(option_dict):
             num_columns_to_keep=num_columns_low_res,
             for_high_res=False
         )
-        assert numpy.all(vector_predictor_matrix > SENTINEL_VALUE + 1)
 
         grid_spacings_km = numpy.repeat(
             grid_spacings_km, repeats=data_aug_num_translations
@@ -1999,6 +2021,31 @@ def data_generator(option_dict):
             row_translations_low_res_px, column_translations_low_res_px,
             grid_spacings_km, cyclone_center_latitudes_deg_n
         )))
+
+        bad_example_flags = numpy.any(
+            vector_predictor_matrix < SENTINEL_VALUE + 1,
+            axis=(1, 2, 3, 4)
+        )
+
+        if numpy.any(bad_example_flags):
+            warning_string = (
+                'POTENTIAL ERROR: {0:d} of {1:d} examples contain sentinel '
+                'value, which means that translation was too large.'
+            ).format(
+                numpy.sum(bad_example_flags),
+                len(bad_example_flags)
+            )
+
+            warnings.warn(warning_string)
+
+        if numpy.all(bad_example_flags):
+            continue
+
+        good_indices = numpy.where(numpy.invert(bad_example_flags))[0]
+        predictor_matrices = [
+            p.astype('float16')[good_indices, ...] for p in predictor_matrices
+        ]
+        target_matrix = target_matrix[good_indices, ...]
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
         yield tuple(predictor_matrices), target_matrix
@@ -2426,7 +2473,6 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         num_columns_to_keep=num_columns_low_res,
         for_high_res=False
     )
-    assert numpy.all(vector_predictor_matrix > SENTINEL_VALUE + 1)
 
     # TODO(thunderhoser): This should work, but I'm not 100% sure yet.
     low_res_latitude_matrix_deg_n = numpy.repeat(
@@ -2519,18 +2565,40 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
             grid_spacings_km, cyclone_center_latitudes_deg_n
         )))
 
+    bad_example_flags = numpy.any(
+        vector_predictor_matrix < SENTINEL_VALUE + 1,
+        axis=(1, 2, 3, 4)
+    )
+
+    if numpy.any(bad_example_flags):
+        warning_string = (
+            'POTENTIAL ERROR: {0:d} of {1:d} examples contain sentinel '
+            'value, which means that translation was too large.'
+        ).format(
+            numpy.sum(bad_example_flags),
+            len(bad_example_flags)
+        )
+
+        warnings.warn(warning_string)
+
+    if numpy.all(bad_example_flags):
+        return None
+
+    good_indices = numpy.where(numpy.invert(bad_example_flags))[0]
     predictor_matrices = [p.astype('float16') for p in predictor_matrices]
 
     return {
-        PREDICTOR_MATRICES_KEY: predictor_matrices,
-        TARGET_MATRIX_KEY: target_matrix,
-        TARGET_TIMES_KEY: target_times_unix_sec,
-        GRID_SPACINGS_KEY: grid_spacings_km,
-        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n,
+        PREDICTOR_MATRICES_KEY:
+            [p[good_indices, ...] for p in predictor_matrices],
+        TARGET_MATRIX_KEY: target_matrix[good_indices, ...],
+        TARGET_TIMES_KEY: target_times_unix_sec[good_indices, ...],
+        GRID_SPACINGS_KEY: grid_spacings_km[good_indices, ...],
+        CENTER_LATITUDES_KEY: cyclone_center_latitudes_deg_n[good_indices, ...],
         HIGH_RES_LATITUDES_KEY: None,
         HIGH_RES_LONGITUDES_KEY: None,
-        LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n,
-        LOW_RES_LONGITUDES_KEY: low_res_longitude_matrix_deg_e
+        LOW_RES_LATITUDES_KEY: low_res_latitude_matrix_deg_n[good_indices, ...],
+        LOW_RES_LONGITUDES_KEY:
+            low_res_longitude_matrix_deg_e[good_indices, ...]
     }
 
 
