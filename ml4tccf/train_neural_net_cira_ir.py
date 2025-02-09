@@ -101,7 +101,7 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
     }
 
     print('Reading model template from: "{0:s}"...'.format(template_file_name))
-    model_object = nn_utils.read_model(hdf5_file_name=template_file_name)
+    model_object = nn_utils.read_model(keras_file_name=template_file_name)
 
     model_metafile_name = nn_utils.find_metafile(
         model_dir_name=os.path.split(template_file_name)[0],
