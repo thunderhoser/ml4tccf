@@ -447,6 +447,41 @@ def choose_random_target_times(all_target_times_unix_sec, num_times_desired):
     error_checking.assert_is_integer(num_times_desired)
     error_checking.assert_is_greater(num_times_desired, 0)
 
+    num_times_total = len(all_target_times_unix_sec)
+    all_indices = numpy.linspace(
+        0, num_times_total - 1, num=num_times_total, dtype=int
+    )
+
+    if num_times_desired >= num_times_total:
+        numpy.random.shuffle(all_indices)
+        return all_target_times_unix_sec[all_indices], all_indices
+
+    chosen_indices = numpy.random.choice(
+        all_indices, size=num_times_desired, replace=False
+    )
+    return all_target_times_unix_sec[chosen_indices], chosen_indices
+
+
+def choose_random_target_times_old(all_target_times_unix_sec,
+                                   num_times_desired):
+    """Chooses random target times from array.
+
+    T = number of times chosen
+
+    :param all_target_times_unix_sec: 1-D numpy array with all target times.
+    :param num_times_desired: Number of times desired.
+    :return: chosen_target_times_unix_sec: length-T numpy array of chosen target
+        times.
+    :return: chosen_indices: length-T numpy array of corresponding indices.
+    """
+
+    error_checking.assert_is_integer_numpy_array(all_target_times_unix_sec)
+    error_checking.assert_is_numpy_array(
+        all_target_times_unix_sec, num_dimensions=1
+    )
+    error_checking.assert_is_integer(num_times_desired)
+    error_checking.assert_is_greater(num_times_desired, 0)
+
     all_target_dates_unix_sec = number_rounding.floor_to_nearest(
         all_target_times_unix_sec, DAYS_TO_SECONDS
     )
