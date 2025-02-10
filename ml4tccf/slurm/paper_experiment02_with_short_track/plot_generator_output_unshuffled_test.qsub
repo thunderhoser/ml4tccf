@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#SBATCH --job-name="plot_generator_output_unshuffled_test"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --nodes=1
+#SBATCH --ntasks=8           # 8 tasks per node
+#SBATCH --cpus-per-task=2
+#SBATCH --ntasks-per-node=8  # 8 GPUs per node
+#SBATCH --exclusive
+#SBATCH --time=18:00:00
+#SBATCH --array=3,6,10,13,17,20,24,27,31,34,38,41,45,48,52,55
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_generator_output_unshuffled_test_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_with_short_track/templates"
+TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment02_with_short_track/unshuffled_test"
+
+TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/900x900_grids/training"
+VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/900x900_grids/validation"
+A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/processed/a_decks_normalized.nc"
+SHORT_TRACK_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/short_track_data/processed"
+
+GRID_ROW_COUNTS=("300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600")
+MAIN_POOLING_FACTORS=("2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "2" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3" "3")
+LAG_TIME_COUNTS=("1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7" "1" "2" "3" "4" "5" "6" "7")
+
+num_grid_rows=${GRID_ROW_COUNTS[$SLURM_ARRAY_TASK_ID]}
+main_pooling_factor=${MAIN_POOLING_FACTORS[$SLURM_ARRAY_TASK_ID]}
+num_lag_times=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+template_file_name="${TEMPLATE_DIR_NAME}/num-grid-rows=${num_grid_rows}_main-pooling-factor=${main_pooling_factor}_num-lag-times=${num_lag_times}/model.keras"
+model_dir_name="${TOP_OUTPUT_DIR_NAME}/num-grid-rows=${num_grid_rows}_main-pooling-factor=${main_pooling_factor}_num-lag-times=${num_lag_times}"
+echo $model_dir_name
+
+python3 -u "${CODE_DIR_NAME}/plot_generator_output_1batch.py" \
+--input_model_file_name="${model_dir_name}/model.weights.h5" \
+--input_satellite_dir_name="${TRAINING_DIR_NAME}" \
+--are_data_normalized=1 \
+--num_examples=10 \
+--max_examples_per_cyclone=1 \
+--years 2020 \
+--output_dir_name="${model_dir_name}/generator_output_plots"
