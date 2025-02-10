@@ -39,6 +39,7 @@ python3 -u "${CODE_DIR_NAME}/plot_satellite.py" \
 --valid_time_strings "2020-07-14-0700" "2020-07-14-0730" "2020-07-14-0800" \
 --plot_latlng_coords=1 \
 --low_res_wavelengths_microns 8.500 9.610 12.300 \
+--high_res_wavelengths_microns -1 \
 --num_grid_rows_low_res=500 \
 --num_grid_columns_low_res=500 \
 --output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/900x900_grids/training/2020EP06_plots_weird"
