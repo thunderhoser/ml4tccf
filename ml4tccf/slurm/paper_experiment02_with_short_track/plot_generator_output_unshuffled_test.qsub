@@ -18,6 +18,7 @@
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
 #SBATCH --output=plot_generator_output_unshuffled_test_%A_%a.out
 
+module load imagemagick/7.1.1-11
 module load cuda/12.3.1
 conda init
 conda activate base
