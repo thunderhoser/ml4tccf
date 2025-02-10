@@ -664,18 +664,18 @@ def _plot_data_one_example(
     low_res_wavelengths_microns = d[nn_utils.LOW_RES_WAVELENGTHS_KEY]
     lag_times_minutes = d[nn_utils.LAG_TIMES_KEY]
 
-    brightness_temp_matrix = nn_utils.separate_lag_times_and_wavelengths(
-        satellite_data_matrix=numpy.expand_dims(brightness_temp_matrix, axis=0),
-        num_lag_times=len(lag_times_minutes)
-    )[0, ...]
-
-    bidirectional_reflectance_matrix = (
-        nn_utils.separate_lag_times_and_wavelengths(
-            satellite_data_matrix=
-            numpy.expand_dims(bidirectional_reflectance_matrix, axis=0),
-            num_lag_times=len(lag_times_minutes)
-        )[0, ...]
-    )
+    # brightness_temp_matrix = nn_utils.separate_lag_times_and_wavelengths(
+    #     satellite_data_matrix=numpy.expand_dims(brightness_temp_matrix, axis=0),
+    #     num_lag_times=len(lag_times_minutes)
+    # )[0, ...]
+    #
+    # bidirectional_reflectance_matrix = (
+    #     nn_utils.separate_lag_times_and_wavelengths(
+    #         satellite_data_matrix=
+    #         numpy.expand_dims(bidirectional_reflectance_matrix, axis=0),
+    #         num_lag_times=len(lag_times_minutes)
+    #     )[0, ...]
+    # )
 
     if regular_grids:
         actual_center_x_coord = (
