@@ -3,7 +3,6 @@
 import os
 import argparse
 import numpy
-from gewittergefahr.gg_utils import time_conversion
 from ml4tccf.io import border_io
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
 from ml4tccf.machine_learning import \

@@ -655,23 +655,23 @@ def _plot_data_one_example(
     validation_option_dict = model_metadata_dict[
         nn_utils.VALIDATION_OPTIONS_KEY
     ]
-    d = validation_option_dict
-    high_res_wavelengths_microns = d[nn_utils.HIGH_RES_WAVELENGTHS_KEY]
-    low_res_wavelengths_microns = d[nn_utils.LOW_RES_WAVELENGTHS_KEY]
-    lag_times_minutes = d[nn_utils.LAG_TIMES_KEY]
+    vod = validation_option_dict
+    high_res_wavelengths_microns = vod[nn_utils.HIGH_RES_WAVELENGTHS_KEY]
+    low_res_wavelengths_microns = vod[nn_utils.LOW_RES_WAVELENGTHS_KEY]
+    lag_times_minutes = numpy.sort(vod[nn_utils.LAG_TIMES_KEY])[::-1]
 
-    brightness_temp_matrix = nn_utils.separate_lag_times_and_wavelengths(
-        satellite_data_matrix=numpy.expand_dims(brightness_temp_matrix, axis=0),
-        num_lag_times=len(lag_times_minutes)
-    )[0, ...]
-
-    bidirectional_reflectance_matrix = (
-        nn_utils.separate_lag_times_and_wavelengths(
-            satellite_data_matrix=
-            numpy.expand_dims(bidirectional_reflectance_matrix, axis=0),
-            num_lag_times=len(lag_times_minutes)
-        )[0, ...]
-    )
+    # brightness_temp_matrix = nn_utils.separate_lag_times_and_wavelengths(
+    #     satellite_data_matrix=numpy.expand_dims(brightness_temp_matrix, axis=0),
+    #     num_lag_times=len(lag_times_minutes)
+    # )[0, ...]
+    #
+    # bidirectional_reflectance_matrix = (
+    #     nn_utils.separate_lag_times_and_wavelengths(
+    #         satellite_data_matrix=
+    #         numpy.expand_dims(bidirectional_reflectance_matrix, axis=0),
+    #         num_lag_times=len(lag_times_minutes)
+    #     )[0, ...]
+    # )
 
     if regular_grids:
         actual_center_x_coord = (
