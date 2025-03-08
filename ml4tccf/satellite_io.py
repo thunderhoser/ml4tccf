@@ -272,10 +272,6 @@ def write_file(satellite_table_xarray, zarr_file_name):
         for k in range(1, len(satellite_table_xarray[this_var].dims)):
             this_tuple = this_tuple + (-1,)
 
-        print(this_var)
-        print(this_tuple)
-        print('\n')
-
         encoding_dict[this_var] = {'chunks': this_tuple}
 
     encoding_dict[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].update(

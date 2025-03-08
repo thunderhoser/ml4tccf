@@ -353,8 +353,10 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
                 directory_name=input_dir_name,
                 cyclone_id_string=
                 cyclone_id_string_by_input_file[working_indices_2d[0][0]],
-                valid_date_string=
-                valid_date_string_by_input_file[working_indices_2d[0][0]],
+                valid_date_string=time_conversion.unix_sec_to_string(
+                    this_date_unix_sec - DAYS_TO_SECONDS,
+                    satellite_io.DATE_FORMAT
+                ),
                 raise_error_if_missing=False
             )
 
@@ -377,21 +379,6 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
                     [prev_satellite_table_xarray, this_satellite_table_xarray],
                     allow_different_cyclones=False
                 )
-
-                tst = this_satellite_table_xarray
-
-                these_times_unix_sec = tst.coords[satellite_utils.TIME_DIM].values
-                print(these_times_unix_sec)
-                print(len(these_times_unix_sec))
-                print(len(numpy.unique(these_times_unix_sec)))
-                print('\n\n')
-
-                tst = tst.reset_index(satellite_utils.TIME_DIM, drop=False)
-                tst = tst.assign_coords({
-                    satellite_utils.TIME_DIM: these_times_unix_sec
-                })
-                this_satellite_table_xarray = tst
-                print(this_satellite_table_xarray)
 
         print('Subsetting chunk from {0:s} to {1:s}...'.format(
             time_conversion.unix_sec_to_string(
@@ -470,8 +457,6 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
                 ],
                 allow_different_cyclones=True
             )
-            print(output_satellite_table_xarray)
-            print(output_satellite_table_xarray.indexes)
 
         num_chunks_in_output_table += 1
         if (
