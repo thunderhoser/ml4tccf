@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#SBATCH --job-name="simplify_training_files_patch"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=06:00:00
+#SBATCH --array=0-5
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=simplify_training_files_patch_%A_%a.out
+
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python3`
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/training"
+OUTPUT_DIR_NAME="${INPUT_DIR_NAME}/900x900_grids"
+
+FILE_NUMBER_SET_STRINGS=("20085" "20086" "20087" "30000" "30001" "30002")
+
+file_number_set_string="${FILE_NUMBER_SET_STRINGS[$SLURM_ARRAY_TASK_ID]}"
+read -r -a file_numbers <<< "$file_number_set_string"
+
+for file_number in "${file_numbers[@]}"; do
+    python3 -u "${CODE_DIR_NAME}/simplify_satellite_files.py" \
+    --input_dir_name="${INPUT_DIR_NAME}" \
+    --shuffled_file_number=${file_number} \
+    --wavelengths_to_keep_microns 3.9 6.185 6.95 7.34 8.5 9.61 10.35 11.2 12.3 13.3 \
+    --num_grid_rows_to_keep=900 \
+    --num_grid_columns_to_keep=900 \
+    --output_dir_name="${OUTPUT_DIR_NAME}"
+done
