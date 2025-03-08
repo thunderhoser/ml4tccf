@@ -14,6 +14,8 @@ import neural_net_utils as nn_utils
 import neural_net_training_simple as nn_training
 import training_args_simple as training_args
 
+NONE_STRINGS = ['', 'none', 'None']
+
 INPUT_ARG_PARSER = argparse.ArgumentParser()
 INPUT_ARG_PARSER = training_args.add_input_args(parser_object=INPUT_ARG_PARSER)
 
@@ -72,12 +74,19 @@ def _run(template_file_name, output_dir_name,
     :param early_stopping_patience_epochs: Same.
     """
 
+    if a_deck_file_name == '':
+        a_deck_file_name = None
     if short_track_dir_name == '':
         short_track_dir_name = None
     if num_rows_low_res <= 0:
         num_rows_low_res = None
     if num_columns_low_res <= 0:
         num_columns_low_res = None
+    if (
+            len(scalar_a_deck_field_names) == 1
+            and scalar_a_deck_field_names[0] in NONE_STRINGS
+    ):
+        scalar_a_deck_field_names = []
 
     training_option_dict = {
         nn_utils.SATELLITE_DIRECTORY_KEY: satellite_dir_name_for_training,

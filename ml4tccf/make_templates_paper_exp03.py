@@ -212,7 +212,7 @@ def _run():
 
                 output_file_name = (
                     '{0:s}/num-grid-rows={1:03d}_include-atcf={2:d}_'
-                    'num-lag-times={3:d}/model.keras'
+                    'num-lag-times={3:02d}/model.keras'
                 ).format(
                     OUTPUT_DIR_NAME,
                     GRID_ROW_COUNTS_AXIS1[i],
