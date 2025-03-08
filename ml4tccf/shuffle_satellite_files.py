@@ -455,6 +455,7 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
                 ],
                 allow_different_cyclones=True
             )
+            print(output_satellite_table_xarray)
 
         num_chunks_in_output_table += 1
         if (
