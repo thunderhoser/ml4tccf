@@ -199,11 +199,13 @@ def _run():
                 if INCLUDE_ATCF_FLAGS_AXIS2[j]:
                     option_dict.update({
                         tcnn_architecture.INPUT_DIMENSIONS_SCALAR_KEY:
-                            numpy.array([num_scalar_predictors], dtype=int)
+                            numpy.array([num_scalar_predictors], dtype=int),
+                        tcnn_architecture.INCLUDE_SCALAR_DATA_KEY: True
                     })
                 else:
                     option_dict.update({
-                        tcnn_architecture.INPUT_DIMENSIONS_SCALAR_KEY: None
+                        tcnn_architecture.INPUT_DIMENSIONS_SCALAR_KEY: None,
+                        tcnn_architecture.INCLUDE_SCALAR_DATA_KEY: False
                     })
 
                 model_object = tcnn_architecture.create_model(option_dict)
