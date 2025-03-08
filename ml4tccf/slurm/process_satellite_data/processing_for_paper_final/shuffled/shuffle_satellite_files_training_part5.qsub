@@ -27,12 +27,13 @@ echo `which python3`
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 INPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper"
-OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/shuffled_8hour_chunks/training"
+OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/training"
 
 python3 -u "${CODE_DIR_NAME}/shuffle_satellite_files.py" \
 --input_satellite_dir_name="${INPUT_DIR_NAME}" \
 --num_chunks_per_input_file=3 \
 --num_chunks_per_output_file=8 \
+--chunk_prebuffer_minutes=360 \
 --output_time_interval_minutes=30 \
 --cyclone_id_strings "2019AL05" "2020EP17" "2018AL06" "2020EP11" "2016WP19" "2020EP08" "2017AL09" "2018WP22" "2017AL04" "2016WP10" "2018WP35" "2018AL07" "2017AL05" "2019WP05" "2019EP16" "2016WP17" "2019EP11" "2019WP09" "2017WP06" "2018EP14" "2018WP32" "2020EP20" "2016WP21" "2017WP31" "2019AL08" "2019EP17" "2017AL11" "2017WP07" "2019WP03" "2017AL14" "2018WP23" "2019AL13" "2018AL05" \
 --first_output_file_num=40000 \
