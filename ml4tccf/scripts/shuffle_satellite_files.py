@@ -1,5 +1,6 @@
 """Shuffles satellite files to make training more efficient."""
 
+import os
 import copy
 import argparse
 import warnings
@@ -31,6 +32,7 @@ HIMAWARI_WAVELENGTHS_METRES = 1e-6 * numpy.array([
 INPUT_DIR_ARG_NAME = 'input_satellite_dir_name'
 NUM_CHUNKS_PER_INPUT_ARG_NAME = 'num_chunks_per_input_file'
 NUM_CHUNKS_PER_OUTPUT_ARG_NAME = 'num_chunks_per_output_file'
+CHUNK_PREBUFFER_ARG_NAME = 'chunk_prebuffer_minutes'
 TIME_INTERVAL_ARG_NAME = 'output_time_interval_minutes'
 YEARS_ARG_NAME = 'years'
 CYCLONE_IDS_ARG_NAME = 'cyclone_id_strings'
@@ -47,6 +49,15 @@ NUM_CHUNKS_PER_INPUT_HELP_STRING = (
     'chunks, with each chunk being written to a different output file.'
 )
 NUM_CHUNKS_PER_OUTPUT_HELP_STRING = 'Number of chunks per output file.'
+CHUNK_PREBUFFER_HELP_STRING = (
+    'Chunk prebuffer.  The beginning of every chunk will get this many '
+    'additional time steps at the beginning, so that in the shuffled dataset, '
+    'if we want predictors for target time t, the lagged predictors are always '
+    'available in the same file as t.  Hence, {0:s} should be equivalent to '
+    'the longest lag time in the model you wish to train.'
+).format(
+    CHUNK_PREBUFFER_ARG_NAME
+)
 TIME_INTERVAL_HELP_STRING = (
     'Time interval for output files.  This must be a multiple of 30 minutes.'
 )
@@ -80,6 +91,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + NUM_CHUNKS_PER_OUTPUT_ARG_NAME, type=int, required=True,
     help=NUM_CHUNKS_PER_OUTPUT_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + CHUNK_PREBUFFER_ARG_NAME, type=int, required=True,
+    help=CHUNK_PREBUFFER_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + TIME_INTERVAL_ARG_NAME, type=int, required=True,
@@ -164,8 +179,8 @@ def _get_time_range_by_chunk(num_chunks_per_input_file,
 
 
 def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
-         output_time_interval_minutes, years, cyclone_id_strings,
-         first_output_file_num, output_dir_name):
+         chunk_prebuffer_minutes, output_time_interval_minutes,
+         years, cyclone_id_strings, first_output_file_num, output_dir_name):
     """Shuffles satellite files to make training more efficient.
 
     This is effectively the main method.
@@ -173,6 +188,7 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
     :param input_dir_name: See documentation at top of file.
     :param num_chunks_per_input_file: Same.
     :param num_chunks_per_output_file: Same.
+    :param chunk_prebuffer_minutes: Same.
     :param output_time_interval_minutes: Same.
     :param years: Same.
     :param cyclone_id_strings: Same.
@@ -197,6 +213,12 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
     )
     error_checking.assert_equals(
         numpy.mod(output_time_interval_minutes, INPUT_TIME_INTERVAL_MINUTES),
+        0
+    )
+
+    error_checking.assert_is_geq(chunk_prebuffer_minutes, 0)
+    error_checking.assert_equals(
+        numpy.mod(chunk_prebuffer_minutes, INPUT_TIME_INTERVAL_MINUTES),
         0
     )
 
@@ -257,9 +279,9 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
             raise_error_if_all_missing=True
         )
 
-    # cyclone_id_string_by_input_file = [
-    #     satellite_io.file_name_to_cyclone_id(f) for f in input_file_names
-    # ]
+    cyclone_id_string_by_input_file = [
+        satellite_io.file_name_to_cyclone_id(f) for f in input_file_names
+    ]
     valid_date_string_by_input_file = [
         satellite_io.file_name_to_date(f) for f in input_file_names
     ]
@@ -272,6 +294,7 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
     num_output_files_written = 0
     output_satellite_table_xarray = None
     num_chunks_in_output_table = 0
+    chunk_prebuffer_seconds = chunk_prebuffer_minutes * MINUTES_TO_SECONDS
 
     while not numpy.all(is_input_chunk_processed_matrix):
         unprocessed_indices_2d = numpy.where(
@@ -315,6 +338,38 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
             this_date_unix_sec +
             end_time_by_chunk_sec_into_day[working_indices_2d[1][0]]
         )
+
+        this_start_time_unix_sec -= chunk_prebuffer_seconds
+
+        if this_start_time_unix_sec < this_date_unix_sec:
+            previous_date_file_name = satellite_io.find_file(
+                directory_name=input_dir_name,
+                cyclone_id_string=
+                cyclone_id_string_by_input_file[working_indices_2d[0][0]],
+                valid_date_string=
+                valid_date_string_by_input_file[working_indices_2d[0][0]],
+                raise_error_if_missing=False
+            )
+
+            if os.path.isdir(previous_date_file_name):
+                print('Reading data from previous date: "{0:s}"...'.format(
+                    previous_date_file_name
+                ))
+                prev_satellite_table_xarray = satellite_io.read_file(
+                    previous_date_file_name
+                )
+                prev_satellite_table_xarray = (
+                    satellite_utils.subset_wavelengths(
+                        satellite_table_xarray=prev_satellite_table_xarray,
+                        wavelengths_to_keep_microns=numpy.array([]),
+                        for_high_res=True
+                    )
+                )
+                this_satellite_table_xarray = satellite_utils.concat_over_time(
+                    satellite_tables_xarray=
+                    [prev_satellite_table_xarray, this_satellite_table_xarray],
+                    allow_different_cyclones=False
+                )
 
         print('Subsetting chunk from {0:s} to {1:s}...'.format(
             time_conversion.unix_sec_to_string(
@@ -445,6 +500,9 @@ if __name__ == '__main__':
         ),
         num_chunks_per_output_file=getattr(
             INPUT_ARG_OBJECT, NUM_CHUNKS_PER_OUTPUT_ARG_NAME
+        ),
+        chunk_prebuffer_minutes=getattr(
+            INPUT_ARG_OBJECT, CHUNK_PREBUFFER_ARG_NAME
         ),
         output_time_interval_minutes=getattr(
             INPUT_ARG_OBJECT, TIME_INTERVAL_ARG_NAME
