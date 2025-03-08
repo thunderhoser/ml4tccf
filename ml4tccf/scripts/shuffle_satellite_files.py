@@ -346,8 +346,10 @@ def _run(input_dir_name, num_chunks_per_input_file, num_chunks_per_output_file,
                 directory_name=input_dir_name,
                 cyclone_id_string=
                 cyclone_id_string_by_input_file[working_indices_2d[0][0]],
-                valid_date_string=
-                valid_date_string_by_input_file[working_indices_2d[0][0]],
+                valid_date_string=time_conversion.unix_sec_to_string(
+                    this_date_unix_sec - DAYS_TO_SECONDS,
+                    satellite_io.DATE_FORMAT
+                ),
                 raise_error_if_missing=False
             )
 
