@@ -10,7 +10,7 @@
 #SBATCH --ntasks-per-node=8  # 8 GPUs per node
 #SBATCH --exclusive
 #SBATCH --time=12:00:00
-#SBATCH --array=0
+#SBATCH --array=0-1
 #SBATCH --exclude=h28n12
 ##SBATCH --exclude=h31n03,h28n12
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
@@ -54,7 +54,7 @@ python3 -u "${CODE_DIR_NAME}/plot_generator_output_1batch.py" \
 --input_model_file_name="${model_dir_name}/model.weights.h5" \
 --input_satellite_dir_name="${TRAINING_DIR_NAME}" \
 --are_data_normalized=1 \
---num_examples=4 \
+--num_examples=200 \
 --max_examples_per_cyclone=2 \
 --years 2020 \
 --output_dir_name="${model_dir_name}/generator_output_plots"
