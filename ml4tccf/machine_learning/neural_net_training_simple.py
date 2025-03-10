@@ -1478,7 +1478,7 @@ def data_generator_shuffled(option_dict):
         remove_tropical_systems=remove_tropical_systems,
         desired_years=years,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes,
-        a_decks_at_least_6h_old=True
+        a_decks_at_least_6h_old=False
     )
 
     use_extrap_based_forecasts = (
@@ -1955,7 +1955,7 @@ def data_generator(option_dict):
         remove_nontropical_systems=remove_nontropical_systems,
         remove_tropical_systems=remove_tropical_systems,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes,
-        a_decks_at_least_6h_old=True
+        a_decks_at_least_6h_old=False
     )
 
     use_extrap_based_forecasts = (
@@ -2491,7 +2491,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         remove_nontropical_systems=remove_nontropical_systems,
         remove_tropical_systems=remove_tropical_systems,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes,
-        a_decks_at_least_6h_old=True
+        a_decks_at_least_6h_old=False
     )
 
     all_target_times_unix_sec = all_target_times_unix_sec[0]
@@ -2924,7 +2924,7 @@ def create_data_specific_trans(
             remove_tropical_systems=remove_tropical_systems,
             cyclone_id_strings=[cyclone_id_string] * this_num_times,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY],
-            a_decks_at_least_6h_old=True
+            a_decks_at_least_6h_old=False
         )
 
     reconstruction_indices = numpy.array([
