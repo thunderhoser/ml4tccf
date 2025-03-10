@@ -169,7 +169,7 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
                 break
 
             output_file_name = '{0:s}/example{1:06d}.png'.format(
-                output_dir_name, i + num_examples_plotted
+                output_dir_name, i + num_examples_read
             )
             num_examples_plotted += 1
 
