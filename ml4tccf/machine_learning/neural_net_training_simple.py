@@ -64,6 +64,7 @@ DATA_AUG_WITHIN_STDEV_TRANS_KEY = 'data_aug_within_stdev_trans_px'
 SYNOPTIC_TIMES_ONLY_KEY = nn_utils.SYNOPTIC_TIMES_ONLY_KEY
 A_DECK_FILE_KEY = nn_utils.A_DECK_FILE_KEY
 SCALAR_A_DECK_FIELDS_KEY = nn_utils.SCALAR_A_DECK_FIELDS_KEY
+A_DECKS_AT_LEAST_6H_OLD_KEY = 'a_decks_at_least_6h_old'
 REMOVE_NONTROPICAL_KEY = nn_utils.REMOVE_NONTROPICAL_KEY
 REMOVE_TROPICAL_KEY = nn_utils.REMOVE_TROPICAL_KEY
 SEMANTIC_SEG_FLAG_KEY = nn_utils.SEMANTIC_SEG_FLAG_KEY
@@ -122,6 +123,7 @@ def _check_generator_args(option_dict):
     error_checking.assert_is_greater(
         option_dict[DATA_AUG_WITHIN_STDEV_TRANS_KEY], 0.
     )
+    error_checking.assert_is_boolean(option_dict[A_DECKS_AT_LEAST_6H_OLD_KEY])
 
     return option_dict
 
@@ -1458,6 +1460,7 @@ def data_generator_shuffled(option_dict):
     ]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    a_decks_at_least_6h_old = option_dict[A_DECKS_AT_LEAST_6H_OLD_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
 
@@ -1478,7 +1481,7 @@ def data_generator_shuffled(option_dict):
         remove_tropical_systems=remove_tropical_systems,
         desired_years=years,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes,
-        a_decks_at_least_6h_old=False
+        a_decks_at_least_6h_old=a_decks_at_least_6h_old
     )
 
     use_extrap_based_forecasts = (
@@ -1850,6 +1853,9 @@ def data_generator(option_dict, for_plotting=False):
         times (0000 UTC, 0600 UTC, 1200 UTC, 1800 UTC) can be used as target
         times.  If False, any time can be a target time.
     option_dict["scalar_a_deck_field_names"]: length-F list of scalar fields.
+    option_dict["a_decks_at_least_6h_old"]: Boolean flag.  If True, when A-deck
+        scalars are used in predictors, they will be 6-12 h old, rather than
+        0-6 h old.
     option_dict["remove_nontropical_systems"]: Boolean flag.  If True, only
         tropical systems will be used for training.  If False, all systems
         (including subtropical, post-tropical, etc.) will be used.
@@ -1925,6 +1931,7 @@ def data_generator(option_dict, for_plotting=False):
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    a_decks_at_least_6h_old = option_dict[A_DECKS_AT_LEAST_6H_OLD_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
 
@@ -1959,7 +1966,7 @@ def data_generator(option_dict, for_plotting=False):
         remove_nontropical_systems=remove_nontropical_systems,
         remove_tropical_systems=remove_tropical_systems,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes,
-        a_decks_at_least_6h_old=False
+        a_decks_at_least_6h_old=a_decks_at_least_6h_old
     )
 
     use_extrap_based_forecasts = (
@@ -2503,6 +2510,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    a_decks_at_least_6h_old = option_dict[A_DECKS_AT_LEAST_6H_OLD_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
 
@@ -2523,7 +2531,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         remove_nontropical_systems=remove_nontropical_systems,
         remove_tropical_systems=remove_tropical_systems,
         predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes,
-        a_decks_at_least_6h_old=False
+        a_decks_at_least_6h_old=a_decks_at_least_6h_old
     )
 
     all_target_times_unix_sec = all_target_times_unix_sec[0]
@@ -2915,6 +2923,7 @@ def create_data_specific_trans(
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    a_decks_at_least_6h_old = option_dict[A_DECKS_AT_LEAST_6H_OLD_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
 
@@ -2956,7 +2965,7 @@ def create_data_specific_trans(
             remove_tropical_systems=remove_tropical_systems,
             cyclone_id_strings=[cyclone_id_string] * this_num_times,
             target_times_unix_sec=data_dict[TARGET_TIMES_KEY],
-            a_decks_at_least_6h_old=False
+            a_decks_at_least_6h_old=a_decks_at_least_6h_old
         )
 
     reconstruction_indices = numpy.array([

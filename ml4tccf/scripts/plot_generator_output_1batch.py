@@ -122,7 +122,7 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
         'processed/a_decks_normalized.nc'
     )
     training_option_dict[nn_utils.SCALAR_A_DECK_FIELDS_KEY] = [
-        a_deck_io.INTENSITY_KEY
+        a_deck_io.UNNORM_INTENSITY_KEY, a_deck_io.UNNORM_TROPICAL_FLAG_KEY
     ]
     model_metadata_dict[nn_utils.TRAINING_OPTIONS_KEY] = training_option_dict
 
@@ -154,6 +154,7 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
         cyclone_intensities_kt = (
             METRES_PER_SECOND_TO_KT * predictor_matrices[1][:, 0]
         )
+        tropical_flags = predictor_matrices[1][:, 1]
         target_time_strings = [
             time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M')
             for t in target_times_unix_sec
@@ -195,9 +196,10 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
             )
 
             title_string = (
-                '{0:s} ({1:.0f} kt at {2:s})\n'
-                'Row/column trans = {3:.1f}, {4:.1f}\n'
+                '{0:s} {1:s} ({2:.0f} kt at {3:s})\n'
+                'Row/column trans = {4:.1f}, {5:.1f}\n'
             ).format(
+                'Tropical' if tropical_flags[i] else 'Non-tropical',
                 cyclone_id_strings[i],
                 cyclone_intensities_kt[i],
                 target_time_strings[i],
