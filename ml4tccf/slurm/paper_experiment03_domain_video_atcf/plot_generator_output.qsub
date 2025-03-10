@@ -54,7 +54,7 @@ python3 -u "${CODE_DIR_NAME}/plot_generator_output_1batch.py" \
 --input_model_file_name="${model_dir_name}/model.weights.h5" \
 --input_satellite_dir_name="${TRAINING_DIR_NAME}" \
 --are_data_normalized=1 \
---num_examples=10 \
---max_examples_per_cyclone=1 \
+--num_examples=4 \
+--max_examples_per_cyclone=2 \
 --years 2020 \
 --output_dir_name="${model_dir_name}/generator_output_plots"

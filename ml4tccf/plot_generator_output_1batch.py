@@ -117,8 +117,6 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
     )
     training_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 1
     model_metadata_dict[nn_utils.TRAINING_OPTIONS_KEY] = training_option_dict
-    print(max_examples_per_cyclone)
-    print('\n\n\n')
 
     data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
 
