@@ -139,7 +139,6 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
         print(SEPARATOR_STRING)
 
         this_num_examples = predictor_matrices[0].shape[0]
-        num_examples_read += this_num_examples
         num_grid_rows = predictor_matrices[0].shape[1]
         num_grid_columns = predictor_matrices[0].shape[2]
 
@@ -165,7 +164,7 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
                 break
 
             output_file_name = '{0:s}/example{1:06d}.png'.format(
-                output_dir_name, i + num_examples_plotted
+                output_dir_name, i + num_examples_read
             )
             num_examples_plotted += 1
 
@@ -174,12 +173,17 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
                 axis=-1
             )
 
+            title_string = 'Row/column trans = {0:.1f}, {1:.1f}'.format(
+                target_matrix[i, 0],
+                target_matrix[i, 1]
+            )
+
             plot_predictions._plot_data_one_example(
                 predictor_matrices=[p[i, ...] for p in predictor_matrices],
                 scalar_target_values=target_matrix[i, :2],
                 prediction_matrix=dummy_prediction_matrix,
                 model_metadata_dict=model_metadata_dict,
-                cyclone_id_string=DUMMY_CYCLONE_ID_STRING,
+                cyclone_id_string=title_string,
                 low_res_latitudes_deg_n=dummy_low_res_grid_latitudes_deg_n,
                 low_res_longitudes_deg_e=dummy_low_res_grid_longitudes_deg_e,
                 high_res_latitudes_deg_n=dummy_high_res_grid_latitudes_deg_n,
@@ -189,6 +193,8 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
                 border_longitudes_deg_e=border_longitudes_deg_e,
                 output_file_name=output_file_name
             )
+
+        num_examples_read += this_num_examples
 
 
 if __name__ == '__main__':
