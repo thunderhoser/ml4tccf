@@ -608,11 +608,11 @@ def read_scalar_data(
                 not in TROPICAL_SYSTEM_TYPE_STRINGS
             )
 
-        keep_this_time = (
-            keep_this_time and
-            adt[a_deck_io.UNNORM_INTENSITY_KEY].values[a_deck_index]
-            >= MIN_TROPICAL_INTENSITY_M_S01
-        )
+        # keep_this_time = (
+        #     keep_this_time and
+        #     adt[a_deck_io.UNNORM_INTENSITY_KEY].values[a_deck_index]
+        #     >= MIN_TROPICAL_INTENSITY_M_S01
+        # )
 
         if not keep_this_time:
             continue
