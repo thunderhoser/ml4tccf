@@ -1,0 +1,100 @@
+#!/bin/bash
+
+#SBATCH --job-name="train_neural_nets_test_tropical_only"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --nodes=1
+#SBATCH --ntasks=8           # 8 tasks per node
+#SBATCH --cpus-per-task=2
+#SBATCH --ntasks-per-node=8  # 8 GPUs per node
+#SBATCH --exclusive
+#SBATCH --time=24:00:00
+#SBATCH --array=0-6,28-34
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=train_neural_nets_test_tropical_only_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment03_domain_video_atcf/templates"
+TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment03_domain_video_atcf/tropical_only_test"
+
+TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/training/900x900_grids"
+VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/validation/900x900_grids"
+A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/processed/a_decks_normalized.nc"
+
+GRID_ROW_COUNTS=("300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600")
+INCLUDE_ATCF_FLAGS=("0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1")
+LAG_TIME_COUNTS=("01" "03" "05" "07" "09" "11" "13" "01" "03" "05" "07" "09" "11" "13" "01" "03" "05" "07" "09" "11" "13" "01" "03" "05" "07" "09" "11" "13" "01" "03" "05" "07" "09" "11" "13" "01" "03" "05" "07" "09" "11" "13" "01" "03" "05" "07" "09" "11" "13" "01" "03" "05" "07" "09" "11" "13")
+
+num_grid_rows=${GRID_ROW_COUNTS[$SLURM_ARRAY_TASK_ID]}
+include_atcf=${INCLUDE_ATCF_FLAGS[$SLURM_ARRAY_TASK_ID]}
+num_lag_times=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+template_file_name="${TEMPLATE_DIR_NAME}/num-grid-rows=${num_grid_rows}_include-atcf=${include_atcf}_num-lag-times=${num_lag_times}/model.keras"
+output_dir_name="${TOP_OUTPUT_DIR_NAME}/num-grid-rows=${num_grid_rows}_include-atcf=${include_atcf}_num-lag-times=${num_lag_times}"
+echo $output_dir_name
+
+POSSIBLE_LAG_TIMES_MINUTES=("0" "30" "60" "90" "120" "150" "180" "210" "240" "270" "300" "330" "360")
+lag_time_string_minutes=""
+i=0
+
+while [ "$i" -lt "$num_lag_times" ]; do
+    lag_time_string_minutes+=" ${POSSIBLE_LAG_TIMES_MINUTES[$i]}"
+    ((i++))
+done
+
+echo $lag_time_string_minutes
+
+if [[ "$include_atcf" == "1" ]]; then
+    scalar_a_deck_field_names="absolute_latitude_deg_n longitude_cosine longitude_sine intensity_m_s01 sea_level_pressure_pa"
+else
+    scalar_a_deck_field_names="None"
+fi
+
+
+python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
+--input_template_file_name="${template_file_name}" \
+--output_model_dir_name="${output_dir_name}" \
+--lag_times_minutes ${lag_time_string_minutes} \
+--low_res_wavelengths_microns 8.500 9.610 12.300 \
+--num_examples_per_batch=4 \
+--max_examples_per_cyclone=2 \
+--num_rows_low_res=${num_grid_rows} \
+--num_columns_low_res=${num_grid_rows} \
+--input_short_track_dir_name="" \
+--data_aug_num_translations=1 \
+--data_aug_mean_translation_low_res_px=24 \
+--data_aug_stdev_translation_low_res_px=12 \
+--data_aug_within_mean_trans_px=0.00000001 \
+--data_aug_within_stdev_trans_px=0.00000001 \
+--synoptic_times_only=0 \
+--a_deck_file_name="${A_DECK_FILE_NAME}" \
+--scalar_a_deck_field_names ${scalar_a_deck_field_names} \
+--a_decks_at_least_6h_old=0 \
+--remove_nontropical_systems=1 \
+--use_shuffled_data=1 \
+--satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
+--training_years 2016 2017 2018 2019 2020 2021 2022 \
+--satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
+--validation_years 2016 2017 2018 2019 2020 2021 2022 \
+--num_epochs=1000 \
+--num_training_batches_per_epoch=180 \
+--num_validation_batches_per_epoch=60 \
+--plateau_patience_epochs=10 \
+--plateau_learning_rate_multiplier=0.95 \
+--early_stopping_patience_epochs=500
