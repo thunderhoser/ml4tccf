@@ -1791,7 +1791,7 @@ def data_generator_shuffled(option_dict):
         yield tuple(predictor_matrices), target_matrix
 
 
-def data_generator(option_dict):
+def data_generator(option_dict, for_plotting=False):
     """Generates input data for neural net.
 
     E = batch size = number of examples after data augmentation
@@ -1861,6 +1861,8 @@ def data_generator(option_dict):
         remove_tropical_systems`.  If A-deck file is not needed, you can make
         this None.
 
+    :param for_plotting: Leave this alone.
+
     :return: predictor_matrices: If predictors include scalars, this will be a
         list with [vector_predictor_matrix, scalar_predictor_matrix].
         Otherwise, this will be a list with only the first item.
@@ -1891,6 +1893,8 @@ def data_generator(option_dict):
         target_matrix[:, 3] contains the true latitude of each cyclone center in
         deg north.
     """
+
+    error_checking.assert_is_boolean(for_plotting)
 
     option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
     option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
@@ -1975,6 +1979,9 @@ def data_generator(option_dict):
         column_translations_low_res_px = None
         num_examples_in_memory = 0
 
+        return_cyclone_id_strings = None
+        target_times_unix_sec = None
+
         while num_examples_in_memory < num_examples_per_batch:
             if cyclone_index == len(cyclone_id_strings):
                 cyclone_index = 0
@@ -2038,6 +2045,8 @@ def data_generator(option_dict):
             this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
             these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
             these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
+            these_id_strings = data_dict[CYCLONE_IDS_KEY]
+            these_target_times_unix_sec = data_dict[TARGET_TIMES_KEY]
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
@@ -2089,6 +2098,13 @@ def data_generator(option_dict):
                     num_examples_per_batch, 0, dtype=int
                 )
 
+                return_cyclone_id_strings = numpy.full(
+                    num_examples_per_batch, '', dtype=object
+                )
+                target_times_unix_sec = numpy.full(
+                    num_examples_per_batch, -1, dtype=int
+                )
+
                 if this_scalar_predictor_matrix is not None:
                     these_dim = (
                         (num_examples_per_batch,) +
@@ -2104,6 +2120,12 @@ def data_generator(option_dict):
             grid_spacings_km[first_index:last_index] = these_grid_spacings_km
             cyclone_center_latitudes_deg_n[first_index:last_index] = (
                 these_center_latitudes_deg_n
+            )
+            return_cyclone_id_strings[first_index:last_index] = numpy.array(
+                these_id_strings
+            )
+            target_times_unix_sec[first_index:last_index] = (
+                these_target_times_unix_sec
             )
             row_translations_low_res_px[first_index:last_index] = (
                 these_row_trans_px
@@ -2198,6 +2220,12 @@ def data_generator(option_dict):
         cyclone_center_latitudes_deg_n = numpy.repeat(
             cyclone_center_latitudes_deg_n, repeats=data_aug_num_translations
         )
+        return_cyclone_id_strings = numpy.repeat(
+            return_cyclone_id_strings, repeats=data_aug_num_translations
+        )
+        target_times_unix_sec = numpy.repeat(
+            target_times_unix_sec, repeats=data_aug_num_translations
+        )
         if scalar_predictor_matrix is not None:
             scalar_predictor_matrix = numpy.repeat(
                 scalar_predictor_matrix, axis=0,
@@ -2261,7 +2289,11 @@ def data_generator(option_dict):
         target_matrix = target_matrix[good_indices, ...]
 
         predictor_matrices = [p.astype('float16') for p in predictor_matrices]
-        yield tuple(predictor_matrices), target_matrix
+
+        if for_plotting:
+            yield tuple(predictor_matrices), target_matrix, return_cyclone_id_strings, target_times_unix_sec
+        else:
+            yield tuple(predictor_matrices), target_matrix
 
 
 def train_model(

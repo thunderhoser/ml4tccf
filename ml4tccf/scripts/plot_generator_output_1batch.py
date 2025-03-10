@@ -3,6 +3,8 @@
 import os
 import argparse
 import numpy
+from gewittergefahr.gg_utils import time_conversion
+from ml4tccf.io import a_deck_io
 from ml4tccf.io import border_io
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
 from ml4tccf.machine_learning import \
@@ -14,6 +16,8 @@ from ml4tccf.machine_learning import \
 from ml4tccf.scripts import plot_predictions
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
+METRES_PER_SECOND_TO_KT = 3.6 / 1.852
 
 DUMMY_CYCLONE_ID_STRING = '1900AL01'
 DUMMY_END_LATITUDES_DEG_N = numpy.array([32, 33], dtype=float)
@@ -111,6 +115,15 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
         max_examples_per_cyclone
     )
     training_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 1
+
+    # TODO(thunderhoser): Hard-coding path is a HACK.
+    training_option_dict[nn_utils.A_DECK_FILE_KEY] = (
+        '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/'
+        'processed/a_decks_normalized.nc'
+    )
+    training_option_dict[nn_utils.SCALAR_A_DECK_FIELDS_KEY] = [
+        a_deck_io.INTENSITY_KEY
+    ]
     model_metadata_dict[nn_utils.TRAINING_OPTIONS_KEY] = training_option_dict
 
     data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
@@ -121,7 +134,7 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
         )
     elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
         generator_handle = nn_training_simple.data_generator(
-            training_option_dict
+            training_option_dict, for_plotting=True
         )
     else:
         generator_handle = nn_training_fancy.data_generator(
@@ -135,8 +148,16 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
 
     while num_examples_read < num_examples:
-        predictor_matrices, target_matrix = next(generator_handle)
+        predictor_matrices, target_matrix, cyclone_id_strings, target_times_unix_sec = next(generator_handle)
         print(SEPARATOR_STRING)
+
+        cyclone_intensities_kt = (
+            METRES_PER_SECOND_TO_KT * predictor_matrices[1][:, 0]
+        )
+        target_time_strings = [
+            time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M')
+            for t in target_times_unix_sec
+        ]
 
         this_num_examples = predictor_matrices[0].shape[0]
         num_grid_rows = predictor_matrices[0].shape[1]
@@ -173,7 +194,13 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
                 axis=-1
             )
 
-            title_string = 'Row/column trans = {0:.1f}, {1:.1f}'.format(
+            title_string = (
+                '{0:s} ({1:.0f} kt at {2:s})\n'
+                'Row/column trans = {3:.1f}, {4:.1f}\n'
+            ).format(
+                cyclone_id_strings[i],
+                cyclone_intensities_kt[i],
+                target_time_strings[i],
                 target_matrix[i, 0],
                 target_matrix[i, 1]
             )
