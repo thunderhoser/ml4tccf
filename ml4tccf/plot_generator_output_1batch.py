@@ -111,7 +111,6 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
 
     training_option_dict[nn_utils.SATELLITE_DIRECTORY_KEY] = satellite_dir_name
     training_option_dict[nn_utils.YEARS_KEY] = years
-    training_option_dict[nn_utils.BATCH_SIZE_KEY] = num_examples
     training_option_dict[nn_utils.MAX_EXAMPLES_PER_CYCLONE_KEY] = (
         max_examples_per_cyclone
     )
@@ -125,10 +124,7 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
             training_option_dict
         )
     elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
-        # generator_handle = nn_training_simple.data_generator(
-        #     training_option_dict
-        # )
-        generator_handle = nn_training_simple.data_generator_shuffled(
+        generator_handle = nn_training_simple.data_generator(
             training_option_dict
         )
     else:
@@ -137,54 +133,66 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
         )
 
     print(SEPARATOR_STRING)
-    predictor_matrices, target_matrix = next(generator_handle)
-    print(SEPARATOR_STRING)
 
-    num_examples = predictor_matrices[0].shape[0]
-    num_grid_rows = predictor_matrices[0].shape[1]
-    num_grid_columns = predictor_matrices[0].shape[2]
+    num_examples_read = 0
+    num_examples_plotted = 0
     border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
 
-    dummy_low_res_grid_latitudes_deg_n = numpy.linspace(
-        DUMMY_END_LATITUDES_DEG_N[0], DUMMY_END_LATITUDES_DEG_N[1],
-        num=num_grid_rows, dtype=float
-    )
-    dummy_low_res_grid_longitudes_deg_e = numpy.linspace(
-        DUMMY_END_LONGITUDES_DEG_E[0], DUMMY_END_LONGITUDES_DEG_E[1],
-        num=num_grid_columns, dtype=float
-    )
-    dummy_high_res_grid_latitudes_deg_n = numpy.linspace(
-        DUMMY_END_LATITUDES_DEG_N[0], DUMMY_END_LATITUDES_DEG_N[1],
-        num=num_grid_rows * 4, dtype=float
-    )
-    dummy_high_res_grid_longitudes_deg_e = numpy.linspace(
-        DUMMY_END_LONGITUDES_DEG_E[0], DUMMY_END_LONGITUDES_DEG_E[1],
-        num=num_grid_columns * 4, dtype=float
-    )
+    while num_examples_read < num_examples:
+        predictor_matrices, target_matrix = next(generator_handle)
+        print(SEPARATOR_STRING)
 
-    for i in range(num_examples):
-        output_file_name = '{0:s}/example{1:06d}.png'.format(output_dir_name, i)
+        this_num_examples = predictor_matrices[0].shape[0]
+        num_examples_read += this_num_examples
+        num_grid_rows = predictor_matrices[0].shape[1]
+        num_grid_columns = predictor_matrices[0].shape[2]
 
-        dummy_prediction_matrix = numpy.expand_dims(
-            numpy.transpose(target_matrix[i, :2]),
-            axis=-1
+        dummy_low_res_grid_latitudes_deg_n = numpy.linspace(
+            DUMMY_END_LATITUDES_DEG_N[0], DUMMY_END_LATITUDES_DEG_N[1],
+            num=num_grid_rows, dtype=float
+        )
+        dummy_low_res_grid_longitudes_deg_e = numpy.linspace(
+            DUMMY_END_LONGITUDES_DEG_E[0], DUMMY_END_LONGITUDES_DEG_E[1],
+            num=num_grid_columns, dtype=float
+        )
+        dummy_high_res_grid_latitudes_deg_n = numpy.linspace(
+            DUMMY_END_LATITUDES_DEG_N[0], DUMMY_END_LATITUDES_DEG_N[1],
+            num=num_grid_rows * 4, dtype=float
+        )
+        dummy_high_res_grid_longitudes_deg_e = numpy.linspace(
+            DUMMY_END_LONGITUDES_DEG_E[0], DUMMY_END_LONGITUDES_DEG_E[1],
+            num=num_grid_columns * 4, dtype=float
         )
 
-        plot_predictions._plot_data_one_example(
-            predictor_matrices=[p[i, ...] for p in predictor_matrices],
-            scalar_target_values=target_matrix[i, :2],
-            prediction_matrix=dummy_prediction_matrix,
-            model_metadata_dict=model_metadata_dict,
-            cyclone_id_string=DUMMY_CYCLONE_ID_STRING,
-            low_res_latitudes_deg_n=dummy_low_res_grid_latitudes_deg_n,
-            low_res_longitudes_deg_e=dummy_low_res_grid_longitudes_deg_e,
-            high_res_latitudes_deg_n=dummy_high_res_grid_latitudes_deg_n,
-            high_res_longitudes_deg_e=dummy_high_res_grid_longitudes_deg_e,
-            are_data_normalized=are_data_normalized,
-            border_latitudes_deg_n=border_latitudes_deg_n,
-            border_longitudes_deg_e=border_longitudes_deg_e,
-            output_file_name=output_file_name
-        )
+        for i in range(this_num_examples):
+            if num_examples_plotted >= num_examples:
+                break
+
+            output_file_name = '{0:s}/example{1:06d}.png'.format(
+                output_dir_name, i + num_examples_plotted
+            )
+            num_examples_plotted += 1
+
+            dummy_prediction_matrix = numpy.expand_dims(
+                numpy.transpose(target_matrix[i, :2]),
+                axis=-1
+            )
+
+            plot_predictions._plot_data_one_example(
+                predictor_matrices=[p[i, ...] for p in predictor_matrices],
+                scalar_target_values=target_matrix[i, :2],
+                prediction_matrix=dummy_prediction_matrix,
+                model_metadata_dict=model_metadata_dict,
+                cyclone_id_string=DUMMY_CYCLONE_ID_STRING,
+                low_res_latitudes_deg_n=dummy_low_res_grid_latitudes_deg_n,
+                low_res_longitudes_deg_e=dummy_low_res_grid_longitudes_deg_e,
+                high_res_latitudes_deg_n=dummy_high_res_grid_latitudes_deg_n,
+                high_res_longitudes_deg_e=dummy_high_res_grid_longitudes_deg_e,
+                are_data_normalized=are_data_normalized,
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                output_file_name=output_file_name
+            )
 
 
 if __name__ == '__main__':
