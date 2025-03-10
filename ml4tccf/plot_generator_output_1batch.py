@@ -125,7 +125,10 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
             training_option_dict
         )
     elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
-        generator_handle = nn_training_simple.data_generator(
+        # generator_handle = nn_training_simple.data_generator(
+        #     training_option_dict
+        # )
+        generator_handle = nn_training_simple.data_generator_shuffled(
             training_option_dict
         )
     else:
