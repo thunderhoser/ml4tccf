@@ -21,6 +21,7 @@ STDEV_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_stdev_trans_px'
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
 A_DECK_FILE_ARG_NAME = 'a_deck_file_name'
 SCALAR_A_DECK_FIELDS_ARG_NAME = 'scalar_a_deck_field_names'
+A_DECKS_AT_LEAST_6H_OLD_ARG_NAME = 'a_decks_at_least_6h_old'
 REMOVE_NONTROPICAL_ARG_NAME = 'remove_nontropical_systems'
 USE_SHUFFLED_DATA_ARG_NAME = 'use_shuffled_data'
 
@@ -116,6 +117,10 @@ SCALAR_A_DECK_FIELDS_HELP_STRING = (
     'List of scalar fields to use in predictors.  Each field must be a KEY '
     'listed at the top of a_deck_io.py.  If you do not want to use scalar '
     'predictors, leave this alone.'
+)
+A_DECKS_AT_LEAST_6H_OLD_HELP_STRING = (
+    'Boolean flag.  If 1, when A-deck scalars are used in predictors, they '
+    'will always be 6-12 h old.  If 0, they will be 0-6 h old.'
 )
 REMOVE_NONTROPICAL_HELP_STRING = (
     'Boolean flag.  If 1 (0), will train with only tropical systems (all '
@@ -241,6 +246,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + SCALAR_A_DECK_FIELDS_ARG_NAME, type=str, nargs='+',
         required=False, default=[''], help=SCALAR_A_DECK_FIELDS_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + A_DECKS_AT_LEAST_6H_OLD_ARG_NAME, type=int, required=False,
+        default=1, help=A_DECKS_AT_LEAST_6H_OLD_HELP_STRING
     )
     parser_object.add_argument(
         '--' + REMOVE_NONTROPICAL_ARG_NAME, type=int, required=False, default=0,
