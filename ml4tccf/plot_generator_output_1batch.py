@@ -123,10 +123,10 @@ def _run(model_file_name, satellite_dir_name, are_data_normalized,
     # TODO(thunderhoser): Hard-coding path is a HACK.
     training_option_dict[nn_utils.A_DECK_FILE_KEY] = (
         '/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/'
-        'processed/a_decks_unnormalized.nc'
+        'processed/a_decks_normalized.nc'
     )
     training_option_dict[nn_utils.SCALAR_A_DECK_FIELDS_KEY] = [
-        a_deck_io.INTENSITY_KEY
+        a_deck_io.UNNORM_INTENSITY_KEY
     ]
     model_metadata_dict[nn_utils.TRAINING_OPTIONS_KEY] = training_option_dict
 
