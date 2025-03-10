@@ -34,8 +34,8 @@ CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4
 TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment03_domain_video_atcf/templates"
 TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment03_domain_video_atcf/test_no_within"
 
-TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/training/900x900_grids"
-VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/validation/900x900_grids"
+TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/900x900_grids/training"
+# VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/validation/900x900_grids"
 A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/processed/a_decks_normalized.nc"
 
 GRID_ROW_COUNTS=("300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600" "300" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "600")
