@@ -12,6 +12,35 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import custom_losses_scalar
 
 
+def correlation(target_tensor, prediction_tensor):
+    """Computes correlation.
+
+    :param target_tensor: Keras tensor with target values.
+    :param prediction_tensor: Keras tensor with predicted values.
+    :return: correlation: Correlation.
+    """
+
+    target_tensor = K.cast(target_tensor, prediction_tensor.dtype)
+    relevant_target_tensor = target_tensor[:, :2]
+    deterministic_pred_tensor = K.mean(prediction_tensor, axis=-1)
+
+    numerator = K.sum(
+        (relevant_target_tensor - K.mean(relevant_target_tensor)) *
+        (deterministic_pred_tensor - K.mean(deterministic_pred_tensor))
+    )
+    sum_squared_target_diffs = K.sum(
+        (relevant_target_tensor - K.mean(relevant_target_tensor)) ** 2
+    )
+    sum_squared_prediction_diffs = K.sum(
+        (deterministic_pred_tensor - K.mean(deterministic_pred_tensor)) ** 2
+    )
+
+    return (
+        numerator /
+        K.sqrt(sum_squared_target_diffs * sum_squared_prediction_diffs)
+    )
+
+
 def mean_prediction(target_tensor, prediction_tensor):
     """Computes mean prediction.
 
