@@ -12,7 +12,7 @@ from gewittergefahr.deep_learning import architecture_utils
 from ml4tccf.machine_learning import neural_net_utils
 
 try:
-    input_layer_object_low_res = layers.Input(shape=(3, 4, 5))
+    THIS_LAYER = layers.Input(shape=(3, 4, 5))
 except:
     import tensorflow.keras as keras
     import tensorflow.keras.layers as layers

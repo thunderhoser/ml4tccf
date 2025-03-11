@@ -874,7 +874,7 @@ def train_model(
         plateau_patience_epochs, plateau_learning_rate_multiplier,
         early_stopping_patience_epochs,
         cnn_architecture_dict, temporal_cnn_architecture_dict,
-        u_net_architecture_dict):
+        temporal_convnext_architecture_dict, u_net_architecture_dict):
     """Trains neural net.
 
     :param model_object: See doc for `neural_net_training_fancy.train_model`.
@@ -890,6 +890,7 @@ def train_model(
     :param early_stopping_patience_epochs: Same.
     :param cnn_architecture_dict: Same.
     :param temporal_cnn_architecture_dict: Same.
+    :param temporal_convnext_architecture_dict: Same.
     :param u_net_architecture_dict: Same.
     """
 
@@ -969,6 +970,7 @@ def train_model(
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         cnn_architecture_dict=cnn_architecture_dict,
         temporal_cnn_architecture_dict=temporal_cnn_architecture_dict,
+        temporal_convnext_architecture_dict=temporal_convnext_architecture_dict,
         u_net_architecture_dict=u_net_architecture_dict,
         structure_cnn_architecture_dict=None,
         data_type_string=neural_net_utils.CIRA_IR_DATA_TYPE_STRING,

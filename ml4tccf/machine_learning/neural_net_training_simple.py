@@ -3141,7 +3141,8 @@ def train_model(
         plateau_patience_epochs, plateau_learning_rate_multiplier,
         early_stopping_patience_epochs, use_shuffled_data,
         cnn_architecture_dict, temporal_cnn_architecture_dict,
-        u_net_architecture_dict, use_old_shuffled_generator=False):
+        temporal_convnext_architecture_dict, u_net_architecture_dict,
+        use_old_shuffled_generator=False):
     """Trains neural net.
 
     :param model_object: See doc for `neural_net_training_fancy.train_model`.
@@ -3162,6 +3163,7 @@ def train_model(
     :param cnn_architecture_dict: See doc for
         `neural_net_training_fancy.train_model`.
     :param temporal_cnn_architecture_dict: Same.
+    :param temporal_convnext_architecture_dict: Same.
     :param u_net_architecture_dict: Same.
     :param use_old_shuffled_generator: Boolean flag.  If True, will use
         `data_generator_shuffled_old`.
@@ -3278,6 +3280,7 @@ def train_model(
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         cnn_architecture_dict=cnn_architecture_dict,
         temporal_cnn_architecture_dict=temporal_cnn_architecture_dict,
+        temporal_convnext_architecture_dict=temporal_convnext_architecture_dict,
         u_net_architecture_dict=u_net_architecture_dict,
         structure_cnn_architecture_dict=None,
         data_type_string=nn_utils.RG_SIMPLE_DATA_TYPE_STRING,
