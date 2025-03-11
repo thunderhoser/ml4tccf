@@ -1447,6 +1447,7 @@ def data_generator_shuffled_old(option_dict):
     option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
     option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY] = option_dict[BATCH_SIZE_KEY]
     option_dict[SYNOPTIC_TIMES_ONLY_KEY] = False
+    option_dict[USE_XY_COORDS_KEY] = False
 
     option_dict = nn_utils.check_generator_args(option_dict)
 
