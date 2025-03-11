@@ -1,0 +1,100 @@
+#!/bin/bash
+
+#SBATCH --job-name="train_neural_nets"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --nodes=1
+#SBATCH --ntasks=8           # 8 tasks per node
+#SBATCH --cpus-per-task=2
+#SBATCH --ntasks-per-node=8  # 8 GPUs per node
+#SBATCH --exclusive
+#SBATCH --time=72:00:00
+#SBATCH --array=0-5
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=train_neural_nets_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment04b_convnext/templates"
+TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment04b_convnext"
+
+TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/training/900x900_grids"
+VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/validation/900x900_grids"
+A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/processed/a_decks_normalized.nc"
+
+USE_OLDER_A_DECK_FLAGS=("0" "0" "0" "0" "0" "0")
+SCALAR_PREDICTOR_COUNTS=("5" "5" "5" "9" "9" "9")
+REMOVE_NONTROPICAL_FLAGS=("1" "1" "1" "1" "1" "1")
+DO_WITHIN_TRACK_TRANSLATION_FLAGS=("0" "0" "0" "0" "0" "0")
+BATCH_SIZES=("20" "35" "50" "20" "35" "50")
+
+use_older_a_decks=${USE_OLDER_A_DECK_FLAGS[$SLURM_ARRAY_TASK_ID]}
+num_scalar_predictors=${SCALAR_PREDICTOR_COUNTS[$SLURM_ARRAY_TASK_ID]}
+remove_nontropical_systems=${REMOVE_NONTROPICAL_FLAGS[$SLURM_ARRAY_TASK_ID]}
+do_within_track_translation=${DO_WITHIN_TRACK_TRANSLATION_FLAGS[$SLURM_ARRAY_TASK_ID]}
+batch_size=${BATCH_SIZES[$SLURM_ARRAY_TASK_ID]}
+
+template_file_name="${TEMPLATE_DIR_NAME}/num-scalar-predictors=${num_scalar_predictors}/model.keras"
+output_dir_name="${TOP_OUTPUT_DIR_NAME}/use-older-a-decks=${use_older_a_decks}_num-scalar-predictors=${num_scalar_predictors}_remove-nontropical-systems=${remove_nontropical_systems}_do-within-track-translation=${do_within_track_translation}_batch-size=${batch_size}"
+echo $output_dir_name
+
+if [[ "$num_scalar_predictors" == "5" ]]; then
+    scalar_a_deck_field_names="absolute_latitude_deg_n longitude_cosine longitude_sine intensity_m_s01 sea_level_pressure_pa"
+else
+    scalar_a_deck_field_names="absolute_latitude_deg_n longitude_cosine longitude_sine intensity_m_s01 sea_level_pressure_pa unnorm_tropical_flag_int unnorm_subtropical_flag_int unnorm_extratropical_flag_int unnorm_disturbance_flag_int"
+fi
+
+if [[ "$do_within_track_translation" == "1" ]]; then
+    data_aug_within_mean_trans_px=5
+    data_aug_within_stdev_trans_px=2.5
+else
+    data_aug_within_mean_trans_px=0.000001
+    data_aug_within_stdev_trans_px=0.000001
+fi
+
+python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
+--input_template_file_name="${template_file_name}" \
+--output_model_dir_name="${output_dir_name}" \
+--lag_times_minutes 0 30 60 \
+--low_res_wavelengths_microns 8.500 9.610 12.300 \
+--num_examples_per_batch=${batch_size} \
+--max_examples_per_cyclone=1 \
+--num_rows_low_res=300 \
+--num_columns_low_res=300 \
+--input_short_track_dir_name="" \
+--data_aug_num_translations=1 \
+--data_aug_mean_translation_low_res_px=24 \
+--data_aug_stdev_translation_low_res_px=12 \
+--data_aug_within_mean_trans_px=${data_aug_within_mean_trans_px} \
+--data_aug_within_stdev_trans_px=${data_aug_within_stdev_trans_px} \
+--synoptic_times_only=0 \
+--a_deck_file_name="${A_DECK_FILE_NAME}" \
+--scalar_a_deck_field_names ${scalar_a_deck_field_names} \
+--a_decks_at_least_6h_old=${use_older_a_decks} \
+--remove_nontropical_systems=${remove_nontropical_systems} \
+--use_shuffled_data=1 \
+--satellite_dir_name_for_training="${TRAINING_DIR_NAME}" \
+--training_years 2016 2017 2018 2019 2020 2021 2022 \
+--satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
+--validation_years 2016 2017 2018 2019 2020 2021 2022 \
+--num_epochs=1000 \
+--num_training_batches_per_epoch=36 \
+--num_validation_batches_per_epoch=12 \
+--plateau_patience_epochs=10 \
+--plateau_learning_rate_multiplier=0.95 \
+--early_stopping_patience_epochs=500
