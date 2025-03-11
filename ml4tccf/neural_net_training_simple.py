@@ -1627,10 +1627,7 @@ def data_generator_shuffled_old(option_dict):
 
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
-        (
-            _, vector_predictor_matrix,
-            row_translations_low_res_px, column_translations_low_res_px
-        ) = data_augmentation.augment_data(
+        translation_dict = data_augmentation.augment_data(
             bidirectional_reflectance_matrix=None,
             brightness_temp_matrix_kelvins=vector_predictor_matrix,
             num_translations_per_example=data_aug_num_translations,
@@ -1638,6 +1635,15 @@ def data_generator_shuffled_old(option_dict):
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=-10.
         )
+        vector_predictor_matrix = translation_dict[
+            data_augmentation.BRIGHTNESS_TEMPS_KEY
+        ]
+        row_translations_low_res_px = translation_dict[
+            data_augmentation.ROW_TRANSLATIONS_KEY
+        ]
+        column_translations_low_res_px = translation_dict[
+            data_augmentation.COLUMN_TRANSLATIONS_KEY
+        ]
 
         vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
             data_matrix=vector_predictor_matrix,
