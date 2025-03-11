@@ -53,7 +53,7 @@ for this_cyclone_id_string in "${CYCLONE_ID_STRINGS[@]}"; do
     echo "${model_dir_name}/validation"
 
     python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
-    --input_model_file_name="${model_dir_name}/model.h5" \
+    --input_model_file_name="${model_dir_name}/model.weights.h5" \
     --input_satellite_dir_name="${EXAMPLE_DIR_NAME}" \
     --input_a_deck_file_name="${A_DECK_FILE_NAME}" \
     --cyclone_id_string="${this_cyclone_id_string}" \
