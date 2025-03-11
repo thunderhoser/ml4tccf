@@ -672,6 +672,9 @@ def _read_satellite_data_1shuffled_file(
             )
 
     good_indices = numpy.where(cyclone_object_success_flags)[0]
+    if len(good_indices) == 0:
+        return None
+
     cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
     target_times_unix_sec = target_times_unix_sec[good_indices]
     brightness_temp_matrix_kelvins = (
@@ -887,6 +890,9 @@ def _read_satellite_data_1shuffled_file_old(
             )
 
     good_indices = numpy.where(cyclone_object_success_flags)[0]
+    if len(good_indices) == 0:
+        return None
+
     cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
     target_times_unix_sec = target_times_unix_sec[good_indices]
     brightness_temp_matrix_kelvins = (
@@ -1203,6 +1209,9 @@ def _read_satellite_data_1cyclone(
             )
 
     good_indices = numpy.where(target_time_success_flags)[0]
+    if len(good_indices) == 0:
+        return None
+
     target_times_unix_sec = target_times_unix_sec[good_indices]
     brightness_temp_matrix_kelvins = (
         brightness_temp_matrix_kelvins[good_indices, ...]
