@@ -665,6 +665,9 @@ def _read_satellite_data_1shuffled_file(
             )
 
     good_indices = numpy.where(cyclone_object_success_flags)[0]
+    if len(good_indices) == 0:
+        return None
+
     cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
     target_times_unix_sec = target_times_unix_sec[good_indices]
     brightness_temp_matrix_kelvins = (
@@ -880,6 +883,9 @@ def _read_satellite_data_1shuffled_file_old(
             )
 
     good_indices = numpy.where(cyclone_object_success_flags)[0]
+    if len(good_indices) == 0:
+        return None
+
     cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
     target_times_unix_sec = target_times_unix_sec[good_indices]
     brightness_temp_matrix_kelvins = (
@@ -1196,6 +1202,9 @@ def _read_satellite_data_1cyclone(
             )
 
     good_indices = numpy.where(target_time_success_flags)[0]
+    if len(good_indices) == 0:
+        return None
+
     target_times_unix_sec = target_times_unix_sec[good_indices]
     brightness_temp_matrix_kelvins = (
         brightness_temp_matrix_kelvins[good_indices, ...]
@@ -1620,10 +1629,7 @@ def data_generator_shuffled_old(option_dict):
 
             num_examples_in_memory += this_vector_predictor_matrix.shape[0]
 
-        (
-            _, vector_predictor_matrix,
-            row_translations_low_res_px, column_translations_low_res_px
-        ) = data_augmentation.augment_data(
+        translation_dict = data_augmentation.augment_data(
             bidirectional_reflectance_matrix=None,
             brightness_temp_matrix_kelvins=vector_predictor_matrix,
             num_translations_per_example=data_aug_num_translations,
@@ -1631,6 +1637,15 @@ def data_generator_shuffled_old(option_dict):
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
             sentinel_value=-10.
         )
+        vector_predictor_matrix = translation_dict[
+            data_augmentation.BRIGHTNESS_TEMPS_KEY
+        ]
+        row_translations_low_res_px = translation_dict[
+            data_augmentation.ROW_TRANSLATIONS_KEY
+        ]
+        column_translations_low_res_px = translation_dict[
+            data_augmentation.COLUMN_TRANSLATIONS_KEY
+        ]
 
         vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
             data_matrix=vector_predictor_matrix,
@@ -2291,7 +2306,7 @@ def data_generator_old(option_dict):
 
                 this_scalar_predictor_matrix = (
                     scalar_predictor_matrix_by_cyclone[cyclone_index - 1][
-                    row_indices, :
+                        row_indices, :
                     ]
                 )
 
@@ -2399,6 +2414,14 @@ def data_generator_old(option_dict):
                 scalar_predictor_matrix[:, column_index] +
                 column_translations_low_res_px
             )
+
+        new_dimensions = (
+            vector_predictor_matrix.shape[:3] +
+            (len(lag_times_minutes), len(low_res_wavelengths_microns))
+        )
+        vector_predictor_matrix = numpy.reshape(
+            vector_predictor_matrix, new_dimensions
+        )
 
         predictor_matrices = [vector_predictor_matrix]
         if scalar_predictor_matrix is not None:
