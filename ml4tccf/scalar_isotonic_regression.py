@@ -170,7 +170,7 @@ def read_file(dill_file_name):
 
     print(dill_file_name)
     import os
-    print(os.system('ls {0:s}'.format(dill_file_name)))
+    print(os.system('ls -l {0:s}'.format(dill_file_name)))
 
     error_checking.assert_file_exists(dill_file_name)
 
