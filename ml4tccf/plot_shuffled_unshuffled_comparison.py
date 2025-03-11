@@ -178,9 +178,9 @@ def _run(shuffled_file_name, unshuffled_dir_name, normalization_file_name,
         valid_time_unix_sec = (
             shuffled_stx.coords[satellite_utils.TIME_DIM].values[i]
         )
-        valid_date_unix_sec = number_rounding.floor_to_nearest(
+        valid_date_unix_sec = int(number_rounding.floor_to_nearest(
             valid_time_unix_sec, DAYS_TO_SECONDS
-        )
+        ))
         valid_date_string = time_conversion.unix_sec_to_string(
             valid_date_unix_sec, satellite_io.DATE_FORMAT
         )
