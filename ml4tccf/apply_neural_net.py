@@ -268,6 +268,9 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     if valid_date_string == '':
         valid_date_string = None
 
+    print(output_dir_name)
+    print(output_file_name)
+
     if output_dir_name == '':
         output_dir_name = None
     else:
@@ -277,9 +280,6 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         output_file_name = None
     else:
         output_dir_name = None
-
-    print(output_dir_name)
-    print(output_file_name)
 
     assert not (output_dir_name is None and output_file_name is None)
 
