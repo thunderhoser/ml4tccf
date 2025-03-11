@@ -237,7 +237,7 @@ def _run():
             structure_cnn_architecture_dict=None,
             u_net_architecture_dict=None,
             temporal_cnn_architecture_dict=None,
-            temporal_covnnext_architecture_dict=option_dict,
+            temporal_convnext_architecture_dict=option_dict,
             data_type_string=neural_net_utils.RG_SIMPLE_DATA_TYPE_STRING,
             train_with_shuffled_data=True
         )
