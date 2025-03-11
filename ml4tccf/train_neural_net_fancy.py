@@ -149,6 +149,8 @@ def _run(template_file_name, output_dir_name, lag_times_minutes,
         cnn_architecture_dict=mmd[nn_utils.CNN_ARCHITECTURE_KEY],
         temporal_cnn_architecture_dict=
         mmd[nn_utils.TEMPORAL_CNN_ARCHITECTURE_KEY],
+        temporal_convnext_architecture_dict=
+        mmd[nn_utils.TEMPORAL_CONVNEXT_ARCHITECTURE_KEY],
         u_net_architecture_dict=mmd[nn_utils.U_NET_ARCHITECTURE_KEY]
     )
 

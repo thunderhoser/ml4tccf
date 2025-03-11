@@ -1862,7 +1862,7 @@ def train_model(
         plateau_patience_epochs, plateau_learning_rate_multiplier,
         early_stopping_patience_epochs,
         cnn_architecture_dict, temporal_cnn_architecture_dict,
-        u_net_architecture_dict):
+        temporal_convnext_architecture_dict, u_net_architecture_dict):
     """Trains neural net with generator.
 
     :param model_object: Untrained neural net (instance of `keras.models.Model`
@@ -1902,6 +1902,9 @@ def train_model(
     :param temporal_cnn_architecture_dict: Dictionary with architecture options
         for temporal CNN.  If your architecture is something else, make this
         None.
+    :param temporal_convnext_architecture_dict: Dictionary with architecture
+        options for temporal CNN with ConvNeXt blocks.  If your architecture is
+        something else, make this None.
     :param u_net_architecture_dict: Dictionary with architecture options
         for U-net.  If your architecture is something else, make this None.
     """
@@ -1985,6 +1988,7 @@ def train_model(
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         cnn_architecture_dict=cnn_architecture_dict,
         temporal_cnn_architecture_dict=temporal_cnn_architecture_dict,
+        temporal_convnext_architecture_dict=temporal_convnext_architecture_dict,
         u_net_architecture_dict=u_net_architecture_dict,
         structure_cnn_architecture_dict=None,
         data_type_string=nn_utils.RG_FANCY_DATA_TYPE_STRING,

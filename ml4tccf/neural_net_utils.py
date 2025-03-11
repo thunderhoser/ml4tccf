@@ -123,6 +123,7 @@ DATA_TYPE_KEY = 'data_type_string'
 TRAIN_WITH_SHUFFLED_DATA_KEY = 'train_with_shuffled_data'
 CNN_ARCHITECTURE_KEY = 'cnn_architecture_dict'
 TEMPORAL_CNN_ARCHITECTURE_KEY = 'temporal_cnn_architecture_dict'
+TEMPORAL_CONVNEXT_ARCHITECTURE_KEY = 'temporal_convnext_architecture_dict'
 STRUCTURE_CNN_ARCHITECTURE_KEY = 'structure_cnn_architecture_dict'
 U_NET_ARCHITECTURE_KEY = 'u_net_architecture_dict'
 
@@ -132,6 +133,7 @@ METADATA_KEYS = [
     LOSS_FUNCTION_KEY, OPTIMIZER_FUNCTION_KEY,
     PLATEAU_PATIENCE_KEY, PLATEAU_LR_MUTIPLIER_KEY, EARLY_STOPPING_PATIENCE_KEY,
     CNN_ARCHITECTURE_KEY, TEMPORAL_CNN_ARCHITECTURE_KEY,
+    TEMPORAL_CONVNEXT_ARCHITECTURE_KEY,
     STRUCTURE_CNN_ARCHITECTURE_KEY, U_NET_ARCHITECTURE_KEY,
     DATA_TYPE_KEY, TRAIN_WITH_SHUFFLED_DATA_KEY
 ]
@@ -846,6 +848,7 @@ def write_metafile(
         plateau_patience_epochs, plateau_learning_rate_multiplier,
         early_stopping_patience_epochs,
         cnn_architecture_dict, temporal_cnn_architecture_dict,
+        temporal_convnext_architecture_dict,
         structure_cnn_architecture_dict, u_net_architecture_dict,
         data_type_string, train_with_shuffled_data):
     """Writes metadata to Pickle file.
@@ -863,6 +866,7 @@ def write_metafile(
     :param early_stopping_patience_epochs: Same.
     :param cnn_architecture_dict: Same.
     :param temporal_cnn_architecture_dict: Same.
+    :param temporal_convnext_architecture_dict: Same.
     :param structure_cnn_architecture_dict: Same.
     :param u_net_architecture_dict: Same.
     :param data_type_string: Data type (must be accepted by `check_data_type`).
@@ -886,6 +890,7 @@ def write_metafile(
         EARLY_STOPPING_PATIENCE_KEY: early_stopping_patience_epochs,
         CNN_ARCHITECTURE_KEY: cnn_architecture_dict,
         TEMPORAL_CNN_ARCHITECTURE_KEY: temporal_cnn_architecture_dict,
+        TEMPORAL_CONVNEXT_ARCHITECTURE_KEY: temporal_convnext_architecture_dict,
         STRUCTURE_CNN_ARCHITECTURE_KEY: structure_cnn_architecture_dict,
         U_NET_ARCHITECTURE_KEY: u_net_architecture_dict,
         DATA_TYPE_KEY: data_type_string,
@@ -917,6 +922,7 @@ def read_metafile(pickle_file_name):
     metadata_dict["early_stopping_patience_epochs"]: Same.
     metadata_dict["cnn_architecture_dict"]: Same.
     metadata_dict["temporal_cnn_architecture_dict"]: Same.
+    metadata_dict["temporal_convnext_architecture_dict"]: Same.
     metadata_dict["structure_cnn_architecture_dict"]: Same.
     metadata_dict["u_net_architecture_dict"]: Same.
     metadata_dict["data_type_string"]: Data type (must be accepted by
@@ -951,6 +957,9 @@ def read_metafile(pickle_file_name):
         metadata_dict[CNN_ARCHITECTURE_KEY] = None
         metadata_dict[STRUCTURE_CNN_ARCHITECTURE_KEY] = None
         metadata_dict[U_NET_ARCHITECTURE_KEY] = None
+
+    if TEMPORAL_CONVNEXT_ARCHITECTURE_KEY not in metadata_dict:
+        metadata_dict[TEMPORAL_CONVNEXT_ARCHITECTURE_KEY] = None
 
     metadata_dict[TRAINING_OPTIONS_KEY] = training_option_dict
     metadata_dict[VALIDATION_OPTIONS_KEY] = validation_option_dict
@@ -1058,6 +1067,9 @@ def read_model(keras_file_name):
     temporal_cnn_architecture_dict = metadata_dict[
         TEMPORAL_CNN_ARCHITECTURE_KEY
     ]
+    temporal_convnext_architecture_dict = metadata_dict[
+        TEMPORAL_CONVNEXT_ARCHITECTURE_KEY
+    ]
     structure_cnn_architecture_dict = metadata_dict[
         STRUCTURE_CNN_ARCHITECTURE_KEY
     ]
@@ -1107,6 +1119,24 @@ def read_model(keras_file_name):
 
         model_object = tcnn_architecture.create_model(
             temporal_cnn_architecture_dict
+        )
+        model_object.load_weights(keras_file_name)
+        return model_object
+
+    if temporal_convnext_architecture_dict is not None:
+        import \
+            temporal_convnext_architecture as convnext_arch
+
+        for this_key in [
+            convnext_arch.LOSS_FUNCTION_KEY,
+            convnext_arch.OPTIMIZER_FUNCTION_KEY
+        ]:
+            temporal_convnext_architecture_dict[this_key] = eval(
+                temporal_convnext_architecture_dict[this_key]
+            )
+
+        model_object = convnext_arch.create_model(
+            temporal_convnext_architecture_dict
         )
         model_object.load_weights(keras_file_name)
         return model_object

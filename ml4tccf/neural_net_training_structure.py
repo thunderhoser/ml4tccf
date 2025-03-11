@@ -1174,6 +1174,7 @@ def train_model(
         early_stopping_patience_epochs=early_stopping_patience_epochs,
         cnn_architecture_dict=None,
         temporal_cnn_architecture_dict=None,
+        temporal_convnext_architecture_dict=None,
         u_net_architecture_dict=None,
         structure_cnn_architecture_dict=architecture_dict,
         data_type_string=nn_utils.RG_SIMPLE_DATA_TYPE_STRING,
