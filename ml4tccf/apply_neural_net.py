@@ -278,6 +278,9 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     else:
         output_dir_name = None
 
+    print(output_dir_name)
+    print(output_file_name)
+
     assert not (output_dir_name is None and output_file_name is None)
 
     if short_track_dir_name == 'same':
