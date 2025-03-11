@@ -2,12 +2,14 @@
 
 import os
 import sys
+import copy
 import random
 import warnings
 import numpy
 import keras
 import xarray
 import pandas
+from collections import defaultdict
 from scipy.interpolate import interp1d
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -20,6 +22,7 @@ import time_conversion
 import longitude_conversion as lng_conversion
 import file_system_utils
 import error_checking
+import border_io
 import a_deck_io
 import satellite_io
 import short_track_io
@@ -28,7 +31,9 @@ import satellite_utils
 import neural_net_utils as nn_utils
 import neural_net_training_fancy as nn_training_fancy
 import data_augmentation
+import plot_predictions
 
+LARGE_INTEGER = 1e10
 DATE_FORMAT = '%Y%m%d'
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M'
 
@@ -38,6 +43,21 @@ DAYS_TO_SECONDS = 86400
 
 SENTINEL_VALUE = -1000.
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
+
+DUMMY_END_LATITUDES_DEG_N = numpy.array([32, 33], dtype=float)
+DUMMY_END_LONGITUDES_DEG_E = numpy.array([-43, -42], dtype=float)
+
+A_DECK_FIELD_NAME_TO_ABBREV = {
+    a_deck_io.INTENSITY_KEY: r'$V_{max}$',
+    a_deck_io.SEA_LEVEL_PRESSURE_KEY: r'$p_{min}$',
+    a_deck_io.LONGITUDE_SINE_KEY: r'sin($\lambda$)',
+    a_deck_io.LONGITUDE_COSINE_KEY: r'cos($\lambda$)',
+    a_deck_io.ABSOLUTE_LATITUDE_KEY: r'abs($\phi$)',
+    a_deck_io.UNNORM_TROPICAL_FLAG_KEY: 'trop',
+    a_deck_io.UNNORM_SUBTROPICAL_FLAG_KEY: 'ST',
+    a_deck_io.UNNORM_EXTRATROPICAL_FLAG_KEY: 'ET',
+    a_deck_io.UNNORM_DISTURBANCE_FLAG_KEY: 'disturb'
+}
 
 BRIGHTNESS_TEMPS_KEY = nn_utils.BRIGHTNESS_TEMPS_KEY
 GRID_SPACINGS_KEY = nn_utils.GRID_SPACINGS_KEY
@@ -77,6 +97,7 @@ REMOVE_TROPICAL_KEY = nn_utils.REMOVE_TROPICAL_KEY
 SEMANTIC_SEG_FLAG_KEY = nn_utils.SEMANTIC_SEG_FLAG_KEY
 TARGET_SMOOOTHER_STDEV_KEY = nn_utils.TARGET_SMOOOTHER_STDEV_KEY
 USE_XY_COORDS_KEY = nn_utils.USE_XY_COORDS_KEY
+VERIF_PLOT_DIRECTORY_KEY = 'verification_plot_dir_name'
 
 
 def __are_satellite_data_empty(satellite_data_dict):
@@ -1248,7 +1269,8 @@ def _read_satellite_data_1cyclone(
 
 
 def choose_random_cyclone_objects(
-        all_cyclone_id_strings, all_target_times_unix_sec, num_objects_desired):
+        all_cyclone_id_strings, all_target_times_unix_sec, num_objects_desired,
+        max_examples_per_cyclone):
     """Chooses random cyclone objects from array.
 
     A = number of objects available
@@ -1258,52 +1280,82 @@ def choose_random_cyclone_objects(
     :param all_target_times_unix_sec: length-A numpy array with all target
         times.
     :param num_objects_desired: Number of cyclone objects desired.
+    :param max_examples_per_cyclone: Max number of examples for one cyclone.
     :return: chosen_cyclone_id_strings: length-T list of chosen cyclone IDs.
     :return: chosen_target_times_unix_sec: length-T numpy array of chosen target
         times.
     :return: chosen_indices: length-T numpy array of corresponding indices.
     """
 
+    # Check input args.
     error_checking.assert_is_string_list(all_cyclone_id_strings)
-    error_checking.assert_is_integer_numpy_array(all_target_times_unix_sec)
-
     num_objects_available = len(all_cyclone_id_strings)
+
+    error_checking.assert_is_integer_numpy_array(all_target_times_unix_sec)
     expected_dim = numpy.array([num_objects_available], dtype=int)
     error_checking.assert_is_numpy_array(
         all_target_times_unix_sec, exact_dimensions=expected_dim
     )
 
+    error_checking.assert_is_integer(max_examples_per_cyclone)
+    error_checking.assert_is_greater(max_examples_per_cyclone, 0)
     error_checking.assert_is_integer(num_objects_desired)
     error_checking.assert_is_greater(num_objects_desired, 0)
 
-    all_cyclone_id_strings = numpy.array(all_cyclone_id_strings)
-    unique_cyclone_id_strings = numpy.unique(all_cyclone_id_strings)
-    chosen_indices = numpy.array([], dtype=int)
+    # Group indices by cyclone ID.
+    cyclone_to_index_list = defaultdict(list)
+    for i, this_id in enumerate(all_cyclone_id_strings):
+        cyclone_to_index_list[this_id].append(i)
 
-    for _ in range(10):
-        for i in range(len(unique_cyclone_id_strings)):
-            these_indices = numpy.where(
-                all_cyclone_id_strings == unique_cyclone_id_strings[i]
-            )[0]
+    # Shuffle indices within each cyclone.
+    for these_indices in cyclone_to_index_list.values():
+        random.shuffle(these_indices)
+    
+    # Shuffle cyclone IDs.
+    unique_cyclone_id_strings = list(cyclone_to_index_list.keys())
+    random.shuffle(unique_cyclone_id_strings)
 
-            these_indices = these_indices[
-                numpy.invert(numpy.isin(
-                    element=these_indices, test_elements=chosen_indices
-                ))
-            ]
+    chosen_indices = []
+    cyclone_to_count = defaultdict(int)
+    
+    # Step 1: if possible, pick one data sample per cyclone.
+    remaining_cyclone_id_strings = []
 
-            if len(these_indices) == 0:
-                continue
+    for this_id in unique_cyclone_id_strings:
+        if len(chosen_indices) >= num_objects_desired:
+            break
 
-            these_indices = numpy.random.choice(
-                these_indices, size=1, replace=False
-            )
-            chosen_indices = numpy.concatenate((chosen_indices, these_indices))
-            if len(chosen_indices) == num_objects_desired:
+        chosen_indices.append(cyclone_to_index_list[this_id].pop(0))
+        cyclone_to_count[this_id] += 1
+        if cyclone_to_index_list[this_id]:
+            remaining_cyclone_id_strings.append(this_id)
+    
+    # Step 2: fill remaining slots while respecting max_examples_per_cyclone.
+    while (
+            len(chosen_indices) < num_objects_desired
+            and remaining_cyclone_id_strings
+    ):
+        random.shuffle(remaining_cyclone_id_strings)
+        new_remaining_id_strings = []
+
+        for this_id in remaining_cyclone_id_strings:
+            if len(chosen_indices) >= num_objects_desired:
                 break
 
-        if len(chosen_indices) == num_objects_desired:
-            break
+            if (
+                    cyclone_to_count[this_id] < max_examples_per_cyclone
+                    and cyclone_to_index_list[this_id]
+            ):
+                chosen_indices.append(cyclone_to_index_list[this_id].pop(0))
+                cyclone_to_count[this_id] += 1
+
+                if (
+                        cyclone_to_index_list[this_id] and
+                        cyclone_to_count[this_id] < max_examples_per_cyclone
+                ):
+                    new_remaining_id_strings.append(this_id)
+
+        remaining_cyclone_id_strings = copy.deepcopy(new_remaining_id_strings)
 
     return (
         [all_cyclone_id_strings[k] for k in chosen_indices],
@@ -1465,6 +1517,7 @@ def data_generator_shuffled_old(option_dict):
     lag_times_minutes = option_dict[LAG_TIMES_KEY]
     low_res_wavelengths_microns = option_dict[LOW_RES_WAVELENGTHS_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
+    max_examples_per_cyclone = option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
     num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
     num_columns_low_res = option_dict[NUM_GRID_COLUMNS_KEY]
     data_aug_num_translations = option_dict[DATA_AUG_NUM_TRANS_KEY]
@@ -1536,7 +1589,8 @@ def data_generator_shuffled_old(option_dict):
                 all_target_times_unix_sec=
                 target_times_by_file_unix_sec[file_index],
                 num_objects_desired=
-                num_examples_per_batch - num_examples_in_memory
+                num_examples_per_batch - num_examples_in_memory,
+                max_examples_per_cyclone=max_examples_per_cyclone
             )
 
             if len(these_cyclone_id_strings) == 0:
@@ -1701,7 +1755,10 @@ def data_generator_shuffled_old(option_dict):
         )
 
         predictor_matrices = [vector_predictor_matrix]
-        if scalar_predictor_matrix is not None:
+        if (
+                scalar_predictor_matrix is not None
+                and scalar_predictor_matrix.size > 0
+        ):
             predictor_matrices.append(scalar_predictor_matrix)
 
         # TODO(thunderhoser): This could be simplified more.
@@ -1724,7 +1781,6 @@ def data_generator_shuffled(option_dict):
 
     option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
     option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
-    option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY] = option_dict[BATCH_SIZE_KEY]
     option_dict[SYNOPTIC_TIMES_ONLY_KEY] = False
     option_dict = _check_generator_args(option_dict)
 
@@ -1733,6 +1789,7 @@ def data_generator_shuffled(option_dict):
     lag_times_minutes = option_dict[LAG_TIMES_KEY]
     low_res_wavelengths_microns = option_dict[LOW_RES_WAVELENGTHS_KEY]
     num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
+    max_examples_per_cyclone = option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
     num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
     num_columns_low_res = option_dict[NUM_GRID_COLUMNS_KEY]
     short_track_dir_name = option_dict[SHORT_TRACK_DIR_KEY]
@@ -1754,6 +1811,7 @@ def data_generator_shuffled(option_dict):
     a_decks_at_least_6h_old = option_dict[A_DECKS_AT_LEAST_6H_OLD_KEY]
     remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
     remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
+    verification_plot_dir_name = option_dict[VERIF_PLOT_DIRECTORY_KEY]
 
     satellite_file_names = satellite_io.find_shuffled_files(
         directory_name=satellite_dir_name, raise_error_if_all_missing=True
@@ -1781,6 +1839,15 @@ def data_generator_shuffled(option_dict):
         and a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY in scalar_a_deck_field_names
     )
 
+    if verification_plot_dir_name is not None:
+        border_latitudes_deg_n, border_longitudes_deg_e = border_io.read_file()
+        file_system_utils.mkdir_recursive_if_necessary(
+            directory_name=verification_plot_dir_name
+        )
+    else:
+        border_latitudes_deg_n = numpy.array([])
+        border_longitudes_deg_e = numpy.array([])
+
     file_index = 0
 
     while True:
@@ -1791,6 +1858,9 @@ def data_generator_shuffled(option_dict):
         row_translations_low_res_px = None
         column_translations_low_res_px = None
         num_examples_in_memory = 0
+
+        return_cyclone_id_strings = None
+        target_times_unix_sec = None
 
         while num_examples_in_memory < num_examples_per_batch:
             if file_index == len(satellite_file_names):
@@ -1807,7 +1877,8 @@ def data_generator_shuffled(option_dict):
                 all_target_times_unix_sec=
                 target_times_by_file_unix_sec[file_index],
                 num_objects_desired=
-                num_examples_per_batch - num_examples_in_memory
+                num_examples_per_batch - num_examples_in_memory,
+                max_examples_per_cyclone=max_examples_per_cyclone
             )
 
             if len(these_cyclone_id_strings) == 0:
@@ -1857,6 +1928,8 @@ def data_generator_shuffled(option_dict):
             this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
             these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
             these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
+            these_id_strings = data_dict[CYCLONE_IDS_KEY]
+            these_target_times_unix_sec = data_dict[TARGET_TIMES_KEY]
 
             if a_deck_file_name is None:
                 this_scalar_predictor_matrix = None
@@ -1911,6 +1984,13 @@ def data_generator_shuffled(option_dict):
                     num_examples_per_batch, 0, dtype=int
                 )
 
+                return_cyclone_id_strings = numpy.full(
+                    num_examples_per_batch, '', dtype=object
+                )
+                target_times_unix_sec = numpy.full(
+                    num_examples_per_batch, -1, dtype=int
+                )
+
                 if this_scalar_predictor_matrix is not None:
                     these_dim = (
                         (num_examples_per_batch,) +
@@ -1932,6 +2012,12 @@ def data_generator_shuffled(option_dict):
             )
             column_translations_low_res_px[first_index:last_index] = (
                 these_column_trans_px
+            )
+            return_cyclone_id_strings[first_index:last_index] = numpy.array(
+                these_id_strings
+            )
+            target_times_unix_sec[first_index:last_index] = (
+                these_target_times_unix_sec
             )
 
             if this_scalar_predictor_matrix is not None:
@@ -2020,6 +2106,12 @@ def data_generator_shuffled(option_dict):
         cyclone_center_latitudes_deg_n = numpy.repeat(
             cyclone_center_latitudes_deg_n, repeats=data_aug_num_translations
         )
+        return_cyclone_id_strings = numpy.repeat(
+            return_cyclone_id_strings, repeats=data_aug_num_translations
+        )
+        target_times_unix_sec = numpy.repeat(
+            target_times_unix_sec, repeats=data_aug_num_translations
+        )
         if scalar_predictor_matrix is not None:
             scalar_predictor_matrix = numpy.repeat(
                 scalar_predictor_matrix, axis=0,
@@ -2049,7 +2141,10 @@ def data_generator_shuffled(option_dict):
         )
 
         predictor_matrices = [vector_predictor_matrix]
-        if scalar_predictor_matrix is not None:
+        if (
+                scalar_predictor_matrix is not None
+                and scalar_predictor_matrix.size > 0
+        ):
             predictor_matrices.append(scalar_predictor_matrix)
 
         target_matrix = numpy.transpose(numpy.vstack((
@@ -2081,6 +2176,77 @@ def data_generator_shuffled(option_dict):
             p.astype('float16')[good_indices, ...] for p in predictor_matrices
         ]
         target_matrix = target_matrix[good_indices, ...]
+
+        if verification_plot_dir_name is not None:
+            num_grid_rows = predictor_matrices[0].shape[1]
+            num_grid_columns = predictor_matrices[0].shape[2]
+
+            dummy_low_res_grid_latitudes_deg_n = numpy.linspace(
+                DUMMY_END_LATITUDES_DEG_N[0], DUMMY_END_LATITUDES_DEG_N[1],
+                num=num_grid_rows, dtype=float
+            )
+            dummy_low_res_grid_longitudes_deg_e = numpy.linspace(
+                DUMMY_END_LONGITUDES_DEG_E[0], DUMMY_END_LONGITUDES_DEG_E[1],
+                num=num_grid_columns, dtype=float
+            )
+            dummy_high_res_grid_latitudes_deg_n = numpy.linspace(
+                DUMMY_END_LATITUDES_DEG_N[0], DUMMY_END_LATITUDES_DEG_N[1],
+                num=num_grid_rows * 4, dtype=float
+            )
+            dummy_high_res_grid_longitudes_deg_e = numpy.linspace(
+                DUMMY_END_LONGITUDES_DEG_E[0], DUMMY_END_LONGITUDES_DEG_E[1],
+                num=num_grid_columns * 4, dtype=float
+            )
+
+            dummy_prediction_matrix = numpy.expand_dims(
+                numpy.transpose(target_matrix[0, :2]),
+                axis=-1
+            )
+
+            title_string = (
+                '{0:s} at {1:s}\nRow/column trans = {2:.1f}, {3:.1f}\n'
+            ).format(
+                return_cyclone_id_strings[0],
+                time_conversion.unix_sec_to_string(
+                    target_times_unix_sec[0], '%Y-%m-%d-%H%M'
+                ),
+                target_matrix[0, 0],
+                target_matrix[0, 1]
+            )
+
+            if scalar_a_deck_field_names is not None:
+                for j in range(len(scalar_a_deck_field_names)):
+                    if numpy.mod(j, 3) == 0 and j > 0:
+                        title_string += '\n'
+
+                    try:
+                        this_field_name = A_DECK_FIELD_NAME_TO_ABBREV[
+                            scalar_a_deck_field_names[j]
+                        ]
+                    except:
+                        this_field_name = scalar_a_deck_field_names[j]
+
+                    title_string += this_field_name
+                    title_string += ' = {0:.2f}'.format(
+                        scalar_predictor_matrix[0, j]
+                    )
+
+            plot_predictions._plot_data_one_example(
+                predictor_matrices=[p[0, ...] for p in predictor_matrices],
+                scalar_target_values=target_matrix[0, :2],
+                prediction_matrix=dummy_prediction_matrix,
+                model_metadata_dict=
+                {nn_utils.VALIDATION_OPTIONS_KEY: option_dict},
+                cyclone_id_string=title_string,
+                low_res_latitudes_deg_n=dummy_low_res_grid_latitudes_deg_n,
+                low_res_longitudes_deg_e=dummy_low_res_grid_longitudes_deg_e,
+                high_res_latitudes_deg_n=dummy_high_res_grid_latitudes_deg_n,
+                high_res_longitudes_deg_e=dummy_high_res_grid_longitudes_deg_e,
+                are_data_normalized=not numpy.any(predictor_matrices[0] > 20),
+                border_latitudes_deg_n=border_latitudes_deg_n,
+                border_longitudes_deg_e=border_longitudes_deg_e,
+                output_file_name=verification_plot_dir_name
+            )
 
         yield tuple(predictor_matrices), target_matrix
 
@@ -2313,7 +2479,7 @@ def data_generator_old(option_dict):
 
                 this_scalar_predictor_matrix = (
                     scalar_predictor_matrix_by_cyclone[cyclone_index - 1][
-                    row_indices, :
+                        row_indices, :
                     ]
                 )
 
@@ -2431,7 +2597,10 @@ def data_generator_old(option_dict):
         )
 
         predictor_matrices = [vector_predictor_matrix]
-        if scalar_predictor_matrix is not None:
+        if (
+                scalar_predictor_matrix is not None
+                and scalar_predictor_matrix.size > 0
+        ):
             predictor_matrices.append(scalar_predictor_matrix)
 
         # TODO(thunderhoser): This could be simplified more.
@@ -2554,6 +2723,7 @@ def data_generator(option_dict, for_plotting=False):
 
     option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
     option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
+    option_dict[VERIF_PLOT_DIRECTORY_KEY] = None
     option_dict = _check_generator_args(option_dict)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
@@ -2912,7 +3082,10 @@ def data_generator(option_dict, for_plotting=False):
         )
 
         predictor_matrices = [vector_predictor_matrix]
-        if scalar_predictor_matrix is not None:
+        if (
+                scalar_predictor_matrix is not None
+                and scalar_predictor_matrix.size > 0
+        ):
             predictor_matrices.append(scalar_predictor_matrix)
 
         target_matrix = numpy.transpose(numpy.vstack((
@@ -3152,6 +3325,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
 
     error_checking.assert_is_integer(num_target_times)
     error_checking.assert_is_greater(num_target_times, 0)
+    option_dict[VERIF_PLOT_DIRECTORY_KEY] = None
     option_dict = _check_generator_args(option_dict)
 
     satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
@@ -3579,6 +3753,7 @@ def create_data_specific_trans(
     option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 5
     option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = 10.
     option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = 10.
+    option_dict[VERIF_PLOT_DIRECTORY_KEY] = None
     option_dict = _check_generator_args(option_dict)
 
     # Do actual stuff.

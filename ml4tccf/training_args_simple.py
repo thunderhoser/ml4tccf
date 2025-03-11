@@ -25,6 +25,7 @@ A_DECKS_AT_LEAST_6H_OLD_ARG_NAME = 'a_decks_at_least_6h_old'
 REMOVE_NONTROPICAL_ARG_NAME = 'remove_nontropical_systems'
 USE_SHUFFLED_DATA_ARG_NAME = 'use_shuffled_data'
 USE_OLD_SHUFFLED_GENERATOR_ARG_NAME = 'use_old_shuffled_generator'
+VERIF_PLOT_DIRECTORY_ARG_NAME = 'verification_plot_dir_name'
 
 SATELLITE_DIR_FOR_TRAINING_ARG_NAME = 'satellite_dir_name_for_training'
 TRAINING_YEARS_ARG_NAME = 'training_years'
@@ -133,6 +134,11 @@ USE_SHUFFLED_DATA_HELP_STRING = (
 )
 USE_OLD_SHUFFLED_GENERATOR_HELP_STRING = (
     'Boolean flag.  If 1, will use old generator (last known working version).'
+)
+VERIF_PLOT_DIRECTORY_HELP_STRING = (
+    'Path to directory for verification plots, used to make sure generator is '
+    'working correctly.  If you do not want verification plots, leave this '
+    'argument alone.'
 )
 
 SATELLITE_DIR_FOR_TRAINING_HELP_STRING = (
@@ -266,6 +272,10 @@ def add_input_args(parser_object):
     parser_object.add_argument(
         '--' + USE_OLD_SHUFFLED_GENERATOR_ARG_NAME, type=int, required=False,
         default=0, help=USE_OLD_SHUFFLED_GENERATOR_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + VERIF_PLOT_DIRECTORY_ARG_NAME, type=str, required=False,
+        default='', help=VERIF_PLOT_DIRECTORY_HELP_STRING
     )
 
     parser_object.add_argument(
