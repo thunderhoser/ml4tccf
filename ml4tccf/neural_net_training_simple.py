@@ -3036,6 +3036,7 @@ def train_model(
 
     if use_shuffled_data:
         if use_old_shuffled_generator:
+            print('USING OLD GENERATOR')
             training_generator = data_generator_shuffled_old(
                 training_option_dict
             )
@@ -3049,10 +3050,12 @@ def train_model(
             )
     else:
         if use_old_shuffled_generator:
-            pass
-        else:
+            print('USING OLD GENERATOR')
             training_generator = data_generator_old(training_option_dict)
             validation_generator = data_generator_old(validation_option_dict)
+        else:
+            training_generator = data_generator(training_option_dict)
+            validation_generator = data_generator(validation_option_dict)
 
     metafile_name = nn_utils.find_metafile(
         model_dir_name=output_dir_name, raise_error_if_missing=False
