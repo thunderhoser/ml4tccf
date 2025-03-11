@@ -168,6 +168,10 @@ def read_file(dill_file_name):
     :return: y_coord_model_object: Same.
     """
 
+    print(dill_file_name)
+    import os
+    print(os.system('ls {0:s}'.format(dill_file_name)))
+
     error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
