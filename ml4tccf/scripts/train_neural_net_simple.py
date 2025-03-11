@@ -25,6 +25,7 @@ def _run(template_file_name, output_dir_name,
          synoptic_times_only, a_deck_file_name, scalar_a_deck_field_names,
          a_decks_at_least_6h_old, remove_nontropical_systems,
          use_shuffled_data, use_old_shuffled_generator,
+         verification_plot_dir_name,
          satellite_dir_name_for_training, training_years,
          satellite_dir_name_for_validation, validation_years,
          num_epochs,
@@ -58,6 +59,7 @@ def _run(template_file_name, output_dir_name,
     :param remove_nontropical_systems: Same.
     :param use_shuffled_data: Same.
     :param use_old_shuffled_generator: Same.
+    :param verification_plot_dir_name: Same.
     :param satellite_dir_name_for_training: Same.
     :param training_years: Same.
     :param satellite_dir_name_for_validation: Same.
@@ -70,6 +72,8 @@ def _run(template_file_name, output_dir_name,
     :param early_stopping_patience_epochs: Same.
     """
 
+    if verification_plot_dir_name in NONE_STRINGS:
+        verification_plot_dir_name = None
     if a_deck_file_name == '':
         a_deck_file_name = None
     if short_track_dir_name == '':
@@ -116,7 +120,8 @@ def _run(template_file_name, output_dir_name,
         nn_utils.SCALAR_A_DECK_FIELDS_KEY: scalar_a_deck_field_names,
         nn_training.A_DECKS_AT_LEAST_6H_OLD_KEY: a_decks_at_least_6h_old,
         nn_utils.REMOVE_NONTROPICAL_KEY: remove_nontropical_systems,
-        nn_utils.TRAIN_WITH_SHUFFLED_DATA_KEY: use_shuffled_data
+        nn_utils.TRAIN_WITH_SHUFFLED_DATA_KEY: use_shuffled_data,
+        nn_training.VERIF_PLOT_DIRECTORY_KEY: verification_plot_dir_name
     }
 
     validation_option_dict = {
@@ -239,6 +244,9 @@ if __name__ == '__main__':
         use_old_shuffled_generator=bool(getattr(
             INPUT_ARG_OBJECT, training_args.USE_OLD_SHUFFLED_GENERATOR_ARG_NAME
         )),
+        verification_plot_dir_name=getattr(
+            INPUT_ARG_OBJECT, training_args.VERIF_PLOT_DIRECTORY_ARG_NAME
+        ),
         satellite_dir_name_for_training=getattr(
             INPUT_ARG_OBJECT, training_args.SATELLITE_DIR_FOR_TRAINING_ARG_NAME
         ),
