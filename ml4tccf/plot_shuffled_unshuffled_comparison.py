@@ -135,6 +135,24 @@ def _run(shuffled_file_name, unshuffled_dir_name, normalization_file_name,
         wavelengths_to_keep_microns=low_res_wavelengths_microns,
         for_high_res=False
     )
+
+    try:
+        shuffled_satellite_table_xarray = satellite_utils.subset_wavelengths(
+            satellite_table_xarray=shuffled_satellite_table_xarray,
+            wavelengths_to_keep_microns=numpy.array([]),
+            for_high_res=True
+        )
+    except KeyError:
+        pass
+
+    if num_grid_rows_low_res is not None:
+        shuffled_satellite_table_xarray = satellite_utils.subset_grid(
+            satellite_table_xarray=shuffled_satellite_table_xarray,
+            num_rows_to_keep=num_grid_rows_low_res,
+            num_columns_to_keep=num_grid_columns_low_res,
+            for_high_res=False
+        )
+
     shuffled_stx = shuffled_satellite_table_xarray
 
     are_shuffled_data_norm = not numpy.any(
@@ -201,6 +219,29 @@ def _run(shuffled_file_name, unshuffled_dir_name, normalization_file_name,
                 unshuffled_file_name
             )
             last_unshuffled_file_name = copy.deepcopy(unshuffled_file_name)
+
+            unshuffled_satellite_table_xarray = satellite_utils.subset_wavelengths(
+                satellite_table_xarray=unshuffled_satellite_table_xarray,
+                wavelengths_to_keep_microns=low_res_wavelengths_microns,
+                for_high_res=False
+            )
+
+            try:
+                unshuffled_satellite_table_xarray = satellite_utils.subset_wavelengths(
+                    satellite_table_xarray=unshuffled_satellite_table_xarray,
+                    wavelengths_to_keep_microns=numpy.array([]),
+                    for_high_res=True
+                )
+            except KeyError:
+                pass
+
+            if num_grid_rows_low_res is not None:
+                unshuffled_satellite_table_xarray = satellite_utils.subset_grid(
+                    satellite_table_xarray=unshuffled_satellite_table_xarray,
+                    num_rows_to_keep=num_grid_rows_low_res,
+                    num_columns_to_keep=num_grid_columns_low_res,
+                    for_high_res=False
+                )
 
             are_unshuffled_data_norm = not numpy.any(
                 shuffled_stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values
