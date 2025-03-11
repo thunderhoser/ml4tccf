@@ -1133,6 +1133,21 @@ def create_model(option_dict):
                 this_pooling_layer_object
             )(conv_layer_objects[i])
 
+            if i == 0:
+                continue
+
+            this_layer_object = architecture_utils.get_2d_pooling_layer(
+                num_rows_in_window=pooling_size_by_block_px[i - 1],
+                num_columns_in_window=pooling_size_by_block_px[i - 1],
+                num_rows_per_stride=pooling_size_by_block_px[i - 1],
+                num_columns_per_stride=pooling_size_by_block_px[i - 1],
+                pooling_type_string=architecture_utils.MAX_POOLING_STRING
+            )(forecast_module_layer_objects[i - 1])
+
+            forecast_module_layer_objects[i] = layers.Concatenate(axis=-1)([
+                this_layer_object, forecast_module_layer_objects[i]
+            ])
+
         layer_object = layers.Concatenate(axis=-1)([
             pooling_layer_objects[i], layer_object_low_res
         ])
@@ -1223,6 +1238,19 @@ def create_model(option_dict):
                 basic_layer_name='fcst_level{0:d}'.format(i)
             )
 
+        if forecast_module_layer_objects[i - 1] is not None:
+            this_layer_object = architecture_utils.get_2d_pooling_layer(
+                num_rows_in_window=pooling_size_by_block_px[i - 1],
+                num_columns_in_window=pooling_size_by_block_px[i - 1],
+                num_rows_per_stride=pooling_size_by_block_px[i - 1],
+                num_columns_per_stride=pooling_size_by_block_px[i - 1],
+                pooling_type_string=architecture_utils.MAX_POOLING_STRING
+            )(forecast_module_layer_objects[i - 1])
+
+            forecast_module_layer_objects[i] = layers.Concatenate(axis=-1)([
+                this_layer_object, forecast_module_layer_objects[i]
+            ])
+
         if i == num_conv_blocks - 1:
             continue
 
@@ -1238,7 +1266,7 @@ def create_model(option_dict):
         )(conv_layer_objects[i])
 
     layer_object = architecture_utils.get_flattening_layer()(
-        conv_layer_objects[-1]
+        forecast_module_layer_objects[-1]
     )
     if include_scalar_data:
         layer_object = layers.Concatenate(axis=-1)([
