@@ -2063,6 +2063,357 @@ def data_generator_shuffled(option_dict):
         yield tuple(predictor_matrices), target_matrix
 
 
+def data_generator_old(option_dict):
+    """Generates input data for neural net.
+
+    E = batch size = number of examples after data augmentation
+    L = number of lag times for predictors
+    w = number of wavelengths
+    m = number of rows in grid
+    n = number of columns in grid
+    F = number of scalar fields
+
+    :param option_dict: Dictionary with the following keys.
+    option_dict["satellite_dir_name"]: Name of directory with satellite data.
+        Files therein will be found by `satellite_io.find_file` and read
+        by `satellite_io.read_file`.
+    option_dict["years"]: 1-D numpy array of years.  Will generate data only for
+        cyclones in these years.
+    option_dict["lag_times_minutes"]: length-L numpy array of lag times for
+        predictors.
+    option_dict["low_res_wavelengths_microns"]: length-w numpy array of
+        wavelengths.
+    option_dict["num_examples_per_batch"]: Batch size before data augmentation.
+    option_dict["max_examples_per_cyclone"]: Max number of examples per cyclone
+        in one batch -- again, before data augmentation.
+    option_dict["num_rows_low_res"]: Number of grid rows to keep.  This is m in
+        the above definitions.
+    option_dict["num_columns_low_res"]: Number of grid columns to keep.  This is
+        n in the above definitions.
+    option_dict["data_aug_num_translations"]: Number of translations for each
+        example.  Total batch size will be
+        num_examples_per_batch * data_aug_num_translations.
+    option_dict["data_aug_mean_translation_low_res_px"]: Mean translation
+        distance (in units of low-resolution pixels) for data augmentation.
+    option_dict["data_aug_stdev_translation_low_res_px"]: Standard deviation of
+        translation distance (in units of low-resolution pixels) for data
+        augmentation.
+    option_dict["synoptic_times_only"]: Boolean flag.  If True, only synoptic
+        times (0000 UTC, 0600 UTC, 1200 UTC, 1800 UTC) can be used as target
+        times.  If False, any time can be a target time.
+    option_dict["scalar_a_deck_field_names"]: length-F list of scalar fields.
+    option_dict["remove_nontropical_systems"]: Boolean flag.  If True, only
+        tropical systems will be used for training.  If False, all systems
+        (including subtropical, post-tropical, etc.) will be used.
+    option_dict["remove_tropical_systems"]: Boolean flag.  If True, only
+        non-tropical systems will be used for training.  If False, all systems
+        (including subtropical, post-tropical, etc.) will be used.
+    option_dict["use_xy_coords_as_predictors"]: Boolean flag.
+    option_dict["a_deck_file_name"]: Path to A-deck file, which is needed if
+        `len(scalar_a_deck_field_names) > 0 or remove_nontropical_systems or
+        remove_tropical_systems`.  If A-deck file is not needed, you can make
+        this None.
+
+    :return: predictor_matrices: If predictors include scalars, this will be a
+        list with [vector_predictor_matrix, scalar_predictor_matrix].
+        Otherwise, this will be a list with only the first item.
+
+        vector_predictor_matrix: If `use_xy_coords_as_predictors == False`, this
+            is a E-by-m-by-n-by-(w * L) numpy array of brightness temperatures.
+            If `use_xy_coords_as_predictors == True`, this
+            is a E-by-m-by-n-by-([w + 2] * L) numpy array with both brightness
+            temperatures and xy-coords.
+
+        scalar_predictor_matrix: E-by-F numpy array of scalar predictors.
+
+    :return: target_matrix: If the problem has been cast as semantic
+        segmentation...
+
+        E-by-m-by-n numpy array of true TC-center "probabilities," in range
+        0...1.
+
+    If the problem has been cast as predicting two scalars (x- and y-coords)...
+
+        E-by-4 numpy array with distances (in low-resolution pixels) between the
+        image center and actual cyclone center.  target_matrix[:, 0] contains
+        row offsets, and target_matrix[:, 1] contains column offsets.  For
+        example, if target_matrix[20, 0] = -2 and target_matrix[20, 1] = 3, this
+        means that the true cyclone center for the 21st example is 2 rows above,
+        and 3 columns to the right of, the image center.
+
+        target_matrix[:, 2] contains the grid spacing for each data sample in
+        km.
+
+        target_matrix[:, 3] contains the true latitude of each cyclone center in
+        deg north.
+    """
+
+    option_dict[nn_utils.HIGH_RES_WAVELENGTHS_KEY] = numpy.array([])
+    option_dict[nn_utils.LAG_TIME_TOLERANCE_KEY] = 0
+    option_dict[nn_utils.MAX_MISSING_LAG_TIMES_KEY] = 0
+    option_dict[nn_utils.MAX_INTERP_GAP_KEY] = 0
+    option_dict[nn_utils.SENTINEL_VALUE_KEY] = -10.
+    option_dict[nn_utils.SEMANTIC_SEG_FLAG_KEY] = False
+    option_dict[nn_utils.TARGET_SMOOOTHER_STDEV_KEY] = None
+    option_dict[nn_utils.USE_XY_COORDS_KEY] = False
+
+    option_dict = nn_utils.check_generator_args(option_dict)
+
+    satellite_dir_name = option_dict[SATELLITE_DIRECTORY_KEY]
+    years = option_dict[YEARS_KEY]
+    lag_times_minutes = option_dict[LAG_TIMES_KEY]
+    low_res_wavelengths_microns = option_dict[LOW_RES_WAVELENGTHS_KEY]
+    num_examples_per_batch = option_dict[BATCH_SIZE_KEY]
+    max_examples_per_cyclone = option_dict[MAX_EXAMPLES_PER_CYCLONE_KEY]
+    num_rows_low_res = option_dict[NUM_GRID_ROWS_KEY]
+    num_columns_low_res = option_dict[NUM_GRID_COLUMNS_KEY]
+    data_aug_num_translations = option_dict[DATA_AUG_NUM_TRANS_KEY]
+    data_aug_mean_translation_low_res_px = option_dict[DATA_AUG_MEAN_TRANS_KEY]
+    data_aug_stdev_translation_low_res_px = (
+        option_dict[DATA_AUG_STDEV_TRANS_KEY]
+    )
+    synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
+    a_deck_file_name = option_dict[A_DECK_FILE_KEY]
+    scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
+    remove_nontropical_systems = option_dict[REMOVE_NONTROPICAL_KEY]
+    remove_tropical_systems = option_dict[REMOVE_TROPICAL_KEY]
+
+    orig_num_rows_low_res = num_rows_low_res + 0
+    orig_num_columns_low_res = num_columns_low_res + 0
+
+    num_extra_rowcols = 2 * int(numpy.ceil(
+        data_aug_mean_translation_low_res_px +
+        5 * data_aug_stdev_translation_low_res_px
+    ))
+    num_rows_low_res += num_extra_rowcols
+    num_columns_low_res += num_extra_rowcols
+
+    cyclone_id_strings = satellite_io.find_cyclones(
+        directory_name=satellite_dir_name, raise_error_if_all_missing=True
+    )
+    cyclone_years = numpy.array(
+        [misc_utils.parse_cyclone_id(c)[0] for c in cyclone_id_strings],
+        dtype=int
+    )
+
+    good_flags = numpy.array([y in years for y in cyclone_years], dtype=bool)
+    good_indices = numpy.where(good_flags)[0]
+    cyclone_id_strings = [cyclone_id_strings[k] for k in good_indices]
+    random.shuffle(cyclone_id_strings)
+
+    satellite_file_names_by_cyclone = [
+        satellite_io.find_files_one_cyclone(
+            directory_name=satellite_dir_name, cyclone_id_string=c,
+            raise_error_if_all_missing=True
+        ) for c in cyclone_id_strings
+    ]
+
+    (
+        target_times_by_cyclone_unix_sec, scalar_predictor_matrix_by_cyclone
+    ) = nn_training_fancy.get_target_times_and_scalar_predictors(
+        cyclone_id_strings=cyclone_id_strings,
+        synoptic_times_only=synoptic_times_only,
+        satellite_file_names_by_cyclone=satellite_file_names_by_cyclone,
+        a_deck_file_name=a_deck_file_name,
+        scalar_a_deck_field_names=scalar_a_deck_field_names,
+        remove_nontropical_systems=remove_nontropical_systems,
+        remove_tropical_systems=remove_tropical_systems,
+        predictor_lag_times_sec=MINUTES_TO_SECONDS * lag_times_minutes
+    )
+
+    use_extrap_based_forecasts = (
+        scalar_a_deck_field_names is not None
+        and a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY in scalar_a_deck_field_names
+        and a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY in scalar_a_deck_field_names
+    )
+
+    cyclone_index = 0
+
+    while True:
+        vector_predictor_matrix = None
+        scalar_predictor_matrix = None
+        grid_spacings_km = None
+        cyclone_center_latitudes_deg_n = None
+        num_examples_in_memory = 0
+
+        while num_examples_in_memory < num_examples_per_batch:
+            if cyclone_index == len(cyclone_id_strings):
+                cyclone_index = 0
+
+            num_examples_to_read = min([
+                max_examples_per_cyclone,
+                num_examples_per_batch - num_examples_in_memory
+            ])
+
+            new_target_times_unix_sec = (
+                nn_training_fancy.choose_random_target_times(
+                    all_target_times_unix_sec=
+                    target_times_by_cyclone_unix_sec[cyclone_index] + 0,
+                    num_times_desired=num_examples_to_read
+                )[0]
+            )
+
+            if len(new_target_times_unix_sec) == 0:
+                cyclone_index += 1
+                continue
+
+            data_dict = _read_satellite_data_1cyclone(
+                input_file_names=satellite_file_names_by_cyclone[cyclone_index],
+                lag_times_minutes=lag_times_minutes,
+                low_res_wavelengths_microns=low_res_wavelengths_microns,
+                num_rows_low_res=num_rows_low_res,
+                num_columns_low_res=num_columns_low_res,
+                return_coords=use_extrap_based_forecasts,
+                target_times_unix_sec=new_target_times_unix_sec
+            )
+            cyclone_index += 1
+
+            if (
+                    data_dict is None
+                    or data_dict[BRIGHTNESS_TEMPS_KEY] is None
+                    or data_dict[BRIGHTNESS_TEMPS_KEY].size == 0
+            ):
+                continue
+
+            this_bt_matrix_kelvins = data_dict[BRIGHTNESS_TEMPS_KEY]
+            these_grid_spacings_km = data_dict[GRID_SPACINGS_KEY]
+            these_center_latitudes_deg_n = data_dict[CENTER_LATITUDES_KEY]
+
+            if a_deck_file_name is None:
+                this_scalar_predictor_matrix = None
+            else:
+                row_indices = numpy.array([
+                    numpy.where(
+                        target_times_by_cyclone_unix_sec[cyclone_index - 1] == t
+                    )[0][0]
+                    for t in data_dict[TARGET_TIMES_KEY]
+                ], dtype=int)
+
+                this_scalar_predictor_matrix = (
+                    scalar_predictor_matrix_by_cyclone[cyclone_index - 1][
+                    row_indices, :
+                    ]
+                )
+
+                if use_extrap_based_forecasts:
+                    this_scalar_predictor_matrix = (
+                        _extrap_based_forecasts_to_rowcol(
+                            scalar_predictor_matrix=
+                            this_scalar_predictor_matrix,
+                            scalar_a_deck_field_names=scalar_a_deck_field_names,
+                            satellite_data_dict=data_dict
+                        )
+                    )
+
+            this_bt_matrix_kelvins = nn_utils.combine_lag_times_and_wavelengths(
+                this_bt_matrix_kelvins
+            )
+            this_vector_predictor_matrix = this_bt_matrix_kelvins
+
+            if vector_predictor_matrix is None:
+                these_dim = (
+                    (num_examples_per_batch,) +
+                    this_vector_predictor_matrix.shape[1:]
+                )
+                vector_predictor_matrix = numpy.full(these_dim, numpy.nan)
+
+                grid_spacings_km = numpy.full(num_examples_per_batch, numpy.nan)
+                cyclone_center_latitudes_deg_n = numpy.full(
+                    num_examples_per_batch, numpy.nan
+                )
+
+                if this_scalar_predictor_matrix is not None:
+                    these_dim = (
+                        (num_examples_per_batch,) +
+                        this_scalar_predictor_matrix.shape[1:]
+                    )
+                    scalar_predictor_matrix = numpy.full(these_dim, numpy.nan)
+
+            first_index = num_examples_in_memory
+            last_index = first_index + this_vector_predictor_matrix.shape[0]
+            vector_predictor_matrix[first_index:last_index, ...] = (
+                this_vector_predictor_matrix
+            )
+            grid_spacings_km[first_index:last_index] = these_grid_spacings_km
+            cyclone_center_latitudes_deg_n[first_index:last_index] = (
+                these_center_latitudes_deg_n
+            )
+
+            if this_scalar_predictor_matrix is not None:
+                scalar_predictor_matrix[first_index:last_index, ...] = (
+                    this_scalar_predictor_matrix
+                )
+
+            num_examples_in_memory += this_vector_predictor_matrix.shape[0]
+
+        translation_dict = data_augmentation.augment_data(
+            bidirectional_reflectance_matrix=None,
+            brightness_temp_matrix_kelvins=vector_predictor_matrix,
+            num_translations_per_example=data_aug_num_translations,
+            mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
+            stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
+            sentinel_value=-10.
+        )
+        vector_predictor_matrix = translation_dict[
+            data_augmentation.BRIGHTNESS_TEMPS_KEY
+        ]
+        row_translations_low_res_px = translation_dict[
+            data_augmentation.ROW_TRANSLATIONS_KEY
+        ]
+        column_translations_low_res_px = translation_dict[
+            data_augmentation.COLUMN_TRANSLATIONS_KEY
+        ]
+
+        vector_predictor_matrix = data_augmentation.subset_grid_after_data_aug(
+            data_matrix=vector_predictor_matrix,
+            num_rows_to_keep=orig_num_rows_low_res,
+            num_columns_to_keep=orig_num_columns_low_res,
+            for_high_res=False
+        )
+
+        grid_spacings_km = numpy.repeat(
+            grid_spacings_km, repeats=data_aug_num_translations
+        )
+        cyclone_center_latitudes_deg_n = numpy.repeat(
+            cyclone_center_latitudes_deg_n, repeats=data_aug_num_translations
+        )
+        if scalar_predictor_matrix is not None:
+            scalar_predictor_matrix = numpy.repeat(
+                scalar_predictor_matrix, axis=0,
+                repeats=data_aug_num_translations
+            )
+
+        if use_extrap_based_forecasts:
+            row_index = scalar_a_deck_field_names.index(
+                a_deck_io.UNNORM_EXTRAP_LATITUDE_KEY
+            )
+            column_index = scalar_a_deck_field_names.index(
+                a_deck_io.UNNORM_EXTRAP_LONGITUDE_KEY
+            )
+
+            scalar_predictor_matrix[:, row_index] = (
+                scalar_predictor_matrix[:, row_index] +
+                row_translations_low_res_px
+            )
+            scalar_predictor_matrix[:, column_index] = (
+                scalar_predictor_matrix[:, column_index] +
+                column_translations_low_res_px
+            )
+
+        predictor_matrices = [vector_predictor_matrix]
+        if scalar_predictor_matrix is not None:
+            predictor_matrices.append(scalar_predictor_matrix)
+
+        # TODO(thunderhoser): This could be simplified more.
+        target_matrix = numpy.transpose(numpy.vstack((
+            row_translations_low_res_px, column_translations_low_res_px,
+            grid_spacings_km, cyclone_center_latitudes_deg_n
+        )))
+
+        predictor_matrices = [p.astype('float16') for p in predictor_matrices]
+        yield tuple(predictor_matrices), target_matrix
+
+
 def data_generator(option_dict, for_plotting=False):
     """Generates input data for neural net.
 
@@ -2690,8 +3041,11 @@ def train_model(
                 validation_option_dict
             )
     else:
-        training_generator = data_generator(training_option_dict)
-        validation_generator = data_generator(validation_option_dict)
+        if use_old_shuffled_generator:
+            pass
+        else:
+            training_generator = data_generator_old(training_option_dict)
+            validation_generator = data_generator_old(validation_option_dict)
 
     metafile_name = nn_utils.find_metafile(
         model_dir_name=output_dir_name, raise_error_if_missing=False
