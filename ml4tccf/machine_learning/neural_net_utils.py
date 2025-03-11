@@ -144,7 +144,8 @@ METRIC_FUNCTION_LIST_SCALAR = [
     custom_metrics_scalar.mean_grid_spacing_kilometres,
     custom_metrics_scalar.crps_kilometres,
     custom_metrics_scalar.discretized_mean_dist_kilometres,
-    custom_metrics_scalar.discretized_crps_kilometres
+    custom_metrics_scalar.discretized_crps_kilometres,
+    custom_metrics_scalar.correlation
 ]
 
 METRIC_FUNCTION_DICT_SCALAR = {
@@ -169,7 +170,8 @@ METRIC_FUNCTION_DICT_SCALAR = {
     'discretized_mean_dist_kilometres':
         custom_metrics_scalar.discretized_mean_dist_kilometres,
     'discretized_crps_kilometres':
-        custom_metrics_scalar.discretized_crps_kilometres
+        custom_metrics_scalar.discretized_crps_kilometres,
+    'correlation': custom_metrics_scalar.correlation
 }
 
 METRIC_FUNCTION_LIST_GRIDDED = []

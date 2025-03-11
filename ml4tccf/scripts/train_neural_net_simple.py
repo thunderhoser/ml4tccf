@@ -24,7 +24,8 @@ def _run(template_file_name, output_dir_name,
          data_aug_within_mean_trans_px, data_aug_within_stdev_trans_px,
          synoptic_times_only, a_deck_file_name, scalar_a_deck_field_names,
          a_decks_at_least_6h_old, remove_nontropical_systems,
-         use_shuffled_data, satellite_dir_name_for_training, training_years,
+         use_shuffled_data, use_old_shuffled_generator,
+         satellite_dir_name_for_training, training_years,
          satellite_dir_name_for_validation, validation_years,
          num_epochs,
          num_training_batches_per_epoch, num_validation_batches_per_epoch,
@@ -56,6 +57,7 @@ def _run(template_file_name, output_dir_name,
     :param a_decks_at_least_6h_old: Same.
     :param remove_nontropical_systems: Same.
     :param use_shuffled_data: Same.
+    :param use_old_shuffled_generator: Same.
     :param satellite_dir_name_for_training: Same.
     :param training_years: Same.
     :param satellite_dir_name_for_validation: Same.
@@ -155,7 +157,8 @@ def _run(template_file_name, output_dir_name,
         cnn_architecture_dict=mmd[nn_utils.CNN_ARCHITECTURE_KEY],
         temporal_cnn_architecture_dict=
         mmd[nn_utils.TEMPORAL_CNN_ARCHITECTURE_KEY],
-        u_net_architecture_dict=mmd[nn_utils.U_NET_ARCHITECTURE_KEY]
+        u_net_architecture_dict=mmd[nn_utils.U_NET_ARCHITECTURE_KEY],
+        use_old_shuffled_generator=use_old_shuffled_generator
     )
 
 
@@ -232,6 +235,9 @@ if __name__ == '__main__':
         )),
         use_shuffled_data=bool(getattr(
             INPUT_ARG_OBJECT, training_args.USE_SHUFFLED_DATA_ARG_NAME
+        )),
+        use_old_shuffled_generator=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.USE_OLD_SHUFFLED_GENERATOR_ARG_NAME
         )),
         satellite_dir_name_for_training=getattr(
             INPUT_ARG_OBJECT, training_args.SATELLITE_DIR_FOR_TRAINING_ARG_NAME
