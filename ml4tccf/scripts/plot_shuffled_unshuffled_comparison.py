@@ -235,8 +235,9 @@ def _run(shuffled_file_name, unshuffled_dir_name, normalization_file_name,
                     for_high_res=False
                 )
 
+            unshuffled_stx = unshuffled_satellite_table_xarray
             are_unshuffled_data_norm = not numpy.any(
-                shuffled_stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values
+                unshuffled_stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values
                 > 20.
             )
 
