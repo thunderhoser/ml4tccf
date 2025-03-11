@@ -2216,8 +2216,13 @@ def data_generator_shuffled(option_dict):
 
             if scalar_a_deck_field_names is not None:
                 for j in range(len(scalar_a_deck_field_names)):
-                    if numpy.mod(j, 3) == 0 and j > 0:
-                        title_string += '\n'
+                    if j == 0:
+                        pass
+                    else:
+                        if numpy.mod(j, 3) == 0:
+                            title_string += '\n'
+                        else:
+                            title_string += '; '
 
                     try:
                         this_field_name = A_DECK_FIELD_NAME_TO_ABBREV[
@@ -2230,6 +2235,8 @@ def data_generator_shuffled(option_dict):
                     title_string += ' = {0:.2f}'.format(
                         scalar_predictor_matrix[0, j]
                     )
+
+                title_string += '\n'
 
             output_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
                 verification_plot_dir_name,
