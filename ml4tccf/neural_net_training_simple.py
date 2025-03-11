@@ -2407,6 +2407,14 @@ def data_generator_old(option_dict):
                 column_translations_low_res_px
             )
 
+        new_dimensions = (
+            vector_predictor_matrix.shape[:3] +
+            (len(lag_times_minutes), len(low_res_wavelengths_microns))
+        )
+        vector_predictor_matrix = numpy.reshape(
+            vector_predictor_matrix, new_dimensions
+        )
+
         predictor_matrices = [vector_predictor_matrix]
         if scalar_predictor_matrix is not None:
             predictor_matrices.append(scalar_predictor_matrix)
