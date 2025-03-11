@@ -2231,6 +2231,14 @@ def data_generator_shuffled(option_dict):
                         scalar_predictor_matrix[0, j]
                     )
 
+            output_file_name = '{0:s}/{1:s}_{2:s}.jpg'.format(
+                verification_plot_dir_name,
+                return_cyclone_id_strings[0],
+                time_conversion.unix_sec_to_string(
+                    target_times_unix_sec[0], '%Y-%m-%d-%H%M'
+                )
+            )
+
             plot_predictions._plot_data_one_example(
                 predictor_matrices=[p[0, ...] for p in predictor_matrices],
                 scalar_target_values=target_matrix[0, :2],
@@ -2245,7 +2253,7 @@ def data_generator_shuffled(option_dict):
                 are_data_normalized=not numpy.any(predictor_matrices[0] > 20),
                 border_latitudes_deg_n=border_latitudes_deg_n,
                 border_longitudes_deg_e=border_longitudes_deg_e,
-                output_file_name=verification_plot_dir_name
+                output_file_name=output_file_name
             )
 
         yield tuple(predictor_matrices), target_matrix
