@@ -168,7 +168,7 @@ def read_file(dill_file_name):
     :return: y_coord_model_object: Same.
     """
 
-    # error_checking.assert_file_exists(dill_file_name)
+    error_checking.assert_file_exists(dill_file_name)
 
     dill_file_handle = open(dill_file_name, 'rb')
     x_coord_model_object = pickle.load(dill_file_handle)
