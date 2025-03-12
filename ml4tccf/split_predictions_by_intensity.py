@@ -366,11 +366,16 @@ def _run(input_prediction_file_pattern, xbt_file_name,
             ))
 
         this_cyclone_id_string = (
-            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i].decode('utf-8')
+            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i]
         )
         this_time_unix_sec = (
             pt[scalar_prediction_utils.TARGET_TIME_KEY].values[i]
         )
+
+        try:
+            this_cyclone_id_string = this_cyclone_id_string.decode('utf-8')
+        except:
+            pass
 
         these_indices = numpy.where(numpy.logical_and(
             xbt_cyclone_id_strings == this_cyclone_id_string,
