@@ -111,12 +111,17 @@ def _write_scalar_predictions_1category(prediction_table_1cat_xarray,
         category.
     """
 
-    all_cyclone_id_strings = numpy.array([
-        s.decode('utf-8') for s in
-        prediction_table_1cat_xarray[
+    try:
+        all_cyclone_id_strings = numpy.array([
+            s.decode('utf-8') for s in
+            prediction_table_1cat_xarray[
+                scalar_prediction_utils.CYCLONE_ID_KEY
+            ].values
+        ])
+    except:
+        all_cyclone_id_strings = prediction_table_1cat_xarray[
             scalar_prediction_utils.CYCLONE_ID_KEY
         ].values
-    ])
 
     print('Number of examples for output directory "{0:s}" = {1:d}'.format(
         output_dir_name_1cat, len(all_cyclone_id_strings)
