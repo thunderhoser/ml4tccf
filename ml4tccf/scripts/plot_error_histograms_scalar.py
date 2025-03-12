@@ -15,6 +15,8 @@ from ml4tccf.utils import scalar_prediction_utils as prediction_utils
 from ml4tccf.utils import scalar_evaluation
 from ml4tccf.machine_learning import data_augmentation
 from ml4tccf.machine_learning import neural_net_utils
+from ml4tccf.machine_learning import \
+    neural_net_training_simple as nn_training_simple
 
 METRES_TO_KM = 0.001
 
@@ -701,13 +703,21 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
         neural_net_utils.TRAINING_OPTIONS_KEY
     ]
 
+    try:
+        use_uniform_dist = training_option_dict[
+            nn_training_simple.DATA_AUG_WITHIN_UNIFORM_DIST_KEY
+        ]
+    except:
+        use_uniform_dist = False
+
     row_translations_px, column_translations_px = (
         data_augmentation.get_translation_distances(
             mean_translation_px=
             training_option_dict[neural_net_utils.DATA_AUG_MEAN_TRANS_KEY],
             stdev_translation_px=
             training_option_dict[neural_net_utils.DATA_AUG_STDEV_TRANS_KEY],
-            num_translations=SAMPLE_SIZE_FOR_DATA_AUG
+            num_translations=SAMPLE_SIZE_FOR_DATA_AUG,
+            use_uniform_dist=use_uniform_dist
         )
     )
 

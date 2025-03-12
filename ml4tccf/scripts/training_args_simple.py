@@ -15,8 +15,10 @@ SHORT_TRACK_DIFF_CENTERS_ARG_NAME = 'short_track_center_each_lag_diffly'
 NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
 STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
+DATA_AUG_UNIFORM_DIST_ARG_NAME = 'data_aug_uniform_dist_flag'
 MEAN_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_mean_trans_px'
 STDEV_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_stdev_trans_px'
+DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME = 'data_aug_within_uniform_dist_flag'
 
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
 A_DECK_FILE_ARG_NAME = 'a_deck_file_name'
@@ -97,6 +99,14 @@ STDEV_TRANSLATION_DIST_HELP_STRING = (
     'Standard deviation of whole-track translation distance (units of IR '
     'pixels, or low-res pixels).'
 )
+DATA_AUG_UNIFORM_DIST_HELP_STRING = (
+    'Boolean flag.  If 1, whole-track translation distances will actually be '
+    'drawn from a uniform distribution, with min of 0 pixels and max of '
+    '{0:s} + 3 * {1:s}.  If 0, whole-track translation distances will actually '
+    'be drawn from Gaussian.'
+).format(
+    MEAN_TRANSLATION_DIST_ARG_NAME, STDEV_TRANSLATION_DIST_ARG_NAME
+)
 MEAN_TRANS_DIST_WITHIN_HELP_STRING = (
     'Mean within-track translation distance (units of IR pixels, or low-res '
     'pixels).'
@@ -104,6 +114,14 @@ MEAN_TRANS_DIST_WITHIN_HELP_STRING = (
 STDEV_TRANS_DIST_WITHIN_HELP_STRING = (
     'Standard deviation of within-track translation distance (units of IR '
     'pixels, or low-res pixels).'
+)
+DATA_AUG_WITHIN_UNIFORM_DIST_HELP_STRING = (
+    'Boolean flag.  If 1, within-track translation distances will actually be '
+    'drawn from a uniform distribution, with min of 0 pixels and max of '
+    '{0:s} + 3 * {1:s}.  If 0, within-track translation distances will '
+    'actually be drawn from Gaussian.'
+).format(
+    MEAN_TRANS_DIST_WITHIN_ARG_NAME, STDEV_TRANS_DIST_WITHIN_ARG_NAME
 )
 
 SYNOPTIC_TIMES_ONLY_HELP_STRING = (
@@ -237,12 +255,20 @@ def add_input_args(parser_object):
         help=STDEV_TRANSLATION_DIST_HELP_STRING
     )
     parser_object.add_argument(
+        '--' + DATA_AUG_UNIFORM_DIST_ARG_NAME, type=int, required=False,
+        default=0, help=DATA_AUG_UNIFORM_DIST_HELP_STRING
+    )
+    parser_object.add_argument(
         '--' + MEAN_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=True,
         help=MEAN_TRANS_DIST_WITHIN_HELP_STRING
     )
     parser_object.add_argument(
         '--' + STDEV_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=True,
         help=STDEV_TRANS_DIST_WITHIN_HELP_STRING
+    )
+    parser_object.add_argument(
+        '--' + DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME, type=int, required=False,
+        default=0, help=DATA_AUG_WITHIN_UNIFORM_DIST_HELP_STRING
     )
 
     parser_object.add_argument(
