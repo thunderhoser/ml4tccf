@@ -1,4 +1,5 @@
 """NN-training with simplified Robert/Galina satellite data."""
+
 import copy
 import random
 import warnings
@@ -2054,6 +2055,10 @@ def data_generator_shuffled(option_dict):
         )
 
         for j in range(len(lag_times_minutes)):
+            print('Augmenting data at lag time {0:d} minutes...'.format(
+                lag_times_minutes[j]
+            ))
+
             translation_dict = data_augmentation.augment_data(
                 bidirectional_reflectance_matrix=None,
                 brightness_temp_matrix_kelvins=
@@ -3010,6 +3015,10 @@ def data_generator(option_dict, for_plotting=False):
         )
 
         for j in range(len(lag_times_minutes)):
+            print('Augmenting data at lag time {0:d} minutes...'.format(
+                lag_times_minutes[j]
+            ))
+
             translation_dict = data_augmentation.augment_data(
                 bidirectional_reflectance_matrix=None,
                 brightness_temp_matrix_kelvins=
@@ -3541,6 +3550,10 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     )
 
     for j in range(len(lag_times_minutes)):
+        print('Augmenting data at lag time {0:d} minutes...'.format(
+            lag_times_minutes[j]
+        ))
+
         translation_dict = data_augmentation.augment_data(
             bidirectional_reflectance_matrix=None,
             brightness_temp_matrix_kelvins=
