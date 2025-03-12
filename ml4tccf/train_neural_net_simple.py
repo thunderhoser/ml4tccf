@@ -27,8 +27,9 @@ def _run(template_file_name, output_dir_name,
          short_track_dir_name, short_track_max_lead_minutes,
          short_track_center_each_lag_diffly, data_aug_num_translations,
          data_aug_mean_translation_low_res_px,
-         data_aug_stdev_translation_low_res_px,
+         data_aug_stdev_translation_low_res_px, data_aug_uniform_dist_flag,
          data_aug_within_mean_trans_px, data_aug_within_stdev_trans_px,
+         data_aug_within_uniform_dist_flag,
          synoptic_times_only, a_deck_file_name, scalar_a_deck_field_names,
          a_decks_at_least_6h_old, remove_nontropical_systems,
          use_shuffled_data, use_old_shuffled_generator,
@@ -57,8 +58,10 @@ def _run(template_file_name, output_dir_name,
     :param data_aug_num_translations: Same.
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
+    :param data_aug_uniform_dist_flag: Same.
     :param data_aug_within_mean_trans_px: Same.
     :param data_aug_within_stdev_trans_px: Same.
+    :param data_aug_within_uniform_dist_flag: Same.
     :param synoptic_times_only: Same.
     :param a_deck_file_name: Same.
     :param scalar_a_deck_field_names: Same.
@@ -113,10 +116,13 @@ def _run(template_file_name, output_dir_name,
         nn_utils.DATA_AUG_MEAN_TRANS_KEY: data_aug_mean_translation_low_res_px,
         nn_utils.DATA_AUG_STDEV_TRANS_KEY:
             data_aug_stdev_translation_low_res_px,
+        nn_training.DATA_AUG_UNIFORM_DIST_KEY: data_aug_uniform_dist_flag,
         nn_training.DATA_AUG_WITHIN_MEAN_TRANS_KEY:
             data_aug_within_mean_trans_px,
         nn_training.DATA_AUG_WITHIN_STDEV_TRANS_KEY:
             data_aug_within_stdev_trans_px,
+        nn_training.DATA_AUG_WITHIN_UNIFORM_DIST_KEY:
+            data_aug_within_uniform_dist_flag,
         nn_utils.LAG_TIME_TOLERANCE_KEY: 0,
         nn_utils.MAX_MISSING_LAG_TIMES_KEY: 0,
         nn_utils.MAX_INTERP_GAP_KEY: 0,
@@ -226,12 +232,19 @@ if __name__ == '__main__':
         data_aug_stdev_translation_low_res_px=getattr(
             INPUT_ARG_OBJECT, training_args.STDEV_TRANSLATION_DIST_ARG_NAME
         ),
+        data_aug_uniform_dist_flag=bool(getattr(
+            INPUT_ARG_OBJECT, training_args.DATA_AUG_UNIFORM_DIST_ARG_NAME
+        )),
         data_aug_within_mean_trans_px=getattr(
             INPUT_ARG_OBJECT, training_args.MEAN_TRANS_DIST_WITHIN_ARG_NAME
         ),
         data_aug_within_stdev_trans_px=getattr(
             INPUT_ARG_OBJECT, training_args.STDEV_TRANS_DIST_WITHIN_ARG_NAME
         ),
+        data_aug_within_uniform_dist_flag=bool(getattr(
+            INPUT_ARG_OBJECT,
+            training_args.DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME
+        )),
         synoptic_times_only=bool(getattr(
             INPUT_ARG_OBJECT, training_args.SYNOPTIC_TIMES_ONLY_ARG_NAME
         )),

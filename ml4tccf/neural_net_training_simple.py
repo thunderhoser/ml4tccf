@@ -5,11 +5,11 @@ import sys
 import copy
 import random
 import warnings
+from collections import defaultdict
 import numpy
 import keras
 import xarray
 import pandas
-from collections import defaultdict
 from scipy.interpolate import interp1d
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
@@ -86,8 +86,10 @@ SHORT_TRACK_DIFF_CENTERS_KEY = 'short_track_center_each_lag_diffly'
 DATA_AUG_NUM_TRANS_KEY = nn_utils.DATA_AUG_NUM_TRANS_KEY
 DATA_AUG_MEAN_TRANS_KEY = nn_utils.DATA_AUG_MEAN_TRANS_KEY
 DATA_AUG_STDEV_TRANS_KEY = nn_utils.DATA_AUG_STDEV_TRANS_KEY
+DATA_AUG_UNIFORM_DIST_KEY = 'data_aug_uniform_dist_flag'
 DATA_AUG_WITHIN_MEAN_TRANS_KEY = 'data_aug_within_mean_trans_px'
 DATA_AUG_WITHIN_STDEV_TRANS_KEY = 'data_aug_within_stdev_trans_px'
+DATA_AUG_WITHIN_UNIFORM_DIST_KEY = 'data_aug_within_uniform_dist_flag'
 SYNOPTIC_TIMES_ONLY_KEY = nn_utils.SYNOPTIC_TIMES_ONLY_KEY
 A_DECK_FILE_KEY = nn_utils.A_DECK_FILE_KEY
 SCALAR_A_DECK_FIELDS_KEY = nn_utils.SCALAR_A_DECK_FIELDS_KEY
@@ -152,6 +154,16 @@ def _check_generator_args(option_dict):
         option_dict[DATA_AUG_WITHIN_STDEV_TRANS_KEY], 0.
     )
     error_checking.assert_is_boolean(option_dict[A_DECKS_AT_LEAST_6H_OLD_KEY])
+
+    if DATA_AUG_UNIFORM_DIST_KEY not in option_dict:
+        option_dict[DATA_AUG_UNIFORM_DIST_KEY] = False
+    if DATA_AUG_WITHIN_UNIFORM_DIST_KEY not in option_dict:
+        option_dict[DATA_AUG_WITHIN_UNIFORM_DIST_KEY] = False
+
+    error_checking.assert_is_boolean(option_dict[DATA_AUG_UNIFORM_DIST_KEY])
+    error_checking.assert_is_boolean(
+        option_dict[DATA_AUG_WITHIN_UNIFORM_DIST_KEY]
+    )
 
     return option_dict
 
@@ -1310,14 +1322,14 @@ def choose_random_cyclone_objects(
     # Shuffle indices within each cyclone.
     for these_indices in cyclone_to_index_list.values():
         random.shuffle(these_indices)
-    
+
     # Shuffle cyclone IDs.
     unique_cyclone_id_strings = list(cyclone_to_index_list.keys())
     random.shuffle(unique_cyclone_id_strings)
 
     chosen_indices = []
     cyclone_to_count = defaultdict(int)
-    
+
     # Step 1: if possible, pick one data sample per cyclone.
     remaining_cyclone_id_strings = []
 
@@ -1329,7 +1341,7 @@ def choose_random_cyclone_objects(
         cyclone_to_count[this_id] += 1
         if cyclone_to_index_list[this_id]:
             remaining_cyclone_id_strings.append(this_id)
-    
+
     # Step 2: fill remaining slots while respecting max_examples_per_cyclone.
     while (
             len(chosen_indices) < num_objects_desired
@@ -1802,9 +1814,13 @@ def data_generator_shuffled(option_dict):
     data_aug_stdev_translation_low_res_px = option_dict[
         DATA_AUG_STDEV_TRANS_KEY
     ]
+    data_aug_uniform_dist_flag = option_dict[DATA_AUG_UNIFORM_DIST_KEY]
     data_aug_within_mean_trans_px = option_dict[DATA_AUG_WITHIN_MEAN_TRANS_KEY]
     data_aug_within_stdev_trans_px = option_dict[
         DATA_AUG_WITHIN_STDEV_TRANS_KEY
+    ]
+    data_aug_within_uniform_dist_flag = option_dict[
+        DATA_AUG_WITHIN_UNIFORM_DIST_KEY
     ]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
     scalar_a_deck_field_names = option_dict[SCALAR_A_DECK_FIELDS_KEY]
@@ -2033,6 +2049,7 @@ def data_generator_shuffled(option_dict):
             num_translations_per_example=data_aug_num_translations,
             mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
+            use_uniform_dist=data_aug_uniform_dist_flag,
             sentinel_value=SENTINEL_VALUE
         )
         vector_predictor_matrix = translation_dict[
@@ -2073,6 +2090,7 @@ def data_generator_shuffled(option_dict):
                 num_translations_per_example=1,
                 mean_translation_low_res_px=data_aug_within_mean_trans_px,
                 stdev_translation_low_res_px=data_aug_within_stdev_trans_px,
+                use_uniform_dist=data_aug_within_uniform_dist_flag,
                 sentinel_value=SENTINEL_VALUE
             )
             vector_predictor_matrix[..., j, :] = translation_dict[
@@ -2683,10 +2701,20 @@ def data_generator(option_dict, for_plotting=False):
     option_dict["data_aug_stdev_translation_low_res_px"]: Standard deviation of
         translation distance (in units of low-resolution pixels) for data
         augmentation.
+    option_dict["data_aug_uniform_dist_flag"]: Boolean flag.  If True, the
+        translation distance will actually be drawn from a uniform distribution,
+        with a minimum of 0 pixels and maximum of
+        data_aug_mean_translation_low_res_px +
+        3 * data_aug_stdev_translation_low_res_px.
     option_dict["data_aug_within_mean_trans_px"]: Mean translation distance for
         within-track data augmentation.
     option_dict["data_aug_within_stdev_trans_px"]: Standard deviation of
         translation distance for within-track data augmentation.
+    option_dict["data_aug_within_uniform_dist_flag"]: Boolean flag.  If True,
+        the within-track translation distance will actually be drawn from a
+        uniform distribution, with a minimum of 0 pixels and maximum of
+        data_aug_within_mean_trans_px +
+        3 * data_aug_within_stdev_trans_px.
     option_dict["synoptic_times_only"]: Boolean flag.  If True, only synoptic
         times (0000 UTC, 0600 UTC, 1200 UTC, 1800 UTC) can be used as target
         times.  If False, any time can be a target time.
@@ -2763,9 +2791,13 @@ def data_generator(option_dict, for_plotting=False):
     data_aug_stdev_translation_low_res_px = option_dict[
         DATA_AUG_STDEV_TRANS_KEY
     ]
+    data_aug_uniform_dist_flag = option_dict[DATA_AUG_UNIFORM_DIST_KEY]
     data_aug_within_mean_trans_px = option_dict[DATA_AUG_WITHIN_MEAN_TRANS_KEY]
     data_aug_within_stdev_trans_px = option_dict[
         DATA_AUG_WITHIN_STDEV_TRANS_KEY
+    ]
+    data_aug_within_uniform_dist_flag = option_dict[
+        DATA_AUG_WITHIN_UNIFORM_DIST_KEY
     ]
     synoptic_times_only = option_dict[SYNOPTIC_TIMES_ONLY_KEY]
     a_deck_file_name = option_dict[A_DECK_FILE_KEY]
@@ -2993,6 +3025,7 @@ def data_generator(option_dict, for_plotting=False):
             num_translations_per_example=data_aug_num_translations,
             mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
             stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
+            use_uniform_dist=data_aug_uniform_dist_flag,
             sentinel_value=SENTINEL_VALUE
         )
         vector_predictor_matrix = translation_dict[
@@ -3033,6 +3066,7 @@ def data_generator(option_dict, for_plotting=False):
                 num_translations_per_example=1,
                 mean_translation_low_res_px=data_aug_within_mean_trans_px,
                 stdev_translation_low_res_px=data_aug_within_stdev_trans_px,
+                use_uniform_dist=data_aug_within_uniform_dist_flag,
                 sentinel_value=SENTINEL_VALUE
             )
             vector_predictor_matrix[..., j, :] = translation_dict[
@@ -3369,9 +3403,13 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     data_aug_stdev_translation_low_res_px = option_dict[
         DATA_AUG_STDEV_TRANS_KEY
     ]
+    data_aug_uniform_dist_flag = option_dict[DATA_AUG_UNIFORM_DIST_KEY]
     data_aug_within_mean_trans_px = option_dict[DATA_AUG_WITHIN_MEAN_TRANS_KEY]
     data_aug_within_stdev_trans_px = option_dict[
         DATA_AUG_WITHIN_STDEV_TRANS_KEY
+    ]
+    data_aug_within_uniform_dist_flag = option_dict[
+        DATA_AUG_WITHIN_UNIFORM_DIST_KEY
     ]
     semantic_segmentation_flag = option_dict[SEMANTIC_SEG_FLAG_KEY]
     target_smoother_stdev_km = option_dict[TARGET_SMOOOTHER_STDEV_KEY]
@@ -3528,6 +3566,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         num_translations_per_example=data_aug_num_translations,
         mean_translation_low_res_px=data_aug_mean_translation_low_res_px,
         stdev_translation_low_res_px=data_aug_stdev_translation_low_res_px,
+        use_uniform_dist=data_aug_uniform_dist_flag,
         sentinel_value=SENTINEL_VALUE
     )
     vector_predictor_matrix = translation_dict[
@@ -3568,6 +3607,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
             num_translations_per_example=1,
             mean_translation_low_res_px=data_aug_within_mean_trans_px,
             stdev_translation_low_res_px=data_aug_within_stdev_trans_px,
+            use_uniform_dist=data_aug_within_uniform_dist_flag,
             sentinel_value=SENTINEL_VALUE
         )
         vector_predictor_matrix[..., j, :] = translation_dict[
@@ -3780,9 +3820,13 @@ def create_data_specific_trans(
     #     0
     # )
 
-    option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = 5
-    option_dict[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = 10.
-    option_dict[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = 10.
+    option_dict[DATA_AUG_NUM_TRANS_KEY] = 5
+    option_dict[DATA_AUG_MEAN_TRANS_KEY] = 10.
+    option_dict[DATA_AUG_STDEV_TRANS_KEY] = 10.
+    option_dict[DATA_AUG_UNIFORM_DIST_KEY] = False
+    option_dict[DATA_AUG_WITHIN_MEAN_TRANS_KEY] = 10.
+    option_dict[DATA_AUG_WITHIN_STDEV_TRANS_KEY] = 10.
+    option_dict[DATA_AUG_WITHIN_UNIFORM_DIST_KEY] = False
     option_dict[VERIF_PLOT_DIRECTORY_KEY] = None
     option_dict = _check_generator_args(option_dict)
 

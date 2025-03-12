@@ -35,8 +35,10 @@ SHORT_TRACK_DIFF_CENTERS_ARG_NAME = 'short_track_center_each_lag_diffly'
 NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
 MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
 STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
+DATA_AUG_UNIFORM_DIST_ARG_NAME = 'data_aug_uniform_dist_flag'
 MEAN_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_mean_trans_px'
 STDEV_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_stdev_trans_px'
+DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME = 'data_aug_within_uniform_dist_flag'
 RANDOM_SEED_ARG_NAME = 'random_seed'
 REMOVE_TROPICAL_SYSTEMS_ARG_NAME = 'remove_tropical_systems'
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
@@ -102,6 +104,15 @@ STDEV_TRANSLATION_DIST_HELP_STRING = (
     'pixels, or low-res pixels).  To use the same setting as during training, '
     'leave this argument alone.'
 )
+DATA_AUG_UNIFORM_DIST_HELP_STRING = (
+    'Boolean flag.  If 1, whole-track translation distances will actually be '
+    'drawn from a uniform distribution, with min of 0 pixels and max of '
+    '{0:s} + 3 * {1:s}.  If 0, whole-track translation distances will actually '
+    'be drawn from Gaussian.  To use the same setting as during training, '
+    'leave this argument alone.'
+).format(
+    MEAN_TRANSLATION_DIST_ARG_NAME, STDEV_TRANSLATION_DIST_ARG_NAME
+)
 MEAN_TRANS_DIST_WITHIN_HELP_STRING = (
     'Mean within-track translation distance (units of IR pixels, or low-res '
     'pixels).  To use the same setting as during training, leave this argument '
@@ -111,6 +122,15 @@ STDEV_TRANS_DIST_WITHIN_HELP_STRING = (
     'Standard deviation of within-track translation distance (units of IR '
     'pixels, or low-res pixels).  To use the same setting as during training, '
     'leave this argument alone.'
+)
+DATA_AUG_WITHIN_UNIFORM_DIST_HELP_STRING = (
+    'Boolean flag.  If 1, within-track translation distances will actually be '
+    'drawn from a uniform distribution, with min of 0 pixels and max of '
+    '{0:s} + 3 * {1:s}.  If 0, within-track translation distances will '
+    'actually be drawn from Gaussian.  To use the same setting as during '
+    'training, leave this argument alone.'
+).format(
+    MEAN_TRANS_DIST_WITHIN_ARG_NAME, STDEV_TRANS_DIST_WITHIN_ARG_NAME
 )
 RANDOM_SEED_HELP_STRING = (
     'Random seed.  This will determine, among other things, the exact '
@@ -193,12 +213,20 @@ INPUT_ARG_PARSER.add_argument(
     default=-1., help=STDEV_TRANSLATION_DIST_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + DATA_AUG_UNIFORM_DIST_ARG_NAME, type=int, required=False,
+    default=-1, help=DATA_AUG_UNIFORM_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + MEAN_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=False,
     default=-1., help=MEAN_TRANS_DIST_WITHIN_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + STDEV_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=False,
     default=-1., help=STDEV_TRANS_DIST_WITHIN_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME, type=int, required=False,
+    default=-1, help=DATA_AUG_WITHIN_UNIFORM_DIST_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + RANDOM_SEED_ARG_NAME, type=int, required=False, default=-1,
@@ -231,8 +259,9 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
          short_track_dir_name, short_track_max_lead_minutes,
          short_track_center_each_lag_diffly, data_aug_num_translations,
          data_aug_mean_translation_low_res_px,
-         data_aug_stdev_translation_low_res_px,
+         data_aug_stdev_translation_low_res_px, data_aug_uniform_dist_flag,
          data_aug_within_mean_trans_px, data_aug_within_stdev_trans_px,
+         data_aug_within_uniform_dist_flag,
          random_seed, remove_tropical_systems, synoptic_times_only,
          disable_gpus, output_dir_name, output_file_name):
     """Applies trained neural net -- inference time!
@@ -250,8 +279,10 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param data_aug_num_translations: Same.
     :param data_aug_mean_translation_low_res_px: Same.
     :param data_aug_stdev_translation_low_res_px: Same.
+    :param data_aug_uniform_dist_flag: Same.
     :param data_aug_within_mean_trans_px: Same.
     :param data_aug_within_stdev_trans_px: Same.
+    :param data_aug_within_uniform_dist_flag: Same.
     :param random_seed: Same.
     :param remove_tropical_systems: Same.
     :param synoptic_times_only: Same.
@@ -295,6 +326,18 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     if data_aug_within_stdev_trans_px < 0:
         data_aug_within_stdev_trans_px = None
 
+    if data_aug_uniform_dist_flag < 0:
+        data_aug_uniform_dist_flag = None
+    else:
+        data_aug_uniform_dist_flag = bool(data_aug_uniform_dist_flag)
+
+    if data_aug_within_uniform_dist_flag < 0:
+        data_aug_within_uniform_dist_flag = None
+    else:
+        data_aug_within_uniform_dist_flag = bool(
+            data_aug_within_uniform_dist_flag
+        )
+
     error_checking.assert_is_geq(data_aug_num_translations, 1)
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
@@ -337,6 +380,14 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     if data_aug_within_stdev_trans_px is not None:
         vod[nn_training_simple.DATA_AUG_WITHIN_STDEV_TRANS_KEY] = (
             data_aug_within_stdev_trans_px
+        )
+    if data_aug_uniform_dist_flag is not None:
+        vod[nn_training_simple.DATA_AUG_UNIFORM_DIST_KEY] = (
+            data_aug_uniform_dist_flag
+        )
+    if data_aug_within_uniform_dist_flag is not None:
+        vod[nn_training_simple.DATA_AUG_WITHIN_UNIFORM_DIST_KEY] = (
+            data_aug_within_uniform_dist_flag
         )
 
     if remove_tropical_systems:
@@ -453,11 +504,17 @@ if __name__ == '__main__':
         data_aug_stdev_translation_low_res_px=getattr(
             INPUT_ARG_OBJECT, STDEV_TRANSLATION_DIST_ARG_NAME
         ),
+        data_aug_uniform_dist_flag=getattr(
+            INPUT_ARG_OBJECT, DATA_AUG_UNIFORM_DIST_ARG_NAME
+        ),
         data_aug_within_mean_trans_px=getattr(
             INPUT_ARG_OBJECT, MEAN_TRANS_DIST_WITHIN_ARG_NAME
         ),
         data_aug_within_stdev_trans_px=getattr(
             INPUT_ARG_OBJECT, STDEV_TRANS_DIST_WITHIN_ARG_NAME
+        ),
+        data_aug_within_uniform_dist_flag=getattr(
+            INPUT_ARG_OBJECT, DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME
         ),
         random_seed=getattr(INPUT_ARG_OBJECT, RANDOM_SEED_ARG_NAME),
         remove_tropical_systems=bool(

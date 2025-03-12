@@ -114,7 +114,8 @@ def _translate_images(image_matrix, row_translation_px, column_translation_px,
 
 
 def get_translation_distances(
-        mean_translation_px, stdev_translation_px, num_translations):
+        mean_translation_px, stdev_translation_px, num_translations,
+        use_uniform_dist=False):
     """Samples translation distances from normal distribution.
 
     T = number of translations
@@ -123,6 +124,10 @@ def get_translation_distances(
     :param stdev_translation_px: Standard deviation of translation distance
         (pixels).
     :param num_translations: T in the above discussion.
+    :param use_uniform_dist: Boolean flag.  If True, translation distances will
+        actually be drawn from a uniform (not Gaussian) distribution, with
+        minimum of 0 pixels and maximum of
+        mean_translation_px + 3 * stdev_translation_px.
     :return: row_translations_px: length-T numpy array of translation distances
         (pixels).
     :return: column_translations_px: Same but for columns.
@@ -132,11 +137,19 @@ def get_translation_distances(
     error_checking.assert_is_greater(stdev_translation_px, 0.)
     error_checking.assert_is_integer(num_translations)
     error_checking.assert_is_greater(num_translations, 0)
+    error_checking.assert_is_boolean(use_uniform_dist)
 
-    euclidean_translations_low_res_px = numpy.random.normal(
-        loc=mean_translation_px, scale=stdev_translation_px,
-        size=num_translations
-    )
+    if use_uniform_dist:
+        euclidean_translations_low_res_px = numpy.random.uniform(
+            low=0, high=mean_translation_px + 3 * stdev_translation_px,
+            size=num_translations
+        )
+    else:
+        euclidean_translations_low_res_px = numpy.random.normal(
+            loc=mean_translation_px, scale=stdev_translation_px,
+            size=num_translations
+        )
+
     euclidean_translations_low_res_px = numpy.maximum(
         euclidean_translations_low_res_px, 0.
     )
@@ -195,7 +208,7 @@ def get_translation_distances(
 def augment_data(
         bidirectional_reflectance_matrix, brightness_temp_matrix_kelvins,
         num_translations_per_example, mean_translation_low_res_px,
-        stdev_translation_low_res_px, sentinel_value):
+        stdev_translation_low_res_px, sentinel_value, use_uniform_dist=False):
     """Augments data via translation.
 
     E = number of examples
@@ -218,6 +231,11 @@ def augment_data(
     :param stdev_translation_low_res_px: Standard deviation of translation
         distance (in units of low-resolution pixels).
     :param sentinel_value: Sentinel value (used for padded pixels around edge).
+    :param use_uniform_dist: Boolean flag.  If True, translation distances will
+        actually be drawn from a uniform (not Gaussian) distribution, with
+        minimum of 0 pixels and maximum of
+        mean_translation_low_res_px + 3 * stdev_translation_low_res_px.
+
     :return: translation_dict: Dictionary with the following keys.
     translation_dict["bidirectional_reflectance_matrix"]:
         ET-by-M-by-N-by-L-by-W numpy array of reflectance values (unitless).
@@ -271,7 +289,8 @@ def augment_data(
         get_translation_distances(
             mean_translation_px=mean_translation_low_res_px,
             stdev_translation_px=stdev_translation_low_res_px,
-            num_translations=num_examples_new
+            num_translations=num_examples_new,
+            use_uniform_dist=use_uniform_dist
         )
     )
 
