@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import numpy
+import tensorflow
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -13,6 +14,11 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import neural_net_utils as nn_utils
 import neural_net_training_simple as nn_training
 import training_args_simple as training_args
+
+tensorflow.keras.mixed_precision.set_global_policy('mixed_float16')
+print('Precision policy = {0:s}'.format(
+    str(tensorflow.keras.mixed_precision.global_policy())
+))
 
 NONE_STRINGS = ['', 'none', 'None']
 

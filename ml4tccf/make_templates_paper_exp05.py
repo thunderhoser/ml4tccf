@@ -5,6 +5,7 @@ import sys
 import copy
 import numpy
 import keras
+import tensorflow
 
 THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
     os.path.join(os.getcwd(), os.path.expanduser(__file__))
@@ -23,7 +24,15 @@ OUTPUT_DIR_NAME = (
 )
 
 ENSEMBLE_SIZE = 50
-OPTIMIZER_STRING = 'keras.optimizers.AdamW(gradient_accumulation_steps=5)'
+
+OPTIMIZER_FUNCTION = tensorflow.keras.mixed_precision.LossScaleOptimizer(
+    keras.optimizers.AdamW()
+)
+OPTIMIZER_STRING = (
+    'tensorflow.keras.mixed_precision.LossScaleOptimizer('
+    'keras.optimizers.AdamW()'
+    ')'
+)
 LOSS_FUNCTION_STRING = 'custom_losses_scalar.coord_avg_crps_kilometres'
 
 DEFAULT_OPTION_DICT = {
@@ -52,8 +61,7 @@ DEFAULT_OPTION_DICT = {
     tcnn_architecture.ENSEMBLE_SIZE_KEY: ENSEMBLE_SIZE,
     tcnn_architecture.LOSS_FUNCTION_KEY:
         custom_losses_scalar.coord_avg_crps_kilometres,
-    tcnn_architecture.OPTIMIZER_FUNCTION_KEY:
-        keras.optimizers.AdamW(gradient_accumulation_steps=5)
+    tcnn_architecture.OPTIMIZER_FUNCTION_KEY: OPTIMIZER_FUNCTION
 }
 
 MAIN_POOLING_FACTOR = 2
