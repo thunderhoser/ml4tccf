@@ -6,6 +6,7 @@ import pickle
 import numpy
 import keras
 import keras.layers as layers
+import tensorflow
 from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import file_system_utils
