@@ -25,14 +25,8 @@ OUTPUT_DIR_NAME = (
 
 ENSEMBLE_SIZE = 50
 
-OPTIMIZER_FUNCTION = tensorflow.keras.mixed_precision.LossScaleOptimizer(
-    keras.optimizers.AdamW()
-)
-OPTIMIZER_STRING = (
-    'tensorflow.keras.mixed_precision.LossScaleOptimizer('
-    'keras.optimizers.AdamW()'
-    ')'
-)
+OPTIMIZER_FUNCTION = keras.optimizers.AdamW()
+OPTIMIZER_STRING = 'keras.optimizers.AdamW()'
 LOSS_FUNCTION_STRING = 'custom_losses_scalar.coord_avg_crps_kilometres'
 
 DEFAULT_OPTION_DICT = {
