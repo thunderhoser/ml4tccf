@@ -68,8 +68,8 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --output_model_dir_name="${output_dir_name}" \
 --lag_times_minutes ${lag_time_string_minutes} \
 --low_res_wavelengths_microns 8.500 9.610 12.300 \
---num_examples_per_batch=4 \
---max_examples_per_cyclone=2 \
+--num_examples_per_batch=20 \
+--max_examples_per_cyclone=1 \
 --num_rows_low_res=${num_grid_rows} \
 --num_columns_low_res=${num_grid_rows} \
 --input_short_track_dir_name="" \
@@ -91,8 +91,8 @@ python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --satellite_dir_name_for_validation="${VALIDATION_DIR_NAME}" \
 --validation_years 2016 2017 2018 2019 2020 2021 2022 \
 --num_epochs=1000 \
---num_training_batches_per_epoch=180 \
---num_validation_batches_per_epoch=60 \
+--num_training_batches_per_epoch=36 \
+--num_validation_batches_per_epoch=12 \
 --plateau_patience_epochs=10 \
 --plateau_learning_rate_multiplier=0.95 \
 --early_stopping_patience_epochs=500
