@@ -2078,7 +2078,7 @@ def data_generator_shuffled(option_dict):
             num_lag_times=len(lag_times_minutes)
         )
 
-        for j in range(len(lag_times_minutes)):
+        for j in range(len(lag_times_minutes) - 1):
             print('Augmenting data at lag time {0:d} minutes...'.format(
                 lag_times_minutes[j]
             ))
@@ -2096,21 +2096,6 @@ def data_generator_shuffled(option_dict):
             vector_predictor_matrix[..., j, :] = translation_dict[
                 data_augmentation.BRIGHTNESS_TEMPS_KEY
             ]
-
-            if j != len(lag_times_minutes) - 1:
-                del translation_dict
-                break
-
-            new_row_trans_px = translation_dict[
-                data_augmentation.ROW_TRANSLATIONS_KEY
-            ]
-            new_column_trans_px = translation_dict[
-                data_augmentation.COLUMN_TRANSLATIONS_KEY
-            ]
-            del translation_dict
-
-            row_translations_low_res_px += new_row_trans_px
-            column_translations_low_res_px += new_column_trans_px
 
         vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
             vector_predictor_matrix
@@ -3054,7 +3039,7 @@ def data_generator(option_dict, for_plotting=False):
             num_lag_times=len(lag_times_minutes)
         )
 
-        for j in range(len(lag_times_minutes)):
+        for j in range(len(lag_times_minutes) - 1):
             print('Augmenting data at lag time {0:d} minutes...'.format(
                 lag_times_minutes[j]
             ))
@@ -3072,21 +3057,6 @@ def data_generator(option_dict, for_plotting=False):
             vector_predictor_matrix[..., j, :] = translation_dict[
                 data_augmentation.BRIGHTNESS_TEMPS_KEY
             ]
-
-            if j != len(lag_times_minutes) - 1:
-                del translation_dict
-                break
-
-            new_row_trans_px = translation_dict[
-                data_augmentation.ROW_TRANSLATIONS_KEY
-            ]
-            new_column_trans_px = translation_dict[
-                data_augmentation.COLUMN_TRANSLATIONS_KEY
-            ]
-            del translation_dict
-
-            row_translations_low_res_px += new_row_trans_px
-            column_translations_low_res_px += new_column_trans_px
 
         vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
             vector_predictor_matrix
@@ -3595,7 +3565,7 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         num_lag_times=len(lag_times_minutes)
     )
 
-    for j in range(len(lag_times_minutes)):
+    for j in range(len(lag_times_minutes) - 1):
         print('Augmenting data at lag time {0:d} minutes...'.format(
             lag_times_minutes[j]
         ))
@@ -3613,21 +3583,6 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         vector_predictor_matrix[..., j, :] = translation_dict[
             data_augmentation.BRIGHTNESS_TEMPS_KEY
         ]
-
-        if j != len(lag_times_minutes) - 1:
-            del translation_dict
-            break
-
-        new_row_trans_px = translation_dict[
-            data_augmentation.ROW_TRANSLATIONS_KEY
-        ]
-        new_column_trans_px = translation_dict[
-            data_augmentation.COLUMN_TRANSLATIONS_KEY
-        ]
-        del translation_dict
-
-        row_translations_low_res_px += new_row_trans_px
-        column_translations_low_res_px += new_column_trans_px
 
     vector_predictor_matrix = nn_utils.combine_lag_times_and_wavelengths(
         vector_predictor_matrix
