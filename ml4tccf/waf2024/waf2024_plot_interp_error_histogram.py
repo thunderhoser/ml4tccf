@@ -111,7 +111,7 @@ def _run(error_file_name, figure_file_name):
 
     axes_object.set_xlabel('Euclidean error (km)')
     axes_object.set_ylabel('Frequency')
-    axes_object.set_title('Best-track interpolation errors')
+    axes_object.set_title('FBT interpolation errors')
 
     print('Saving figure to file: "{0:s}"...'.format(figure_file_name))
     figure_object.savefig(

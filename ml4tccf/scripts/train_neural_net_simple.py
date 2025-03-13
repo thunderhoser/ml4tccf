@@ -3,9 +3,15 @@
 import os
 import argparse
 import numpy
+import tensorflow
 from ml4tccf.machine_learning import neural_net_utils as nn_utils
 from ml4tccf.machine_learning import neural_net_training_simple as nn_training
 from ml4tccf.scripts import training_args_simple as training_args
+
+tensorflow.keras.mixed_precision.set_global_policy('mixed_float16')
+print('Precision policy = {0:s}'.format(
+    str(tensorflow.keras.mixed_precision.global_policy())
+))
 
 NONE_STRINGS = ['', 'none', 'None']
 

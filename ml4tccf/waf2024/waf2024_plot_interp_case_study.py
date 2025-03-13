@@ -336,10 +336,10 @@ def _run(satellite_dir_name, cyclone_id_string,
         legend_strings.append('Interp center using all\nanchor points')
     if synoptic_legend_handle is not None:
         legend_handles.append(synoptic_legend_handle)
-        legend_strings.append('Synoptic BT center')
+        legend_strings.append('Synoptic FBT center')
     if correct_legend_handle is not None:
         legend_handles.append(correct_legend_handle)
-        legend_strings.append('Special BT center')
+        legend_strings.append('Special FBT center')
     if interp_legend_handle is not None:
         legend_handles.append(interp_legend_handle)
         legend_strings.append('Interp center using only\nsynoptic anchor points')
@@ -370,7 +370,7 @@ def _run(satellite_dir_name, cyclone_id_string,
         facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
     )
 
-    title_string = 'Case study for best-track interpolation: {0:s}'.format(
+    title_string = 'Case study for FBT interpolation: {0:s}'.format(
         cyclone_id_string
     )
     axes_object.set_title(title_string)
