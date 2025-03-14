@@ -36,6 +36,6 @@ python3 -u "${CODE_DIR_NAME}/simplify_satellite_files.py" \
 --input_dir_name="${INPUT_DIR_NAME}" \
 --cyclone_id_string="${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
 --wavelengths_to_keep_microns 3.9 6.185 6.95 7.34 8.5 9.61 10.35 11.2 12.3 13.3 \
---num_grid_rows_to_keep=900\
+--num_grid_rows_to_keep=900 \
 --num_grid_columns_to_keep=900 \
 --output_dir_name="${OUTPUT_DIR_NAME}"
