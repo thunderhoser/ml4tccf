@@ -111,17 +111,12 @@ def _write_scalar_predictions_1category(prediction_table_1cat_xarray,
         category.
     """
 
-    try:
-        all_cyclone_id_strings = numpy.array([
-            s.decode('utf-8') for s in
-            prediction_table_1cat_xarray[
-                scalar_prediction_utils.CYCLONE_ID_KEY
-            ].values
-        ])
-    except:
-        all_cyclone_id_strings = prediction_table_1cat_xarray[
+    all_cyclone_id_strings = numpy.array([
+        s.decode('utf-8') for s in
+        prediction_table_1cat_xarray[
             scalar_prediction_utils.CYCLONE_ID_KEY
         ].values
+    ])
 
     print('Number of examples for output directory "{0:s}" = {1:d}'.format(
         output_dir_name_1cat, len(all_cyclone_id_strings)
@@ -170,8 +165,12 @@ def _write_scalar_predictions_1category(prediction_table_1cat_xarray,
             pt1cyc[scalar_prediction_utils.TARGET_TIME_KEY].values,
             model_file_name=
             pt1cyc.attrs[scalar_prediction_utils.MODEL_FILE_KEY],
-            isotonic_model_file_name=
-            pt1cyc.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY]
+            isotonic_model_file_name=pt1cyc.attrs[
+                scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY
+            ],
+            uncertainty_calib_model_file_name=pt1cyc.attrs[
+                scalar_prediction_utils.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+            ]
         )
 
 
@@ -371,16 +370,11 @@ def _run(input_prediction_file_pattern, xbt_file_name,
             ))
 
         this_cyclone_id_string = (
-            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i]
+            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i].decode('utf-8')
         )
         this_time_unix_sec = (
             pt[scalar_prediction_utils.TARGET_TIME_KEY].values[i]
         )
-
-        try:
-            this_cyclone_id_string = this_cyclone_id_string.decode('utf-8')
-        except:
-            pass
 
         these_indices = numpy.where(numpy.logical_and(
             xbt_cyclone_id_strings == this_cyclone_id_string,

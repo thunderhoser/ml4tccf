@@ -1,4 +1,4 @@
-"""Isotonic regression with scalar target variables."""
+"""Uncertainty calibration with scalar target variables."""
 
 import os
 import sys
@@ -15,11 +15,11 @@ import file_system_utils
 import error_checking
 import scalar_prediction_utils as prediction_utils
 
-# TODO(thunderhoser): Might want to try bivariate IR, if that's even a thing.
+MAX_STDEV_INFLATION_FACTOR = 1000.
 
 
 def train_models(prediction_table_xarray):
-    """Trains isotonic-regression models.
+    """Trains uncertainty-calibration models.
 
     :param prediction_table_xarray: xarray table in format returned by
         `prediction_io.read_file`.
@@ -31,11 +31,20 @@ def train_models(prediction_table_xarray):
     pt = prediction_table_xarray
     grid_spacings_metres = pt[prediction_utils.GRID_SPACING_KEY].values
 
-    predicted_x_offsets_metres = grid_spacings_metres * numpy.mean(
-        pt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values, axis=-1
+    predicted_x_offset_matrix_metres = (
+        numpy.expand_dims(grid_spacings_metres, axis=-1) *
+        pt[prediction_utils.PREDICTED_COLUMN_OFFSET_KEY].values
     )
-    predicted_y_offsets_metres = grid_spacings_metres * numpy.mean(
-        pt[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values, axis=-1
+    predicted_y_offset_matrix_metres = (
+        numpy.expand_dims(grid_spacings_metres, axis=-1) *
+        pt[prediction_utils.PREDICTED_ROW_OFFSET_KEY].values
+    )
+
+    x_variances_metres2 = numpy.var(
+        predicted_x_offset_matrix_metres, axis=-1, ddof=1
+    )
+    y_variances_metres2 = numpy.var(
+        predicted_y_offset_matrix_metres, axis=-1, ddof=1
     )
 
     actual_x_offsets_metres = (
@@ -46,18 +55,27 @@ def train_models(prediction_table_xarray):
         grid_spacings_metres * pt[prediction_utils.ACTUAL_ROW_OFFSET_KEY].values
     )
 
+    x_squared_errors_metres2 = (
+        actual_x_offsets_metres -
+        numpy.mean(predicted_x_offset_matrix_metres, axis=-1)
+    ) ** 2
+    y_squared_errors_metres2 = (
+        actual_y_offsets_metres -
+        numpy.mean(predicted_y_offset_matrix_metres, axis=-1)
+    ) ** 2
+
     x_coord_model_object = IsotonicRegression(
         increasing=True, out_of_bounds='clip'
     )
     x_coord_model_object.fit(
-        X=predicted_x_offsets_metres, y=actual_x_offsets_metres
+        X=x_variances_metres2, y=x_squared_errors_metres2
     )
 
     y_coord_model_object = IsotonicRegression(
         increasing=True, out_of_bounds='clip'
     )
     y_coord_model_object.fit(
-        X=predicted_y_offsets_metres, y=actual_y_offsets_metres
+        X=y_variances_metres2, y=y_squared_errors_metres2
     )
 
     return x_coord_model_object, y_coord_model_object
@@ -65,7 +83,7 @@ def train_models(prediction_table_xarray):
 
 def apply_models(prediction_table_xarray, x_coord_model_object,
                  y_coord_model_object):
-    """Applies isotonic-regression models.
+    """Applies uncertainty-calibration models.
 
     :param prediction_table_xarray: See doc for `train_models`.
     :param x_coord_model_object: Same.
@@ -95,22 +113,51 @@ def apply_models(prediction_table_xarray, x_coord_model_object,
         predicted_y_offset_matrix_metres, axis=-1
     )
 
-    x_adjustments_metres = (
-        x_coord_model_object.predict(mean_predicted_x_offsets_metres) -
-        mean_predicted_x_offsets_metres
+    stdev_predicted_x_offsets_metres = numpy.std(
+        predicted_x_offset_matrix_metres, ddof=1, axis=-1
     )
-    y_adjustments_metres = (
-        y_coord_model_object.predict(mean_predicted_y_offsets_metres) -
-        mean_predicted_y_offsets_metres
+    stdev_predicted_y_offsets_metres = numpy.std(
+        predicted_y_offset_matrix_metres, ddof=1, axis=-1
     )
 
-    predicted_x_offset_matrix_metres = (
-        predicted_x_offset_matrix_metres +
-        numpy.expand_dims(x_adjustments_metres, axis=-1)
+    x_model = x_coord_model_object
+    y_model = y_coord_model_object
+
+    x_stdev_inflation_factors = (
+        numpy.sqrt(x_model.predict(stdev_predicted_x_offsets_metres ** 2)) /
+        stdev_predicted_x_offsets_metres
     )
+    y_stdev_inflation_factors = (
+        numpy.sqrt(y_model.predict(stdev_predicted_y_offsets_metres ** 2)) /
+        stdev_predicted_y_offsets_metres
+    )
+
+    x_stdev_inflation_factors[
+        numpy.isfinite(x_stdev_inflation_factors) == False
+    ] = 1.
+    y_stdev_inflation_factors[
+        numpy.isfinite(y_stdev_inflation_factors) == False
+    ] = 1.
+
+    x_stdev_inflation_factors = numpy.minimum(
+        x_stdev_inflation_factors, MAX_STDEV_INFLATION_FACTOR
+    )
+    y_stdev_inflation_factors = numpy.minimum(
+        y_stdev_inflation_factors, MAX_STDEV_INFLATION_FACTOR
+    )
+
+    these_means = numpy.expand_dims(mean_predicted_x_offsets_metres, axis=-1)
+    these_inflations = numpy.expand_dims(x_stdev_inflation_factors, axis=-1)
+    predicted_x_offset_matrix_metres = (
+        these_means +
+        these_inflations * (predicted_x_offset_matrix_metres - these_means)
+    )
+
+    these_means = numpy.expand_dims(mean_predicted_y_offsets_metres, axis=-1)
+    these_inflations = numpy.expand_dims(y_stdev_inflation_factors, axis=-1)
     predicted_y_offset_matrix_metres = (
-        predicted_y_offset_matrix_metres +
-        numpy.expand_dims(y_adjustments_metres, axis=-1)
+        these_means +
+        these_inflations * (predicted_y_offset_matrix_metres - these_means)
     )
 
     pt = pt.assign({
@@ -129,7 +176,7 @@ def apply_models(prediction_table_xarray, x_coord_model_object,
 
 
 def find_file(model_dir_name, raise_error_if_missing=True):
-    """Finds Dill file with set of isotonic-regression models.
+    """Finds Dill file with set of uncertainty-calibration models.
 
     :param model_dir_name: Name of directory.
     :param raise_error_if_missing: Boolean flag.  If file is missing and
@@ -141,7 +188,7 @@ def find_file(model_dir_name, raise_error_if_missing=True):
     error_checking.assert_is_string(model_dir_name)
     error_checking.assert_is_boolean(raise_error_if_missing)
 
-    dill_file_name = '{0:s}/isotonic_regression.dill'.format(model_dir_name)
+    dill_file_name = '{0:s}/uncertainty_calibration.dill'.format(model_dir_name)
 
     if raise_error_if_missing and not os.path.isfile(dill_file_name):
         error_string = 'Cannot find file.  Expected at: "{0:s}"'.format(
@@ -153,7 +200,7 @@ def find_file(model_dir_name, raise_error_if_missing=True):
 
 
 def write_file(dill_file_name, x_coord_model_object, y_coord_model_object):
-    """Writes set of isotonic-regression models to Dill file.
+    """Writes set of uncertainty-calibration models to Dill file.
 
     :param dill_file_name: Path to output file.
     :param x_coord_model_object: See doc for `train_models`.
@@ -169,7 +216,7 @@ def write_file(dill_file_name, x_coord_model_object, y_coord_model_object):
 
 
 def read_file(dill_file_name):
-    """Reads set of isotonic-regression models from Dill file.
+    """Reads set of uncertainty-calibration models from Dill file.
 
     :param dill_file_name: Path to input file.
     :return: x_coord_model_object: See doc for `train_models`.

@@ -15,6 +15,7 @@ import error_checking
 
 MODEL_FILE_KEY = 'model_file_name'
 ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
+UNCERTAINTY_CALIB_MODEL_FILE_KEY = 'uncertainty_calib_model_file_name'
 
 EXAMPLE_DIM_KEY = 'example'
 ENSEMBLE_MEMBER_DIM_KEY = 'ensemble_member'
@@ -107,6 +108,21 @@ def concat_over_examples(prediction_tables_xarray):
             'Cannot concatenate predictions bias-corrected with different '
             'isotonic-regression models.  In this case, predictions come from '
             'the following unique models:\n{0:s}'
+        ).format(str(unique_model_file_names))
+
+        raise ValueError(error_string)
+
+    model_file_names = [
+        t.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY]
+        for t in prediction_tables_xarray
+    ]
+    unique_model_file_names = list(set(model_file_names))
+
+    if len(unique_model_file_names) > 1:
+        error_string = (
+            'Cannot concatenate predictions post-processed with different '
+            'uncertainty-calibration models.  In this case, predictions come '
+            'from the following unique models:\n{0:s}'
         ).format(str(unique_model_file_names))
 
         raise ValueError(error_string)

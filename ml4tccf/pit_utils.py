@@ -49,6 +49,7 @@ BIN_EDGE_DIM = 'bin_edge'
 
 MODEL_FILE_KEY = 'model_file_name'
 ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
+UNCERTAINTY_CALIB_MODEL_FILE_KEY = 'uncertainty_calib_model_file_name'
 PREDICTION_FILES_KEY = 'prediction_file_names'
 
 PIT_DEVIATION_KEY = 'pit_deviation'
@@ -364,6 +365,11 @@ def get_results_all_vars(prediction_file_names, num_bins):
     result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = (
         prediction_table_xarray.attrs[prediction_utils.ISOTONIC_MODEL_FILE_KEY]
     )
+    result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] = (
+        prediction_table_xarray.attrs[
+            prediction_utils.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+        ]
+    )
     result_table_xarray.attrs[PREDICTION_FILES_KEY] = ' '.join([
         '{0:s}'.format(f) for f in prediction_file_names
     ])
@@ -452,6 +458,8 @@ def write_results(result_table_xarray, netcdf_file_name):
 
     if result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] is None:
         result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = ''
+    if result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] is None:
+        result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] = ''
 
     result_table_xarray.to_netcdf(
         path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'
@@ -472,5 +480,10 @@ def read_results(netcdf_file_name):
         result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = None
     if result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] == '':
         result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = None
+
+    if UNCERTAINTY_CALIB_MODEL_FILE_KEY not in result_table_xarray.attrs:
+        result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] = None
+    if result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] == '':
+        result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] = None
 
     return result_table_xarray
