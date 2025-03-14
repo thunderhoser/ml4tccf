@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#SBATCH --job-name="train_isotonic_regression"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=08:00:00
+#SBATCH --array=0-47
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=train_isotonic_regression_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/no_within_track_translation"
+
+GRID_ROW_COUNTS=("300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600")
+UNIFORM_DIST_FLAGS=("0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1")
+LAG_TIME_COUNTS=("01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11")
+
+num_grid_rows=${GRID_ROW_COUNTS[$SLURM_ARRAY_TASK_ID]}
+use_uniform_dist=${UNIFORM_DIST_FLAGS[$SLURM_ARRAY_TASK_ID]}
+num_lag_times=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_use-uniform-dist=${use_uniform_dist}_num-lag-times=${num_lag_times}"
+echo $model_dir_name
+
+python3 -u "${CODE_DIR_NAME}/train_scalar_iso_regression.py" \
+--input_prediction_file_pattern="${model_dir_name}/training_gaussian_dist/predictions*nc" \
+--output_model_dir_name="${model_dir_name}/isotonic_regression_gaussian_dist"
