@@ -25,9 +25,9 @@ SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 
 METRES_TO_KM = 0.001
 
-LAG_TIME_COUNTS_AXIS1 = numpy.array([1, 3, 5, 7, 9, 11], dtype=int)
+LAG_TIME_COUNTS_AXIS1 = numpy.array([1, 2, 3, 4, 5, 6, 7], dtype=int)
 GRID_ROW_COUNTS_AXIS2 = numpy.array([300, 400, 500, 600], dtype=int)
-UNIFORM_DIST_FLAGS_AXIS3 = numpy.array([0, 1], dtype=bool)
+MAIN_POOLING_FACTORS_AXIS3 = numpy.array([2, 3], dtype=int)
 
 MEAN_DISTANCE_NAME = 'mean_distance_km'
 MEDIAN_DISTANCE_NAME = 'median_distance_km'
@@ -101,20 +101,10 @@ FIGURE_RESOLUTION_DPI = 300
 
 EXPERIMENT_DIR_ARG_NAME = 'experiment_dir_name'
 USE_ISOTONIC_ARG_NAME = 'use_isotonic_regression'
-USE_UNCERTAINTY_CALIB_ARG_NAME = 'use_uncertainty_calibration'
-EVAL_ON_UNIFORM_DIST_ARG_NAME = 'evaluate_on_uniform_dist'
 
 EXPERIMENT_DIR_HELP_STRING = 'Name of top-level directory with models.'
 USE_ISOTONIC_HELP_STRING = (
     'Boolean flag.  If 1 (0), will plot results with(out) isotonic regression.'
-)
-USE_UNCERTAINTY_CALIB_HELP_STRING = (
-    'Boolean flag.  If 1 (0), will plot results with(out) uncertainty '
-    'calibration.'
-)
-EVAL_ON_UNIFORM_DIST_HELP_STRING = (
-    'Boolean flag.  If 1 (0), models will be evaluated on first guesses taken '
-    'from uniform (Gaussian) distribution.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -125,14 +115,6 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + USE_ISOTONIC_ARG_NAME, type=int, required=True,
     help=USE_ISOTONIC_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + USE_UNCERTAINTY_CALIB_ARG_NAME, type=int, required=True,
-    help=USE_UNCERTAINTY_CALIB_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + EVAL_ON_UNIFORM_DIST_ARG_NAME, type=int, required=True,
-    help=EVAL_ON_UNIFORM_DIST_HELP_STRING
 )
 
 
@@ -236,16 +218,12 @@ def _plot_scores_2d(
     return figure_object, axes_object
 
 
-def _read_metrics_one_model(
-        model_dir_name, use_isotonic_regression, use_uncertainty_calibration,
-        evaluate_on_uniform_dist):
+def _read_metrics_one_model(model_dir_name, use_isotonic_regression):
     """Reads metrics for one model.
 
     :param model_dir_name: Name of directory with trained model and validation
         data.
     :param use_isotonic_regression: See documentation at top of file.
-    :param use_uncertainty_calibration: Same.
-    :param evaluate_on_uniform_dist: Same.
     :return: metric_dict: Dictionary, where each key is a string from the list
         `METRIC_NAMES` and each value is a scalar.
     """
@@ -254,20 +232,10 @@ def _read_metrics_one_model(
     for this_metric_name in METRIC_NAMES:
         metric_dict[this_metric_name] = numpy.nan
 
-    if use_isotonic_regression:
-        validation_dir_name = (
-            '{0:s}/isotonic_regression_{1:s}_dist/{2:s}validation'
-        ).format(
-            model_dir_name,
-            'uniform' if evaluate_on_uniform_dist else 'gaussian',
-            'uncertainty_calibration/' if use_uncertainty_calibration else ''
-        )
-    else:
-        validation_dir_name = '{0:s}/validation_{1:s}_dist'.format(
-            model_dir_name,
-            'uniform' if evaluate_on_uniform_dist else 'gaussian'
-        )
-
+    validation_dir_name = '{0:s}/{1:s}validation'.format(
+        model_dir_name,
+        'isotonic_regression/' if use_isotonic_regression else ''
+    )
     if not os.path.isdir(validation_dir_name):
         return metric_dict
 
@@ -436,7 +404,7 @@ def _print_ranking_all_metrics(metric_matrix, main_metric_name):
 
         print((
             'Video length = {0:d} ... domain size = {1:d} x {1:d} ... '
-            'uniform dist for training = {2:s} ... '
+            'main pooling factor = {2:d} ... '
             'distance-based ranks (mean, median, RMS) = '
             '{3:.1f}, {4:.1f}, {5:.1f} ... '
             'absolute-bias rank = {6:.1f} ... '
@@ -446,7 +414,7 @@ def _print_ranking_all_metrics(metric_matrix, main_metric_name):
         ).format(
             LAG_TIME_COUNTS_AXIS1[i],
             GRID_ROW_COUNTS_AXIS2[j],
-            'YES' if UNIFORM_DIST_FLAGS_AXIS3[k] else 'NO',
+            MAIN_POOLING_FACTORS_AXIS3[k],
             mrm[i, j, k, names.index(MEAN_DISTANCE_NAME)],
             mrm[i, j, k, names.index(MEDIAN_DISTANCE_NAME)],
             mrm[i, j, k, names.index(ROOT_MEAN_SQUARED_DISTANCE_NAME)],
@@ -497,34 +465,28 @@ def _print_ranking_one_metric(metric_matrix, metric_index):
         print((
             '{0:d}th-best {1:s} = {2:.3g} {3:s} ... '
             'video length = {4:d} ... domain size = {5:d} x {5:d} ... '
-            'uniform dist for training = {6:s}'
+            'main pooling factor = {6:d}'
         ).format(
             m + 1, METRIC_NAMES_FANCY[metric_index],
             metric_matrix[i, j, k, metric_index], METRIC_UNITS[metric_index],
             LAG_TIME_COUNTS_AXIS1[i],
             GRID_ROW_COUNTS_AXIS2[j],
-            'YES' if UNIFORM_DIST_FLAGS_AXIS3[k] else 'NO'
+            MAIN_POOLING_FACTORS_AXIS3[k]
         ))
 
 
-def _run(experiment_dir_name, use_isotonic_regression,
-         use_uncertainty_calibration, evaluate_on_uniform_dist):
+def _run(experiment_dir_name, use_isotonic_regression):
     """Plots hyperparameter grids for 2024 WAF paper.
 
     This is effectively the main method.
 
     :param experiment_dir_name: See documentation at top of file.
     :param use_isotonic_regression: Same.
-    :param use_uncertainty_calibration: Same.
-    :param evaluate_on_uniform_dist: Same.
     """
-
-    if use_uncertainty_calibration:
-        assert use_isotonic_regression
 
     length_axis1 = len(LAG_TIME_COUNTS_AXIS1)
     length_axis2 = len(GRID_ROW_COUNTS_AXIS2)
-    length_axis3 = len(UNIFORM_DIST_FLAGS_AXIS3)
+    length_axis3 = len(MAIN_POOLING_FACTORS_AXIS3)
     num_metrics = len(METRIC_NAMES)
 
     y_tick_labels = ['{0:d}'.format(l) for l in LAG_TIME_COUNTS_AXIS1]
@@ -542,20 +504,18 @@ def _run(experiment_dir_name, use_isotonic_regression,
         for j in range(length_axis2):
             for k in range(length_axis3):
                 this_model_dir_name = (
-                    '{0:s}/num-grid-rows={1:03d}_use-uniform-dist={2:d}_'
-                    'num-lag-times={3:02d}'
+                    '{0:s}/num-grid-rows={1:03d}_main-pooling-factor={2:d}_'
+                    'num-lag-times={3:d}'
                 ).format(
                     experiment_dir_name,
                     GRID_ROW_COUNTS_AXIS2[j],
-                    int(UNIFORM_DIST_FLAGS_AXIS3[k]),
+                    MAIN_POOLING_FACTORS_AXIS3[k],
                     LAG_TIME_COUNTS_AXIS1[i]
                 )
 
                 this_metric_dict = _read_metrics_one_model(
                     model_dir_name=this_model_dir_name,
-                    use_isotonic_regression=use_isotonic_regression,
-                    use_uncertainty_calibration=use_uncertainty_calibration,
-                    evaluate_on_uniform_dist=evaluate_on_uniform_dist
+                    use_isotonic_regression=use_isotonic_regression
                 )
                 for m in range(num_metrics):
                     metric_matrix[i, j, k, m] = this_metric_dict[
@@ -584,11 +544,9 @@ def _run(experiment_dir_name, use_isotonic_regression,
     )
     print(SEPARATOR_STRING)
 
-    output_dir_name = '{0:s}/hyperparam_grids_{1:s}_dist{2:s}{3:s}'.format(
+    output_dir_name = '{0:s}/hyperparam_grids{1:s}'.format(
         experiment_dir_name,
-        'uniform' if evaluate_on_uniform_dist else 'gaussian',
-        '/isotonic_regression' if use_isotonic_regression else '',
-        '/uncertainty_calibration' if use_uncertainty_calibration else ''
+        '/isotonic_regression' if use_isotonic_regression else ''
     )
     file_system_utils.mkdir_recursive_if_necessary(
         directory_name=output_dir_name
@@ -709,20 +667,20 @@ def _run(experiment_dir_name, use_isotonic_regression,
             axes_object.set_ylabel(y_axis_label)
 
             title_string = (
-                '{0:s} ({1:s})\ntrained with {2:s} distribution'
+                '{0:s} ({1:s})\nwith main pooling factor = {2:d}'
             ).format(
                 METRIC_NAMES_FANCY[m],
                 METRIC_UNITS[m],
-                'uniform' if UNIFORM_DIST_FLAGS_AXIS3[k] else 'Gaussian'
+                MAIN_POOLING_FACTORS_AXIS3[k]
             )
             axes_object.set_title(title_string)
 
             panel_file_names[k] = (
-                '{0:s}/{1:s}_use-uniform-dist={2:d}.jpg'
+                '{0:s}/{1:s}_main-pooling-factor={2:d}.jpg'
             ).format(
                 output_dir_name,
                 METRIC_NAMES[m].replace('_', '-'),
-                int(UNIFORM_DIST_FLAGS_AXIS3[k])
+                MAIN_POOLING_FACTORS_AXIS3[k]
             )
 
             print('Saving figure to: "{0:s}"...'.format(panel_file_names[k]))
@@ -764,11 +722,5 @@ if __name__ == '__main__':
         experiment_dir_name=getattr(INPUT_ARG_OBJECT, EXPERIMENT_DIR_ARG_NAME),
         use_isotonic_regression=bool(
             getattr(INPUT_ARG_OBJECT, USE_ISOTONIC_ARG_NAME)
-        ),
-        use_uncertainty_calibration=bool(
-            getattr(INPUT_ARG_OBJECT, USE_UNCERTAINTY_CALIB_ARG_NAME)
-        ),
-        evaluate_on_uniform_dist=bool(
-            getattr(INPUT_ARG_OBJECT, EVAL_ON_UNIFORM_DIST_ARG_NAME)
         )
     )
