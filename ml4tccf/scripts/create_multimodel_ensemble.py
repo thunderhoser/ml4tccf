@@ -11,6 +11,9 @@ from ml4tccf.utils import scalar_prediction_utils
 TOLERANCE = 1e-6
 MODEL_FILE_KEY = scalar_prediction_utils.MODEL_FILE_KEY
 ISOTONIC_MODEL_FILE_KEY = scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY
+UNCERTAINTY_CALIB_MODEL_FILE_KEY = (
+    scalar_prediction_utils.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+)
 
 INPUT_FILES_ARG_NAME = 'input_prediction_file_names'
 MAX_ENSEMBLE_SIZE_ARG_NAME = 'max_total_ensemble_size'
@@ -64,6 +67,7 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
     prediction_tables_xarray = [None] * num_models
     model_file_names = [''] * num_models
     isotonic_model_file_names = [''] * num_models
+    uncertainty_calib_model_file_names = [''] * num_models
 
     for i in range(num_models):
         print('Reading data from: "{0:s}"...'.format(input_file_names[i]))
@@ -81,6 +85,13 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
         )
         prediction_tables_xarray[i].attrs[ISOTONIC_MODEL_FILE_KEY] = (
             isotonic_model_file_names[0]
+        )
+
+        uncertainty_calib_model_file_names[i] = copy.deepcopy(
+            prediction_tables_xarray[i].attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY]
+        )
+        prediction_tables_xarray[i].attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] = (
+            uncertainty_calib_model_file_names[0]
         )
 
     prediction_table_xarray = (
@@ -125,6 +136,11 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
     else:
         dummy_iso_model_file_name = ' '.join(isotonic_model_file_names)
 
+    if all([m is None for m in uncertainty_calib_model_file_names]):
+        dummy_uc_model_file_name = None
+    else:
+        dummy_uc_model_file_name = ' '.join(uncertainty_calib_model_file_names)
+
     cyclone_id_strings = pt[scalar_prediction_utils.CYCLONE_ID_KEY].values
     assert len(numpy.unique(cyclone_id_strings)) == 1
     cyclone_id_string = cyclone_id_strings[0]
@@ -142,7 +158,8 @@ def _run(input_file_names, max_ensemble_size, output_file_name):
         cyclone_id_string=cyclone_id_string,
         target_times_unix_sec=target_times_unix_sec,
         model_file_name=dummy_model_file_name,
-        isotonic_model_file_name=dummy_iso_model_file_name
+        isotonic_model_file_name=dummy_iso_model_file_name,
+        uncertainty_calib_model_file_name=dummy_uc_model_file_name
     )
 
 

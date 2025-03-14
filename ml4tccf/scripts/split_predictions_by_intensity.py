@@ -157,8 +157,12 @@ def _write_scalar_predictions_1category(prediction_table_1cat_xarray,
             pt1cyc[scalar_prediction_utils.TARGET_TIME_KEY].values,
             model_file_name=
             pt1cyc.attrs[scalar_prediction_utils.MODEL_FILE_KEY],
-            isotonic_model_file_name=
-            pt1cyc.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY]
+            isotonic_model_file_name=pt1cyc.attrs[
+                scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY
+            ],
+            uncertainty_calib_model_file_name=pt1cyc.attrs[
+                scalar_prediction_utils.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+            ]
         )
 
 

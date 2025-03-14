@@ -505,7 +505,8 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
             cyclone_id_string=cyclone_id_string,
             target_times_unix_sec=target_times_unix_sec,
             model_file_name=model_file_name,
-            isotonic_model_file_name=None
+            isotonic_model_file_name=None,
+            uncertainty_calib_model_file_name=None
         )
 
 

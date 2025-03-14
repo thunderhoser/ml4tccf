@@ -96,6 +96,11 @@ def _run(input_prediction_file_name, model_file_name, ebtrk_file_name,
             'not already include isotonic regression).'
         )
 
+    assert (
+        pt.attrs[scalar_prediction_utils.UNCERTAINTY_CALIB_MODEL_FILE_KEY]
+        is None
+    )
+
     print('Reading isotonic-regression models from: "{0:s}"...'.format(
         model_file_name
     ))
@@ -157,7 +162,8 @@ def _run(input_prediction_file_name, model_file_name, ebtrk_file_name,
         target_times_unix_sec=
         pt[scalar_prediction_utils.TARGET_TIME_KEY].values,
         model_file_name=pt.attrs[scalar_prediction_utils.MODEL_FILE_KEY],
-        isotonic_model_file_name=model_file_name
+        isotonic_model_file_name=model_file_name,
+        uncertainty_calib_model_file_name=None
     )
 
 

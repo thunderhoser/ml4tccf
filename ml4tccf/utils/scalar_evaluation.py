@@ -82,6 +82,7 @@ OFFSET_DIR_INV_BIN_COUNT_KEY = 'offset_direction_inv_bin_count'
 
 MODEL_FILE_KEY = 'model_file_name'
 ISOTONIC_MODEL_FILE_KEY = 'isotonic_model_file_name'
+UNCERTAINTY_CALIB_MODEL_FILE_KEY = 'uncertainty_calib_model_file_name'
 PREDICTION_FILES_KEY = 'prediction_file_names'
 CLIMO_OFFSET_DISTANCE_KEY = 'climo_offset_distance_metres'
 
@@ -1400,6 +1401,11 @@ def get_scores_all_variables(
             prediction_utils.ISOTONIC_MODEL_FILE_KEY
         ]
     )
+    result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] = (
+        mean_prediction_table_xarray.attrs[
+            prediction_utils.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+        ]
+    )
     result_table_xarray.attrs[PREDICTION_FILES_KEY] = prediction_file_names
     result_table_xarray.attrs[CLIMO_OFFSET_DISTANCE_KEY] = (
         climo_offset_distance_metres
@@ -1500,6 +1506,11 @@ def read_file(netcdf_file_name):
     if result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] == '':
         result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = None
 
+    if UNCERTAINTY_CALIB_MODEL_FILE_KEY not in result_table_xarray.attrs:
+        result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] = None
+    if result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] == '':
+        result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] = None
+
     return result_table_xarray
 
 
@@ -1519,6 +1530,8 @@ def write_file(result_table_xarray, netcdf_file_name):
     )
     if result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] is None:
         result_table_xarray.attrs[ISOTONIC_MODEL_FILE_KEY] = ''
+    if result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] is None:
+        result_table_xarray.attrs[UNCERTAINTY_CALIB_MODEL_FILE_KEY] = ''
 
     result_table_xarray.to_netcdf(
         path=netcdf_file_name, mode='w', format='NETCDF3_64BIT'

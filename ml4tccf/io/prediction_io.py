@@ -93,5 +93,12 @@ def read_file(netcdf_file_name):
         elif ptx.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] == '':
             ptx.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] = None
 
+        uc_model_key = scalar_prediction_utils.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+
+        if uc_model_key not in ptx.attrs:
+            ptx.attrs[uc_model_key] = None
+        elif ptx.attrs[uc_model_key] == '':
+            ptx.attrs[uc_model_key] = None
+
     prediction_table_xarray = ptx
     return prediction_table_xarray

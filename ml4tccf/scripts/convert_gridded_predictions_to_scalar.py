@@ -102,7 +102,8 @@ def _run(input_file_name, output_dir_name):
         target_times_unix_sec=
         gpt[gridded_prediction_utils.TARGET_TIME_KEY].values,
         model_file_name=gpt.attrs[gridded_prediction_utils.MODEL_FILE_KEY],
-        isotonic_model_file_name=None
+        isotonic_model_file_name=None,
+        uncertainty_calib_model_file_name=None
     )
 
 

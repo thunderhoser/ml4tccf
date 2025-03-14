@@ -2072,6 +2072,12 @@ def data_generator_shuffled(option_dict):
         )
 
         for j in range(len(lag_times_minutes) - 1):
+            if (
+                    data_aug_within_mean_trans_px < 0.001
+                    and data_aug_within_stdev_trans_px < 0.001
+            ):
+                continue
+
             print('Augmenting data at lag time {0:d} minutes...'.format(
                 lag_times_minutes[j]
             ))
@@ -3033,6 +3039,12 @@ def data_generator(option_dict, for_plotting=False):
         )
 
         for j in range(len(lag_times_minutes) - 1):
+            if (
+                    data_aug_within_mean_trans_px < 0.001
+                    and data_aug_within_stdev_trans_px < 0.001
+            ):
+                continue
+
             print('Augmenting data at lag time {0:d} minutes...'.format(
                 lag_times_minutes[j]
             ))
@@ -3559,6 +3571,12 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
     )
 
     for j in range(len(lag_times_minutes) - 1):
+        if (
+                data_aug_within_mean_trans_px < 0.001
+                and data_aug_within_stdev_trans_px < 0.001
+        ):
+            continue
+
         print('Augmenting data at lag time {0:d} minutes...'.format(
             lag_times_minutes[j]
         ))

@@ -1,4 +1,4 @@
-"""Applies isotonic-regression models to scalar target variables (x and y)."""
+"""Applies uncertainty-calibration models to scalar target vars (x and y)."""
 
 import argparse
 import numpy
@@ -6,23 +6,23 @@ from ml4tccf.io import prediction_io
 from ml4tccf.io import scalar_prediction_io
 from ml4tccf.utils import scalar_prediction_utils
 from ml4tccf.machine_learning import \
-    scalar_isotonic_regression as isotonic_regression
+    scalar_uncertainty_calibration as uncertainty_calib
 
 INPUT_PREDICTION_FILE_ARG_NAME = 'input_prediction_file_name'
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 OUTPUT_PREDICTION_FILE_ARG_NAME = 'output_prediction_file_name'
 
 INPUT_PREDICTION_FILE_HELP_STRING = (
-    'Path to file containing model predictions before isotonic regression.  '
-    'Will be read by `prediction_io.read_file`.'
+    'Path to file containing model predictions before uncertainty '
+    'calibration.  Will be read by `prediction_io.read_file`.'
 )
 MODEL_FILE_HELP_STRING = (
-    'Path to file with set of trained isotonic-regression models.  Will be read'
-    ' by `isotonic_regression.read_file`.'
+    'Path to file with set of trained uncertainty-calibration models.  Will be '
+    'read by `uncertainty_calibration.read_file`.'
 )
 OUTPUT_PREDICTION_FILE_HELP_STRING = (
-    'Path to output file, containing model predictions after isotonic '
-    'regression.  Will be written by `prediction_io.write_file`.'
+    'Path to output file, containing model predictions after uncertainty '
+    'calibration.  Will be written by `prediction_io.write_file`.'
 )
 
 INPUT_ARG_PARSER = argparse.ArgumentParser()
@@ -42,7 +42,7 @@ INPUT_ARG_PARSER.add_argument(
 
 def _run(input_prediction_file_name, model_file_name,
          output_prediction_file_name):
-    """Applies isotonic-regression models to scalar target variables (x and y).
+    """Applies uncertainty-calibration models to scalar target vars (x and y).
 
     This is effectively the main method.
 
@@ -50,7 +50,7 @@ def _run(input_prediction_file_name, model_file_name,
     :param model_file_name: Same.
     :param output_prediction_file_name: Same.
     :raises: ValueError: if predictions in `input_prediction_file_name` were
-        made with isotonic regression.
+        made with uncertainty calibration.
     """
 
     print('Reading original predictions from: "{0:s}"...'.format(
@@ -61,20 +61,22 @@ def _run(input_prediction_file_name, model_file_name,
     )
 
     pt = prediction_table_xarray
-    if pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY] is not None:
+    uc_model_key = scalar_prediction_utils.UNCERTAINTY_CALIB_MODEL_FILE_KEY
+
+    if pt.attrs[uc_model_key] is not None:
         raise ValueError(
             'Input predictions must be made with base model only (i.e., must '
-            'not already include isotonic regression).'
+            'not already include uncertainty calibration).'
         )
 
-    print('Reading isotonic-regression models from: "{0:s}"...'.format(
+    print('Reading uncertainty-calibration models from: "{0:s}"...'.format(
         model_file_name
     ))
-    x_coord_model_object, y_coord_model_object = isotonic_regression.read_file(
+    x_coord_model_object, y_coord_model_object = uncertainty_calib.read_file(
         model_file_name
     )
 
-    prediction_table_xarray = isotonic_regression.apply_models(
+    prediction_table_xarray = uncertainty_calib.apply_models(
         prediction_table_xarray=prediction_table_xarray,
         x_coord_model_object=x_coord_model_object,
         y_coord_model_object=y_coord_model_object
@@ -112,9 +114,9 @@ def _run(input_prediction_file_name, model_file_name,
         target_times_unix_sec=
         pt[scalar_prediction_utils.TARGET_TIME_KEY].values,
         model_file_name=pt.attrs[scalar_prediction_utils.MODEL_FILE_KEY],
-        isotonic_model_file_name=model_file_name,
-        uncertainty_calib_model_file_name=
-        pt.attrs[scalar_prediction_utils.UNCERTAINTY_CALIB_MODEL_FILE_KEY]
+        isotonic_model_file_name=
+        pt.attrs[scalar_prediction_utils.ISOTONIC_MODEL_FILE_KEY],
+        uncertainty_calib_model_file_name=model_file_name
     )
 
 
