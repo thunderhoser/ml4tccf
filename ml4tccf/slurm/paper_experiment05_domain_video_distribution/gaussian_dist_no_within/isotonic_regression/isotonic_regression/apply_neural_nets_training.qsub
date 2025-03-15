@@ -1,0 +1,71 @@
+#!/bin/bash
+
+#SBATCH --job-name="apply_neural_nets_training"
+#SBATCH --partition="bigmem"
+#SBATCH --account="gsd-hpcs"
+#SBATCH --qos="batch"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=08:00:00
+#SBATCH --array=0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69,72,75,78,81,84,87,90,93,96,99,102,105,108,111,114,117,120,123,126,129,132,135,138,141,144,147,150,153,156,159,162,165,168,171,174,177,180,183,186,189,192,195,198,201,204,207,210,213,216,219,222,225,228,231%40
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=apply_neural_nets_training_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/no_within_track_translation"
+EXAMPLE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/900x900_grids/training"
+A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_decks/processed/a_decks_normalized.nc"
+
+CYCLONE_ID_STRINGS=("2017AL01" "2017AL02" "2017AL03" "2017AL04" "2017AL05" "2017AL06" "2017AL07" "2017AL08" "2017AL09" "2017AL10" "2017AL11" "2017AL12" "2017AL13" "2017AL14" "2017AL15" "2017AL16" "2017AL17" "2017AL18" "2017AL19" "2018AL01" "2018AL02" "2018AL03" "2018AL04" "2018AL05" "2018AL06" "2018AL07" "2018AL08" "2018AL09" "2018AL10" "2018AL11" "2018AL12" "2018AL13" "2019AL01" "2019AL02" "2019AL03" "2019AL04" "2019AL05" "2019AL06" "2019AL07" "2019AL08" "2019AL09" "2019AL10" "2019AL11" "2019AL12" "2019AL13" "2019AL14" "2019AL15" "2019AL16" "2019AL17" "2019AL18" "2019AL19" "2019AL20" "2018EP14" "2018EP15" "2018EP16" "2018EP17" "2018EP18" "2018EP19" "2018EP20" "2018EP21" "2018EP22" "2018EP23" "2018EP24" "2019EP01" "2019EP02" "2019EP03" "2019EP04" "2019EP05" "2019EP06" "2019EP07" "2019EP08" "2019EP09" "2019EP10" "2019EP11" "2019EP12" "2019EP13" "2019EP14" "2019EP15" "2019EP16" "2019EP17" "2019EP18" "2019EP19" "2019EP20" "2019EP21" "2020EP01" "2020EP02" "2020EP03" "2020EP04" "2020EP05" "2020EP06" "2020EP07" "2020EP08" "2020EP09" "2020EP10" "2020EP11" "2020EP12" "2020EP13" "2020EP14" "2020EP15" "2020EP16" "2020EP17" "2020EP18" "2020EP19" "2020EP20" "2020EP21" "2016WP01" "2016WP02" "2016WP03" "2016WP04" "2016WP05" "2016WP06" "2016WP07" "2016WP08" "2016WP09" "2016WP10" "2016WP11" "2016WP12" "2016WP13" "2016WP14" "2016WP15" "2016WP16" "2016WP17" "2016WP18" "2016WP19" "2016WP20" "2016WP21" "2016WP22" "2016WP23" "2016WP24" "2016WP25" "2016WP26" "2016WP27" "2016WP28" "2016WP29" "2016WP30" "2017WP01" "2017WP02" "2017WP03" "2017WP04" "2017WP05" "2017WP06" "2017WP07" "2017WP08" "2017WP09" "2017WP10" "2017WP11" "2017WP12" "2017WP13" "2017WP14" "2017WP15" "2017WP16" "2017WP17" "2017WP18" "2017WP19" "2017WP20" "2017WP21" "2017WP22" "2017WP23" "2017WP24" "2017WP25" "2017WP26" "2017WP27" "2017WP28" "2017WP29" "2017WP30" "2017WP31" "2017WP32" "2017WP33" "2018WP01" "2018WP02" "2018WP03" "2018WP04" "2018WP05" "2018WP06" "2018WP07" "2018WP08" "2018WP09" "2018WP10" "2018WP11" "2018WP12" "2018WP13" "2018WP14" "2018WP15" "2018WP16" "2018WP17" "2018WP18" "2018WP19" "2018WP20" "2018WP21" "2018WP22" "2018WP23" "2018WP24" "2018WP25" "2018WP26" "2018WP27" "2018WP28" "2018WP29" "2018WP30" "2018WP31" "2018WP32" "2018WP33" "2018WP34" "2018WP35" "2018WP36" "2019WP01" "2019WP02" "2019WP03" "2019WP04" "2019WP05" "2019WP06" "2019WP07" "2019WP08" "2019WP09" "2019WP10" "2019WP11" "2019WP12" "2019WP13" "2019WP14" "2019WP15" "2019WP16" "2019WP17" "2019WP18" "2019WP19" "2019WP20" "2019WP21" "2019WP22" "2019WP23" "2019WP24" "2019WP25" "2019WP26" "2019WP27" "2019WP28" "2019WP29" "2019WP30")
+
+GRID_ROW_COUNTS=("300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600" "300" "300" "300" "300" "300" "300" "400" "400" "400" "400" "400" "400" "500" "500" "500" "500" "500" "500" "600" "600" "600" "600" "600" "600")
+UNIFORM_DIST_FLAGS=("0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "0" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1" "1")
+LAG_TIME_COUNTS=("01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11" "01" "03" "05" "07" "09" "11")
+
+i=$SLURM_ARRAY_TASK_ID
+
+while [ $i -le $(( $SLURM_ARRAY_TASK_ID + 2 )) ] && [ $i -lt ${#CYCLONE_ID_STRINGS[@]} ]; do
+    j=0
+    
+    while [ $j -lt ${#GRID_ROW_COUNTS[@]} ]; do
+        num_grid_rows=${GRID_ROW_COUNTS[$j]}
+        use_uniform_dist=${UNIFORM_DIST_FLAGS[$j]}
+        num_lag_times=${LAG_TIME_COUNTS[$j]}
+
+        model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_use-uniform-dist=${use_uniform_dist}_num-lag-times=${num_lag_times}"
+        echo $model_dir_name
+
+        python3 -u "${CODE_DIR_NAME}/apply_neural_net.py" \
+        --input_model_file_name="${model_dir_name}/model.weights.h5" \
+        --input_satellite_dir_name="${EXAMPLE_DIR_NAME}" \
+        --input_a_deck_file_name="${A_DECK_FILE_NAME}" \
+        --cyclone_id_string="${CYCLONE_ID_STRINGS[$i]}" \
+        --data_aug_num_translations=8 \
+        --data_aug_uniform_dist_flag=0 \
+        --output_dir_name="${model_dir_name}/training_gaussian_dist"
+        
+        j=$(( $j + 1 ))
+    done
+    
+    i=$(( $i + 1 ))
+done
