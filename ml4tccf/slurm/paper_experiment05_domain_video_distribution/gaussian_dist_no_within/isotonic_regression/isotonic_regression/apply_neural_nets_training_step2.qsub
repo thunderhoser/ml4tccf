@@ -57,7 +57,7 @@ while [ $i -le $(( $SLURM_ARRAY_TASK_ID + 2 )) ] && [ $i -lt ${#CYCLONE_ID_STRIN
 
         python3 -u "${CODE_DIR_NAME}/apply_neural_net_step2_inference.py" \
         --input_model_file_name="${model_dir_name}/model.weights.h5" \
-        --input_example_dir_name="${TOP_MODEL_DIR_NAME}/preprocessed_examples_gaussian_dist_num-lag-times=${num_lag_times}" \
+        --input_example_dir_name="/scratch2/STI/mdl-sti/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/no_within_track_translation/preprocessed_examples_gaussian_dist_num-lag-times=${num_lag_times}" \
         --cyclone_id_string="${CYCLONE_ID_STRINGS[$i]}" \
         --output_dir_name="${model_dir_name}/training_gaussian_dist"
         

@@ -62,7 +62,7 @@ while [ $i -le $(( $SLURM_ARRAY_TASK_ID + 2 )) ] && [ $i -lt ${#CYCLONE_ID_STRIN
         --cyclone_id_string="${CYCLONE_ID_STRINGS[$i]}" \
         --data_aug_num_translations=8 \
         --data_aug_uniform_dist_flag=0 \
-        --output_dir_name="${TOP_MODEL_DIR_NAME}/preprocessed_examples_gaussian_dist_num-lag-times=${num_lag_times}"
+        --output_dir_name="/scratch2/STI/mdl-sti/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/no_within_track_translation/preprocessed_examples_gaussian_dist_num-lag-times=${num_lag_times}"
         
         j=$(( $j + 1 ))
     done
