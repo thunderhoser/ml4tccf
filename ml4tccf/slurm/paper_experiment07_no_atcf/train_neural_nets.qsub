@@ -30,8 +30,8 @@ echo `which python3`
 echo $PATH
 
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
-TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/templates"
-TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/ensemble"
+TEMPLATE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment07_no_atcf/templates"
+TOP_OUTPUT_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment07_no_atcf/ensemble"
 
 TRAINING_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/training/900x900_grids"
 VALIDATION_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/satellite_data/processed/normalized_for_paper/smart_shuffled_8hour_chunks/validation/900x900_grids"
@@ -40,12 +40,11 @@ A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_d
 WAVELENGTH_GROUP_STRINGS_MICRONS=("8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200")
 wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$SLURM_ARRAY_TASK_ID]}
 
-template_file_name="${TEMPLATE_DIR_NAME}/num-grid-rows=400_num-lag-times=05/model.keras"
+template_file_name="${TEMPLATE_DIR_NAME}/model.keras"
 output_dir_name="${TOP_OUTPUT_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}"
 echo $output_dir_name
 
-scalar_a_deck_field_names="absolute_latitude_deg_n longitude_cosine longitude_sine intensity_m_s01 sea_level_pressure_pa unnorm_tropical_flag_int unnorm_subtropical_flag_int unnorm_extratropical_flag_int unnorm_disturbance_flag_int"
-
+scalar_a_deck_field_names="None"
 wavelength_group_string_microns="${wavelength_group_string_microns//-/ }"
 
 python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
