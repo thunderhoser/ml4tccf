@@ -997,6 +997,9 @@ def get_angular_diffs(target_angles_deg, predicted_angles_deg):
         target_angles_deg, 360., allow_nan=True
     )
 
+    print(numpy.min(predicted_angles_deg))
+    print(numpy.max(predicted_angles_deg))
+
     error_checking.assert_is_numpy_array(
         predicted_angles_deg,
         exact_dimensions=numpy.array(target_angles_deg.shape, dtype=int)
