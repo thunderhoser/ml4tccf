@@ -990,28 +990,31 @@ def get_angular_diffs(target_angles_deg, predicted_angles_deg):
         shape as the inputs.
     """
 
+    new_target_angles_deg = target_angles_deg + 0.
+    new_predicted_angles_deg = predicted_angles_deg + 0.
+
+    new_target_angles_deg[new_target_angles_deg >= 360. - TOLERANCE] = 0.
+    new_predicted_angles_deg[new_predicted_angles_deg >= 360. - TOLERANCE] = 0.
+
     error_checking.assert_is_geq_numpy_array(
-        target_angles_deg, 0., allow_nan=True
+        new_target_angles_deg, 0., allow_nan=True
     )
     error_checking.assert_is_less_than_numpy_array(
-        target_angles_deg, 360., allow_nan=True
+        new_target_angles_deg, 360., allow_nan=True
     )
-
-    print(numpy.min(predicted_angles_deg))
-    print(numpy.max(predicted_angles_deg))
 
     error_checking.assert_is_numpy_array(
-        predicted_angles_deg,
-        exact_dimensions=numpy.array(target_angles_deg.shape, dtype=int)
+        new_predicted_angles_deg,
+        exact_dimensions=numpy.array(new_target_angles_deg.shape, dtype=int)
     )
     error_checking.assert_is_geq_numpy_array(
-        predicted_angles_deg, 0., allow_nan=True
+        new_predicted_angles_deg, 0., allow_nan=True
     )
     error_checking.assert_is_less_than_numpy_array(
-        predicted_angles_deg, 360., allow_nan=True
+        new_predicted_angles_deg, 360., allow_nan=True
     )
 
-    angular_diffs_deg = predicted_angles_deg - target_angles_deg
+    angular_diffs_deg = new_predicted_angles_deg - new_target_angles_deg
 
     angular_diffs_deg[angular_diffs_deg > 180] -= 360
     angular_diffs_deg[angular_diffs_deg < -180] += 360
