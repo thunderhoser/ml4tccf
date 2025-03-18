@@ -40,7 +40,7 @@ A_DECK_FILE_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/a_d
 WAVELENGTH_GROUP_STRINGS_MICRONS=("8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200")
 wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$SLURM_ARRAY_TASK_ID]}
 
-template_file_name="${TEMPLATE_DIR_NAME}/num-grid-rows=400_num-lag-times=05/model.keras"
+template_file_name="${TEMPLATE_DIR_NAME}/num-grid-rows=300_num-lag-times=09/model.keras"
 output_dir_name="${TOP_OUTPUT_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}"
 echo $output_dir_name
 
@@ -51,12 +51,12 @@ wavelength_group_string_microns="${wavelength_group_string_microns//-/ }"
 python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --input_template_file_name="${template_file_name}" \
 --output_model_dir_name="${output_dir_name}" \
---lag_times_minutes 0 30 60 90 120 \
+--lag_times_minutes 0 30 60 90 120 150 180 210 240 \
 --low_res_wavelengths_microns ${wavelength_group_string_microns} \
 --num_examples_per_batch=20 \
 --max_examples_per_cyclone=1 \
---num_rows_low_res=400 \
---num_columns_low_res=400 \
+--num_rows_low_res=300 \
+--num_columns_low_res=300 \
 --input_short_track_dir_name="" \
 --data_aug_num_translations=1 \
 --data_aug_mean_translation_low_res_px=24 \

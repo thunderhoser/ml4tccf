@@ -49,12 +49,12 @@ scalar_a_deck_field_names="absolute_latitude_deg_n longitude_cosine longitude_si
 python3 -u "${CODE_DIR_NAME}/train_neural_net_simple.py" \
 --input_template_file_name="${template_file_name}" \
 --output_model_dir_name="${output_dir_name}" \
---lag_times_minutes 0 30 60 90 120 \
+--lag_times_minutes 0 30 60 90 120 150 180 210 240 \
 --low_res_wavelengths_microns ${wavelength_microns} \
 --num_examples_per_batch=20 \
 --max_examples_per_cyclone=1 \
---num_rows_low_res=400 \
---num_columns_low_res=400 \
+--num_rows_low_res=300 \
+--num_columns_low_res=300 \
 --input_short_track_dir_name="" \
 --data_aug_num_translations=1 \
 --data_aug_mean_translation_low_res_px=24 \
