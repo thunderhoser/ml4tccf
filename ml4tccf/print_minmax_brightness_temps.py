@@ -54,7 +54,7 @@ def _run(satellite_file_pattern):
             min_brightness_temp_kelvins,
             numpy.min(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values)
         ])
-        max_brightness_temp_kelvins = min([
+        max_brightness_temp_kelvins = max([
             max_brightness_temp_kelvins,
             numpy.max(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values)
         ])
