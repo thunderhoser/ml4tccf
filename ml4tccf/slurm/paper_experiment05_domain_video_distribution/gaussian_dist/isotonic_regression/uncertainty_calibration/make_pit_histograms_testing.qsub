@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name="plot_spread_vs_skill"
+#SBATCH --job-name="make_pit_histograms_testing"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="gpu"
@@ -18,7 +18,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_spread_vs_skill_%A_%a.out
+#SBATCH --output=make_pit_histograms_testing_%A_%a.out
 
 module load cuda/12.3.1
 conda init
@@ -45,6 +45,7 @@ num_lag_times=${LAG_TIME_COUNTS[$SLURM_ARRAY_TASK_ID]}
 model_dir_name="${TOP_MODEL_DIR_NAME}/num-grid-rows=${num_grid_rows}_use-uniform-dist=${use_uniform_dist}_num-lag-times=${num_lag_times}"
 echo $model_dir_name
 
-python3 -u "${CODE_DIR_NAME}/plot_spread_vs_skill.py" \
---input_file_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/validation/spread_vs_skill.nc" \
---output_dir_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/validation/spread_vs_skill"
+python3 -u "${CODE_DIR_NAME}/make_pit_histograms.py" \
+--input_prediction_file_pattern="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/predictions*.nc" \
+--num_bins=51 \
+--output_file_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/pit_histograms.nc"
