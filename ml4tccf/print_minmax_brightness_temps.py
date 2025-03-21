@@ -62,6 +62,25 @@ def _run(satellite_file_pattern):
             170 + TOLERANCE
         )
 
+        print(numpy.min(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values))
+        print(numpy.sum(
+            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
+            170.001
+        ))
+        print(numpy.sum(
+            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
+            170.005
+        ))
+        print(numpy.sum(
+            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
+            170.01
+        ))
+        print(numpy.sum(
+            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
+            170.1
+        ))
+        print('\n\n')
+
     print((
         'Min brightness temperature = {0:.4f} K\n'
         'Max brightness temperature = {1:.4f} K\n'
