@@ -14,7 +14,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import satellite_io
 import satellite_utils
 
-TOLERANCE = 1e-6
+TOLERANCE = 0.001
 
 INPUT_FILE_PATTERN_ARG_NAME = 'input_satellite_file_pattern'
 INPUT_FILE_PATTERN_HELP_STRING = (
