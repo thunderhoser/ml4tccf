@@ -921,10 +921,12 @@ def plot_inset_histogram(
 
     x_tick_values = fake_bin_centers[tick_indices]
 
-    if numpy.any(numpy.absolute(bin_centers[tick_indices]) > 100):
-        x_tick_labels = ['{0:.0f}'.format(b) for b in bin_centers[tick_indices]]
-    else:
-        x_tick_labels = ['{0:.1f}'.format(b) for b in bin_centers[tick_indices]]
+    # if numpy.any(numpy.absolute(bin_centers[tick_indices]) > 100):
+    #     x_tick_labels = ['{0:.0f}'.format(b) for b in bin_centers[tick_indices]]
+    # else:
+    #     x_tick_labels = ['{0:.1f}'.format(b) for b in bin_centers[tick_indices]]
+
+    x_tick_labels = ['{0:.0f}'.format(b) for b in bin_centers[tick_indices]]
 
     inset_axes_object.set_xticks(x_tick_values)
     inset_axes_object.set_xticklabels(

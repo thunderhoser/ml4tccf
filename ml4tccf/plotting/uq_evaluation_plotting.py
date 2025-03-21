@@ -150,6 +150,51 @@ def _plot_means_as_inset(
     return inset_axes_object
 
 
+def _plot_bias_as_inset(
+        figure_object, bin_centers, bin_mean_predictions,
+        bin_mean_target_values, plotting_corner_string):
+    """Plots bias (mean pred_minus_target by bin) as inset in another figure.
+
+    :param figure_object: See documentation for `_plot_means_as_inset`.
+    :param bin_centers: Same.
+    :param bin_mean_predictions: Same.
+    :param bin_mean_target_values: Same.
+    :param plotting_corner_string: Same.
+    :return: inset_axes_object: Same.
+    """
+
+    if plotting_corner_string == 'top_right':
+        inset_axes_object = figure_object.add_axes([0.625, 0.55, 0.25, 0.25])
+    elif plotting_corner_string == 'bottom_right':
+        inset_axes_object = figure_object.add_axes([0.625, 0.3, 0.25, 0.25])
+    elif plotting_corner_string == 'bottom_left':
+        inset_axes_object = figure_object.add_axes([0.2, 0.3, 0.25, 0.25])
+    elif plotting_corner_string == 'top_left':
+        inset_axes_object = figure_object.add_axes([0.2, 0.55, 0.25, 0.25])
+
+    binned_biases = bin_mean_predictions - bin_mean_target_values
+    nan_flags = numpy.isnan(binned_biases)
+    assert not numpy.all(nan_flags)
+    real_indices = numpy.where(numpy.invert(nan_flags))[0]
+
+    line_handle = inset_axes_object.plot(
+        bin_centers[real_indices], binned_biases[real_indices],
+        color=MEAN_TARGET_LINE_COLOUR, linestyle='solid', linewidth=3
+    )[0]
+
+    inset_axes_object.set_ylim(
+        numpy.nanmin(binned_biases), numpy.nanmax(binned_biases)
+    )
+    inset_axes_object.set_xlim(left=0.)
+
+    inset_axes_object.tick_params(
+        axis='x', labelsize=INSET_FONT_SIZE, rotation=90.
+    )
+    inset_axes_object.tick_params(axis='y', labelsize=INSET_FONT_SIZE)
+
+    return inset_axes_object
+
+
 def _plot_histogram(axes_object, bin_edges, bin_frequencies):
     """Plots histogram on existing axes.
 
@@ -325,29 +370,51 @@ def plot_spread_vs_skill(
     )
     axes_object.set_ylim(0, max_value_to_plot)
 
-    if target_var_name != OFFSET_DISTANCE_NAME:
-        inset_axes_object = _plot_means_as_inset(
-            figure_object=figure_object, bin_centers=mean_prediction_stdevs,
-            bin_mean_predictions=mean_mean_predictions,
-            bin_mean_target_values=mean_target_values,
-            plotting_corner_string='bottom_right',
-            for_spread_skill_plot=True
-        )
-        inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
+    # if target_var_name != OFFSET_DISTANCE_NAME:
+    #     inset_axes_object = _plot_means_as_inset(
+    #         figure_object=figure_object, bin_centers=mean_prediction_stdevs,
+    #         bin_mean_predictions=mean_mean_predictions,
+    #         bin_mean_target_values=mean_target_values,
+    #         plotting_corner_string='bottom_right',
+    #         for_spread_skill_plot=True
+    #     )
+    #     inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
+    #
+    #     inset_axes_object.set_xticks(axes_object.get_xticks())
+    #     inset_axes_object.set_xlim(axes_object.get_xlim())
+    #     inset_axes_object.set_xlabel(
+    #         'Spread ({0:s})'.format(unit_string),
+    #         fontsize=INSET_FONT_SIZE
+    #     )
+    #     inset_axes_object.set_ylabel(
+    #         'Mean target or pred ({0:s})'.format(unit_string),
+    #         fontsize=INSET_FONT_SIZE
+    #     )
+    #     inset_axes_object.set_title(
+    #         'Means by model spread', fontsize=INSET_FONT_SIZE
+    #     )
 
-        inset_axes_object.set_xticks(axes_object.get_xticks())
-        inset_axes_object.set_xlim(axes_object.get_xlim())
-        inset_axes_object.set_xlabel(
-            'Spread ({0:s})'.format(unit_string),
-            fontsize=INSET_FONT_SIZE
-        )
-        inset_axes_object.set_ylabel(
-            'Mean target or pred ({0:s})'.format(unit_string),
-            fontsize=INSET_FONT_SIZE
-        )
-        inset_axes_object.set_title(
-            'Means by model spread', fontsize=INSET_FONT_SIZE
-        )
+    inset_axes_object = _plot_bias_as_inset(
+        figure_object=figure_object, bin_centers=mean_prediction_stdevs,
+        bin_mean_predictions=mean_mean_predictions,
+        bin_mean_target_values=mean_target_values,
+        plotting_corner_string='bottom_right'
+    )
+    inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
+
+    inset_axes_object.set_xticks(axes_object.get_xticks())
+    inset_axes_object.set_xlim(axes_object.get_xlim())
+    inset_axes_object.set_xlabel(
+        'Spread ({0:s})'.format(unit_string),
+        fontsize=INSET_FONT_SIZE
+    )
+    inset_axes_object.set_ylabel(
+        'Bias ({0:s})'.format(unit_string),
+        fontsize=INSET_FONT_SIZE
+    )
+    inset_axes_object.set_title(
+        'Bias by model spread', fontsize=INSET_FONT_SIZE
+    )
 
     title_string = (
         'Spread vs. skill for {0:s}\n'
@@ -426,30 +493,53 @@ def plot_discard_test(
             'Mean absolute error ({0:s})'.format(unit_string)
         )
 
-    if target_var_name != OFFSET_DISTANCE_NAME:
-        inset_axes_object = _plot_means_as_inset(
-            figure_object=figure_object, bin_centers=discard_fractions,
-            bin_mean_predictions=mean_mean_predictions,
-            bin_mean_target_values=mean_target_values,
-            plotting_corner_string='top_right',
-            for_spread_skill_plot=False
-        )
-        inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
+    # if target_var_name != OFFSET_DISTANCE_NAME:
+    #     inset_axes_object = _plot_means_as_inset(
+    #         figure_object=figure_object, bin_centers=discard_fractions,
+    #         bin_mean_predictions=mean_mean_predictions,
+    #         bin_mean_target_values=mean_target_values,
+    #         plotting_corner_string='top_right',
+    #         for_spread_skill_plot=False
+    #     )
+    #     inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
+    #
+    #     inset_axes_object.set_xticks(axes_object.get_xticks())
+    #     inset_axes_object.set_xlim(axes_object.get_xlim())
+    #     inset_axes_object.set_xlabel(
+    #         'Discard fraction',
+    #         fontsize=INSET_FONT_SIZE
+    #     )
+    #     unit_string = TARGET_NAME_TO_UNITS[target_var_name]
+    #     inset_axes_object.set_ylabel(
+    #         'Mean target or pred ({0:s})'.format(unit_string),
+    #         fontsize=INSET_FONT_SIZE
+    #     )
+    #     inset_axes_object.set_title(
+    #         'Means by discard fraction', fontsize=INSET_FONT_SIZE
+    #     )
 
-        inset_axes_object.set_xticks(axes_object.get_xticks())
-        inset_axes_object.set_xlim(axes_object.get_xlim())
-        inset_axes_object.set_xlabel(
-            'Discard fraction',
-            fontsize=INSET_FONT_SIZE
-        )
-        unit_string = TARGET_NAME_TO_UNITS[target_var_name]
-        inset_axes_object.set_ylabel(
-            'Mean target or pred ({0:s})'.format(unit_string),
-            fontsize=INSET_FONT_SIZE
-        )
-        inset_axes_object.set_title(
-            'Means by discard fraction', fontsize=INSET_FONT_SIZE
-        )
+    inset_axes_object = _plot_bias_as_inset(
+        figure_object=figure_object, bin_centers=discard_fractions,
+        bin_mean_predictions=mean_mean_predictions,
+        bin_mean_target_values=mean_target_values,
+        plotting_corner_string='top_right'
+    )
+    inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
+
+    inset_axes_object.set_xticks(axes_object.get_xticks())
+    inset_axes_object.set_xlim(axes_object.get_xlim())
+    inset_axes_object.set_xlabel(
+        'Discard fraction',
+        fontsize=INSET_FONT_SIZE
+    )
+    unit_string = TARGET_NAME_TO_UNITS[target_var_name]
+    inset_axes_object.set_ylabel(
+        'Bias ({0:s})'.format(unit_string),
+        fontsize=INSET_FONT_SIZE
+    )
+    inset_axes_object.set_title(
+        'Bias by discard fraction', fontsize=INSET_FONT_SIZE
+    )
 
     title_string = (
         'Discard test for {0:s}\n'
