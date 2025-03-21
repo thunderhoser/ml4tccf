@@ -6,7 +6,7 @@ import numpy
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import satellite_utils
 
-TOLERANCE = 1e-6
+TOLERANCE = 0.001
 
 INPUT_FILE_PATTERN_ARG_NAME = 'input_satellite_file_pattern'
 INPUT_FILE_PATTERN_HELP_STRING = (
