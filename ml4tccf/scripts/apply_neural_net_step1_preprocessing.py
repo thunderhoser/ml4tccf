@@ -15,8 +15,11 @@ from ml4tccf.machine_learning import \
     neural_net_training_fancy as nn_training_fancy
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
-
 LARGE_INTEGER = int(1e10)
+
+ALL_WAVELENGTHS_METRES = 1e-6 * numpy.array([
+    3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
+])
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
@@ -35,6 +38,7 @@ DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME = 'data_aug_within_uniform_dist_flag'
 RANDOM_SEED_ARG_NAME = 'random_seed'
 REMOVE_TROPICAL_SYSTEMS_ARG_NAME = 'remove_tropical_systems'
 SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
+USE_ALL_WAVELENGTHS_ARG_NAME = 'use_all_wavelengths'
 OUTPUT_DIR_ARG_NAME = 'output_dir_name'
 
 MODEL_FILE_HELP_STRING = (
@@ -133,6 +137,10 @@ SYNOPTIC_TIMES_ONLY_HELP_STRING = (
     'Boolean flag.  If 1, only synoptic times can be target times.  If 0, any '
     '10-min time step can be a target time.'
 )
+USE_ALL_WAVELENGTHS_HELP_STRING = (
+    'Boolean flag.  If 1, will use all wavelengths.  If 0, will use only those '
+    'used in model-training.'
+)
 OUTPUT_DIR_HELP_STRING = (
     'Name of output directory.  Results will be written by '
     '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`, '
@@ -209,6 +217,10 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + SYNOPTIC_TIMES_ONLY_ARG_NAME, type=int, required=False,
     default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + USE_ALL_WAVELENGTHS_ARG_NAME, type=int, required=False,
+    default=0, help=USE_ALL_WAVELENGTHS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
@@ -337,7 +349,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
          data_aug_within_mean_trans_px, data_aug_within_stdev_trans_px,
          data_aug_within_uniform_dist_flag,
          random_seed, remove_tropical_systems, synoptic_times_only,
-         output_dir_name):
+         use_all_wavelengths, output_dir_name):
     """Step 1 for two-step NN inference: create example files.
 
     This is effectively the main method.
@@ -359,6 +371,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     :param random_seed: Same.
     :param remove_tropical_systems: Same.
     :param synoptic_times_only: Same.
+    :param use_all_wavelengths: Same.
     :param output_dir_name: Same.
     """
 
@@ -452,6 +465,9 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
         vod[nn_utils.REMOVE_NONTROPICAL_KEY] = False
 
     vod[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = synoptic_times_only
+    if use_all_wavelengths:
+        vod[nn_utils.LOW_RES_WAVELENGTHS_KEY] = ALL_WAVELENGTHS_METRES
+
     validation_option_dict = vod
 
     data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
@@ -552,6 +568,9 @@ if __name__ == '__main__':
         ),
         synoptic_times_only=bool(
             getattr(INPUT_ARG_OBJECT, SYNOPTIC_TIMES_ONLY_ARG_NAME)
+        ),
+        use_all_wavelengths=bool(
+            getattr(INPUT_ARG_OBJECT, USE_ALL_WAVELENGTHS_ARG_NAME)
         ),
         output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),
     )
