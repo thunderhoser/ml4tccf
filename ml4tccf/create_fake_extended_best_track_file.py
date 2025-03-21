@@ -129,7 +129,7 @@ def _run(satellite_file_pattern, fake_ebtrk_file_name):
 
         these_longitudes_deg_e = numpy.mean(
             this_longitude_matrix_deg_e, axis=1
-        )[:, 0]
+        )
         these_longitudes_deg_e = lng_conversion.convert_lng_positive_in_west(
             these_longitudes_deg_e, allow_nan=False
         )
