@@ -51,35 +51,16 @@ def _run(satellite_file_pattern):
 
         min_brightness_temp_kelvins = min([
             min_brightness_temp_kelvins,
-            numpy.min(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values)
+            numpy.nanmin(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values)
         ])
         max_brightness_temp_kelvins = max([
             max_brightness_temp_kelvins,
-            numpy.max(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values)
+            numpy.nanmax(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values)
         ])
         num_brightness_temp_le170 += numpy.sum(
             stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
             170 + TOLERANCE
         )
-
-        print(numpy.min(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values))
-        print(numpy.sum(
-            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
-            170.001
-        ))
-        print(numpy.sum(
-            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
-            170.005
-        ))
-        print(numpy.sum(
-            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
-            170.01
-        ))
-        print(numpy.sum(
-            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
-            170.1
-        ))
-        print('\n\n')
 
     print((
         'Min brightness temperature = {0:.4f} K\n'
