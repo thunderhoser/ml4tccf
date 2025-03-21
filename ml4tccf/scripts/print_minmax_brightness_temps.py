@@ -6,9 +6,7 @@ import numpy
 from ml4tccf.io import satellite_io
 from ml4tccf.utils import satellite_utils
 
-FIGURE_WIDTH_INCHES = 15
-FIGURE_HEIGHT_INCHES = 15
-FIGURE_RESOLUTION_DPI = 300
+TOLERANCE = 1e-6
 
 INPUT_FILE_PATTERN_ARG_NAME = 'input_satellite_file_pattern'
 INPUT_FILE_PATTERN_HELP_STRING = (
@@ -36,6 +34,7 @@ def _run(satellite_file_pattern):
 
     min_brightness_temp_kelvins = numpy.inf
     max_brightness_temp_kelvins = -numpy.inf
+    num_brightness_temp_le170 = 0
 
     for this_file_name in satellite_file_names:
         print('Reading data from: "{0:s}"...'.format(this_file_name))
@@ -46,17 +45,23 @@ def _run(satellite_file_pattern):
             min_brightness_temp_kelvins,
             numpy.min(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values)
         ])
-        max_brightness_temp_kelvins = min([
+        max_brightness_temp_kelvins = max([
             max_brightness_temp_kelvins,
             numpy.max(stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values)
         ])
+        num_brightness_temp_le170 += numpy.sum(
+            stx[satellite_utils.BRIGHTNESS_TEMPERATURE_KEY].values <
+            170 + TOLERANCE
+        )
 
     print((
         'Min brightness temperature = {0:.4f} K\n'
-        'Max brightness temperature = {1:.4f} K'
+        'Max brightness temperature = {1:.4f} K\n'
+        'Number of values <= 170 K: {2:d}'
     ).format(
         min_brightness_temp_kelvins,
-        max_brightness_temp_kelvins
+        max_brightness_temp_kelvins,
+        num_brightness_temp_le170
     ))
 
 
