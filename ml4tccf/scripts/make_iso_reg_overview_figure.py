@@ -11,6 +11,8 @@ from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import prediction_io
 from ml4tccf.utils import scalar_prediction_utils as prediction_utils
 
+numpy.random.seed(6695)
+
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
