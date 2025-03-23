@@ -27,10 +27,9 @@ FIGURE_HEIGHT_INCHES = 15
 FIGURE_RESOLUTION_DPI = 300
 
 RAW_PREDICTION_LINE_COLOUR = numpy.array([217, 95, 2], dtype=float) / 255
-CORRECTED_PREDICTION_LINE_COLOUR = (
-    numpy.array([117, 112, 179], dtype=float) / 255
-)
-TARGET_LINE_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+CORR1_PREDICTION_LINE_COLOUR = numpy.array([117, 112, 179], dtype=float) / 255
+CORR2_PREDICTION_LINE_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+TARGET_LINE_COLOUR = numpy.full(3, 0.)
 LINE_WIDTH = 3
 
 PREDICTION_MARKER_TYPE = 'o'
@@ -279,13 +278,13 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     )[0]
     legend_handles[1] = axes_object.plot(
         example_indices, numpy.mean(corr1_predicted_offset_matrix_km, axis=-1),
-        color=CORRECTED_PREDICTION_LINE_COLOUR,
+        color=CORR1_PREDICTION_LINE_COLOUR,
         linestyle='solid',
         linewidth=LINE_WIDTH,
         marker=PREDICTION_MARKER_TYPE,
         markersize=PREDICTION_MARKER_SIZE,
-        markerfacecolor=CORRECTED_PREDICTION_LINE_COLOUR,
-        markeredgecolor=CORRECTED_PREDICTION_LINE_COLOUR,
+        markerfacecolor=CORR1_PREDICTION_LINE_COLOUR,
+        markeredgecolor=CORR1_PREDICTION_LINE_COLOUR,
         markeredgewidth=0
     )[0]
     legend_handles[2] = axes_object.plot(
@@ -389,13 +388,13 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
 
     legend_handles[1] = axes_object.plot(
         corr1_x_values, corr1_y_values,
-        color=CORRECTED_PREDICTION_LINE_COLOUR,
+        color=CORR1_PREDICTION_LINE_COLOUR,
         linestyle='solid',
         linewidth=LINE_WIDTH
     )[0]
     axes_object.fill_between(
         corr1_x_values, corr1_y_values,
-        color=CORRECTED_PREDICTION_LINE_COLOUR, alpha=0.2
+        color=CORR1_PREDICTION_LINE_COLOUR, alpha=0.2
     )
 
     y_max = axes_object.get_ylim()[1]
@@ -500,24 +499,24 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
 
     legend_handles[0] = axes_object.plot(
         example_indices, numpy.var(corr1_predicted_offset_matrix_km, axis=-1),
-        color=RAW_PREDICTION_LINE_COLOUR,
+        color=CORR1_PREDICTION_LINE_COLOUR,
         linestyle='solid',
         linewidth=LINE_WIDTH,
         marker=PREDICTION_MARKER_TYPE,
         markersize=PREDICTION_MARKER_SIZE,
-        markerfacecolor=RAW_PREDICTION_LINE_COLOUR,
-        markeredgecolor=RAW_PREDICTION_LINE_COLOUR,
+        markerfacecolor=CORR1_PREDICTION_LINE_COLOUR,
+        markeredgecolor=CORR1_PREDICTION_LINE_COLOUR,
         markeredgewidth=0
     )[0]
     legend_handles[1] = axes_object.plot(
         example_indices, numpy.var(corr2_predicted_offset_matrix_km, axis=-1),
-        color=CORRECTED_PREDICTION_LINE_COLOUR,
+        color=CORR2_PREDICTION_LINE_COLOUR,
         linestyle='solid',
         linewidth=LINE_WIDTH,
         marker=PREDICTION_MARKER_TYPE,
         markersize=PREDICTION_MARKER_SIZE,
-        markerfacecolor=CORRECTED_PREDICTION_LINE_COLOUR,
-        markeredgecolor=CORRECTED_PREDICTION_LINE_COLOUR,
+        markerfacecolor=CORR2_PREDICTION_LINE_COLOUR,
+        markeredgecolor=CORR2_PREDICTION_LINE_COLOUR,
         markeredgewidth=0
     )[0]
     legend_handles[2] = axes_object.plot(
@@ -611,24 +610,24 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
 
     legend_handles[0] = axes_object.plot(
         corr1_x_values, corr1_y_values,
-        color=RAW_PREDICTION_LINE_COLOUR,
+        color=CORR1_PREDICTION_LINE_COLOUR,
         linestyle='solid',
         linewidth=LINE_WIDTH
     )[0]
     axes_object.fill_between(
         corr1_x_values, corr1_y_values,
-        color=RAW_PREDICTION_LINE_COLOUR, alpha=0.2
+        color=CORR1_PREDICTION_LINE_COLOUR, alpha=0.2
     )
 
     legend_handles[1] = axes_object.plot(
         corr2_x_values, corr2_y_values,
-        color=CORRECTED_PREDICTION_LINE_COLOUR,
+        color=CORR2_PREDICTION_LINE_COLOUR,
         linestyle='solid',
         linewidth=LINE_WIDTH
     )[0]
     axes_object.fill_between(
         corr2_x_values, corr2_y_values,
-        color=CORRECTED_PREDICTION_LINE_COLOUR, alpha=0.2
+        color=CORR2_PREDICTION_LINE_COLOUR, alpha=0.2
     )
 
     y_max = axes_object.get_ylim()[1]
