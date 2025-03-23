@@ -16,6 +16,7 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 
 import file_system_utils
 import error_checking
+import imagemagick_utils
 import prediction_io
 import scalar_prediction_utils as prediction_utils
 
@@ -327,6 +328,7 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     axes_object.set_ylabel('{0:s} correction distance (km)'.format(
         'Zonal' if plot_x_coord else 'Meridional'
     ))
+    axes_object.set_title('(a) Effect of correction #1 on ensemble mean')
 
     panel_file_names = []
     panel_file_names.append('{0:s}/correction1_ensemble_mean.jpg'.format(
@@ -423,6 +425,7 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     x_max = max([numpy.max(raw_x_values), numpy.max(corr1_x_values)])
     axes_object.set_xlim([x_min, x_max])
     axes_object.set_ylim([0, y_max])
+    axes_object.set_title('(b) Effect of correction #1 on full ensemble')
 
     panel_file_names.append(
         '{0:s}/correction1_ensemble_distribution.jpg'.format(output_dir_name)
@@ -559,6 +562,7 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     axes_object.set_ylabel('{0:s} correction distance (km)'.format(
         'Zonal' if plot_x_coord else 'Meridional'
     ))
+    axes_object.set_title('(c) Effect of correction #2 on ensemble variance')
 
     panel_file_names = []
     panel_file_names.append('{0:s}/correction2_ensemble_variance.jpg'.format(
@@ -656,6 +660,7 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     x_max = max([numpy.max(corr1_x_values), numpy.max(corr2_x_values)])
     axes_object.set_xlim([x_min, x_max])
     axes_object.set_ylim([0, y_max])
+    axes_object.set_title('(d) Effect of correction #2 on full ensemble')
 
     panel_file_names.append(
         '{0:s}/correction2_ensemble_distribution.jpg'.format(output_dir_name)
@@ -667,6 +672,16 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
         pad_inches=0, bbox_inches='tight'
     )
     pyplot.close(figure_object)
+
+    concat_file_name = '{0:s}/iso_reg_overview.jpg'.format(output_dir_name)
+    print('Concatenating panels to: "{0:s}"...'.format(concat_file_name))
+
+    imagemagick_utils.concatenate_images(
+        input_file_names=panel_file_names,
+        output_file_name=concat_file_name,
+        num_panel_rows=2,
+        num_panel_columns=2
+    )
 
 
 if __name__ == '__main__':
