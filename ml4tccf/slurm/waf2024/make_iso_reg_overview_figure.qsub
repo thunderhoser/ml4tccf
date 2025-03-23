@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name="make_iso_reg_overview_figure_2020AL13"
+#SBATCH --job-name="make_iso_reg_overview_figure_2020AL29"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="gpu"
@@ -17,7 +17,7 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=make_iso_reg_overview_figure_2020AL13_%A.out
+#SBATCH --output=make_iso_reg_overview_figure_2020AL29_%A.out
 
 conda init
 conda activate base
@@ -32,8 +32,8 @@ echo $PATH
 CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
 
 python3 -u "${CODE_DIR_NAME}/make_iso_reg_overview_figure.py" \
---input_raw_prediction_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/num-grid-rows=300_use-uniform-dist=0_num-lag-times=09/validation_gaussian_dist/predictions_2020AL13.nc" \
---input_bc_prediction_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/num-grid-rows=300_use-uniform-dist=0_num-lag-times=09/isotonic_regression_gaussian_dist/validation/predictions_2020AL13.nc" \
+--input_raw_prediction_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/num-grid-rows=300_use-uniform-dist=0_num-lag-times=09/validation_gaussian_dist/predictions_2020AL29.nc" \
+--input_bc_prediction_file_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment05_domain_video_distribution/num-grid-rows=300_use-uniform-dist=0_num-lag-times=09/isotonic_regression_gaussian_dist/validation/predictions_2020AL29.nc" \
 --num_examples=50 \
 --plot_x_coord=1 \
---output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/waf2024/iso_reg_overview/2020AL13"
+--output_dir_name="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_project/waf2024/iso_reg_overview/2020AL29"
