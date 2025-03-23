@@ -19,7 +19,7 @@ import error_checking
 import prediction_io
 import scalar_prediction_utils as prediction_utils
 
-numpy.random.seed(6695)
+numpy.random.seed(666)
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
