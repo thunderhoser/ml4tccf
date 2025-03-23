@@ -480,6 +480,8 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     ) ** 2
 
     sort_indices = numpy.argsort(squared_errors_km2)
+    actual_offsets_km = actual_offsets_km[sort_indices]
+    squared_errors_km2 = squared_errors_km2[sort_indices]
     corr1_predicted_offset_matrix_km = (
         corr1_predicted_offset_matrix_km[sort_indices, :]
     )
