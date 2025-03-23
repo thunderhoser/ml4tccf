@@ -260,10 +260,25 @@ def _run(raw_prediction_file_name, bc_prediction_file_name, num_examples,
         markeredgewidth=0
     )[0]
 
-    legend_strings = ['Raw pred\'n', 'Bias-corrected pred\'n', 'Actual']
+    raw_mean_abs_error_km = numpy.mean(numpy.absolute(
+        numpy.mean(raw_predicted_offset_matrix_km, axis=-1) -
+        actual_offsets_km
+    ))
+    corrected_mean_abs_error_km = numpy.mean(numpy.absolute(
+        numpy.mean(bc_predicted_offset_matrix_km, axis=-1) -
+        actual_offsets_km
+    ))
+
+    legend_strings = [
+        'Raw ens. mean\n(MAE = {0:.1f} km)'.format(raw_mean_abs_error_km),
+        'Ens. mean after correction #1\n(MAE = {0:.1f} km)'.format(
+            corrected_mean_abs_error_km
+        ),
+        'Actual'
+    ]
 
     axes_object.legend(
-        legend_handles, legend_strings, loc='upper left',
+        legend_handles, legend_strings, loc='upper left', fontsize=20,
         bbox_to_anchor=(0, 0.95), fancybox=True, shadow=False,
         facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
     )
@@ -341,10 +356,11 @@ def _run(raw_prediction_file_name, bc_prediction_file_name, num_examples,
         linewidth=0.5 * LINE_WIDTH
     )[0]
 
-    legend_strings = ['Raw ensemble', 'Bias-corrected ensemble', 'Actual value']
-
+    legend_strings = [
+        'Raw ensemble', 'Ensemble after correction #1', 'Actual value'
+    ]
     axes_object.legend(
-        legend_handles, legend_strings, loc='lower left',
+        legend_handles, legend_strings, loc='lower left', fontsize=20,
         bbox_to_anchor=(0, 0.1), fancybox=True, shadow=False,
         facecolor='white', edgecolor='k', framealpha=0.5, ncol=1
     )
