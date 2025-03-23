@@ -529,18 +529,18 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
         markeredgewidth=0
     )[0]
 
-    raw_spread_skill_ratio = numpy.mean(
-        numpy.std(corr1_predicted_offset_matrix_km, axis=-1) /
-        numpy.sqrt(squared_errors_km2)
+    corr1_spread_skill_ratio = (
+        numpy.mean(numpy.std(corr1_predicted_offset_matrix_km, axis=-1)) /
+        numpy.sqrt(numpy.mean(squared_errors_km2))
     )
-    corrected_spread_skill_ratio = numpy.mean(
-        numpy.std(corr2_predicted_offset_matrix_km, axis=-1) /
-        numpy.sqrt(squared_errors_km2)
+    corrected_spread_skill_ratio = (
+        numpy.mean(numpy.std(corr2_predicted_offset_matrix_km, axis=-1)) /
+        numpy.sqrt(numpy.mean(squared_errors_km2))
     )
 
     legend_strings = [
         'Ens. variance after correction #1\n(SSRAT = {0:.2f})'.format(
-            raw_spread_skill_ratio
+            corr1_spread_skill_ratio
         ),
         'Ens. variance after correction #2\n(SSRAT = {0:.2f})'.format(
             corrected_spread_skill_ratio
