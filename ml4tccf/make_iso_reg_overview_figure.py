@@ -564,7 +564,6 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     ))
     axes_object.set_title('(c) Effect of correction #2 on ensemble variance')
 
-    panel_file_names = []
     panel_file_names.append('{0:s}/correction2_ensemble_variance.jpg'.format(
         output_dir_name
     ))
