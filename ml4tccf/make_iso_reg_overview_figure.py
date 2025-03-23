@@ -353,6 +353,8 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     )
     actual_offset_km = actual_offsets_km[select_index]
 
+    select_index = sort_indices[select_index]
+
     raw_kde_object = gaussian_kde(raw_predicted_offsets_km, bw_method='scott')
     raw_x_values = numpy.linspace(
         numpy.min(raw_predicted_offsets_km) - 2.,
@@ -577,6 +579,8 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     pyplot.close(figure_object)
 
     # Create plot to show how correction #1 affects ensemble distribution.
+    select_index = numpy.where(sort_indices == select_index)[0][0]
+
     corr1_predicted_offsets_km = (
         corr1_predicted_offset_matrix_km[select_index, :]
     )
