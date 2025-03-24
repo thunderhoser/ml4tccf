@@ -242,11 +242,11 @@ def _plot_scores_2d(
                 this_label = '{0:.1f}'.format(score_matrix[i, j])
 
             axes_object.text(
-                j, i, this_label,
+                j, i - 0.05, this_label,
                 color=text_colour,
                 fontsize=20,
                 fontweight='bold',
-                verticalalignment='center',
+                verticalalignment='top',
                 horizontalalignment='center'
             )
 
@@ -732,7 +732,7 @@ def _run(experiment_dir_name, use_isotonic_regression,
                     markersize=marker_size_px, markeredgewidth=0,
                     markerfacecolor=marker_colour,
                     markeredgecolor=marker_colour,
-                    alpha=0.666
+                    alpha=0.6
                 )
 
             if SELECTED_MARKER_INDICES[2] == k:
@@ -745,7 +745,7 @@ def _run(experiment_dir_name, use_isotonic_regression,
                     markersize=marker_size_px, markeredgewidth=0,
                     markerfacecolor=marker_colour,
                     markeredgecolor=marker_colour,
-                    alpha=0.666
+                    alpha=0.6
                 )
 
             axes_object.set_xlabel(x_axis_label)
