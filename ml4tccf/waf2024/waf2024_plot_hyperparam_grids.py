@@ -75,7 +75,7 @@ WHITE_COLOUR = numpy.full(3, 1.)
 BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
-SELECTED_MARKER_SIZE_GRID_CELLS = 0.125
+SELECTED_MARKER_SIZE_GRID_CELLS = 0.075
 SELECTED_MARKER_INDICES = numpy.array([4, 0, 0], dtype=int)
 
 MAIN_COLOUR_MAP_OBJECT = pyplot.get_cmap(name='viridis', lut=20)
@@ -731,7 +731,8 @@ def _run(experiment_dir_name, use_isotonic_regression,
                     linestyle='None', marker=BEST_MARKER_TYPE,
                     markersize=marker_size_px, markeredgewidth=0,
                     markerfacecolor=marker_colour,
-                    markeredgecolor=marker_colour
+                    markeredgecolor=marker_colour,
+                    alpha=0.5
                 )
 
             if SELECTED_MARKER_INDICES[2] == k:
@@ -743,7 +744,8 @@ def _run(experiment_dir_name, use_isotonic_regression,
                     linestyle='None', marker=SELECTED_MARKER_TYPE,
                     markersize=marker_size_px, markeredgewidth=0,
                     markerfacecolor=marker_colour,
-                    markeredgecolor=marker_colour
+                    markeredgecolor=marker_colour,
+                    alpha=0.5
                 )
 
             axes_object.set_xlabel(x_axis_label)
