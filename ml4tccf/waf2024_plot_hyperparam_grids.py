@@ -242,11 +242,11 @@ def _plot_scores_2d(
                 this_label = '{0:.1f}'.format(score_matrix[i, j])
 
             axes_object.text(
-                j, i - 0.05, this_label,
+                j, i, this_label,
                 color=text_colour,
                 fontsize=20,
                 fontweight='bold',
-                verticalalignment='top',
+                verticalalignment='center',
                 horizontalalignment='center'
             )
 
@@ -727,7 +727,7 @@ def _run(experiment_dir_name, use_isotonic_regression,
                     BEST_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
                 )
                 axes_object.plot(
-                    best_indices[1], best_indices[0],
+                    best_indices[1], best_indices[0] - 0.25,
                     linestyle='None', marker=BEST_MARKER_TYPE,
                     markersize=marker_size_px, markeredgewidth=0,
                     markerfacecolor=marker_colour,
@@ -740,7 +740,7 @@ def _run(experiment_dir_name, use_isotonic_regression,
                     SELECTED_MARKER_SIZE_GRID_CELLS / metric_matrix.shape[2]
                 )
                 axes_object.plot(
-                    SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0],
+                    SELECTED_MARKER_INDICES[1], SELECTED_MARKER_INDICES[0] - 0.25,
                     linestyle='None', marker=SELECTED_MARKER_TYPE,
                     markersize=marker_size_px, markeredgewidth=0,
                     markerfacecolor=marker_colour,
