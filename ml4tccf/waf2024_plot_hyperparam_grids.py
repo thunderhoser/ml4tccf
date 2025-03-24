@@ -77,7 +77,7 @@ METRIC_CONVERSION_FACTORS = numpy.array([
 ])
 
 BEST_MARKER_TYPE = '*'
-BEST_MARKER_SIZE_GRID_CELLS = 0.175
+BEST_MARKER_SIZE_GRID_CELLS = 0.1
 WHITE_COLOUR = numpy.full(3, 1.)
 BLACK_COLOUR = numpy.full(3, 0.)
 
@@ -186,7 +186,7 @@ def _get_ssrat_colour_scheme(max_colour_value):
 
 def _plot_scores_2d(
         score_matrix, colour_map_object, colour_norm_object, x_tick_labels,
-        y_tick_labels):
+        y_tick_labels, text_colour, num_decimal_places_in_text):
     """Plots scores on 2-D grid.
 
     M = number of rows in grid
@@ -199,6 +199,9 @@ def _plot_scores_2d(
         `matplotlib.colors.Normalize`.
     :param x_tick_labels: length-N list of tick labels.
     :param y_tick_labels: length-M list of tick labels.
+    :param text_colour: Colour of text labels.
+    :param num_decimal_places_in_text: Number of decimal places in text labels
+        (must be 1 or 2 or 4).
     :return: figure_object: Figure handle (instance of
         `matplotlib.figure.Figure`).
     :return: axes_object: Axes handle (instance of
@@ -225,6 +228,30 @@ def _plot_scores_2d(
     )
     pyplot.xticks(x_tick_values, x_tick_labels, rotation=90.)
     pyplot.yticks(y_tick_values, y_tick_labels)
+
+    for i in range(score_matrix.shape[0]):
+        for j in range(score_matrix.shape[1]):
+            if numpy.isnan(score_matrix[i, j]):
+                continue
+
+            if num_decimal_places_in_text == 4:
+                this_label = '{0:.4f}'.format(score_matrix[i, j])
+                font_size = 15
+            elif num_decimal_places_in_text == 2:
+                this_label = '{0:.2f}'.format(score_matrix[i, j])
+                font_size = 20
+            else:
+                this_label = '{0:.1f}'.format(score_matrix[i, j])
+                font_size = 20
+
+            axes_object.text(
+                j, i, this_label,
+                color=text_colour,
+                fontsize=font_size,
+                fontweight='bold',
+                verticalalignment='center',
+                horizontalalignment='center'
+            )
 
     colour_bar_object = gg_plotting_utils.plot_colour_bar(
         axes_object_or_matrix=axes_object,
@@ -673,11 +700,25 @@ def _run(experiment_dir_name, use_isotonic_regression,
                 )
                 marker_colour = WHITE_COLOUR
 
+            text_colour = (
+                numpy.full(3, 0.) if 'ssrat' in METRIC_NAMES[m]
+                else numpy.full(3, 1.)
+            )
+            if 'ssrat' in METRIC_NAMES[m] or 'mono_fraction' in METRIC_NAMES[m]:
+                num_decimal_places = 2
+            elif 'pit_deviation' in METRIC_NAMES[m]:
+                num_decimal_places = 4
+            else:
+                num_decimal_places = 1
+
             figure_object, axes_object = _plot_scores_2d(
                 score_matrix=metric_matrix[..., k, m],
                 colour_map_object=colour_map_object,
                 colour_norm_object=colour_norm_object,
-                x_tick_labels=x_tick_labels, y_tick_labels=y_tick_labels
+                x_tick_labels=x_tick_labels,
+                y_tick_labels=y_tick_labels,
+                text_colour=text_colour,
+                num_decimal_places_in_text=num_decimal_places
             )
 
             best_indices = numpy.unravel_index(
