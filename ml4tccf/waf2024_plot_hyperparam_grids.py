@@ -236,15 +236,18 @@ def _plot_scores_2d(
 
             if num_decimal_places_in_text == 4:
                 this_label = '{0:.4f}'.format(score_matrix[i, j])
+                font_size = 25
             elif num_decimal_places_in_text == 2:
                 this_label = '{0:.2f}'.format(score_matrix[i, j])
+                font_size = 30
             else:
                 this_label = '{0:.1f}'.format(score_matrix[i, j])
+                font_size = 30
 
             axes_object.text(
                 j, i, this_label,
                 color=text_colour,
-                fontsize=20,
+                fontsize=font_size,
                 fontweight='bold',
                 verticalalignment='center',
                 horizontalalignment='center'
