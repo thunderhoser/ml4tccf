@@ -78,7 +78,7 @@ METRIC_CONVERSION_FACTORS = numpy.array([
 
 BEST_MARKER_TYPE = '*'
 BEST_MARKER_SIZE_GRID_CELLS = 0.1
-WHITE_COLOUR = numpy.full(3, 1.)
+RED_COLOUR = numpy.array([1, 0, 0.])
 BLACK_COLOUR = numpy.full(3, 0.)
 
 SELECTED_MARKER_TYPE = 'o'
@@ -236,18 +236,15 @@ def _plot_scores_2d(
 
             if num_decimal_places_in_text == 4:
                 this_label = '{0:.4f}'.format(score_matrix[i, j])
-                font_size = 15
             elif num_decimal_places_in_text == 2:
                 this_label = '{0:.2f}'.format(score_matrix[i, j])
-                font_size = 20
             else:
                 this_label = '{0:.1f}'.format(score_matrix[i, j])
-                font_size = 20
 
             axes_object.text(
                 j, i, this_label,
                 color=text_colour,
-                fontsize=font_size,
+                fontsize=20,
                 fontweight='bold',
                 verticalalignment='center',
                 horizontalalignment='center'
@@ -652,7 +649,7 @@ def _run(experiment_dir_name, use_isotonic_regression,
                 best_linear_index = numpy.nanargmax(
                     numpy.ravel(metric_matrix[..., m])
                 )
-                marker_colour = BLACK_COLOUR
+                marker_colour = RED_COLOUR
 
             elif 'ssrat' in METRIC_NAMES[m]:
                 if not numpy.any(metric_matrix[..., m] > 1):
@@ -698,12 +695,8 @@ def _run(experiment_dir_name, use_isotonic_regression,
                 best_linear_index = numpy.nanargmin(
                     numpy.ravel(metric_matrix[..., m])
                 )
-                marker_colour = WHITE_COLOUR
+                marker_colour = RED_COLOUR
 
-            text_colour = (
-                numpy.full(3, 0.) if 'ssrat' in METRIC_NAMES[m]
-                else numpy.full(3, 1.)
-            )
             if 'ssrat' in METRIC_NAMES[m] or 'mono_fraction' in METRIC_NAMES[m]:
                 num_decimal_places = 2
             elif 'pit_deviation' in METRIC_NAMES[m]:
@@ -717,7 +710,7 @@ def _run(experiment_dir_name, use_isotonic_regression,
                 colour_norm_object=colour_norm_object,
                 x_tick_labels=x_tick_labels,
                 y_tick_labels=y_tick_labels,
-                text_colour=text_colour,
+                text_colour=marker_colour,
                 num_decimal_places_in_text=num_decimal_places
             )
 
@@ -739,7 +732,7 @@ def _run(experiment_dir_name, use_isotonic_regression,
                     markersize=marker_size_px, markeredgewidth=0,
                     markerfacecolor=marker_colour,
                     markeredgecolor=marker_colour,
-                    alpha=0.5
+                    alpha=0.666
                 )
 
             if SELECTED_MARKER_INDICES[2] == k:
@@ -752,7 +745,7 @@ def _run(experiment_dir_name, use_isotonic_regression,
                     markersize=marker_size_px, markeredgewidth=0,
                     markerfacecolor=marker_colour,
                     markeredgecolor=marker_colour,
-                    alpha=0.5
+                    alpha=0.666
                 )
 
             axes_object.set_xlabel(x_axis_label)
