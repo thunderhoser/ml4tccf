@@ -25,7 +25,7 @@ PATHLESS_FILE_PATTERNS = [
     'num-examples_by-*.jpg'
 ]
 
-CONVERT_EXE_NAME = '/usr/bin/convert'
+CONVERT_EXE_NAME = 'convert'
 TITLE_FONT_SIZE = 250
 TITLE_FONT_NAME = 'DejaVu-Sans-Bold'
 
