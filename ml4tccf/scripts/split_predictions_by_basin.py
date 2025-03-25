@@ -52,7 +52,7 @@ def _write_scalar_predictions_1basin(prediction_table_1basin_xarray,
     """
 
     all_cyclone_id_strings = numpy.array([
-        s.decode('utf-8') for s in
+        misc_utils.string_to_utf8(s) for s in
         prediction_table_1basin_xarray[
             scalar_prediction_utils.CYCLONE_ID_KEY
         ].values
@@ -161,7 +161,7 @@ def _run(input_prediction_file_pattern, top_output_prediction_dir_name):
 
     cyclone_id_strings = pt[scalar_prediction_utils.CYCLONE_ID_KEY].values
     basin_id_strings = numpy.array([
-        misc_utils.parse_cyclone_id(c.decode('utf-8'))[1]
+        misc_utils.parse_cyclone_id(misc_utils.string_to_utf8(c))[1]
         for c in cyclone_id_strings
     ])
     unique_basin_id_strings = numpy.unique(basin_id_strings)

@@ -8,6 +8,7 @@ from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from ml4tccf.io import a_deck_io
 from ml4tccf.io import prediction_io
+from ml4tccf.utils import misc_utils
 from ml4tccf.utils import scalar_prediction_utils
 from ml4tccf.machine_learning import neural_net_training_cira_ir as nn_training
 from ml4tccf.scripts import split_predictions_by_basin as split_by_basin
@@ -130,16 +131,10 @@ def _run(input_prediction_file_pattern, a_deck_file_name,
         a_deck_table_xarray
     )
     a_deck_times_unix_sec = a_deck_table_xarray[a_deck_io.VALID_TIME_KEY]
-
-    try:
-        a_deck_cyclone_id_strings = numpy.array([
-            s.decode('utf-8')
-            for s in a_deck_table_xarray[a_deck_io.CYCLONE_ID_KEY].values
-        ])
-    except AttributeError:
-        a_deck_cyclone_id_strings = (
-            a_deck_table_xarray[a_deck_io.CYCLONE_ID_KEY].values
-        )
+    a_deck_cyclone_id_strings = numpy.array([
+        misc_utils.string_to_utf8(s)
+        for s in a_deck_table_xarray[a_deck_io.CYCLONE_ID_KEY].values
+    ])
 
     # Find storm type corresponding to each prediction.
     num_examples = len(pt[scalar_prediction_utils.TARGET_TIME_KEY].values)
@@ -154,8 +149,8 @@ def _run(input_prediction_file_pattern, a_deck_file_name,
                 i, num_examples
             ))
 
-        this_cyclone_id_string = (
-            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i].decode('utf-8')
+        this_cyclone_id_string = misc_utils.string_to_utf8(
+            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i]
         )
         this_time_unix_sec = (
             pt[scalar_prediction_utils.TARGET_TIME_KEY].values[i]
