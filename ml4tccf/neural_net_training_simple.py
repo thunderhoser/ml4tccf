@@ -3462,8 +3462,8 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
         target_times_unix_sec=chosen_target_times_unix_sec,
         lag_times_minutes=lag_times_minutes,
         low_res_wavelengths_microns=low_res_wavelengths_microns,
-        num_rows_low_res=None,
-        num_columns_low_res=None,
+        num_rows_low_res=500,  # TODO(thunderhoser): HACK
+        num_columns_low_res=500,  # TODO(thunderhoser): HACK
         return_coords=True
     )
 
