@@ -15,10 +15,18 @@ sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
 import file_system_utils
 import imagemagick_utils
 
+# PATHLESS_FILE_NAMES = [
+#     'evaluation/attributes_diagram_x-offset-metres.jpg',
+#     'evaluation/attributes_diagram_y-offset-metres.jpg',
+#     'evaluation/attributes_diagram_offset-distance-metres.jpg',
+#     'error_heat_map/model_error_heat_map.jpg',
+#     'error_histograms/model_error_histogram_euclidean.jpg'
+# ]
+
 PATHLESS_FILE_NAMES = [
-    'evaluation/attributes_diagram_x-offset-metres.jpg',
-    'evaluation/attributes_diagram_y-offset-metres.jpg',
-    'evaluation/attributes_diagram_offset-distance-metres.jpg',
+    'evaluation_no_bootstrap/attributes_diagram_x-offset-metres.jpg',
+    'evaluation_no_bootstrap/attributes_diagram_y-offset-metres.jpg',
+    'evaluation_no_bootstrap/attributes_diagram_offset-distance-metres.jpg',
     'error_heat_map/model_error_heat_map.jpg',
     'error_histograms/model_error_histogram_euclidean.jpg'
 ]
