@@ -20,9 +20,14 @@ import neural_net_utils as nn_utils
 import apply_neural_net_step1_preprocessing as preprocessing
 
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+TOLERANCE = 1e-6
 
 LARGE_INTEGER = int(1e10)
 NUM_EXAMPLES_PER_BATCH = 10
+
+ALL_WAVELENGTHS_MICRONS = numpy.array([
+    3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
+])
 
 MODEL_FILE_ARG_NAME = 'input_model_file_name'
 EXAMPLE_DIR_ARG_NAME = 'input_example_dir_name'
@@ -135,6 +140,39 @@ def _run(model_file_name, example_dir_name, cyclone_id_string, output_dir_name):
             predictor_matrices[0][..., -num_lag_times_in_model:, :]
         )
 
+    num_wavelengths_in_file = predictor_matrices[0].shape[-1]
+    wavelengths_in_model_microns = vod[nn_utils.LOW_RES_WAVELENGTHS_KEY]
+    assert not len(wavelengths_in_model_microns) > num_wavelengths_in_file
+
+    if len(wavelengths_in_model_microns) < num_wavelengths_in_file:
+        assert num_wavelengths_in_file == len(ALL_WAVELENGTHS_MICRONS)
+
+        # TODO(thunderhoser): Subsetting by wavelengths is HACKY.  I assume that
+        # if the file contains 10 lag times and the model takes K < 10 lag
+        # times, the the lag times in the file are `ALL_WAVELENGTHS_MICRONS`.
+        warning_string = (
+            'Subsetting by wavelengths is HACKY.  I assume that if the file '
+            'contains {0:d} lag times and the model takes K < {0:d} lag times, '
+            'the lag times in the file are as follows (microns):\n{1:s}'
+        ).format(len(ALL_WAVELENGTHS_MICRONS), str(ALL_WAVELENGTHS_MICRONS))
+
+        warnings.warn(warning_string)
+
+        print((
+            'Subsetting satellite predictors from {0:d} to {1:d} wavelengths...'
+        ).format(
+            num_wavelengths_in_file, len(wavelengths_in_model_microns)
+        ))
+
+        good_indices = numpy.array([
+            numpy.where(
+                numpy.absolute(w - ALL_WAVELENGTHS_MICRONS) < TOLERANCE
+            )[0][0]
+            for w in wavelengths_in_model_microns
+        ], dtype=int)
+
+        predictor_matrices[0] = predictor_matrices[0][..., good_indices]
+
     num_grid_rows_in_file = predictor_matrices[0].shape[1]
     num_grid_rows_in_model = vod[nn_utils.NUM_GRID_ROWS_KEY]
     assert not num_grid_rows_in_model > num_grid_rows_in_file
@@ -198,27 +236,20 @@ def _run(model_file_name, example_dir_name, cyclone_id_string, output_dir_name):
 
     print(SEPARATOR_STRING)
 
-    prediction_matrix = nn_utils.apply_model(
-        model_object=model_object,
-        predictor_matrices=predictor_matrices,
-        num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-        verbose=True
-    )
-
-    # try:
-    #     prediction_matrix = nn_utils.apply_model(
-    #         model_object=model_object,
-    #         predictor_matrices=predictor_matrices,
-    #         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-    #         verbose=True
-    #     )
-    # except:
-    #     prediction_matrix = nn_utils.apply_model(
-    #         model_object=model_object,
-    #         predictor_matrices=[predictor_matrices[0]],
-    #         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-    #         verbose=True
-    #     )
+    try:
+        prediction_matrix = nn_utils.apply_model(
+            model_object=model_object,
+            predictor_matrices=predictor_matrices,
+            num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+            verbose=True
+        )
+    except:
+        prediction_matrix = nn_utils.apply_model(
+            model_object=model_object,
+            predictor_matrices=[predictor_matrices[0]],
+            num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+            verbose=True
+        )
 
     print(SEPARATOR_STRING)
     del predictor_matrices
