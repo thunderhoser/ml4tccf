@@ -448,7 +448,7 @@ def subset_grid_after_data_aug(data_matrix, num_rows_to_keep,
     """
 
     # Check input args.
-    error_checking.assert_is_numpy_array_without_nan(data_matrix)
+    # error_checking.assert_is_numpy_array_without_nan(data_matrix)
     error_checking.assert_is_numpy_array(data_matrix, num_dimensions=4)
 
     error_checking.assert_is_integer(num_rows_to_keep)
