@@ -1,0 +1,583 @@
+"""Step 1 for two-step NN inference: create example files."""
+
+import os
+import sys
+import argparse
+import numpy
+
+THIS_DIRECTORY_NAME = os.path.dirname(os.path.realpath(
+    os.path.join(os.getcwd(), os.path.expanduser(__file__))
+))
+sys.path.append(os.path.normpath(os.path.join(THIS_DIRECTORY_NAME, '..')))
+
+import file_system_utils
+import error_checking
+import misc_utils
+import neural_net_utils as nn_utils
+import neural_net_training_cira_ir as nn_training_cira_ir
+import neural_net_training_simple as nn_training_simple
+import neural_net_training_fancy as nn_training_fancy
+
+SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+LARGE_INTEGER = int(1e10)
+
+ALL_WAVELENGTHS_MICRONS = numpy.array([
+    3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
+])
+
+MODEL_FILE_ARG_NAME = 'input_model_file_name'
+SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
+A_DECK_FILE_ARG_NAME = 'input_a_deck_file_name'
+CYCLONE_ID_ARG_NAME = 'cyclone_id_string'
+SHORT_TRACK_DIR_ARG_NAME = 'input_short_track_dir_name'
+SHORT_TRACK_MAX_LEAD_ARG_NAME = 'short_track_max_lead_minutes'
+SHORT_TRACK_DIFF_CENTERS_ARG_NAME = 'short_track_center_each_lag_diffly'
+NUM_TRANSLATIONS_ARG_NAME = 'data_aug_num_translations'
+MEAN_TRANSLATION_DIST_ARG_NAME = 'data_aug_mean_translation_low_res_px'
+STDEV_TRANSLATION_DIST_ARG_NAME = 'data_aug_stdev_translation_low_res_px'
+DATA_AUG_UNIFORM_DIST_ARG_NAME = 'data_aug_uniform_dist_flag'
+MEAN_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_mean_trans_px'
+STDEV_TRANS_DIST_WITHIN_ARG_NAME = 'data_aug_within_stdev_trans_px'
+DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME = 'data_aug_within_uniform_dist_flag'
+RANDOM_SEED_ARG_NAME = 'random_seed'
+REMOVE_TROPICAL_SYSTEMS_ARG_NAME = 'remove_tropical_systems'
+SYNOPTIC_TIMES_ONLY_ARG_NAME = 'synoptic_times_only'
+USE_ALL_WAVELENGTHS_ARG_NAME = 'use_all_wavelengths'
+OUTPUT_DIR_ARG_NAME = 'output_dir_name'
+
+MODEL_FILE_HELP_STRING = (
+    'Path to trained model (will be read by `nn_utils.read_model`).'
+)
+SATELLITE_DIR_HELP_STRING = (
+    'Name of directory with satellite (predictor) data.  Files therein will be '
+    'found by `satellite_io.find_file` and read by `satellite_io.read_file`.'
+)
+A_DECK_FILE_HELP_STRING = (
+    'Name of file with ATCF (A-deck) scalars.  This file will be read by '
+    '`a_deck_io.read_file`.'
+)
+CYCLONE_ID_HELP_STRING = (
+    'Will apply neural net to data from this cyclone.  Cyclone ID must be in '
+    'format "yyyyBBnn".'
+)
+SHORT_TRACK_DIR_HELP_STRING = (
+    'Path to directory with short-track data (files therein will be found by '
+    '`short_track_io.find_file` and read by `short_track_io.read_file`).  To '
+    'use the same setting as during training, leave this argument alone.  To '
+    'omit short track in the first guess and use random translations only, '
+    'make this argument the empty string "".'
+)
+SHORT_TRACK_MAX_LEAD_HELP_STRING = (
+    '[used only if `{0:s}` is specified] Max lead time for short-track '
+    'forecasts (any longer-lead forecast will not be used in first guess).  To '
+    'use the same setting as during training, leave this argument alone.'
+).format(
+    SHORT_TRACK_DIR_ARG_NAME
+)
+SHORT_TRACK_DIFF_CENTERS_HELP_STRING = (
+    '[used only if `{0:s}` is specified] Boolean flag.  If 1 (0), for a given '
+    'data sample, the first guess will involve a different (the same) lat/long '
+    'center for each lag time.  To use the same setting as during training, '
+    'leave this argument alone.'
+).format(
+    SHORT_TRACK_DIR_ARG_NAME
+)
+NUM_TRANSLATIONS_HELP_STRING = (
+    'Number of translations for each TC object.  Total number of data samples '
+    'will be num_tc_objects * {0:s}.'
+).format(
+    NUM_TRANSLATIONS_ARG_NAME
+)
+MEAN_TRANSLATION_DIST_HELP_STRING = (
+    'Mean whole-track translation distance (units of IR pixels, or low-res '
+    'pixels).  To use the same setting as during training, leave this argument '
+    'alone.'
+)
+STDEV_TRANSLATION_DIST_HELP_STRING = (
+    'Standard deviation of whole-track translation distance (units of IR '
+    'pixels, or low-res pixels).  To use the same setting as during training, '
+    'leave this argument alone.'
+)
+DATA_AUG_UNIFORM_DIST_HELP_STRING = (
+    'Boolean flag.  If 1, whole-track translation distances will actually be '
+    'drawn from a uniform distribution, with min of 0 pixels and max of '
+    '{0:s} + 3 * {1:s}.  If 0, whole-track translation distances will actually '
+    'be drawn from Gaussian.  To use the same setting as during training, '
+    'leave this argument alone.'
+).format(
+    MEAN_TRANSLATION_DIST_ARG_NAME, STDEV_TRANSLATION_DIST_ARG_NAME
+)
+MEAN_TRANS_DIST_WITHIN_HELP_STRING = (
+    'Mean within-track translation distance (units of IR pixels, or low-res '
+    'pixels).  To use the same setting as during training, leave this argument '
+    'alone.'
+)
+STDEV_TRANS_DIST_WITHIN_HELP_STRING = (
+    'Standard deviation of within-track translation distance (units of IR '
+    'pixels, or low-res pixels).  To use the same setting as during training, '
+    'leave this argument alone.'
+)
+DATA_AUG_WITHIN_UNIFORM_DIST_HELP_STRING = (
+    'Boolean flag.  If 1, within-track translation distances will actually be '
+    'drawn from a uniform distribution, with min of 0 pixels and max of '
+    '{0:s} + 3 * {1:s}.  If 0, within-track translation distances will '
+    'actually be drawn from Gaussian.  To use the same setting as during '
+    'training, leave this argument alone.'
+).format(
+    MEAN_TRANS_DIST_WITHIN_ARG_NAME, STDEV_TRANS_DIST_WITHIN_ARG_NAME
+)
+RANDOM_SEED_HELP_STRING = (
+    'Random seed.  This will determine, among other things, the exact '
+    'translations used in data augmentation.  For example, suppose you want to '
+    'ensure that for a given cyclone object, two models see the same random '
+    'translations.  Then you would set this seed to be equal for the two '
+    'models.'
+)
+REMOVE_TROPICAL_SYSTEMS_HELP_STRING = (
+    'Boolean flag.  If 1, the NN will be applied only to non-tropical systems, '
+    'regardless of how it was trained.'
+)
+SYNOPTIC_TIMES_ONLY_HELP_STRING = (
+    'Boolean flag.  If 1, only synoptic times can be target times.  If 0, any '
+    '10-min time step can be a target time.'
+)
+USE_ALL_WAVELENGTHS_HELP_STRING = (
+    'Boolean flag.  If 1, will use all wavelengths.  If 0, will use only those '
+    'used in model-training.'
+)
+OUTPUT_DIR_HELP_STRING = (
+    'Name of output directory.  Results will be written by '
+    '`scalar_prediction_io.write_file` or `gridded_prediction_io.write_file`, '
+    'to a location in this directory determined by `prediction_io.find_file`.  '
+    'If you would rather specify the file path directly, leave this argument '
+    'alone.'
+)
+
+INPUT_ARG_PARSER = argparse.ArgumentParser()
+INPUT_ARG_PARSER.add_argument(
+    '--' + MODEL_FILE_ARG_NAME, type=str, required=True,
+    help=MODEL_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SATELLITE_DIR_ARG_NAME, type=str, required=True,
+    help=SATELLITE_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + A_DECK_FILE_ARG_NAME, type=str, required=True,
+    help=A_DECK_FILE_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + CYCLONE_ID_ARG_NAME, type=str, required=True,
+    help=CYCLONE_ID_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SHORT_TRACK_DIR_ARG_NAME, type=str, required=False, default='same',
+    help=SHORT_TRACK_DIR_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SHORT_TRACK_MAX_LEAD_ARG_NAME, type=int, required=False, default=-1,
+    help=SHORT_TRACK_MAX_LEAD_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SHORT_TRACK_DIFF_CENTERS_ARG_NAME, type=int, required=False,
+    default=-2, help=SHORT_TRACK_DIFF_CENTERS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + NUM_TRANSLATIONS_ARG_NAME, type=int, required=True,
+    help=NUM_TRANSLATIONS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MEAN_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
+    default=-1., help=MEAN_TRANSLATION_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + STDEV_TRANSLATION_DIST_ARG_NAME, type=float, required=False,
+    default=-1., help=STDEV_TRANSLATION_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + DATA_AUG_UNIFORM_DIST_ARG_NAME, type=int, required=False,
+    default=-1, help=DATA_AUG_UNIFORM_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + MEAN_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=False,
+    default=-1., help=MEAN_TRANS_DIST_WITHIN_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + STDEV_TRANS_DIST_WITHIN_ARG_NAME, type=float, required=False,
+    default=-1., help=STDEV_TRANS_DIST_WITHIN_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME, type=int, required=False,
+    default=-1, help=DATA_AUG_WITHIN_UNIFORM_DIST_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + RANDOM_SEED_ARG_NAME, type=int, required=False, default=-1,
+    help=RANDOM_SEED_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + REMOVE_TROPICAL_SYSTEMS_ARG_NAME, type=int, required=False,
+    default=0, help=REMOVE_TROPICAL_SYSTEMS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + SYNOPTIC_TIMES_ONLY_ARG_NAME, type=int, required=False,
+    default=1, help=SYNOPTIC_TIMES_ONLY_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + USE_ALL_WAVELENGTHS_ARG_NAME, type=int, required=False,
+    default=0, help=USE_ALL_WAVELENGTHS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
+    '--' + OUTPUT_DIR_ARG_NAME, type=str, required=True,
+    help=OUTPUT_DIR_HELP_STRING
+)
+
+
+def find_file(directory_name, cyclone_id_string, raise_error_if_missing=True):
+    """Finds file with pre-processed examples (predictors).
+
+    :param directory_name: Name of directory.
+    :param cyclone_id_string: Cyclone ID.
+    :param raise_error_if_missing: Boolean flag.  If file is not found and
+        `raise_error_if_missing == True`, this method will raise an error.  If
+        file is not found and `raise_error_if_missing == False`, this method
+        will return the expected file path.
+    :return: pp_example_file_name: Actual or expected file path.
+    :raises: ValueError: if file is not found and
+        `raise_error_if_missing == True`.
+    """
+
+    error_checking.assert_is_string(directory_name)
+    error_checking.assert_is_boolean(raise_error_if_missing)
+    _ = misc_utils.parse_cyclone_id(cyclone_id_string)
+
+    pp_example_file_name = '{0:s}/pre_processed_examples_{1:s}.npz'.format(
+        directory_name, cyclone_id_string
+    )
+
+    if os.path.isfile(pp_example_file_name):
+        return pp_example_file_name
+
+    if not raise_error_if_missing:
+        return pp_example_file_name
+
+    error_string = (
+        'Cannot find file with pre-processed examples.  Expected at: "{0:s}"'
+    ).format(
+        pp_example_file_name
+    )
+    raise ValueError(error_string)
+
+
+def write_file(
+        npz_file_name, predictor_matrices, target_matrix, grid_spacings_km,
+        cyclone_center_latitudes_deg_n, target_times_unix_sec):
+    """Writes pre-processed examples to .npz file.
+
+    E = number of data examples
+
+    :param npz_file_name: Path to output file.
+    :param predictor_matrices: 1-D list of numpy arrays.  The first axis of
+        every array must have length E.
+    :param target_matrix: numpy array of target values; the first axis must have
+        length E.
+    :param grid_spacings_km: length-E numpy array of grid spacings.
+    :param cyclone_center_latitudes_deg_n: length-E numpy array of true center
+        latitudes (deg north).
+    :param target_times_unix_sec: length-E numpy array of target times.
+    """
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=npz_file_name)
+
+    if len(predictor_matrices) == 2:
+        numpy.savez(
+            npz_file_name,
+            arr1=target_matrix,
+            arr2=grid_spacings_km,
+            arr3=cyclone_center_latitudes_deg_n,
+            arr4=target_times_unix_sec,
+            arr5=predictor_matrices[0],
+            arr6=predictor_matrices[1]
+        )
+    else:
+        numpy.savez(
+            npz_file_name,
+            arr1=target_matrix,
+            arr2=grid_spacings_km,
+            arr3=cyclone_center_latitudes_deg_n,
+            arr4=target_times_unix_sec,
+            arr5=predictor_matrices[0]
+        )
+
+
+def read_file(npz_file_name):
+    """Reads pre-processed examples from .npz file.
+
+    E = number of data examples
+
+    :param npz_file_name: Path to input file.
+    :return: predictor_matrices: 1-D list of numpy arrays.  The first axis of
+        every array must have length E.
+    :return: target_matrix: numpy array of target values; the first axis must
+        have length E.
+    :return: grid_spacings_km: length-E numpy array of grid spacings.
+    :return: cyclone_center_latitudes_deg_n: length-E numpy array of true center
+        latitudes (deg north).
+    :return: target_times_unix_sec: length-E numpy array of target times.
+    """
+
+    predictor_dict = numpy.load(npz_file_name)
+    target_matrix = predictor_dict['arr1']
+    grid_spacings_km = predictor_dict['arr2']
+    cyclone_center_latitudes_deg_n = predictor_dict['arr3']
+    target_times_unix_sec = predictor_dict['arr4']
+
+    predictor_matrices = [predictor_dict['arr5']]
+    if 'arr6' in predictor_dict:
+        predictor_matrices.append(predictor_dict['arr6'])
+
+    return (
+        predictor_matrices,
+        target_matrix,
+        grid_spacings_km,
+        cyclone_center_latitudes_deg_n,
+        target_times_unix_sec
+    )
+
+
+def _run(model_file_name, satellite_dir_name, a_deck_file_name,
+         cyclone_id_string,
+         short_track_dir_name, short_track_max_lead_minutes,
+         short_track_center_each_lag_diffly, data_aug_num_translations,
+         data_aug_mean_translation_low_res_px,
+         data_aug_stdev_translation_low_res_px, data_aug_uniform_dist_flag,
+         data_aug_within_mean_trans_px, data_aug_within_stdev_trans_px,
+         data_aug_within_uniform_dist_flag,
+         random_seed, remove_tropical_systems, synoptic_times_only,
+         use_all_wavelengths, output_dir_name):
+    """Step 1 for two-step NN inference: create example files.
+
+    This is effectively the main method.
+
+    :param model_file_name: See documentation at top of file.
+    :param satellite_dir_name: Same.
+    :param a_deck_file_name: Same.
+    :param cyclone_id_string: Same.
+    :param short_track_dir_name: Same.
+    :param short_track_max_lead_minutes: Same.
+    :param short_track_center_each_lag_diffly: Same.
+    :param data_aug_num_translations: Same.
+    :param data_aug_mean_translation_low_res_px: Same.
+    :param data_aug_stdev_translation_low_res_px: Same.
+    :param data_aug_uniform_dist_flag: Same.
+    :param data_aug_within_mean_trans_px: Same.
+    :param data_aug_within_stdev_trans_px: Same.
+    :param data_aug_within_uniform_dist_flag: Same.
+    :param random_seed: Same.
+    :param remove_tropical_systems: Same.
+    :param synoptic_times_only: Same.
+    :param use_all_wavelengths: Same.
+    :param output_dir_name: Same.
+    """
+
+    output_file_name = find_file(
+        directory_name=output_dir_name,
+        cyclone_id_string=cyclone_id_string,
+        raise_error_if_missing=False
+    )
+
+    if os.path.isfile(output_file_name):
+        return
+
+    if random_seed != -1:
+        numpy.random.seed(random_seed)
+
+    if short_track_dir_name == 'same':
+        short_track_dir_name = None
+    if short_track_max_lead_minutes <= 0:
+        short_track_max_lead_minutes = None
+    if short_track_center_each_lag_diffly < 0:
+        short_track_center_each_lag_diffly = None
+    else:
+        short_track_center_each_lag_diffly = bool(
+            short_track_center_each_lag_diffly
+        )
+
+    if data_aug_mean_translation_low_res_px < 0:
+        data_aug_mean_translation_low_res_px = None
+    if data_aug_stdev_translation_low_res_px < 0:
+        data_aug_stdev_translation_low_res_px = None
+    if data_aug_within_mean_trans_px < 0:
+        data_aug_within_mean_trans_px = None
+    if data_aug_within_stdev_trans_px < 0:
+        data_aug_within_stdev_trans_px = None
+
+    if data_aug_uniform_dist_flag < 0:
+        data_aug_uniform_dist_flag = None
+    else:
+        data_aug_uniform_dist_flag = bool(data_aug_uniform_dist_flag)
+
+    if data_aug_within_uniform_dist_flag < 0:
+        data_aug_within_uniform_dist_flag = None
+    else:
+        data_aug_within_uniform_dist_flag = bool(
+            data_aug_within_uniform_dist_flag
+        )
+
+    error_checking.assert_is_geq(data_aug_num_translations, 1)
+
+    model_metafile_name = nn_utils.find_metafile(
+        model_dir_name=os.path.split(model_file_name)[0],
+        raise_error_if_missing=True
+    )
+
+    print('Reading metadata from: "{0:s}"...'.format(model_metafile_name))
+    model_metadata_dict = nn_utils.read_metafile(model_metafile_name)
+    vod = model_metadata_dict[nn_utils.VALIDATION_OPTIONS_KEY]
+
+    vod[nn_utils.SATELLITE_DIRECTORY_KEY] = satellite_dir_name
+    vod[nn_utils.A_DECK_FILE_KEY] = a_deck_file_name
+    vod[nn_utils.DATA_AUG_NUM_TRANS_KEY] = data_aug_num_translations
+
+    if short_track_dir_name is not None:
+        vod[nn_training_simple.SHORT_TRACK_DIR_KEY] = short_track_dir_name
+    if short_track_max_lead_minutes is not None:
+        vod[nn_training_simple.SHORT_TRACK_MAX_LEAD_KEY] = (
+            short_track_max_lead_minutes
+        )
+    if short_track_center_each_lag_diffly is not None:
+        vod[nn_training_simple.SHORT_TRACK_DIFF_CENTERS_KEY] = (
+            short_track_center_each_lag_diffly
+        )
+    if data_aug_mean_translation_low_res_px is not None:
+        vod[nn_utils.DATA_AUG_MEAN_TRANS_KEY] = (
+            data_aug_mean_translation_low_res_px
+        )
+    if data_aug_stdev_translation_low_res_px is not None:
+        vod[nn_utils.DATA_AUG_STDEV_TRANS_KEY] = (
+            data_aug_stdev_translation_low_res_px
+        )
+    if data_aug_within_mean_trans_px is not None:
+        vod[nn_training_simple.DATA_AUG_WITHIN_MEAN_TRANS_KEY] = (
+            data_aug_within_mean_trans_px
+        )
+    if data_aug_within_stdev_trans_px is not None:
+        vod[nn_training_simple.DATA_AUG_WITHIN_STDEV_TRANS_KEY] = (
+            data_aug_within_stdev_trans_px
+        )
+    if data_aug_uniform_dist_flag is not None:
+        vod[nn_training_simple.DATA_AUG_UNIFORM_DIST_KEY] = (
+            data_aug_uniform_dist_flag
+        )
+    if data_aug_within_uniform_dist_flag is not None:
+        vod[nn_training_simple.DATA_AUG_WITHIN_UNIFORM_DIST_KEY] = (
+            data_aug_within_uniform_dist_flag
+        )
+
+    if remove_tropical_systems:
+        vod[nn_utils.REMOVE_TROPICAL_KEY] = True
+        vod[nn_utils.REMOVE_NONTROPICAL_KEY] = False
+
+    vod[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = synoptic_times_only
+    if use_all_wavelengths:
+        vod[nn_utils.LOW_RES_WAVELENGTHS_KEY] = ALL_WAVELENGTHS_MICRONS
+
+    validation_option_dict = vod
+
+    data_type_string = model_metadata_dict[nn_utils.DATA_TYPE_KEY]
+
+    if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
+        data_dict = nn_training_cira_ir.create_data(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            num_target_times=LARGE_INTEGER
+        )
+    elif data_type_string == nn_utils.RG_SIMPLE_DATA_TYPE_STRING:
+        data_dict = nn_training_simple.create_data(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            num_target_times=LARGE_INTEGER
+        )
+    else:
+        data_dict = nn_training_fancy.create_data(
+            option_dict=validation_option_dict,
+            cyclone_id_string=cyclone_id_string,
+            num_target_times=LARGE_INTEGER
+        )
+
+    if data_dict is None:
+        return
+
+    predictor_matrices = data_dict[nn_utils.PREDICTOR_MATRICES_KEY]
+    target_matrix = data_dict[nn_utils.TARGET_MATRIX_KEY]
+    grid_spacings_km = data_dict[nn_utils.GRID_SPACINGS_KEY]
+    cyclone_center_latitudes_deg_n = data_dict[nn_utils.CENTER_LATITUDES_KEY]
+    target_times_unix_sec = data_dict[nn_utils.TARGET_TIMES_KEY]
+
+    if len(target_matrix.shape) == 4:
+        target_matrix = target_matrix[..., 0]
+
+    print(SEPARATOR_STRING)
+
+    print('Writing pre-processed examples to: "{0:s}"...'.format(
+        output_file_name
+    ))
+    write_file(
+        npz_file_name=output_file_name,
+        target_matrix=target_matrix,
+        grid_spacings_km=grid_spacings_km,
+        cyclone_center_latitudes_deg_n=cyclone_center_latitudes_deg_n,
+        target_times_unix_sec=target_times_unix_sec,
+        predictor_matrices=predictor_matrices,
+    )
+
+
+if __name__ == '__main__':
+    INPUT_ARG_OBJECT = INPUT_ARG_PARSER.parse_args()
+
+    _run(
+        model_file_name=getattr(INPUT_ARG_OBJECT, MODEL_FILE_ARG_NAME),
+        satellite_dir_name=getattr(INPUT_ARG_OBJECT, SATELLITE_DIR_ARG_NAME),
+        a_deck_file_name=getattr(INPUT_ARG_OBJECT, A_DECK_FILE_ARG_NAME),
+        cyclone_id_string=getattr(INPUT_ARG_OBJECT, CYCLONE_ID_ARG_NAME),
+        short_track_dir_name=getattr(
+            INPUT_ARG_OBJECT, SHORT_TRACK_DIR_ARG_NAME
+        ),
+        short_track_max_lead_minutes=getattr(
+            INPUT_ARG_OBJECT, SHORT_TRACK_MAX_LEAD_ARG_NAME
+        ),
+        short_track_center_each_lag_diffly=getattr(
+            INPUT_ARG_OBJECT, SHORT_TRACK_DIFF_CENTERS_ARG_NAME
+        ),
+        data_aug_num_translations=getattr(
+            INPUT_ARG_OBJECT, NUM_TRANSLATIONS_ARG_NAME
+        ),
+        data_aug_mean_translation_low_res_px=getattr(
+            INPUT_ARG_OBJECT, MEAN_TRANSLATION_DIST_ARG_NAME
+        ),
+        data_aug_stdev_translation_low_res_px=getattr(
+            INPUT_ARG_OBJECT, STDEV_TRANSLATION_DIST_ARG_NAME
+        ),
+        data_aug_uniform_dist_flag=getattr(
+            INPUT_ARG_OBJECT, DATA_AUG_UNIFORM_DIST_ARG_NAME
+        ),
+        data_aug_within_mean_trans_px=getattr(
+            INPUT_ARG_OBJECT, MEAN_TRANS_DIST_WITHIN_ARG_NAME
+        ),
+        data_aug_within_stdev_trans_px=getattr(
+            INPUT_ARG_OBJECT, STDEV_TRANS_DIST_WITHIN_ARG_NAME
+        ),
+        data_aug_within_uniform_dist_flag=getattr(
+            INPUT_ARG_OBJECT, DATA_AUG_WITHIN_UNIFORM_DIST_ARG_NAME
+        ),
+        random_seed=getattr(INPUT_ARG_OBJECT, RANDOM_SEED_ARG_NAME),
+        remove_tropical_systems=bool(
+            getattr(INPUT_ARG_OBJECT, REMOVE_TROPICAL_SYSTEMS_ARG_NAME)
+        ),
+        synoptic_times_only=bool(
+            getattr(INPUT_ARG_OBJECT, SYNOPTIC_TIMES_ONLY_ARG_NAME)
+        ),
+        use_all_wavelengths=bool(
+            getattr(INPUT_ARG_OBJECT, USE_ALL_WAVELENGTHS_ARG_NAME)
+        ),
+        output_dir_name=getattr(INPUT_ARG_OBJECT, OUTPUT_DIR_ARG_NAME),
+    )
