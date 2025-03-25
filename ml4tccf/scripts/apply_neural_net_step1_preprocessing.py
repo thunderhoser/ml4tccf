@@ -17,7 +17,7 @@ from ml4tccf.machine_learning import \
 SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
 LARGE_INTEGER = int(1e10)
 
-ALL_WAVELENGTHS_METRES = 1e-6 * numpy.array([
+ALL_WAVELENGTHS_MICRONS = numpy.array([
     3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
 ])
 
@@ -466,7 +466,7 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
 
     vod[nn_utils.SYNOPTIC_TIMES_ONLY_KEY] = synoptic_times_only
     if use_all_wavelengths:
-        vod[nn_utils.LOW_RES_WAVELENGTHS_KEY] = ALL_WAVELENGTHS_METRES
+        vod[nn_utils.LOW_RES_WAVELENGTHS_KEY] = ALL_WAVELENGTHS_MICRONS
 
     validation_option_dict = vod
 

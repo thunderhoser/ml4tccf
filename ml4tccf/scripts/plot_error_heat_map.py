@@ -366,7 +366,7 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
     axes_object.set_yticks(tick_coords_px)
     axes_object.set_yticklabels(tick_coord_labels)
     axes_object.grid(
-        b=True, which='major', axis='both', linestyle='--',
+        which='major', axis='both', linestyle='--',
         linewidth=GRID_LINE_WIDTH, color=GRID_LINE_COLOUR
     )
 
@@ -474,7 +474,7 @@ def _run(prediction_file_pattern, num_xy_error_bins, xy_error_limits_metres,
     axes_object.set_yticks(tick_coords_px)
     axes_object.set_yticklabels(tick_coord_labels)
     axes_object.grid(
-        b=True, which='major', axis='both', linestyle='--',
+        which='major', axis='both', linestyle='--',
         linewidth=GRID_LINE_WIDTH, color=GRID_LINE_COLOUR
     )
 

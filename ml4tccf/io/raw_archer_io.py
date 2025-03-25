@@ -41,6 +41,7 @@ COLUMN_NAMES = [
 
 EBTRK_LATITUDE_KEY = 'ebtrk_latitude_deg_n'
 EBTRK_LONGITUDE_KEY = 'ebtrk_longitude_deg_e'
+EBTRK_INTENSITY_KEY = 'ebtrk_intensity_m_s01'
 
 TIME_FORMAT = '%Y%m%d %H:%M:%S'
 
@@ -213,6 +214,9 @@ def read_file(ascii_file_name, cyclone_id_string, ebtrk_file_name,
     ebtrk_longitudes_deg_e = ebtrk_table_xarray[
         ebtrk_utils.CENTER_LONGITUDE_KEY
     ].values[ebtrk_indices]
+    ebtrk_intensities_m_s01 = ebtrk_table_xarray[
+        ebtrk_utils.MAX_SUSTAINED_WIND_KEY
+    ].values[ebtrk_indices]
 
     return archer_table_xarray.assign({
         EBTRK_LATITUDE_KEY: (
@@ -220,6 +224,9 @@ def read_file(ascii_file_name, cyclone_id_string, ebtrk_file_name,
         ),
         EBTRK_LONGITUDE_KEY: (
             (TIME_DIM,), ebtrk_longitudes_deg_e
+        ),
+        EBTRK_INTENSITY_KEY: (
+            (TIME_DIM,), ebtrk_intensities_m_s01
         )
     })
 
