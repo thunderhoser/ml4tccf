@@ -997,16 +997,10 @@ def match_predictions_to_tc_centers(
     ebtrk_times_unix_sec = (
         HOURS_TO_SECONDS * ebtrk_table_xarray[ebtrk_utils.VALID_TIME_KEY]
     )
-
-    try:
-        ebtrk_cyclone_id_strings = numpy.array([
-            s.decode('utf-8')
-            for s in ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values
-        ])
-    except AttributeError:
-        ebtrk_cyclone_id_strings = (
-            ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values
-        )
+    ebtrk_cyclone_id_strings = numpy.array([
+        string_to_utf8(s)
+        for s in ebtrk_table_xarray[ebtrk_utils.STORM_ID_KEY].values
+    ])
 
     pt = prediction_table_xarray
     num_examples = len(pt[scalar_prediction_utils.TARGET_TIME_KEY].values)
@@ -1021,8 +1015,8 @@ def match_predictions_to_tc_centers(
                 i, num_examples
             ))
 
-        this_cyclone_id_string = (
-            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i].decode('utf-8')
+        this_cyclone_id_string = string_to_utf8(
+            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i]
         )
         this_time_unix_sec = (
             pt[scalar_prediction_utils.TARGET_TIME_KEY].values[i]
@@ -1102,3 +1096,16 @@ def match_predictions_to_tc_centers(
     print(SEPARATOR_STRING)
 
     return zonal_center_coords, meridional_center_coords
+
+
+def string_to_utf8(input_string):
+    """Decodes string to UTF-8.
+
+    :param input_string: String.
+    :return: output_string: String in UTF-8 format.
+    """
+
+    try:
+        return input_string.decode('utf-8')
+    except AttributeError:
+        return input_string

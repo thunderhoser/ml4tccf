@@ -19,6 +19,7 @@ import error_checking
 import prediction_io
 import scalar_prediction_io
 import extended_best_track_io as xbt_io
+import misc_utils
 import scalar_prediction_utils
 import extended_best_track_utils as xbt_utils
 import neural_net_training_cira_ir as nn_training
@@ -112,7 +113,7 @@ def _write_scalar_predictions_1category(prediction_table_1cat_xarray,
     """
 
     all_cyclone_id_strings = numpy.array([
-        s.decode('utf-8') for s in
+        misc_utils.string_to_utf8(s) for s in
         prediction_table_1cat_xarray[
             scalar_prediction_utils.CYCLONE_ID_KEY
         ].values
@@ -342,13 +343,10 @@ def _run(input_prediction_file_pattern, xbt_file_name,
         HOURS_TO_SECONDS * xbt_table_xarray[xbt_utils.VALID_TIME_KEY]
     )
 
-    try:
-        xbt_cyclone_id_strings = numpy.array([
-            s.decode('utf-8')
-            for s in xbt_table_xarray[xbt_utils.STORM_ID_KEY].values
-        ])
-    except AttributeError:
-        xbt_cyclone_id_strings = xbt_table_xarray[xbt_utils.STORM_ID_KEY].values
+    xbt_cyclone_id_strings = numpy.array([
+        misc_utils.string_to_utf8(s)
+        for s in xbt_table_xarray[xbt_utils.STORM_ID_KEY].values
+    ])
 
     # Find intensity corresponding to each prediction.
     num_examples = len(pt[scalar_prediction_utils.TARGET_TIME_KEY].values)
@@ -369,8 +367,8 @@ def _run(input_prediction_file_pattern, xbt_file_name,
                 i, num_examples
             ))
 
-        this_cyclone_id_string = (
-            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i].decode('utf-8')
+        this_cyclone_id_string = misc_utils.string_to_utf8(
+            pt[scalar_prediction_utils.CYCLONE_ID_KEY].values[i]
         )
         this_time_unix_sec = (
             pt[scalar_prediction_utils.TARGET_TIME_KEY].values[i]
