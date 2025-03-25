@@ -42,14 +42,14 @@ j=$SLURM_ARRAY_TASK_ID
 
 while [ $j -le $(( $SLURM_ARRAY_TASK_ID + 5 )) ] && [ $j -lt ${#LATLNG_BIN_STRINGS[@]} ]; do
     python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
-    --input_prediction_file_pattern="${model_dir_name}/testing_gaussian_dist/storm-type=tropical_by_latlng/${latlng_bin_string}/predictions*.nc" \
+    --input_prediction_file_pattern="${model_dir_name}/testing_gaussian_dist/storm-type=tropical_by_latlng/${LATLNG_BIN_STRINGS[$j]}/predictions*.nc" \
     --num_bootstrap_reps=1 \
     --num_xy_offset_bins=100 \
     --xy_offset_limits_metres -100000 100000 \
     --num_offset_distance_bins=50 \
     --offset_distance_limits_metres 0 100000 \
     --num_offset_direction_bins=36 \
-    --output_file_name="${model_dir_name}/testing_gaussian_dist/storm-type=tropical_by_latlng/${latlng_bin_string}/evaluation.nc"
+    --output_file_name="${model_dir_name}/testing_gaussian_dist/storm-type=tropical_by_latlng/${LATLNG_BIN_STRINGS[$j]}/evaluation.nc"
 
     j=$(( $j + 1 ))
 done
