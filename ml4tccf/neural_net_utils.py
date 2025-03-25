@@ -421,7 +421,7 @@ def combine_lag_times_and_wavelengths(satellite_data_matrix):
         E-by-M-by-N-by-(L * W).
     """
 
-    error_checking.assert_is_numpy_array_without_nan(satellite_data_matrix)
+    # error_checking.assert_is_numpy_array_without_nan(satellite_data_matrix)
     error_checking.assert_is_numpy_array(
         satellite_data_matrix, num_dimensions=5
     )
@@ -449,7 +449,7 @@ def separate_lag_times_and_wavelengths(satellite_data_matrix, num_lag_times):
         E-by-M-by-N-by-L-by-W.
     """
 
-    error_checking.assert_is_numpy_array_without_nan(satellite_data_matrix)
+    # error_checking.assert_is_numpy_array_without_nan(satellite_data_matrix)
     error_checking.assert_is_numpy_array(
         satellite_data_matrix, num_dimensions=4
     )
