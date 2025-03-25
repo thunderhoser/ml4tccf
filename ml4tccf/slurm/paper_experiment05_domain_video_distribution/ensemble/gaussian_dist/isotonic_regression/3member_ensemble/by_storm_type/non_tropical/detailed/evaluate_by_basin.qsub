@@ -36,7 +36,7 @@ TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/pa
 model_dir_name="${TOP_MODEL_DIR_NAME}/3member_ensemble"
 echo $model_dir_name
 
-BASIN_STRINGS=("basin=AL" "basin=EP" "basin=WP")
+BASIN_STRINGS=("AL" "EP" "WP")
 j=0
 
 while [ $j -lt ${#WAVELENGTH_GROUP_STRINGS_MICRONS[@]} ]; do
