@@ -1143,6 +1143,7 @@ def get_scores_all_variables(
     mean_prediction_table_xarray = prediction_utils.get_ensemble_mean(
         copy.deepcopy(ensemble_prediction_table_xarray)
     )
+    print(mean_prediction_table_xarray)
 
     ept = ensemble_prediction_table_xarray
     mpt = mean_prediction_table_xarray
