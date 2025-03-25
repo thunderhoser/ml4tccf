@@ -198,20 +198,27 @@ def _run(model_file_name, example_dir_name, cyclone_id_string, output_dir_name):
 
     print(SEPARATOR_STRING)
 
-    try:
-        prediction_matrix = nn_utils.apply_model(
-            model_object=model_object,
-            predictor_matrices=predictor_matrices,
-            num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-            verbose=True
-        )
-    except:
-        prediction_matrix = nn_utils.apply_model(
-            model_object=model_object,
-            predictor_matrices=[predictor_matrices[0]],
-            num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
-            verbose=True
-        )
+    prediction_matrix = nn_utils.apply_model(
+        model_object=model_object,
+        predictor_matrices=predictor_matrices,
+        num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+        verbose=True
+    )
+
+    # try:
+    #     prediction_matrix = nn_utils.apply_model(
+    #         model_object=model_object,
+    #         predictor_matrices=predictor_matrices,
+    #         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+    #         verbose=True
+    #     )
+    # except:
+    #     prediction_matrix = nn_utils.apply_model(
+    #         model_object=model_object,
+    #         predictor_matrices=[predictor_matrices[0]],
+    #         num_examples_per_batch=NUM_EXAMPLES_PER_BATCH,
+    #         verbose=True
+    #     )
 
     print(SEPARATOR_STRING)
     del predictor_matrices
