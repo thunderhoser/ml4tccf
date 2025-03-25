@@ -1,0 +1,51 @@
+#!/bin/bash
+
+#SBATCH --job-name="evaluate_by_xy_coords"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpu"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --array=0-39
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=evaluate_by_xy_coords_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment07_no_atcf/ensemble"
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/ensemble"
+echo $model_dir_name
+
+XY_BIN_STRINGS=("x=-inf_-3000km_y=-inf_+1500km" "x=-3000_-1500km_y=-inf_+1500km" "x=-1500_+000km_y=-inf_+1500km" "x=+000_+1500km_y=-inf_+1500km" "x=+1500_+3000km_y=-inf_+1500km" "x=+3000_+4500km_y=-inf_+1500km" "x=+4500_+infkm_y=-inf_+1500km" "x=all_y=-inf_+1500km" "x=-inf_-3000km_y=+1500_+3000km" "x=-3000_-1500km_y=+1500_+3000km" "x=-1500_+000km_y=+1500_+3000km" "x=+000_+1500km_y=+1500_+3000km" "x=+1500_+3000km_y=+1500_+3000km" "x=+3000_+4500km_y=+1500_+3000km" "x=+4500_+infkm_y=+1500_+3000km" "x=all_y=+1500_+3000km" "x=-inf_-3000km_y=+3000_+4500km" "x=-3000_-1500km_y=+3000_+4500km" "x=-1500_+000km_y=+3000_+4500km" "x=+000_+1500km_y=+3000_+4500km" "x=+1500_+3000km_y=+3000_+4500km" "x=+3000_+4500km_y=+3000_+4500km" "x=+4500_+infkm_y=+3000_+4500km" "x=all_y=+3000_+4500km" "x=-inf_-3000km_y=+4500_+infkm" "x=-3000_-1500km_y=+4500_+infkm" "x=-1500_+000km_y=+4500_+infkm" "x=+000_+1500km_y=+4500_+infkm" "x=+1500_+3000km_y=+4500_+infkm" "x=+3000_+4500km_y=+4500_+infkm" "x=+4500_+infkm_y=+4500_+infkm" "x=all_y=+4500_+infkm" "x=-inf_-3000km_y=all" "x=-3000_-1500km_y=all" "x=-1500_+000km_y=all" "x=+000_+1500km_y=all" "x=+1500_+3000km_y=all" "x=+3000_+4500km_y=all" "x=+4500_+infkm_y=all" "x=all_y=all")
+xy_bin_string=${XY_BIN_STRINGS[$SLURM_ARRAY_TASK_ID]}
+
+python3 -u "${CODE_DIR_NAME}/evaluate_neural_net.py" \
+--input_prediction_file_pattern="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/storm-type=tropical_by_xy_coords/${xy_bin_string}/predictions*.nc" \
+--num_bootstrap_reps=1 \
+--num_xy_offset_bins=100 \
+--xy_offset_limits_metres -100000 100000 \
+--num_offset_distance_bins=50 \
+--offset_distance_limits_metres 0 100000 \
+--num_offset_direction_bins=36 \
+--output_file_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/storm-type=tropical_by_xy_coords/${xy_bin_string}/evaluation.nc"

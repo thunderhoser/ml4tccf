@@ -1,0 +1,54 @@
+#!/bin/bash
+
+#SBATCH --job-name="create_multimodel_ensemble_testing"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=08:00:00
+#SBATCH --array=0-66
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=create_multimodel_ensemble_testing_%A_%a.out
+
+module load cuda/12.3.1
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment07_no_atcf/ensemble"
+
+CYCLONE_ID_STRINGS=("2022EP01" "2022EP02" "2022EP03" "2022EP04" "2022EP05" "2022EP06" "2022EP07" "2022EP08" "2022EP09" "2022EP10" "2022EP11" "2022EP12" "2022EP13" "2022EP14" "2022EP15" "2022EP16" "2022EP17" "2022EP18" "2022EP19" "2021AL01" "2021AL02" "2021AL03" "2021AL04" "2021AL05" "2021AL06" "2021AL07" "2021AL08" "2021AL09" "2021AL10" "2021AL11" "2021AL12" "2021AL13" "2021AL14" "2021AL15" "2021AL16" "2021AL17" "2021AL18" "2021AL19" "2021WP01" "2021WP02" "2021WP03" "2021WP04" "2021WP05" "2021WP06" "2021WP07" "2021WP08" "2021WP09" "2021WP10" "2021WP11" "2021WP12" "2021WP13" "2021WP14" "2021WP15" "2021WP16" "2021WP17" "2021WP18" "2021WP19" "2021WP20" "2021WP21" "2021WP22" "2021WP23" "2021WP24" "2021WP25" "2021WP26" "2021WP27" "2021WP28" "2021WP29")
+
+WAVELENGTH_GROUP_STRINGS_MICRONS=("8.500-9.610-12.300" "3.900-7.340-13.300" "3.900-6.185-6.950" "6.950-10.350-11.200")
+
+input_file_names_string=""
+j=0
+
+while [ $j -lt ${#WAVELENGTH_GROUP_STRINGS_MICRONS[@]} ]; do
+    wavelength_group_string_microns=${WAVELENGTH_GROUP_STRINGS_MICRONS[$j]}
+    input_file_names_string="${input_file_names_string} ${TOP_MODEL_DIR_NAME}/wavelengths-microns=${wavelength_group_string_microns}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/predictions_${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}.nc"
+    
+    j=$(( $j + 1 ))
+done
+
+python3 -u "${CODE_DIR_NAME}/create_multimodel_ensemble.py" \
+--input_prediction_file_names ${input_file_names_string} \
+--max_total_ensemble_size=1000 \
+--output_prediction_file_name="${TOP_MODEL_DIR_NAME}/ensemble/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/predictions_${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}.nc"

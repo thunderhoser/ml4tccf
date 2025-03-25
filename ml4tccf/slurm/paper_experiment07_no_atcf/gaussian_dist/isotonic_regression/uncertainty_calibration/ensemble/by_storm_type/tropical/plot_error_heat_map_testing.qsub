@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#SBATCH --job-name="plot_error_heat_map_testing"
+#SBATCH --partition="fge"
+#SBATCH --account="rda-ghpcs"
+#SBATCH --qos="gpuwf"
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=1
+##SBATCH --nodes=1
+##SBATCH --ntasks=1
+##SBATCH --cpus-per-task=1
+##SBATCH --ntasks-per-node=1
+#SBATCH --time=01:00:00
+#SBATCH --exclude=h28n12
+##SBATCH --exclude=h31n03,h28n12
+##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=ryan.lagerquist@noaa.gov
+#SBATCH --output=plot_error_heat_map_testing_%A.out
+
+module load imagemagick/7.1.1-11
+conda init
+conda activate base
+
+echo `which conda`
+echo `which python`
+echo `which python3`
+
+# PATH=/usr/local/cuda/bin:$PATH
+echo $PATH
+
+CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4tccf"
+TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment07_no_atcf/ensemble"
+
+model_dir_name="${TOP_MODEL_DIR_NAME}/ensemble"
+echo $model_dir_name
+
+python3 -u "${CODE_DIR_NAME}/plot_error_heat_map.py" \
+--input_prediction_file_pattern="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/storm-type=tropical/predictions_*.nc" \
+--plot_orig_errors=1 \
+--output_dir_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/storm-type=tropical/error_heat_map"
