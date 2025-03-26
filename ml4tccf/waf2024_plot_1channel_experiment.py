@@ -166,15 +166,17 @@ def _run(experiment_dir_name, output_dir_name):
             label='{0:s} microns'.format(ALL_WAVELENGTH_STRINGS_MICRONS[i])
         )
 
+    orig_x_limits = axes_object.get_xlim()
     axes_object.plot(
-        axes_object.get_xlim(),
+        orig_x_limits,
         numpy.array([10, 10.]),
         linestyle='dashed',
         linewidth=2,
         color=numpy.full(3, 152. / 255)
     )
+    axes_object.set_xlim(orig_x_limits)
     
-    axes_object.set_xlabel('Evaluation metrics')
+    # axes_object.set_xlabel('Evaluation metrics')
     axes_object.set_ylabel('Value')
     axes_object.set_xticks(x_tick_values + 4.5 * bar_width)
     axes_object.set_xticklabels(
