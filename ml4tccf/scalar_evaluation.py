@@ -1142,9 +1142,13 @@ def get_scores_all_variables(
     )
 
     print(mean_prediction_table_xarray)
-    print(len(numpy.unique(
-        mean_prediction_table_xarray[prediction_utils.CYCLONE_ID_KEY].values
-    )))
+
+    cyclone_time_matrix = numpy.vstack([
+        mean_prediction_table_xarray[prediction_utils.CYCLONE_ID_KEY].values,
+        mean_prediction_table_xarray[prediction_utils.TARGET_TIME_KEY].values
+    ])
+    cyclone_time_matrix = numpy.transpose(cyclone_time_matrix)
+    print(len(numpy.unique(cyclone_time_matrix, axis=0)))
 
     ept = ensemble_prediction_table_xarray
     mpt = mean_prediction_table_xarray
