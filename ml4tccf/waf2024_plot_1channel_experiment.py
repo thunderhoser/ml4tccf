@@ -163,7 +163,7 @@ def _run(experiment_dir_name, output_dir_name):
             x_tick_values + i * bar_width,
             metric_matrix[i, :],
             bar_width,
-            label='{0:f} microns'.format(ALL_WAVELENGTH_STRINGS_MICRONS[i])
+            label='{0:s} microns'.format(ALL_WAVELENGTH_STRINGS_MICRONS[i])
         )
     
     axes_object.set_xlabel('Evaluation metrics')
