@@ -27,6 +27,7 @@ NUM_OFFSET_DIST_BINS_ARG_NAME = 'num_offset_distance_bins'
 OFFSET_DIST_LIMITS_ARG_NAME = 'offset_distance_limits_metres'
 OFFSET_DIST_LIMITS_PRCTILE_ARG_NAME = 'offset_distance_limits_percentile'
 NUM_OFFSET_DIR_BINS_ARG_NAME = 'num_offset_direction_bins'
+OMIT_CRPS_ARG_NAME = 'omit_crps'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 INPUT_FILE_PATTERN_HELP_STRING = (
@@ -68,6 +69,10 @@ OFFSET_DIST_LIMITS_PRCTILE_HELP_STRING = (
 )
 NUM_OFFSET_DIR_BINS_HELP_STRING = (
     'Number of bins in reliability curve for offset direction.'
+)
+OMIT_CRPS_HELP_STRING = (
+    'Boolean flag.  If 1, will omit the calculation of CRPS (saves a lot of '
+    'computing time).'
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output (NetCDF) file.  Evaluation results will be saved here.'
@@ -113,6 +118,10 @@ INPUT_ARG_PARSER.add_argument(
     help=NUM_OFFSET_DIR_BINS_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
+    '--' + OMIT_CRPS_ARG_NAME, type=int, required=False, default=0,
+    help=OMIT_CRPS_HELP_STRING
+)
+INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
     help=OUTPUT_FILE_HELP_STRING
 )
@@ -122,7 +131,7 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
          xy_offset_limits_metres, xy_offset_limits_percentile,
          num_offset_distance_bins, offset_distance_limits_metres,
          offset_distance_limits_percentile,
-         num_offset_direction_bins, output_file_name):
+         num_offset_direction_bins, omit_crps, output_file_name):
     """Evaluates trained neural net.
 
     This is effectively the main method.
@@ -137,6 +146,7 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
     :param offset_distance_limits_percentile: Same.
     :param num_offset_direction_bins: Same.
     :param output_file_name: Same.
+    :param omit_crps: Same.
     :raises: ValueError: if no prediction files could be found.
     """
 
@@ -211,7 +221,8 @@ def _run(prediction_file_pattern, num_bootstrap_reps, num_xy_offset_bins,
         max_offset_distance_metres=max_offset_distance_metres,
         min_offset_distance_percentile=min_offset_distance_percentile,
         max_offset_distance_percentile=max_offset_distance_percentile,
-        num_offset_direction_bins=num_offset_direction_bins
+        num_offset_direction_bins=num_offset_direction_bins,
+        omit_crps=omit_crps
     )
     print(SEPARATOR_STRING)
 
@@ -309,5 +320,6 @@ if __name__ == '__main__':
         num_offset_direction_bins=getattr(
             INPUT_ARG_OBJECT, NUM_OFFSET_DIR_BINS_ARG_NAME
         ),
+        omit_crps=bool(getattr(INPUT_ARG_OBJECT, OMIT_CRPS_ARG_NAME)),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )

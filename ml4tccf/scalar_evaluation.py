@@ -990,31 +990,25 @@ def get_angular_diffs(target_angles_deg, predicted_angles_deg):
         shape as the inputs.
     """
 
-    new_target_angles_deg = target_angles_deg + 0.
-    new_predicted_angles_deg = predicted_angles_deg + 0.
-
-    new_target_angles_deg[new_target_angles_deg >= 360. - TOLERANCE] = 0.
-    new_predicted_angles_deg[new_predicted_angles_deg >= 360. - TOLERANCE] = 0.
-
     error_checking.assert_is_geq_numpy_array(
-        new_target_angles_deg, 0., allow_nan=True
+        target_angles_deg, 0., allow_nan=True
     )
     error_checking.assert_is_less_than_numpy_array(
-        new_target_angles_deg, 360., allow_nan=True
+        target_angles_deg, 360., allow_nan=True
     )
 
     error_checking.assert_is_numpy_array(
-        new_predicted_angles_deg,
-        exact_dimensions=numpy.array(new_target_angles_deg.shape, dtype=int)
+        predicted_angles_deg,
+        exact_dimensions=numpy.array(target_angles_deg.shape, dtype=int)
     )
     error_checking.assert_is_geq_numpy_array(
-        new_predicted_angles_deg, 0., allow_nan=True
+        predicted_angles_deg, 0., allow_nan=True
     )
     error_checking.assert_is_less_than_numpy_array(
-        new_predicted_angles_deg, 360., allow_nan=True
+        predicted_angles_deg, 360., allow_nan=True
     )
 
-    angular_diffs_deg = new_predicted_angles_deg - new_target_angles_deg
+    angular_diffs_deg = predicted_angles_deg - target_angles_deg
 
     angular_diffs_deg[angular_diffs_deg > 180] -= 360
     angular_diffs_deg[angular_diffs_deg < -180] += 360
@@ -1060,7 +1054,7 @@ def get_scores_all_variables(
         num_offset_distance_bins,
         min_offset_distance_metres, max_offset_distance_metres,
         min_offset_distance_percentile, max_offset_distance_percentile,
-        num_offset_direction_bins):
+        num_offset_direction_bins, omit_crps=False):
     """Computes evaluation scores for all target variables.
 
     :param prediction_file_names: 1-D list of paths to prediction files (will be
@@ -1094,6 +1088,8 @@ def get_scores_all_variables(
     :param num_offset_direction_bins: Same as `num_xy_offset_bins` but for
         direction of offset vector.  The min and max values in the reliability
         curve for direction will always be 0 and 360 degrees.
+    :param: omit_crps: Boolean flag.  If True, will omit the calculation of CRPS
+        to save computing time.
     :return: result_table_xarray: xarray table with results (variable and
         dimension names should make the table self-explanatory).
     """
@@ -1110,6 +1106,7 @@ def get_scores_all_variables(
     error_checking.assert_is_integer(num_offset_direction_bins)
     error_checking.assert_is_geq(num_offset_direction_bins, 10)
     error_checking.assert_is_leq(num_offset_direction_bins, 100)
+    error_checking.assert_is_boolean(omit_crps)
 
     if min_xy_offset_metres is None or max_xy_offset_metres is None:
         error_checking.assert_is_leq(min_xy_offset_percentile, 10.)
@@ -1143,7 +1140,6 @@ def get_scores_all_variables(
     mean_prediction_table_xarray = prediction_utils.get_ensemble_mean(
         copy.deepcopy(ensemble_prediction_table_xarray)
     )
-    print(mean_prediction_table_xarray)
 
     ept = ensemble_prediction_table_xarray
     mpt = mean_prediction_table_xarray
@@ -1439,7 +1435,7 @@ def get_scores_all_variables(
                 example_indices, size=num_examples, replace=True
             )
 
-        if ensemble_size > 1:
+        if ensemble_size > 1 and not omit_crps:
             print((
                 'Computing CRPS for {0:d}th of {1:d} bootstrap replicates...'
             ).format(
