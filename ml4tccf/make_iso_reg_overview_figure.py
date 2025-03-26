@@ -310,7 +310,7 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
 
     legend_strings = [
         'Raw ens. mean\n(MAE = {0:.1f} km)'.format(raw_mean_abs_error_km),
-        'Ens. mean after iso-reg\n(MAE = {0:.1f} km)'.format(
+        'Ens. mean after correction #1\n(MAE = {0:.1f} km)'.format(
             corrected_mean_abs_error_km
         ),
         'Actual'
@@ -327,7 +327,7 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     axes_object.set_ylabel('{0:s} correction distance (km)'.format(
         'Zonal' if plot_x_coord else 'Meridional'
     ))
-    axes_object.set_title('(a) Effect of iso-reg on ensemble mean')
+    axes_object.set_title('(a) Effect of correction #1 on ensemble mean')
 
     panel_file_names = []
     panel_file_names.append('{0:s}/correction1_ensemble_mean.jpg'.format(
@@ -409,7 +409,7 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     )[0]
 
     legend_strings = [
-        'Raw ensemble', 'Ensemble after iso-reg', 'Actual value'
+        'Raw ensemble', 'Ensemble after correction #1', 'Actual value'
     ]
     axes_object.legend(
         legend_handles, legend_strings, loc='lower left', fontsize=20,
@@ -426,7 +426,7 @@ def _run(raw_prediction_file_name, corr1_prediction_file_name,
     x_max = max([numpy.max(raw_x_values), numpy.max(corr1_x_values)])
     axes_object.set_xlim([x_min, x_max])
     axes_object.set_ylim([0, y_max])
-    axes_object.set_title('(b) Effect of iso-reg on full ensemble')
+    axes_object.set_title('(b) Effect of correction #1 on full ensemble')
 
     panel_file_names.append(
         '{0:s}/correction1_ensemble_distribution.jpg'.format(output_dir_name)
