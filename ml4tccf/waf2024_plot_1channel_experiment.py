@@ -165,6 +165,14 @@ def _run(experiment_dir_name, output_dir_name):
             bar_width,
             label='{0:s} microns'.format(ALL_WAVELENGTH_STRINGS_MICRONS[i])
         )
+
+    axes_object.plot(
+        axes_object.get_xlim(),
+        numpy.array([10, 10.]),
+        linestyle='dashed',
+        linewidth=2,
+        color=numpy.full(3, 152. / 255)
+    )
     
     axes_object.set_xlabel('Evaluation metrics')
     axes_object.set_ylabel('Value')
