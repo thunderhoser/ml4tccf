@@ -1141,6 +1141,11 @@ def get_scores_all_variables(
         copy.deepcopy(ensemble_prediction_table_xarray)
     )
 
+    print(mean_prediction_table_xarray)
+    print(len(numpy.unique(
+        mean_prediction_table_xarray[prediction_utils.CYCLONE_ID_KEY].values
+    )))
+
     ept = ensemble_prediction_table_xarray
     mpt = mean_prediction_table_xarray
 
