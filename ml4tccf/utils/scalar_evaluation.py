@@ -1047,7 +1047,7 @@ def get_scores_all_variables(
         num_offset_distance_bins,
         min_offset_distance_metres, max_offset_distance_metres,
         min_offset_distance_percentile, max_offset_distance_percentile,
-        num_offset_direction_bins):
+        num_offset_direction_bins, omit_crps=False):
     """Computes evaluation scores for all target variables.
 
     :param prediction_file_names: 1-D list of paths to prediction files (will be
@@ -1081,6 +1081,8 @@ def get_scores_all_variables(
     :param num_offset_direction_bins: Same as `num_xy_offset_bins` but for
         direction of offset vector.  The min and max values in the reliability
         curve for direction will always be 0 and 360 degrees.
+    :param: omit_crps: Boolean flag.  If True, will omit the calculation of CRPS
+        to save computing time.
     :return: result_table_xarray: xarray table with results (variable and
         dimension names should make the table self-explanatory).
     """
@@ -1097,6 +1099,7 @@ def get_scores_all_variables(
     error_checking.assert_is_integer(num_offset_direction_bins)
     error_checking.assert_is_geq(num_offset_direction_bins, 10)
     error_checking.assert_is_leq(num_offset_direction_bins, 100)
+    error_checking.assert_is_boolean(omit_crps)
 
     if min_xy_offset_metres is None or max_xy_offset_metres is None:
         error_checking.assert_is_leq(min_xy_offset_percentile, 10.)
@@ -1425,7 +1428,7 @@ def get_scores_all_variables(
                 example_indices, size=num_examples, replace=True
             )
 
-        if ensemble_size > 1:
+        if ensemble_size > 1 and not omit_crps:
             print((
                 'Computing CRPS for {0:d}th of {1:d} bootstrap replicates...'
             ).format(
