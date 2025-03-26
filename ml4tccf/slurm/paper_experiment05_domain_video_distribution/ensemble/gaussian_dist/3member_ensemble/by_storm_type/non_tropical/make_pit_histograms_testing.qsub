@@ -38,5 +38,5 @@ echo $model_dir_name
 
 python3 -u "${CODE_DIR_NAME}/make_pit_histograms.py" \
 --input_prediction_file_pattern="${model_dir_name}/testing_gaussian_dist/storm-type=non_tropical/predictions*.nc" \
---num_bins=201 \
+--num_bins=151 \
 --output_file_name="${model_dir_name}/testing_gaussian_dist/storm-type=non_tropical/pit_histograms.nc"
