@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name="plot_pit_histograms_testing"
+#SBATCH --job-name="waf2024_make_uq_eval_figure_testing"
 #SBATCH --partition="fge"
 #SBATCH --account="rda-ghpcs"
 #SBATCH --qos="gpu"
@@ -18,9 +18,9 @@
 ##SBATCH --exclude=h29n01,h26n05,h28n06,h29n07,h30n03,h30n15
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=ryan.lagerquist@noaa.gov
-#SBATCH --output=plot_pit_histograms_testing_%A_%a.out
+#SBATCH --output=waf2024_make_uq_eval_figure_testing_%A_%a.out
 
-module load cuda/12.3.1
+module load imagemagick/7.1.1-11
 conda init
 conda activate base
 
@@ -35,12 +35,11 @@ CODE_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_standalone/ml4
 TOP_MODEL_DIR_NAME="/scratch1/RDARCH/rda-ghpcs/Ryan.Lagerquist/ml4tccf_models/paper_experiment06_single_channel"
 
 WAVELENGTHS_MICRONS=("3.900" "6.185" "6.950" "7.340" "8.500" "9.610" "10.350" "11.200" "12.300" "13.300")
-
 wavelength_microns=${WAVELENGTHS_MICRONS[$SLURM_ARRAY_TASK_ID]}
+
 model_dir_name="${TOP_MODEL_DIR_NAME}/wavelength-microns=${wavelength_microns}"
 echo $model_dir_name
 
-python3 -u "${CODE_DIR_NAME}/plot_pit_histograms.py" \
---input_file_name="${model_dir_name}/isotonic_regression_gaussian_dist/testing/pit_histograms.nc" \
---ensemble_size_for_rank_hist=50 \
---output_dir_name="${model_dir_name}/isotonic_regression_gaussian_dist/testing/pit_histograms"
+python3 -u "${CODE_DIR_NAME}/waf2024_make_uq_eval_figure.py" \
+--input_evaluation_dir_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing" \
+--output_figure_dir_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/waf2024/uq_eval_figure"
