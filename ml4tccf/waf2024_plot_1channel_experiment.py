@@ -35,6 +35,10 @@ FIGURE_RESOLUTION_DPI = 300
 ALL_WAVELENGTHS_MICRONS = numpy.array([
     3.9, 6.185, 6.95, 7.34, 8.5, 9.61, 10.35, 11.2, 12.3, 13.3
 ])
+ALL_WAVELENGTH_STRINGS_MICRONS = numpy.array([
+    '3.9', '6.185', '6.95', '7.34', '8.5', '9.61', '10.35', '11.2', '12.3',
+    '13.3'
+])
 METRIC_NAMES = [
     'Mean distance (km)',
     'Median distance (km)',
@@ -113,9 +117,9 @@ def _run(experiment_dir_name, output_dir_name):
         sstx = spread_skill_table_xarray
 
         metric_matrix[i, 6] = 0.001 * numpy.mean(
-            sstx[ss_utils.XY_SSREL_KEY].values
+            sstx[ss_utils.XY_SSREL_KEY].values[:2]
         )
-        metric_matrix[i, 7] = numpy.mean(sstx[ss_utils.XY_SSRAT_KEY].values)
+        metric_matrix[i, 7] = numpy.mean(sstx[ss_utils.XY_SSRAT_KEY].values[:2])
 
         this_file_name = '{0:s}/wavelength-microns={1:.3f}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/pit_histograms.nc'.format(
             experiment_dir_name, ALL_WAVELENGTHS_MICRONS[i]
@@ -159,13 +163,16 @@ def _run(experiment_dir_name, output_dir_name):
             x_tick_values + i * bar_width,
             metric_matrix[i, :],
             bar_width,
-            label='{0:f} microns'.format(ALL_WAVELENGTHS_MICRONS[i])
+            label='{0:f} microns'.format(ALL_WAVELENGTH_STRINGS_MICRONS[i])
         )
     
     axes_object.set_xlabel('Evaluation metrics')
     axes_object.set_ylabel('Value')
     axes_object.set_xticks(x_tick_values + 4.5 * bar_width)
-    axes_object.set_xticklabels(METRIC_NAMES, rotation=30, ha='right')
+    axes_object.set_xticklabels(
+        METRIC_NAMES, rotation=45, fontsize=20, ha='right'
+    )
+    axes_object.set_ylim(top=100.)
     axes_object.legend(loc='upper right', fontsize=20, ncol=2)
 
     output_file_name = '{0:s}/1channel_experiment_results.jpg'.format(
