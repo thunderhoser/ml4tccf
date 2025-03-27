@@ -47,6 +47,7 @@ MICRONS_TO_METRES = 1e-6
 
 PREDICTED_CENTER_MARKER = 'o'
 PREDICTED_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
+PREDICTED_CENTER_MARKER_SIZE_MULT = 3. / 4
 PREDICTED_CENTER_MARKER_EDGE_WIDTH = 0
 PREDICTED_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
@@ -325,7 +326,7 @@ def _plot_prob_contours_1panel(
         grid_longitudes_deg_e, grid_latitudes_deg_n, prob_matrix,
         contour_levels,
         cmap=colour_map_object, norm=colour_norm_object,
-        linewidths=4, linestyles='solid', zorder=1e12
+        linewidths=3.25, linestyles='solid', zorder=1e12
     )
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
@@ -372,7 +373,8 @@ def _plot_point_predictions_1panel(
         axes_object.plot(
             x_centers_transaxes[k], y_centers_transaxes[k],
             linestyle='None', marker=PREDICTED_CENTER_MARKER,
-            markersize=marker_size, markerfacecolor=marker_colour,
+            markersize=PREDICTED_CENTER_MARKER_SIZE_MULT * marker_size,
+            markerfacecolor=marker_colour,
             markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
             markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
             transform=axes_object.transAxes, zorder=1e10
@@ -619,7 +621,10 @@ def _make_figure_one_example(
             grid_longitudes_deg_e=this_longitude_matrix_deg_e[:, 0],
             border_latitudes_deg_n=border_latitudes_deg_n,
             border_longitudes_deg_e=border_longitudes_deg_e,
-            predicted_center_marker_size=point_prediction_marker_size,
+            predicted_center_marker_size=(
+                PREDICTED_CENTER_MARKER_SIZE_MULT *
+                point_prediction_marker_size
+            ),
             title_string=title_string
         )
 
