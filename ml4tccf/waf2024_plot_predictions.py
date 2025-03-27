@@ -56,6 +56,7 @@ HIMAWARI_WAVELENGTHS_METRES = 1e-6 * numpy.array([
 
 PREDICTED_CENTER_MARKER = 'o'
 PREDICTED_CENTER_MARKER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+PREDICTED_CENTER_MARKER_SIZE_MULT = 3. / 4
 PREDICTED_CENTER_MARKER_EDGE_WIDTH = 0
 PREDICTED_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
@@ -382,7 +383,7 @@ def _plot_prob_contours_1panel(
         grid_longitudes_deg_e, grid_latitudes_deg_n, prob_matrix,
         contour_levels,
         cmap=colour_map_object, norm=colour_norm_object,
-        linewidths=2.5, linestyles='solid', alpha=contour_opacity, zorder=1e12
+        linewidths=3.25, linestyles='solid', alpha=contour_opacity, zorder=1e12
     )
 
     file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
@@ -675,7 +676,10 @@ def _make_figure_one_example(
                 grid_longitudes_deg_e=btemp_longitude_matrix_deg_e[:, i],
                 border_latitudes_deg_n=border_latitudes_deg_n,
                 border_longitudes_deg_e=border_longitudes_deg_e,
-                predicted_center_marker_size=point_prediction_marker_size,
+                predicted_center_marker_size=(
+                    PREDICTED_CENTER_MARKER_SIZE_MULT *
+                    point_prediction_marker_size
+                ),
                 title_string=title_string
             )
 
@@ -726,7 +730,10 @@ def _make_figure_one_example(
                     numpy.mean(predicted_x_centers_transaxes),
                     numpy.mean(predicted_y_centers_transaxes),
                     linestyle='None', marker=PREDICTED_CENTER_MARKER,
-                    markersize=point_prediction_marker_size,
+                    markersize=(
+                        PREDICTED_CENTER_MARKER_SIZE_MULT *
+                        point_prediction_marker_size
+                    ),
                     markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
                     markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
                     markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
