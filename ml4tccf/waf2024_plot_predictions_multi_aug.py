@@ -581,20 +581,17 @@ def _make_figure_one_example(
             prob_contour_levels = numpy.linspace(
                 min_colour_value, max_colour_value, num=10
             )
-
-            predicted_x_centers_transaxes = None
-            predicted_y_centers_transaxes = None
         else:
-            predicted_x_centers_transaxes = (
-                0.5 + this_prediction_matrix[1, :] / num_grid_columns
-            )
-            predicted_y_centers_transaxes = (
-                0.5 + this_prediction_matrix[0, :] / num_grid_rows
-            )
-
             prob_matrix = None
             prob_colour_norm_object = None
             prob_contour_levels = None
+
+        predicted_x_centers_transaxes = (
+            0.5 + this_prediction_matrix[1, :] / num_grid_columns
+        )
+        predicted_y_centers_transaxes = (
+            0.5 + this_prediction_matrix[0, :] / num_grid_rows
+        )
 
         if panel_letter is None:
             panel_letter = 'a'
