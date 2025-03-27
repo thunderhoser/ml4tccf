@@ -193,6 +193,14 @@ def run_discard_test(prediction_file_names, discard_fractions):
                 euclidean_uncertainty_values, this_percentile_level
             )
         )
+
+        print('EESD for discard fraction {0:.4f} = {1:.4f}'.format(
+            discard_fractions[k],
+            numpy.percentile(
+                euclidean_uncertainty_values, this_percentile_level
+            )
+        ))
+
         use_example_flags[this_inverted_mask] = False
         use_example_indices = numpy.where(use_example_flags)[0]
 
