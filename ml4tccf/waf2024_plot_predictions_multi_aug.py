@@ -51,15 +51,15 @@ MICRONS_TO_METRES = 1e-6
 
 PREDICTED_CENTER_MARKER = 'o'
 PREDICTED_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
-PREDICTED_CENTER_MARKER_SIZE_MULT = 3. / 4
+PREDICTED_CENTER_MARKER_SIZE_MULT = 0.5
 PREDICTED_CENTER_MARKER_EDGE_WIDTH = 0
 PREDICTED_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
 ACTUAL_CENTER_MARKER = '*'
-ACTUAL_CENTER_MARKER_COLOUR = numpy.array([27, 158, 119], dtype=float) / 255
+ACTUAL_CENTER_MARKER_COLOUR = numpy.full(3, 0.)
 ACTUAL_CENTER_MARKER_SIZE_MULT = 4. / 3
 ACTUAL_CENTER_MARKER_EDGE_WIDTH = 2
-ACTUAL_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
+ACTUAL_CENTER_MARKER_EDGE_COLOUR = numpy.full(3, 1.)
 
 IMAGE_CENTER_MARKER = 's'
 IMAGE_CENTER_MARKER_COLOUR = numpy.array([228, 26, 28], dtype=float) / 255
@@ -650,6 +650,20 @@ def _make_figure_one_example(
         )
 
         if prediction_plotting_format_string == PROB_CONTOURS_FORMAT_STRING:
+            axes_object.plot(
+                numpy.mean(predicted_x_centers_transaxes),
+                numpy.mean(predicted_y_centers_transaxes),
+                linestyle='None', marker=PREDICTED_CENTER_MARKER,
+                markersize=(
+                    PREDICTED_CENTER_MARKER_SIZE_MULT *
+                    point_prediction_marker_size
+                ),
+                markerfacecolor=PREDICTED_CENTER_MARKER_COLOUR,
+                markeredgecolor=PREDICTED_CENTER_MARKER_EDGE_COLOUR,
+                markeredgewidth=PREDICTED_CENTER_MARKER_EDGE_WIDTH,
+                transform=axes_object.transAxes, zorder=5e13
+            )
+
             _plot_prob_contours_1panel(
                 figure_object=figure_object,
                 axes_object=axes_object,
