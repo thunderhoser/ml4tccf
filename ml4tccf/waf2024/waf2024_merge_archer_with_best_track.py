@@ -149,7 +149,7 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
         best_track_dict = pickle.load(pickle_file_handle)
         pickle_file_handle.close()
 
-        print(best_track_dict['st_one_sec_time'])
+        # print(best_track_dict['st_one_sec_time'])
         print(type(best_track_dict['st_one_sec_time']))
 
     valid_time_strings = [
