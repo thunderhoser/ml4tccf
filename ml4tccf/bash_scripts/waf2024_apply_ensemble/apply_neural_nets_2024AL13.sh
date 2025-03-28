@@ -26,7 +26,7 @@ for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
         --cyclone_id_string="${CYCLONE_ID_STRING}" \
         --valid_date_string="${valid_date_string}" \
         --disable_gpus=1 \
-        --data_aug_num_translations=-1 \
+        --data_aug_num_translations=1 \
         --data_aug_mean_translation_low_res_px=0.000001 \
         --data_aug_stdev_translation_low_res_px=0.000001 \
         --data_aug_within_mean_trans_px=0.000001 \
