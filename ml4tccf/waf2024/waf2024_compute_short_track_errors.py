@@ -527,10 +527,13 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
             merged_table_xarray[SHORT_TRACK_LONGITUDE_KEY].values
         )
     ])
-    y_errors_km *= (
+
+    these_signs = (
         merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values >=
         merged_table_xarray[BEST_TRACK_LATITUDE_KEY].values
     ).astype(int)
+    these_signs[these_signs == 0] = -1
+    y_errors_km *= these_signs
 
     midpoint_latitudes_deg_n = 0.5 * (
         merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values +
@@ -546,10 +549,13 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
             merged_table_xarray[BEST_TRACK_LONGITUDE_KEY].values
         )
     ])
-    x_errors_km *= (
+
+    these_signs = (
         merged_table_xarray[SHORT_TRACK_LONGITUDE_KEY].values >=
         merged_table_xarray[BEST_TRACK_LONGITUDE_KEY].values
     ).astype(int)
+    these_signs[these_signs == 0] = -1
+    x_errors_km *= these_signs
 
     bin_edges_km = numpy.linspace(
         ERROR_BIN_LIMITS_KM[0], ERROR_BIN_LIMITS_KM[1],
