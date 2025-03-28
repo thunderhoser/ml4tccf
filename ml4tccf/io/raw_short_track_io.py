@@ -81,7 +81,7 @@ def find_file(directory_name, cyclone_id_string, init_time_unix_sec,
 
     cyclone_year = misc_utils.parse_cyclone_id(cyclone_id_string)[0]
     short_track_file_name = (
-        '{0:s}/{1:04d}/a{2:s}/storm_track_interp_a{2:s}_{3:s}.pkl'
+        '{0:s}/a{1:s}/storm_track_interp_a{1:s}_{2:s}.pkl'
     ).format(
         directory_name,
         cyclone_year,
