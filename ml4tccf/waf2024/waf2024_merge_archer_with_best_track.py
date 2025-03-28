@@ -377,7 +377,7 @@ def _run(archer_file_pattern, raw_best_track_dir_name, output_file_name):
             )
 
     print(SEPARATOR_STRING)
-    archer_table_xarray.assign({
+    archer_table_xarray = archer_table_xarray.assign({
         BEST_TRACK_LATITUDE_KEY: (
             (STORM_OBJECT_DIM,), best_track_latitudes_deg_n
         ),
