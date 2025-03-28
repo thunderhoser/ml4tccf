@@ -120,7 +120,7 @@ def find_files_one_cyclone(
 
     cyclone_year = misc_utils.parse_cyclone_id(cyclone_id_string)[0]
     file_pattern = (
-        '{0:s}/{1:04d}/a{2:s}/storm_track_interp_a{2:s}_{3:s}.pkl'
+        '{0:s}/a{1:s}/storm_track_interp_a{1:s}_{2:s}.pkl'
     ).format(
         directory_name,
         cyclone_year,
