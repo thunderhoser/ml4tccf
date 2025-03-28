@@ -84,7 +84,6 @@ def find_file(directory_name, cyclone_id_string, init_time_unix_sec,
         '{0:s}/a{1:s}/storm_track_interp_a{1:s}_{2:s}.pkl'
     ).format(
         directory_name,
-        cyclone_year,
         _cyclone_id_new_to_orig(cyclone_id_string),
         time_conversion.unix_sec_to_string(
             init_time_unix_sec, TIME_FORMAT_IN_FILE_NAMES
@@ -123,7 +122,6 @@ def find_files_one_cyclone(
         '{0:s}/a{1:s}/storm_track_interp_a{1:s}_{2:s}.pkl'
     ).format(
         directory_name,
-        cyclone_year,
         _cyclone_id_new_to_orig(cyclone_id_string),
         TIME_REGEX
     )
