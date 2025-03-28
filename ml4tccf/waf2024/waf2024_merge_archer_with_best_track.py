@@ -13,6 +13,8 @@ from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import misc_utils
 
+SEPARATOR_STRING = '\n\n' + '*' * 50 + '\n\n'
+
 ASSUMED_YEAR = 2024
 TIME_FORMAT = '%Y%m%d%H%M%S'
 
@@ -347,12 +349,21 @@ def _run(archer_file_pattern, raw_best_track_dir_name, output_file_name):
                 atx[CYCLONE_ID_KEY].values[i] !=
                 atx[CYCLONE_ID_KEY].values[i - 1]
         ):
+            print(SEPARATOR_STRING)
+
             best_track_dict = None
             best_track_file_name = _find_best_track_file(
                 directory_name=raw_best_track_dir_name,
                 cyclone_id_string=atx[CYCLONE_ID_KEY].values[i]
             )
-            print('Reading data from: "{0:s}"...'.format(best_track_file_name))
+
+            if best_track_file_name is not None:
+                print('Reading data from: "{0:s}"...'.format(
+                    best_track_file_name
+                ))
+
+        if best_track_file_name is None:
+            continue
 
         (
             best_track_dict,
@@ -364,6 +375,7 @@ def _run(archer_file_pattern, raw_best_track_dir_name, output_file_name):
                 best_track_dict=best_track_dict
             )
 
+    print(SEPARATOR_STRING)
     archer_table_xarray.assign({
         BEST_TRACK_LATITUDE_KEY: (
             (STORM_OBJECT_DIM,), best_track_latitudes_deg_n
