@@ -22,4 +22,6 @@ for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
         --input_model_file_name="${model_dir_name}/isotonic_regression_gaussian_dist/isotonic_regression.dill" \
         --input_prediction_file_name="${model_dir_name}/real_time_predictions_short_track/predictions_${CYCLONE_ID_STRING}_${valid_date_string}.nc" \
         --output_prediction_file_name="${model_dir_name}/real_time_predictions_short_track/isotonic_regression_gaussian_dist/${CYCLONE_ID_STRING}_${valid_date_string}.nc"
+
+    done
 done
