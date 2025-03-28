@@ -376,9 +376,6 @@ def _run(archer_file_pattern, raw_best_track_dir_name, output_file_name):
                 best_track_dict=best_track_dict
             )
 
-        print(numpy.mean(numpy.isnan(best_track_latitudes_deg_n[i])))
-        print(numpy.mean(numpy.isnan(best_track_longitudes_deg_e[i])))
-
     print(SEPARATOR_STRING)
     archer_table_xarray = archer_table_xarray.assign({
         BEST_TRACK_LATITUDE_KEY: (
