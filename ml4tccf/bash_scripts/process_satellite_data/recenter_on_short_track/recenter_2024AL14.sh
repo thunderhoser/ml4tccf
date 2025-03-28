@@ -5,7 +5,7 @@ conda activate base
 CODE_DIR_NAME="/home/lagerquist/ml4tccf/ml4tccf/scripts"
 INPUT_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_for_paper"
 OUTPUT_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_for_paper/recentered_on_short_track"
-SHORT_TRACK_DIR_NAME="/mnt/shnas10/users/galka/track_interpolated/short_track"
+SHORT_TRACK_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/short_track_data/processed"
 
 CYCLONE_ID_STRING="2024AL14"
 LOG_FILE_NAME="recenter_satellite_data_on_short_track_${CYCLONE_ID_STRING}.out"
