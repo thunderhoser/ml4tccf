@@ -10,6 +10,7 @@ import pandas
 import xarray
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
+from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.utils import misc_utils
 
@@ -405,6 +406,13 @@ def _run(archer_file_pattern, raw_best_track_dir_name, output_file_name):
     ).format(
         orig_num_storm_objects - num_storm_objects, orig_num_storm_objects
     ))
+
+    file_system_utils.mkdir_recursive_if_necessary(file_name=output_file_name)
+
+    print('Writing merged data to: "{0:s}"...'.format(output_file_name))
+    archer_table_xarray.to_netcdf(
+        path=output_file_name, mode='w', format='NETCDF3_64BIT'
+    )
 
 
 if __name__ == '__main__':
