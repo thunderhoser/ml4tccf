@@ -7,16 +7,26 @@ import argparse
 import warnings
 import numpy
 import xarray
+from geopy.distance import geodesic
+import matplotlib
+matplotlib.use('agg')
+from matplotlib import pyplot
+from gewittergefahr.gg_utils import grids
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
 from gewittergefahr.gg_utils import file_system_utils
 from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import short_track_io
+from ml4tccf.plotting import plotting_utils
 
 MINUTES_TO_SECONDS = 60
 SECONDS_TO_MINUTES = 1. / 60
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
+
 ALLOWED_SHORT_TRACK_LEAD_TIMES_SEC = numpy.array([3600], dtype=int)
+
+ERROR_BIN_LIMITS_KM = numpy.array([-100, 100.])
+NUM_ERROR_BINS = 100
 
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M%S'
 
@@ -54,6 +64,22 @@ SHORT_TRACK_LATITUDE_KEY = 'short_track_latitude_deg_n'
 SHORT_TRACK_LONGITUDE_KEY = 'short_track_longitude_deg_e'
 BEST_TRACK_LATITUDE_KEY = 'best_track_latitude_deg_n'
 BEST_TRACK_LONGITUDE_KEY = 'best_track_longitude_deg_e'
+
+FIGURE_WIDTH_INCHES = 15
+FIGURE_HEIGHT_INCHES = 15
+FIGURE_RESOLUTION_DPI = 15
+
+GRID_LINE_WIDTH = 2
+GRID_LINE_COLOUR = numpy.full(3, 0.)
+
+DEFAULT_FONT_SIZE = 30
+pyplot.rc('font', size=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('xtick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
+pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
 
 SHORT_TRACK_DIR_ARG_NAME = 'input_processed_short_track_dir_name'
 BEST_TRACK_DIR_ARG_NAME = 'input_raw_best_track_dir_name'
@@ -469,6 +495,140 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
     print('Writing merged data to: "{0:s}"...'.format(output_file_name))
     merged_table_xarray.to_netcdf(
         path=output_file_name, mode='w', format='NETCDF3_64BIT'
+    )
+
+    euclidean_errors_km = [
+        geodesic((sy, sx), (by, bx)).kilometers
+        for sy, sx, by, bx in zip(
+            merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values,
+            merged_table_xarray[SHORT_TRACK_LONGITUDE_KEY].values,
+            merged_table_xarray[BEST_TRACK_LATITUDE_KEY].values,
+            merged_table_xarray[BEST_TRACK_LONGITUDE_KEY].values
+        )
+    ]
+
+    print('Mean and median Euclidean errors = {0:.2f} km, {1:.2f} km'.format(
+        numpy.mean(euclidean_errors_km),
+        numpy.median(euclidean_errors_km)
+    ))
+
+    for this_percentile_level in [0, 25, 50, 75, 90, 95, 99, 99.5, 99.9, 100]:
+        print('{0:.0f}th percentile of Euclidean errors = {1:.2f} km'.format(
+            this_percentile_level,
+            numpy.percentile(euclidean_errors_km, this_percentile_level)
+        ))
+
+    y_errors_km = [
+        geodesic((sy, sx), (by, bx)).kilometers
+        for sy, sx, by, bx in zip(
+            merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values,
+            merged_table_xarray[SHORT_TRACK_LONGITUDE_KEY].values,
+            merged_table_xarray[BEST_TRACK_LATITUDE_KEY].values,
+            merged_table_xarray[SHORT_TRACK_LONGITUDE_KEY].values
+        )
+    ]
+
+    midpoint_latitudes_deg_n = 0.5 * (
+        merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values +
+        merged_table_xarray[BEST_TRACK_LATITUDE_KEY].values
+    )
+
+    x_errors_km = [
+        geodesic((sy, sx), (by, bx)).kilometers
+        for sy, sx, by, bx in zip(
+            midpoint_latitudes_deg_n,
+            merged_table_xarray[SHORT_TRACK_LONGITUDE_KEY].values,
+            midpoint_latitudes_deg_n,
+            merged_table_xarray[BEST_TRACK_LONGITUDE_KEY].values
+        )
+    ]
+
+    bin_edges_km = numpy.linspace(
+        ERROR_BIN_LIMITS_KM[0], ERROR_BIN_LIMITS_KM[1],
+        num=NUM_ERROR_BINS + 1, dtype=float
+    )
+    bin_centers_km = bin_edges_km[:-1] + numpy.diff(bin_edges_km) / 2
+
+    bin_count_matrix = grids.count_events_on_equidistant_grid(
+        event_x_coords_metres=x_errors_km,
+        event_y_coords_metres=y_errors_km,
+        grid_point_x_coords_metres=bin_centers_km,
+        grid_point_y_coords_metres=bin_centers_km
+    )[0]
+
+    bin_frequency_matrix = (
+        bin_count_matrix.astype(float) / numpy.sum(bin_count_matrix)
+    )
+
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+    colour_norm_object = pyplot.Normalize(
+        vmin=numpy.min(bin_frequency_matrix),
+        vmax=numpy.max(bin_frequency_matrix)
+    )
+    axes_object.imshow(
+        bin_frequency_matrix,
+        origin='lower',
+        cmap=pyplot.get_cmap('cividis'),
+        norm=colour_norm_object
+    )
+
+    title_string = (
+        'Heat map of short-track errors\n'
+        r'Mean $x$-error = {0:.1f} km;'
+        '\n'
+        r'Mean $y$-error = {1:.1f} km'
+    ).format(
+        numpy.mean(x_errors_km), numpy.mean(y_errors_km)
+    )
+
+    axes_object.set_title(title_string)
+    axes_object.set_xlabel(r'$x$-error (short-track minus actual; km)')
+    axes_object.set_ylabel(r'$y$-error (short-track minus actual; km)')
+
+    tick_coords_km = numpy.linspace(
+        ERROR_BIN_LIMITS_KM[0], ERROR_BIN_LIMITS_KM[1],
+        num=9, dtype=float
+    )
+    tick_coord_labels = ['{0:.0f}'.format(t) for t in tick_coords_km]
+
+    plot_grid_spacing_km = numpy.diff(bin_centers_km)[0]
+    tick_coords_px = -0.5 + (
+        (tick_coords_km - tick_coords_km[0]) / plot_grid_spacing_km
+    )
+
+    axes_object.set_xticks(tick_coords_px)
+    axes_object.set_xticklabels(tick_coord_labels)
+    axes_object.set_yticks(tick_coords_px)
+    axes_object.set_yticklabels(tick_coord_labels)
+    axes_object.grid(
+        which='major', axis='both', linestyle='--',
+        linewidth=GRID_LINE_WIDTH, color=GRID_LINE_COLOUR
+    )
+
+    figure_file_name = '{0:s}_error_heat_map.jpg'.format(
+        os.path.splitext(output_file_name)[0]
+    )
+    print('Saving figure to: "{0:s}"...'.format(figure_file_name))
+    figure_object.savefig(
+        figure_file_name, dpi=FIGURE_RESOLUTION_DPI,
+        pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
+
+    plotting_utils.add_colour_bar(
+        figure_file_name=figure_file_name,
+        colour_map_object=pyplot.get_cmap('cividis'),
+        colour_norm_object=colour_norm_object,
+        orientation_string='vertical',
+        font_size=DEFAULT_FONT_SIZE,
+        cbar_label_string='Frequency',
+        tick_label_format_string='{0:.2g}',
+        log_space=False,
+        temporary_cbar_file_name='{0:s}/model_error_heat_map_cbar.jpg'.format(
+            os.path.split(figure_file_name)[0]
+        )
     )
 
 
