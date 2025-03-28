@@ -16,7 +16,7 @@ from ml4tccf.io import short_track_io
 MINUTES_TO_SECONDS = 60
 SECONDS_TO_MINUTES = 1. / 60
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
-ALLOWED_SHORT_TRACK_LEAD_TIMES_SEC = numpy.array([3 * 3600], dtype=int)
+ALLOWED_SHORT_TRACK_LEAD_TIMES_SEC = numpy.array([3600], dtype=int)
 
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M%S'
 
