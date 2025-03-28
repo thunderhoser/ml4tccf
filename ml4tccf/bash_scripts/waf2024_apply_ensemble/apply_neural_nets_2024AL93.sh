@@ -9,8 +9,8 @@ A_DECK_FILE_NAME="/mnt/shnas10/users/lagerquist/ml4tccf_project/a_decks/processe
 MODEL_DIR_NAMES=("/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/wavelengths-microns=3.900-7.340-13.300" "/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/wavelengths-microns=6.950-10.350-11.200" "/mnt/shnas10/users/lagerquist/ml4tccf_project/geocenter_models/wavelengths-microns=8.500-9.610-12.300")
 MODEL_DESCRIPTION_STRINGS=("3.900-7.340-13.300" "6.950-10.350-11.200" "8.500-9.610-12.300")
 
-CYCLONE_ID_STRING="2024AL13"
-VALID_DATE_STRINGS=("20241002" "20241003" "20241004" "20241005" "20241006" "20241007" "20241008" "20241009" "20241010" "20241011" "20241012")
+CYCLONE_ID_STRING="2024AL93"
+VALID_DATE_STRINGS=("20241009" "20241010")
 i=-1
 
 for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
