@@ -149,19 +149,19 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
         best_track_dict = pickle.load(pickle_file_handle)
         pickle_file_handle.close()
 
-        # print(best_track_dict['st_one_sec_time'])
-        print(type(best_track_dict['st_one_sec_time']))
+        valid_time_strings = [
+            t.strftime('%Y-%m-%d-%H%M%S')
+            for t in best_track_dict['st_one_sec_time']
+        ]
+        best_track_dict['st_one_sec_time'] = numpy.array([
+            time_conversion.string_to_unix_sec(t, '%Y-%m-%d-%H%M%S')
+            for t in valid_time_strings
+        ], dtype=int)
 
-    valid_time_strings = [
-        t.strftime('%Y-%m-%d-%H%M%S')
-        for t in best_track_dict['st_one_sec_time']
-    ]
-    valid_times_unix_sec = numpy.array([
-        time_conversion.string_to_unix_sec(t, '%Y-%m-%d-%H%M%S')
-        for t in valid_time_strings
-    ], dtype=int)
+    good_indices = numpy.where(
+        best_track_dict['st_one_sec_time'] == valid_time_unix_sec
+    )[0]
 
-    good_indices = numpy.where(valid_times_unix_sec == valid_time_unix_sec)[0]
     if len(good_indices) == 0:
         warning_string = (
             'POTENTIAL ERROR: Cannot find valid time {0:s} in file "{1:s}".'
@@ -194,6 +194,17 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
                 best_track_dict['st_one_sec_lats'][k],
                 best_track_dict['st_one_sec_lond'][k]
             ))
+    else:
+        info_string = (
+            'Found a single entry with valid time {0:s} in file "{1:s}".  Yay!'
+        ).format(
+            time_conversion.unix_sec_to_string(
+                valid_time_unix_sec, '%Y-%m-%d-%H%M%S'
+            ),
+            pickle_file_name
+        )
+
+        print(info_string)
 
     good_index = good_indices[0]
 
