@@ -120,7 +120,7 @@ def _find_short_track_forecast(short_track_table_xarray, valid_time_unix_sec):
     if init_time_index == -1:
         warning_string = (
             'POTENTIAL ERROR: Cannot find short-track forecasts '
-            'initialized between {1:s} and {2:s}.'
+            'initialized between {0:s} and {1:s}.'
         ).format(
             time_conversion.unix_sec_to_string(
                 min_allowed_init_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
