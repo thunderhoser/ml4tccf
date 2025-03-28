@@ -319,14 +319,10 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     if data_aug_within_stdev_trans_px < 0:
         data_aug_within_stdev_trans_px = None
 
-    if data_aug_num_translations < 0:
-        data_aug_num_translations = None
-
-    if data_aug_num_translations is None:
+    if data_aug_num_translations_per_step < 0:
         data_aug_num_translations_per_step = None
-    else:
-        if data_aug_num_translations_per_step is None:
-            data_aug_num_translations_per_step = data_aug_num_translations + 0
+    if data_aug_num_translations_per_step is None:
+        data_aug_num_translations_per_step = data_aug_num_translations + 0
 
     print('Reading model from: "{0:s}"...'.format(model_file_name))
     model_object = nn_utils.read_model(model_file_name)
@@ -387,18 +383,15 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     num_translations_done = 0
 
     while True:
-        if data_aug_num_translations is None:
-            this_num_translations = 0
-        else:
-            this_num_translations = min([
-                data_aug_num_translations - num_translations_done,
-                data_aug_num_translations_per_step
-            ])
+        this_num_translations = min([
+            data_aug_num_translations - num_translations_done,
+            data_aug_num_translations_per_step
+        ])
 
-            validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
-                this_num_translations
-            )
-            print('this_num_translations = {0:d}'.format(this_num_translations))
+        validation_option_dict[nn_utils.DATA_AUG_NUM_TRANS_KEY] = (
+            this_num_translations
+        )
+        print('this_num_translations = {0:d}'.format(this_num_translations))
 
         if data_type_string == nn_utils.CIRA_IR_DATA_TYPE_STRING:
             assert valid_date_string is None
@@ -472,9 +465,6 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
             )
 
         print('Shape of target_matrix = {0:s}'.format(str(target_matrix.shape)))
-
-        if data_aug_num_translations is None:
-            break
 
         num_translations_done += this_num_translations
         if num_translations_done >= data_aug_num_translations:
