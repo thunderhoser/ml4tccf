@@ -155,6 +155,7 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
     """
 
     if best_track_dict is None:
+        print('FOO')
         pickle_file_handle = open(pickle_file_name, 'rb')
         best_track_dict = pickle.load(pickle_file_handle)
         pickle_file_handle.close()
