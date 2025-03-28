@@ -219,9 +219,6 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
         longitude_deg_e, allow_nan=False
     )
 
-    print(latitude_deg_n)
-    print(longitude_deg_e)
-
     return best_track_dict, latitude_deg_n, longitude_deg_e
 
 
@@ -372,12 +369,15 @@ def _run(archer_file_pattern, raw_best_track_dir_name, output_file_name):
         (
             best_track_dict,
             best_track_latitudes_deg_n[i],
-            best_track_latitudes_deg_n[i]
+            best_track_longitudes_deg_e[i]
         ) = _read_best_track_file(
                 pickle_file_name=best_track_file_name,
                 valid_time_unix_sec=atx[VALID_TIME_KEY].values[i],
                 best_track_dict=best_track_dict
             )
+
+        print(numpy.mean(numpy.isnan(best_track_latitudes_deg_n[i])))
+        print(numpy.mean(numpy.isnan(best_track_longitudes_deg_e[i])))
 
     print(SEPARATOR_STRING)
     archer_table_xarray = archer_table_xarray.assign({
