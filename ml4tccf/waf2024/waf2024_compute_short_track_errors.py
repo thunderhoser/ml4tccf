@@ -67,7 +67,7 @@ BEST_TRACK_LONGITUDE_KEY = 'best_track_longitude_deg_e'
 
 FIGURE_WIDTH_INCHES = 15
 FIGURE_HEIGHT_INCHES = 15
-FIGURE_RESOLUTION_DPI = 15
+FIGURE_RESOLUTION_DPI = 300
 
 GRID_LINE_WIDTH = 2
 GRID_LINE_COLOUR = numpy.full(3, 0.)
@@ -527,6 +527,10 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
             merged_table_xarray[SHORT_TRACK_LONGITUDE_KEY].values
         )
     ])
+    y_errors_km *= (
+        merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values >=
+        merged_table_xarray[BEST_TRACK_LATITUDE_KEY].values
+    ).astype(int)
 
     midpoint_latitudes_deg_n = 0.5 * (
         merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values +
@@ -542,6 +546,10 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
             merged_table_xarray[BEST_TRACK_LONGITUDE_KEY].values
         )
     ])
+    x_errors_km *= (
+        merged_table_xarray[SHORT_TRACK_LONGITUDE_KEY].values >=
+        merged_table_xarray[BEST_TRACK_LONGITUDE_KEY].values
+    ).astype(int)
 
     bin_edges_km = numpy.linspace(
         ERROR_BIN_LIMITS_KM[0], ERROR_BIN_LIMITS_KM[1],
@@ -576,9 +584,8 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
 
     title_string = (
         'Heat map of short-track errors\n'
-        r'Mean $x$-error = {0:.1f} km;'
-        '\n'
-        r'Mean $y$-error = {1:.1f} km'
+        r'Mean $x$-error = {0:.1f} km; '
+        r'mean $y$-error = {1:.1f} km'
     ).format(
         numpy.mean(x_errors_km), numpy.mean(y_errors_km)
     )
