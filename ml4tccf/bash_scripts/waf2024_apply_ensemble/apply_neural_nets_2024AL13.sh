@@ -20,7 +20,7 @@ for model_dir_name in "${MODEL_DIR_NAMES[@]}"; do
         log_file_name="apply_neural_nets_${CYCLONE_ID_STRING}_${MODEL_DESCRIPTION_STRINGS[$i]}_${valid_date_string}.out"
     
         python3 -u "${CODE_DIR_NAME}/apply_neural_net_real_time.py" &> ${log_file_name} \
-        --input_model_file_name="${model_dir_name}/model.h5" \
+        --input_model_file_name="${model_dir_name}/model.weights.h5" \
         --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
         --input_a_deck_file="${A_DECK_FILE_NAME}" \
         --cyclone_id_string="${CYCLONE_ID_STRING}" \
