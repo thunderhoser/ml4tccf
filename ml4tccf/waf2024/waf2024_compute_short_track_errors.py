@@ -229,7 +229,12 @@ def _find_short_track_forecast(short_track_table_xarray, valid_time_unix_sec):
         )[0]
 
         if len(these_indices) == 0:
-            print('FUCK.  Did not find init time.')
+            print('FUCK.  Did not find init time {0:d} ({1:s}).'.format(
+                short_track_init_time_unix_sec,
+                time_conversion.unix_sec_to_string(
+                    short_track_init_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+                )
+            ))
             continue
 
         init_time_index = these_indices[0]
