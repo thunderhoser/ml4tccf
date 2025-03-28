@@ -219,6 +219,9 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
         longitude_deg_e, allow_nan=False
     )
 
+    print(latitude_deg_n)
+    print(longitude_deg_e)
+
     return best_track_dict, latitude_deg_n, longitude_deg_e
 
 
