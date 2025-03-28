@@ -319,7 +319,7 @@ def _run(archer_file_pattern, raw_best_track_dir_name,
     good_indices = numpy.where(numpy.invert(numpy.logical_or(
         numpy.isnan(archer_table_xarray[ARCHER_LATITUDE_KEY].values),
         numpy.isnan(archer_table_xarray[ARCHER_LONGITUDE_KEY].values)
-    )))
+    )))[0]
     archer_table_xarray = archer_table_xarray.isel(
         {STORM_OBJECT_DIM: good_indices}
     )
@@ -380,7 +380,7 @@ def _run(archer_file_pattern, raw_best_track_dir_name,
     good_indices = numpy.where(numpy.invert(numpy.logical_or(
         numpy.isnan(archer_table_xarray[BEST_TRACK_LATITUDE_KEY].values),
         numpy.isnan(archer_table_xarray[BEST_TRACK_LONGITUDE_KEY].values)
-    )))
+    )))[0]
     archer_table_xarray = archer_table_xarray.isel(
         {STORM_OBJECT_DIM: good_indices}
     )
