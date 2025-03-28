@@ -1,4 +1,4 @@
-"""Merges ARCHER-2 data with best-track and short-track data."""
+"""Merges ARCHER-2 data with best-track data."""
 
 import re
 import glob
@@ -41,7 +41,6 @@ VALID_TIME_KEY = 'valid_time_unix_sec'
 
 ARCHER_FILE_PATTERN_ARG_NAME = 'input_raw_archer_file_pattern'
 BEST_TRACK_DIR_ARG_NAME = 'input_raw_best_track_dir_name'
-SHORT_TRACK_DIR_ARG_NAME = 'input_processed_short_track_dir_name'
 OUTPUT_FILE_ARG_NAME = 'output_file_name'
 
 ARCHER_FILE_PATTERN_HELP_STRING = (
@@ -50,11 +49,6 @@ ARCHER_FILE_PATTERN_HELP_STRING = (
 BEST_TRACK_DIR_HELP_STRING = (
     'Path to directory with raw best-track data.  Files therein will be found '
     'by `_find_best_track_file` and read by `_read_best_track_file`.'
-)
-SHORT_TRACK_DIR_HELP_STRING = (
-    'Path to directory with processed short-track data.  Files therein will be '
-    'found by `short_track_io.find_file` and read by '
-    '`short_track_io.read_file`.'
 )
 OUTPUT_FILE_HELP_STRING = (
     'Path to output file (NetCDF).  Merged data will be written here by this '
@@ -69,10 +63,6 @@ INPUT_ARG_PARSER.add_argument(
 INPUT_ARG_PARSER.add_argument(
     '--' + BEST_TRACK_DIR_ARG_NAME, type=str, required=True,
     help=BEST_TRACK_DIR_HELP_STRING
-)
-INPUT_ARG_PARSER.add_argument(
-    '--' + SHORT_TRACK_DIR_ARG_NAME, type=str, required=True,
-    help=SHORT_TRACK_DIR_HELP_STRING
 )
 INPUT_ARG_PARSER.add_argument(
     '--' + OUTPUT_FILE_ARG_NAME, type=str, required=True,
@@ -155,10 +145,11 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
     """
 
     if best_track_dict is None:
-        print('FOO')
         pickle_file_handle = open(pickle_file_name, 'rb')
         best_track_dict = pickle.load(pickle_file_handle)
         pickle_file_handle.close()
+
+        print(best_track_dict['st_one_sec_time'])
 
     valid_time_strings = [
         t.strftime('%Y-%m-%d-%H%M%S')
@@ -175,7 +166,7 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
             'POTENTIAL ERROR: Cannot find valid time {0:s} in file "{1:s}".'
         ).format(
             time_conversion.unix_sec_to_string(
-                valid_time_unix_sec, '%Y-%m-%d-%H%M'
+                valid_time_unix_sec, '%Y-%m-%d-%H%M%S'
             ),
             pickle_file_name
         )
@@ -190,7 +181,7 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
         ).format(
             len(good_indices),
             time_conversion.unix_sec_to_string(
-                valid_time_unix_sec, '%Y-%m-%d-%H%M'
+                valid_time_unix_sec, '%Y-%m-%d-%H%M%S'
             ),
             pickle_file_name
         )
@@ -216,15 +207,13 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
     return best_track_dict, latitude_deg_n, longitude_deg_e
 
 
-def _run(archer_file_pattern, raw_best_track_dir_name,
-         processed_short_track_dir_name, output_file_name):
-    """Merges ARCHER-2 data with best-track and short-track data.
+def _run(archer_file_pattern, raw_best_track_dir_name, output_file_name):
+    """Merges ARCHER-2 data with best-track data.
 
     This is effectively the main method.
 
     :param archer_file_pattern: See documentation at top of this script.
     :param raw_best_track_dir_name: Same.
-    :param processed_short_track_dir_name: Same.
     :param output_file_name: Same.
     """
 
@@ -363,11 +352,6 @@ def _run(archer_file_pattern, raw_best_track_dir_name,
                 best_track_dict=best_track_dict
             )
 
-    # TODO(thunderhoser): Make sure reading best-track data works!  Make sure it
-    # has every second or whatever.  Might need time tolerance.  Will also need
-    # to read short-track data and probably/maybe allow for time tolerance
-    # there?  I don't know what to do with short-track data, actually.  Maybe
-    # compute short-track errors somewhere else.
     archer_table_xarray.assign({
         BEST_TRACK_LATITUDE_KEY: (
             (STORM_OBJECT_DIM,), best_track_latitudes_deg_n
@@ -408,9 +392,6 @@ if __name__ == '__main__':
         ),
         raw_best_track_dir_name=getattr(
             INPUT_ARG_OBJECT, BEST_TRACK_DIR_ARG_NAME
-        ),
-        processed_short_track_dir_name=getattr(
-            INPUT_ARG_OBJECT, SHORT_TRACK_DIR_ARG_NAME
         ),
         output_file_name=getattr(INPUT_ARG_OBJECT, OUTPUT_FILE_ARG_NAME)
     )

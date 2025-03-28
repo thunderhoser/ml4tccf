@@ -28,29 +28,29 @@ MEDIAN_ERROR_DICT = {
         'ARCHER-2: SWIR': 46,
         'ARCHER-2: ASCAT': 26,
         'ST21': 23.5,
-        'GeoCenter: tropical': (25.9, 0.5, 0.7),
-        'GeoCenter: all sys': (26.1, 0.6, 0.5)
+        'GeoCenter: tropical': (24.478, 24.478 - 23.797, 25.165 - 24.478),
+        'GeoCenter: all sys': (25.194, 25.194 - 24.572, 25.815 - 25.194)
     },
     '[64, 83) kt': {
         'ARCHER-2: SWIR': 41,
         'ARCHER-2: ASCAT': 18,
         'ST21': 21.4,
-        'GeoCenter: tropical': (18.6, 1.1, 1.3),
-        'GeoCenter: all sys': (18.7, 1.0, 1.1)
+        'GeoCenter: tropical': (19.533, 19.533 - 18.787, 20.491 - 19.533),
+        'GeoCenter: all sys': (19.762, 19.762 - 18.924, 20.812 - 19.762)
     },
     r'$\geq$ 83 kt': {
         'ARCHER-2: SWIR': 21,
         'ARCHER-2: ASCAT': 16,
         'ST21': 15.3,
-        'GeoCenter: tropical': (13.6, 0.6, 0.6),
-        'GeoCenter: all sys': (13.6, 0.6, 0.7)
+        'GeoCenter: tropical': (12.526, 12.526 - 12.106, 12.989 - 12.526),
+        'GeoCenter: all sys': (12.527, 12.527 - 12.106, 12.999 - 12.527)
     },
     'All': {
         'ARCHER-2: SWIR': 43,
         'ARCHER-2: ASCAT': 24,
         'ST21': 19.3,
-        'GeoCenter: tropical': (22.3, 0.4, 0.4),
-        'GeoCenter: all sys': (23.3, 0.5, 0.4)
+        'GeoCenter: tropical': (20.790, 20.790 - 20.315, 21.273 - 20.790),
+        'GeoCenter: all sys': (22.186, 22.186 - 21.784, 22.634 - 22.186)
     }
 }
 
@@ -59,29 +59,29 @@ MEAN_ERROR_DICT = {
         'W19': (54, 71),
         'Y19': numpy.nan,
         'W23': 37,
-        'GeoCenter: tropical': (29.0, 0.4, 0.5),
-        'GeoCenter: all sys': (29.3, 0.4, 0.5)
+        'GeoCenter: tropical': (28.103, 28.103 - 27.594, 28.629 - 28.103),
+        'GeoCenter: all sys': (29.034, 29.034 - 28.576, 29.505 - 29.034)
     },
     '[64, 83) kt': {
         'W19': 36,
         'Y19': numpy.nan,
         'W23': 25,
-        'GeoCenter: tropical': (21.1, 1.0, 0.9),
-        'GeoCenter: all sys': (21.4, 0.8, 0.8)
+        'GeoCenter: tropical': (20.639, 20.639 - 19.923, 21.429 - 20.639),
+        'GeoCenter: all sys': (21.055, 21.055 - 20.219, 21.866 - 21.055)
     },
     r'$\geq$ 83 kt': {
         'W19': (20, 33),
         'Y19': numpy.nan,
         'W23': (13, 17),
-        'GeoCenter: tropical': (15.7, 0.5, 0.5),
-        'GeoCenter: all sys': (15.7, 0.5, 0.5)
+        'GeoCenter: tropical': (14.555, 14.555 - 14.040, 15.053 - 14.555),
+        'GeoCenter: all sys': (14.555, 14.555 - 14.067, 15.076 - 14.555)
     },
     'All': {
         'W19': 54,
         'Y19': 28.6,
         'W23': 29.3,
-        'GeoCenter: tropical': (25.7, 0.4, 0.4),
-        'GeoCenter: all sys': (26.9, 0.3, 0.3)
+        'GeoCenter: tropical': (24.729, 24.729 - 24.305, 25.116 - 24.729),
+        'GeoCenter: all sys': (26.635, 26.635 - 26.251, 27.033 - 26.635)
     }
 }
 
@@ -92,8 +92,8 @@ MEDIAN_ERROR_DICT_ARCHER = {
         'ARCHER-2: visible': 36,
         'ARCHER-2: microwave': 35,
         'ARCHER-2: ASCAT': 26,
-        'GeoCenter: tropical': (25.9, 0.5, 0.7),
-        'GeoCenter: all sys': (26.1, 0.6, 0.5)
+        'GeoCenter: tropical': (24.478, 24.478 - 23.797, 25.165 - 24.478),
+        'GeoCenter: all sys': (25.194, 25.194 - 24.572, 25.815 - 25.194)
     },
     '[64, 83) kt': {
         'ARCHER-2: IR': 43,
@@ -101,8 +101,8 @@ MEDIAN_ERROR_DICT_ARCHER = {
         'ARCHER-2: visible': 26,
         'ARCHER-2: microwave': 26,
         'ARCHER-2: ASCAT': 18,
-        'GeoCenter: tropical': (18.6, 1.1, 1.3),
-        'GeoCenter: all sys': (18.7, 1.0, 1.1)
+        'GeoCenter: tropical': (19.533, 19.533 - 18.787, 20.491 - 19.533),
+        'GeoCenter: all sys': (19.762, 19.762 - 18.924, 20.812 - 19.762)
     },
     r'$\geq$ 83 kt': {
         'ARCHER-2: IR': 21,
@@ -110,8 +110,8 @@ MEDIAN_ERROR_DICT_ARCHER = {
         'ARCHER-2: visible': 22,
         'ARCHER-2: microwave': 11,
         'ARCHER-2: ASCAT': 16,
-        'GeoCenter: tropical': (13.6, 0.6, 0.6),
-        'GeoCenter: all sys': (13.6, 0.6, 0.7)
+        'GeoCenter: tropical': (12.526, 12.526 - 12.106, 12.989 - 12.526),
+        'GeoCenter: all sys': (12.527, 12.527 - 12.106, 12.999 - 12.527)
     },
     'All': {
         'ARCHER-2: IR': 49,
@@ -119,8 +119,8 @@ MEDIAN_ERROR_DICT_ARCHER = {
         'ARCHER-2: visible': 32,
         'ARCHER-2: microwave': 31,
         'ARCHER-2: ASCAT': 24,
-        'GeoCenter: tropical': (22.3, 0.4, 0.4),
-        'GeoCenter: all sys': (23.3, 0.5, 0.4)
+        'GeoCenter: tropical': (20.790, 20.790 - 20.315, 21.273 - 20.790),
+        'GeoCenter: all sys': (22.186, 22.186 - 21.784, 22.634 - 22.186)
     }
 }
 
