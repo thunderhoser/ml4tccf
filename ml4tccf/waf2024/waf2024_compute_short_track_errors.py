@@ -16,7 +16,7 @@ from ml4tccf.io import short_track_io
 MINUTES_TO_SECONDS = 60
 SECONDS_TO_MINUTES = 1. / 60
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
-MAX_SHORT_TRACK_LEAD_TIME_SEC = 350 * 60
+ALLOWED_SHORT_TRACK_LEAD_TIMES_SEC = numpy.array([3 * 3600], dtype=int)
 
 TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M%S'
 
@@ -215,34 +215,27 @@ def _find_short_track_forecast(short_track_table_xarray, valid_time_unix_sec):
     :return: short_track_longitude_deg_e: Longitude (deg east).
     """
 
-    short_track_init_time_unix_sec = valid_time_unix_sec + 0
-    min_allowed_init_time_unix_sec = (
-        valid_time_unix_sec - MAX_SHORT_TRACK_LEAD_TIME_SEC
-    )
-
     init_time_index = -1
     lead_time_index = -1
     sttx = short_track_table_xarray
 
-    while short_track_init_time_unix_sec >= min_allowed_init_time_unix_sec:
+    for this_lead_time_sec in ALLOWED_SHORT_TRACK_LEAD_TIMES_SEC:
+        short_track_init_time_unix_sec = (
+            valid_time_unix_sec - this_lead_time_sec
+        )
         these_indices = numpy.where(
             sttx.coords[short_track_io.INIT_TIME_DIM].values ==
             short_track_init_time_unix_sec
         )[0]
 
         if len(these_indices) == 0:
-            short_track_init_time_unix_sec -= 10 * MINUTES_TO_SECONDS
             continue
 
         init_time_index = these_indices[0]
 
-        desired_lead_time_sec = (
-            valid_time_unix_sec - short_track_init_time_unix_sec
-        )
-
         first_flags = (
             sttx.coords[short_track_io.LEAD_TIME_DIM].values ==
-            desired_lead_time_sec
+            this_lead_time_sec
         )
 
         second_flags = numpy.invert(numpy.logical_or(
@@ -260,7 +253,6 @@ def _find_short_track_forecast(short_track_table_xarray, valid_time_unix_sec):
 
         if len(these_indices) == 0:
             init_time_index = -1
-            short_track_init_time_unix_sec -= 10 * MINUTES_TO_SECONDS
             continue
 
         lead_time_index = these_indices[0]
@@ -272,10 +264,14 @@ def _find_short_track_forecast(short_track_table_xarray, valid_time_unix_sec):
             'initialized between {0:s} and {1:s}.'
         ).format(
             time_conversion.unix_sec_to_string(
-                min_allowed_init_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+                valid_time_unix_sec -
+                numpy.max(ALLOWED_SHORT_TRACK_LEAD_TIMES_SEC),
+                TIME_FORMAT_FOR_LOG_MESSAGES
             ),
             time_conversion.unix_sec_to_string(
-                valid_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+                valid_time_unix_sec -
+                numpy.min(ALLOWED_SHORT_TRACK_LEAD_TIMES_SEC),
+                TIME_FORMAT_FOR_LOG_MESSAGES
             )
         )
 
@@ -290,7 +286,7 @@ def _find_short_track_forecast(short_track_table_xarray, valid_time_unix_sec):
             valid_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
         ),
         SECONDS_TO_MINUTES *
-        (valid_time_unix_sec - short_track_init_time_unix_sec)
+        sttx.coords[short_track_io.LEAD_TIME_DIM].values[lead_time_index]
     )
 
     print(info_string)
