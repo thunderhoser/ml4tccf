@@ -497,7 +497,7 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
         path=output_file_name, mode='w', format='NETCDF3_64BIT'
     )
 
-    euclidean_errors_km = [
+    euclidean_errors_km = numpy.array([
         geodesic((sy, sx), (by, bx)).kilometers
         for sy, sx, by, bx in zip(
             merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values,
@@ -505,7 +505,7 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
             merged_table_xarray[BEST_TRACK_LATITUDE_KEY].values,
             merged_table_xarray[BEST_TRACK_LONGITUDE_KEY].values
         )
-    ]
+    ])
 
     print('Mean and median Euclidean errors = {0:.2f} km, {1:.2f} km'.format(
         numpy.mean(euclidean_errors_km),
@@ -518,7 +518,7 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
             numpy.percentile(euclidean_errors_km, this_percentile_level)
         ))
 
-    y_errors_km = [
+    y_errors_km = numpy.array([
         geodesic((sy, sx), (by, bx)).kilometers
         for sy, sx, by, bx in zip(
             merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values,
@@ -526,14 +526,14 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
             merged_table_xarray[BEST_TRACK_LATITUDE_KEY].values,
             merged_table_xarray[SHORT_TRACK_LONGITUDE_KEY].values
         )
-    ]
+    ])
 
     midpoint_latitudes_deg_n = 0.5 * (
         merged_table_xarray[SHORT_TRACK_LATITUDE_KEY].values +
         merged_table_xarray[BEST_TRACK_LATITUDE_KEY].values
     )
 
-    x_errors_km = [
+    x_errors_km = numpy.array([
         geodesic((sy, sx), (by, bx)).kilometers
         for sy, sx, by, bx in zip(
             midpoint_latitudes_deg_n,
@@ -541,7 +541,7 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
             midpoint_latitudes_deg_n,
             merged_table_xarray[BEST_TRACK_LONGITUDE_KEY].values
         )
-    ]
+    ])
 
     bin_edges_km = numpy.linspace(
         ERROR_BIN_LIMITS_KM[0], ERROR_BIN_LIMITS_KM[1],
