@@ -319,6 +319,9 @@ def _run(model_file_name, satellite_dir_name, a_deck_file_name,
     if data_aug_within_stdev_trans_px < 0:
         data_aug_within_stdev_trans_px = None
 
+    if data_aug_num_translations < 0:
+        data_aug_num_translations = None
+
     if data_aug_num_translations is None:
         data_aug_num_translations_per_step = None
     else:
