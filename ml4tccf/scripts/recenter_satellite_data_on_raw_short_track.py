@@ -1,19 +1,19 @@
 """Recenters satellite data, using estimated TC centers from short-track."""
 
+import glob
+import pickle
 import argparse
 import warnings
 import numpy
+from gewittergefahr.gg_utils import number_rounding
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import longitude_conversion as lng_conversion
+from gewittergefahr.gg_utils import error_checking
 from ml4tccf.io import satellite_io
-from ml4tccf.io import short_track_io
 from ml4tccf.utils import satellite_utils
 from ml4tccf.machine_learning import data_augmentation
 
 MINUTES_TO_SECONDS = 60
-MAX_SHORT_TRACK_LEAD_TIME_SEC = 350 * 60
-
-TIME_FORMAT_FOR_LOG_MESSAGES = '%Y-%m-%d-%H%M%S'
 
 INPUT_SATELLITE_DIR_ARG_NAME = 'input_satellite_dir_name'
 SHORT_TRACK_DIR_ARG_NAME = 'input_short_track_dir_name'
@@ -26,9 +26,9 @@ INPUT_SATELLITE_DIR_HELP_STRING = (
     '`satellite_io.find_file` and read by `satellite_io.read_file`.'
 )
 SHORT_TRACK_DIR_HELP_STRING = (
-    'Path to directory with processed short-track files.  The relevant file '
-    'therein will be found by `short_track_io.find_file`, and relevant '
-    'forecasts will be read from this file by `_find_short_track_forecast`.'
+    'Path to directory with short-track files.  Files therein will be found by '
+    '`_find_short_track_file`, and read by `_read_short_track_file`, both '
+    'found in this script.'
 )
 CYCLONE_ID_HELP_STRING = 'Will recenter satellite data only for this cyclone.'
 OUTPUT_SATELLITE_DIR_HELP_STRING = (
@@ -56,93 +56,138 @@ INPUT_ARG_PARSER.add_argument(
 )
 
 
-def _find_short_track_forecast(short_track_table_xarray, valid_time_unix_sec):
-    """Finds short-track forecast for one valid time.
+def _find_short_track_file(directory_name, cyclone_id_string,
+                           target_time_unix_sec):
+    """Finds Pickle file containing short-track data.
 
-    :param short_track_table_xarray: xarray table in format returned by
-        `short_track_io.read_file`.
-    :param valid_time_unix_sec: Valid time.
-    :return: short_track_latitude_deg_n: Latitude (deg north).
-    :return: short_track_longitude_deg_e: Longitude (deg east).
+    :param directory_name: Path to directory.
+    :param cyclone_id_string: Cyclone ID.
+    :param target_time_unix_sec: Target time, i.e., time at which short-track
+        center is desired.
+    :return: pickle_file_name: Path to short-track file.
     """
 
-    short_track_init_time_unix_sec = valid_time_unix_sec + 0
-    min_allowed_init_time_unix_sec = (
-        valid_time_unix_sec - MAX_SHORT_TRACK_LEAD_TIME_SEC
+    fake_cyclone_id_string = '{0:s}{1:s}'.format(
+        cyclone_id_string[4:].lower(),
+        cyclone_id_string[:4]
     )
 
-    init_time_index = -1
-    lead_time_index = -1
-    sttx = short_track_table_xarray
+    file_time_unix_sec = number_rounding.floor_to_nearest(
+        target_time_unix_sec - 25 * MINUTES_TO_SECONDS,
+        10 * MINUTES_TO_SECONDS
+    )
+    file_time_unix_sec = int(file_time_unix_sec)
+    file_time_string = time_conversion.unix_sec_to_string(
+        file_time_unix_sec, '%Y-%m-%d-%H-%M-%S'
+    )
 
-    while short_track_init_time_unix_sec >= min_allowed_init_time_unix_sec:
-        these_indices = numpy.where(
-            sttx.coords[short_track_io.INIT_TIME_DIM].values ==
-            short_track_init_time_unix_sec
-        )[0]
+    pickle_file_pattern = (
+        '{0:s}/a{1:s}/storm_track_interp_a{1:s}_*_{2:s}.pkl'
+    ).format(
+        directory_name,
+        fake_cyclone_id_string,
+        file_time_string
+    )
+    pickle_file_names = glob.glob(pickle_file_pattern)
 
-        if len(these_indices) == 0:
-            short_track_init_time_unix_sec -= 10 * MINUTES_TO_SECONDS
-            continue
-
-        init_time_index = these_indices[0]
-
-        desired_lead_time_sec = (
-            valid_time_unix_sec - short_track_init_time_unix_sec
+    if len(pickle_file_names) == 0:
+        pickle_file_pattern = (
+            '{0:s}/a{1:s}/storm_track_interp_a{1:s}_{2:s}.pkl'
+        ).format(
+            directory_name,
+            fake_cyclone_id_string,
+            file_time_string
         )
+        pickle_file_names = glob.glob(pickle_file_pattern)
 
-        first_flags = (
-            sttx.coords[short_track_io.LEAD_TIME_DIM].values ==
-            desired_lead_time_sec
+    if len(pickle_file_names) == 0:
+        pickle_file_pattern = (
+            '{0:s}/{1:s}/storm_track_interp_a{1:s}_*_{2:s}.pkl'
+        ).format(
+            directory_name,
+            fake_cyclone_id_string,
+            file_time_string
         )
+        pickle_file_names = glob.glob(pickle_file_pattern)
 
-        second_flags = numpy.invert(numpy.logical_or(
-            numpy.isnan(
-                sttx[short_track_io.LATITUDE_KEY].values[init_time_index, :]
-            ),
-            numpy.isnan(
-                sttx[short_track_io.LONGITUDE_KEY].values[init_time_index, :]
-            )
-        ))
-
-        these_indices = numpy.where(
-            numpy.logical_and(first_flags, second_flags)
-        )[0]
-
-        if len(these_indices) == 0:
-            init_time_index = -1
-            short_track_init_time_unix_sec -= 10 * MINUTES_TO_SECONDS
-            continue
-
-        lead_time_index = these_indices[0]
-        break
-
-    if init_time_index == -1:
+    if len(pickle_file_names) != 1:
         warning_string = (
-            'POTENTIAL ERROR: Cannot find short-track forecasts '
-            'initialized between {1:s} and {2:s}.'
+            'POTENTIAL ERROR: Cannot find file with pattern: "{0:s}"'
+        ).format(pickle_file_pattern)
+
+        warnings.warn(warning_string)
+        return None
+
+    return pickle_file_names[0]
+
+
+def _read_short_track_file(pickle_file_name, target_time_unix_sec):
+    """Reads TC-center location from short-track file.
+
+    :param pickle_file_name: Path to input file.
+    :param target_time_unix_sec: Desired time step.
+    :return: latitude_deg_n: Latitude of TC center.
+    :return: longitude_deg_e: Longitude of TC center.
+    """
+
+    pickle_file_handle = open(pickle_file_name, 'rb')
+    short_track_dict = pickle.load(pickle_file_handle)
+    pickle_file_handle.close()
+
+    valid_time_strings = [
+        t.strftime('%Y-%m-%d-%H%M%S')
+        for t in short_track_dict['st_one_sec_time']
+    ]
+    valid_times_unix_sec = numpy.array([
+        time_conversion.string_to_unix_sec(t, '%Y-%m-%d-%H%M%S')
+        for t in valid_time_strings
+    ], dtype=int)
+
+    good_indices = numpy.where(valid_times_unix_sec == target_time_unix_sec)[0]
+    if len(good_indices) == 0:
+        warning_string = (
+            'POTENTIAL ERROR: Cannot find valid time {0:s} in file "{1:s}".'
         ).format(
             time_conversion.unix_sec_to_string(
-                min_allowed_init_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
+                target_time_unix_sec, '%Y-%m-%d-%H%M'
             ),
-            time_conversion.unix_sec_to_string(
-                valid_time_unix_sec, TIME_FORMAT_FOR_LOG_MESSAGES
-            )
+            pickle_file_name
         )
 
         warnings.warn(warning_string)
-        return numpy.nan, numpy.nan
+        return None, None
 
-    short_track_latitude_deg_n = sttx[short_track_io.LATITUDE_KEY].values[
-        init_time_index, lead_time_index
-    ]
-    short_track_longitude_deg_e = sttx[short_track_io.LONGITUDE_KEY].values[
-        init_time_index, lead_time_index
-    ]
-    short_track_longitude_deg_e = lng_conversion.convert_lng_positive_in_west(
-        short_track_longitude_deg_e
+    if len(good_indices) > 1:
+        warning_string = (
+            'POTENTIAL ERROR: Found {0:d} entries with valid time {1:s} in '
+            'file "{2:s}".'
+        ).format(
+            len(good_indices),
+            time_conversion.unix_sec_to_string(
+                target_time_unix_sec, '%Y-%m-%d-%H%M'
+            ),
+            pickle_file_name
+        )
+
+        warnings.warn(warning_string)
+
+        for k in good_indices:
+            print('{0:.4f} deg N, {1:.4f} deg E'.format(
+                short_track_dict['st_one_sec_lats'][k],
+                short_track_dict['st_one_sec_lond'][k]
+            ))
+
+    good_index = good_indices[0]
+
+    latitude_deg_n = short_track_dict['st_one_sec_lats'][good_index]
+    error_checking.assert_is_valid_latitude(latitude_deg_n, allow_nan=False)
+
+    longitude_deg_e = short_track_dict['st_one_sec_lond'][good_index]
+    longitude_deg_e = lng_conversion.convert_lng_positive_in_west(
+        longitude_deg_e, allow_nan=False
     )
-    return short_track_latitude_deg_n, short_track_longitude_deg_e
+
+    return latitude_deg_n, longitude_deg_e
 
 
 def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
@@ -162,36 +207,32 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
         cyclone_id_string=cyclone_id_string,
         raise_error_if_all_missing=True
     )
-    short_track_file_name = short_track_io.find_file(
-        directory_name=short_track_dir_name,
-        cyclone_id_string=cyclone_id_string,
-        raise_error_if_missing=True
-    )
 
-    print('Reading data from: "{0:s}"...'.format(short_track_file_name))
-    short_track_table_xarray = short_track_io.read_file(short_track_file_name)
+    date_strings = [
+        satellite_io.file_name_to_date(f) for f in input_satellite_file_names
+    ]
 
-    # if cyclone_id_string == '2024AL12':
-    #     input_satellite_file_names = [
-    #         input_satellite_file_names[date_strings.index('2024-10-06')]
-    #     ]
-    # if cyclone_id_string == '2024AL14':
-    #     input_satellite_file_names = [
-    #         input_satellite_file_names[date_strings.index('2024-10-11')]
-    #     ]
-    #
-    # # if cyclone_id_string == '2024AL09':
-    # #     input_satellite_file_names = [input_satellite_file_names[-1]]
-    # # elif cyclone_id_string == '2024AL11':
-    # #     input_satellite_file_names = input_satellite_file_names[-2:]
-    # # elif cyclone_id_string == '2024AL12':
-    # #     input_satellite_file_names = [input_satellite_file_names[-1]]
-    # # elif cyclone_id_string == '2024AL13':
-    # #     input_satellite_file_names = [input_satellite_file_names[-1]]
-    # # elif cyclone_id_string == '2024AL15':
-    # #     input_satellite_file_names = [input_satellite_file_names[-1]]
-    # # else:
-    # #     input_satellite_file_names = []
+    if cyclone_id_string == '2024AL12':
+        input_satellite_file_names = [
+            input_satellite_file_names[date_strings.index('2024-10-06')]
+        ]
+    if cyclone_id_string == '2024AL14':
+        input_satellite_file_names = [
+            input_satellite_file_names[date_strings.index('2024-10-11')]
+        ]
+
+    # if cyclone_id_string == '2024AL09':
+    #     input_satellite_file_names = [input_satellite_file_names[-1]]
+    # elif cyclone_id_string == '2024AL11':
+    #     input_satellite_file_names = input_satellite_file_names[-2:]
+    # elif cyclone_id_string == '2024AL12':
+    #     input_satellite_file_names = [input_satellite_file_names[-1]]
+    # elif cyclone_id_string == '2024AL13':
+    #     input_satellite_file_names = [input_satellite_file_names[-1]]
+    # elif cyclone_id_string == '2024AL15':
+    #     input_satellite_file_names = [input_satellite_file_names[-1]]
+    # else:
+    #     input_satellite_file_names = []
 
     num_files = len(input_satellite_file_names)
 
@@ -227,20 +268,28 @@ def _run(input_satellite_dir_name, short_track_dir_name, cyclone_id_string,
         keep_time_flags = numpy.full(num_times, False, dtype=bool)
 
         for j in range(num_times):
+            short_track_file_name = _find_short_track_file(
+                directory_name=short_track_dir_name,
+                cyclone_id_string=cyclone_id_string,
+                target_time_unix_sec=target_times_unix_sec[j]
+            )
+            if short_track_file_name is None:
+                continue
+
+            print('Reading data from: "{0:s}"...'.format(short_track_file_name))
             short_track_latitude_deg_n, short_track_longitude_deg_e = (
-                _find_short_track_forecast(
-                    short_track_table_xarray=short_track_table_xarray,
-                    valid_time_unix_sec=target_times_unix_sec[j]
+                _read_short_track_file(
+                    pickle_file_name=short_track_file_name,
+                    target_time_unix_sec=target_times_unix_sec[j]
                 )
             )
 
-            if numpy.isnan(short_track_latitude_deg_n):
-                continue
-            if numpy.isnan(short_track_longitude_deg_e):
+            if short_track_latitude_deg_n is None:
                 continue
 
             keep_time_flags[j] = True
 
+            # TODO: Relevant code starts here.
             grid_latitudes_deg_n = (
                 stx[satellite_utils.LATITUDE_LOW_RES_KEY].values[j, :]
             )
