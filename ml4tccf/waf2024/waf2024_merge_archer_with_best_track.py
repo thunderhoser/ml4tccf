@@ -150,6 +150,7 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
         pickle_file_handle.close()
 
         print(best_track_dict['st_one_sec_time'])
+        print(type(best_track_dict['st_one_sec_time']))
 
     valid_time_strings = [
         t.strftime('%Y-%m-%d-%H%M%S')
