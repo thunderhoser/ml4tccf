@@ -180,7 +180,7 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
         )
 
         warnings.warn(warning_string)
-        return numpy.nan, numpy.nan
+        return best_track_dict, numpy.nan, numpy.nan
 
     if len(good_indices) > 1:
         warning_string = (
@@ -212,7 +212,7 @@ def _read_best_track_file(pickle_file_name, valid_time_unix_sec,
         longitude_deg_e, allow_nan=False
     )
 
-    return latitude_deg_n, longitude_deg_e
+    return best_track_dict, latitude_deg_n, longitude_deg_e
 
 
 def _run(archer_file_pattern, raw_best_track_dir_name,
@@ -330,7 +330,7 @@ def _run(archer_file_pattern, raw_best_track_dir_name,
     print((
         'Removed {0:d} of {1:d} ARCHER-2 storm objects due to missing lat/long.'
     ).format(
-        orig_num_storm_objects, orig_num_storm_objects - num_storm_objects
+        orig_num_storm_objects - num_storm_objects, orig_num_storm_objects
     ))
 
     best_track_latitudes_deg_n = numpy.full(num_storm_objects, numpy.nan)
@@ -352,13 +352,15 @@ def _run(archer_file_pattern, raw_best_track_dir_name,
             )
             print('Reading data from: "{0:s}"...'.format(best_track_file_name))
 
-        best_track_latitudes_deg_n[i], best_track_latitudes_deg_n[i] = (
-            _read_best_track_file(
+        (
+            best_track_dict,
+            best_track_latitudes_deg_n[i],
+            best_track_latitudes_deg_n[i]
+        ) = _read_best_track_file(
                 pickle_file_name=best_track_file_name,
                 valid_time_unix_sec=atx[VALID_TIME_KEY].values[i],
                 best_track_dict=best_track_dict
             )
-        )
 
     # TODO(thunderhoser): Make sure reading best-track data works!  Make sure it
     # has every second or whatever.  Might need time tolerance.  Will also need
@@ -392,7 +394,7 @@ def _run(archer_file_pattern, raw_best_track_dir_name,
         'Removed {0:d} of {1:d} ARCHER-2 storm objects due to missing '
         'best-track lat/long.'
     ).format(
-        orig_num_storm_objects, orig_num_storm_objects - num_storm_objects
+        orig_num_storm_objects - num_storm_objects, orig_num_storm_objects
     ))
 
 
