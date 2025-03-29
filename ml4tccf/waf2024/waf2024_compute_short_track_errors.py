@@ -23,7 +23,7 @@ MINUTES_TO_SECONDS = 60
 SECONDS_TO_MINUTES = 1. / 60
 SYNOPTIC_TIME_INTERVAL_SEC = 6 * 3600
 
-ALLOWED_SHORT_TRACK_LEAD_TIMES_SEC = numpy.array([10800], dtype=int)
+ALLOWED_SHORT_TRACK_LEAD_TIMES_SEC = numpy.array([3600], dtype=int)
 
 ERROR_BIN_LIMITS_KM = numpy.array([-100, 100.])
 NUM_ERROR_BINS = 100
@@ -507,9 +507,13 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
         )
     ])
 
-    print('Mean and median Euclidean errors = {0:.2f} km, {1:.2f} km'.format(
+    print((
+        'Mean/median/stdev Euclidean errors = '
+        '{0:.2f} km, {1:.2f} km, {2:.2f} km'
+    ).format(
         numpy.mean(euclidean_errors_km),
-        numpy.median(euclidean_errors_km)
+        numpy.median(euclidean_errors_km),
+        numpy.std(euclidean_errors_km, ddof=1)
     ))
 
     for this_percentile_level in [0, 25, 50, 75, 90, 95, 99, 99.5, 99.9, 100]:
