@@ -95,6 +95,7 @@ def _convert_predictions_one_sample(
 
         raise ValueError(error_string)
 
+    time_idx = time_indices[0]
     grid_latitudes_deg_n = (
         stx[satellite_utils.LATITUDE_LOW_RES_KEY].values[time_idx, :]
     )
