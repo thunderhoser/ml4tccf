@@ -417,6 +417,9 @@ def _run(archer_file_pattern, raw_best_track_dir_name, geocenter_dir_name,
         ),
         ARCHER_PRED_LONGITUDE_KEY: (
             (STORM_OBJECT_DIM,), archer_longitudes_deg_e
+        ),
+        ARCHER_PLATFORM_KEY: (
+            (STORM_OBJECT_DIM,), archer_table_pandas[ARCHER_PLATFORM_KEY]
         )
     }
 
