@@ -2,7 +2,7 @@
 
 conda activate base
 
-CODE_DIR_NAME="/home/lagerquist/ml4tccf/ml4tccf/scripts"
+CODE_DIR_NAME="/home/lagerquist/ml4tccf/ml4tccf/waf2024"
 PROCESSED_SHORT_TRACK_DIR_NAME="/mnt/nvme-data5/lagerquist/ml4tccf_project/short_track_data/processed"
 RAW_BEST_TRACK_DIR_NAME="/mnt/ssd-data1/temp_data/track_interpolated/best_track"
 
