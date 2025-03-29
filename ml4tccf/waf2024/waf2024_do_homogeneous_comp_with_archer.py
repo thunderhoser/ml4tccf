@@ -474,7 +474,7 @@ def _plot_grouped_bar_chart(data_dict, title_string):
     axes_object.set_title(title_string)
     axes_object.legend(fontsize=20)
     axes_object.grid(axis='y', linestyle='--', alpha=0.7, zorder=0)
-    pyplot.xticks(rotation=45)
+    pyplot.xticks(rotation=90)
 
     return figure_object, axes_object
 
@@ -705,7 +705,7 @@ def _compute_errors(archer_table_xarray, output_file_name):
     ))
 
     error_dict = dict()
-    error_dict['Mean distance error (km)'] = {
+    error_dict['Mean distance error'] = {
         'ARCHER-2: microwave': (
             numpy.mean(archer_mean_euclidean_errors_km),
             numpy.mean(archer_mean_euclidean_errors_km) -
@@ -721,7 +721,7 @@ def _compute_errors(archer_table_xarray, output_file_name):
             numpy.mean(geocenter_mean_euclidean_errors_km)
         )
     }
-    error_dict['Median distance error (km)'] = {
+    error_dict['Median distance error'] = {
         'ARCHER-2: microwave': (
             numpy.mean(archer_median_euclidean_errors_km),
             numpy.mean(archer_median_euclidean_errors_km) -
@@ -737,7 +737,7 @@ def _compute_errors(archer_table_xarray, output_file_name):
             numpy.mean(geocenter_median_euclidean_errors_km)
         )
     }
-    error_dict['RMS distance error (km)'] = {
+    error_dict['RMS distance error'] = {
         'ARCHER-2: microwave': (
             numpy.mean(archer_rms_euclidean_errors_km),
             numpy.mean(archer_rms_euclidean_errors_km) -
@@ -753,7 +753,7 @@ def _compute_errors(archer_table_xarray, output_file_name):
             numpy.mean(geocenter_rms_euclidean_errors_km)
         )
     }
-    error_dict['Coord-avg absolute bias (km)'] = {
+    error_dict['Coord-avg absolute bias'] = {
         'ARCHER-2: microwave': (
             numpy.mean(archer_coord_averaged_biases_km),
             numpy.mean(archer_coord_averaged_biases_km) -
