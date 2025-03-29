@@ -590,6 +590,7 @@ def _run(archer_file_pattern, raw_best_track_dir_name, geocenter_dir_name,
                 valid_time_unix_sec=this_geocenter_time_unix_sec,
                 raise_error_if_missing=False
             )
+            print(geocenter_file_name)
 
             if not os.path.isfile(geocenter_file_name):
                 continue
