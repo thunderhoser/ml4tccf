@@ -3717,6 +3717,10 @@ def create_data(option_dict, cyclone_id_string, num_target_times,
 
     good_indices = numpy.where(numpy.invert(bad_example_flags))[0]
     predictor_matrices = [p.astype('float16') for p in predictor_matrices]
+    
+    these_time_strings = [time_conversion.unix_sec_to_string(t, '%Y-%m-%d-%H%M%S') for t in target_times_unix_sec[good_indices, ...]]
+    for t in these_time_strings:
+        print(t)
 
     return {
         PREDICTOR_MATRICES_KEY:
