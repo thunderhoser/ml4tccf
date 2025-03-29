@@ -286,7 +286,7 @@ def _find_geocenter_file(directory_name, cyclone_id_string, valid_time_unix_sec,
     prediction_file_name = '{0:s}/{1:s}/{1:s}_{2:s}.txt'.format(
         directory_name,
         fake_cyclone_id_string,
-        time_conversion.unix_sec_to_string(valid_time_unix_sec, '%Y%m%d_%H%M%S')
+        time_conversion.unix_sec_to_string(valid_time_unix_sec, '%Y%m%d_%H%M')
     )
 
     if os.path.isfile(prediction_file_name):
@@ -590,7 +590,6 @@ def _run(archer_file_pattern, raw_best_track_dir_name, geocenter_dir_name,
                 valid_time_unix_sec=this_geocenter_time_unix_sec,
                 raise_error_if_missing=False
             )
-            print(geocenter_file_name)
 
             if not os.path.isfile(geocenter_file_name):
                 continue
