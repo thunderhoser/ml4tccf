@@ -81,9 +81,20 @@ def _convert_predictions_one_sample(
     satellite_table_xarray = satellite_io.read_file(satellite_file_name)
     stx = satellite_table_xarray
 
-    time_idx = numpy.where(
+    time_indices = numpy.where(
         stx.coords[satellite_utils.TIME_DIM].values == target_time_unix_sec
-    )[0][0]
+    )[0]
+
+    if len(time_indices) == 0:
+        error_string = 'Cannot find time {0:s} in file "{1:s}".'.format(
+            time_conversion.unix_sec_to_string(
+                target_time_unix_sec, '%Y-%m-%d-%H%M%S'
+            ),
+            satellite_file_name
+        )
+
+        raise ValueError(error_string)
+
     grid_latitudes_deg_n = (
         stx[satellite_utils.LATITUDE_LOW_RES_KEY].values[time_idx, :]
     )
