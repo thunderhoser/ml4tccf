@@ -17,7 +17,7 @@ log_file_name="compare_with_zhixing_${CYCLONE_ID_STRING}.out"
 
 python3 -u "${CODE_DIR_NAME}/plot_ryan_zhixing_comparison.py" &> ${log_file_name} \
 --input_ryan_dir_name="${ENSEMBLE_DIR_NAME}/for_zhixing/${FAKE_CYCLONE_ID_STRING}" \
---input_zhixing_dir_name="${ENSEMBLE_DIR_NAME}/for_zhixing/${FAKE_CYCLONE_ID_STRING}" \
+--input_zhixing_dir_name="" \
 --cyclone_id_string="${CYCLONE_ID_STRING}" \
 --input_raw_best_track_file_name="/mnt/shceph/data/ATCF/atcf_rt/ATCF/dat/NHC/b${FAKE_CYCLONE_ID_STRING}.dat" \
 --output_file_name="${ENSEMBLE_DIR_NAME}/for_zhixing/${CYCLONE_ID_STRING}.jpg"
