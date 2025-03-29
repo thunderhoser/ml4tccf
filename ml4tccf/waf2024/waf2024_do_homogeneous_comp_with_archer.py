@@ -10,6 +10,9 @@ import warnings
 import numpy
 import pandas
 import xarray
+import matplotlib
+matplotlib.use('agg')
+from matplotlib import pyplot
 from geopy.distance import geodesic
 from gewittergefahr.gg_utils import time_conversion
 from gewittergefahr.gg_utils import time_periods
@@ -57,6 +60,21 @@ ARCHER_COLUMN_NAMES = [
 STORM_OBJECT_DIM = 'storm_object'
 CYCLONE_ID_KEY = 'cyclone_id_string'
 VALID_TIME_KEY = 'valid_time_unix_sec'
+
+DEFAULT_FONT_SIZE = 30
+pyplot.rc('font', size=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', titlesize=DEFAULT_FONT_SIZE)
+pyplot.rc('axes', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('xtick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('ytick', labelsize=DEFAULT_FONT_SIZE)
+pyplot.rc('legend', fontsize=DEFAULT_FONT_SIZE)
+pyplot.rc('figure', titlesize=DEFAULT_FONT_SIZE)
+
+OPACITY = 0.8
+
+FIGURE_WIDTH_INCHES = 15
+FIGURE_HEIGHT_INCHES = 9
+FIGURE_RESOLUTION_DPI = 300
 
 ARCHER_FILE_PATTERN_ARG_NAME = 'input_raw_archer_file_pattern'
 BEST_TRACK_DIR_ARG_NAME = 'input_raw_best_track_dir_name'
@@ -334,10 +352,138 @@ def _read_geocenter_file(ascii_file_name):
     return latitude_deg_n, longitude_deg_e, valid_time_unix_sec
 
 
-def _compute_errors(archer_table_xarray):
+def _plot_grouped_bar_chart(data_dict, title_string):
+    """Plots grouped bar chart with either mean or median errors.
+
+    :param data_dict: One of the two constant dictionaries defined at the top of
+        this script.
+    :param title_string: Figure title.
+    :return: figure_object: Figure handle (instance of
+        `matplotlib.figure.Figure`).
+    :return: axes_object: Axes handle (instance of
+        `matplotlib.axes._subplots.AxesSubplot`).
+    """
+
+    metric_strings = list(data_dict.keys())
+    model_names = list(data_dict[metric_strings[0]].keys())
+
+    bar_width = 0.4
+
+    num_bins = len(metric_strings)
+    x_tick_values = numpy.linspace(0, num_bins - 1, num=num_bins, dtype=int)
+    figure_object, axes_object = pyplot.subplots(
+        1, 1, figsize=(FIGURE_WIDTH_INCHES, FIGURE_HEIGHT_INCHES)
+    )
+
+    for i in range(len(model_names)):
+        mean_values = []
+        lower_errors = []
+        upper_errors = []
+        min_values = []
+        max_values = []
+
+        for this_bin in metric_strings:
+            data_for_this_bin = data_dict[this_bin][model_names[i]]
+
+            if (
+                    isinstance(data_for_this_bin, tuple)
+                    and len(data_for_this_bin) == 3
+            ):
+
+                # Plotting mean value with error bar.
+                this_mean, this_lower_error, this_upper_error = (
+                    data_for_this_bin
+                )
+                mean_values.append(this_mean)
+                lower_errors.append(this_lower_error)
+                upper_errors.append(this_upper_error)
+                min_values.append(numpy.nan)
+                max_values.append(numpy.nan)
+
+            elif (
+                    isinstance(data_for_this_bin, tuple)
+                    and len(data_for_this_bin) == 2
+            ):
+
+                # Plotting mean with range.
+                this_min, this_max = data_for_this_bin
+                mean_values.append(0.5 * (this_min + this_max))
+                min_values.append(this_min)
+                max_values.append(this_max)
+                lower_errors.append(numpy.nan)
+                upper_errors.append(numpy.nan)
+            else:
+                mean_values.append(data_for_this_bin)
+                lower_errors.append(numpy.nan)
+                upper_errors.append(numpy.nan)
+                min_values.append(numpy.nan)
+                max_values.append(numpy.nan)
+
+        bar_positions = x_tick_values + i * bar_width
+
+        mean_values = numpy.array(mean_values, dtype=float)
+        lower_errors = numpy.array(lower_errors, dtype=float)
+        upper_errors = numpy.array(upper_errors, dtype=float)
+        min_values = numpy.array(min_values, dtype=float)
+        max_values = numpy.array(max_values, dtype=float)
+
+        good_indices = numpy.where(numpy.isfinite(mean_values))[0]
+        bar_graph_handle = axes_object.bar(
+            bar_positions[good_indices],
+            mean_values[good_indices],
+            bar_width,
+            alpha=OPACITY,
+            label=model_names[i],
+            zorder=2
+        )
+
+        for this_position, this_min, this_max in zip(
+                bar_positions, min_values, max_values
+        ):
+            if this_min is None:
+                continue
+
+            axes_object.bar(
+                this_position,
+                this_max - this_min,
+                bar_width,
+                bottom=this_min,
+                color=bar_graph_handle.patches[0].get_facecolor(),
+                alpha=1.,
+                edgecolor='black',
+                linewidth=3,
+                zorder=1e12
+            )
+
+        good_indices = numpy.where(numpy.isfinite(lower_errors))[0]
+        axes_object.errorbar(
+            bar_positions[good_indices],
+            mean_values[good_indices],
+            yerr=[lower_errors[good_indices], upper_errors[good_indices]],
+            fmt='none',
+            ecolor='black',
+            capsize=5,
+            zorder=3
+        )
+
+    num_models = len(model_names)
+
+    axes_object.set_xticks(x_tick_values + 0.5 * (num_models - 1) * bar_width)
+    axes_object.set_xticklabels(metric_strings)
+    axes_object.set_ylabel('Value (km)')
+    axes_object.set_title(title_string)
+    axes_object.legend(fontsize=20)
+    axes_object.grid(axis='y', linestyle='--', alpha=0.7, zorder=0)
+    pyplot.xticks(rotation=45)
+
+    return figure_object, axes_object
+
+
+def _compute_errors(archer_table_xarray, output_file_name):
     """Computes error metrics for both ARCHER-2 and GeoCenter.
     
     :param archer_table_xarray: xarray table created by main method.
+    :param output_file_name: Path to output file (figure will be saved here).
     """
 
     archer_euclidean_errors_km = numpy.array([
@@ -475,9 +621,9 @@ def _compute_errors(archer_table_xarray):
         archer_rms_euclidean_errors_km[k] = numpy.sqrt(numpy.mean(
             archer_euclidean_errors_km[these_indices] ** 2
         ))
-        archer_coord_averaged_biases_km[k] = 0.5 * numpy.mean(
-            numpy.absolute(archer_x_errors_km[these_indices]) +
-            numpy.absolute(archer_y_errors_km[these_indices])
+        archer_coord_averaged_biases_km[k] = 0.5 * (
+            numpy.absolute(numpy.mean(archer_x_errors_km[these_indices])) +
+            numpy.absolute(numpy.mean(archer_y_errors_km[these_indices]))
         )
 
         geocenter_mean_euclidean_errors_km[k] = numpy.mean(
@@ -489,9 +635,9 @@ def _compute_errors(archer_table_xarray):
         geocenter_rms_euclidean_errors_km[k] = numpy.sqrt(numpy.mean(
             geocenter_euclidean_errors_km[these_indices] ** 2
         ))
-        geocenter_coord_averaged_biases_km[k] = 0.5 * numpy.mean(
-            numpy.absolute(geocenter_x_errors_km[these_indices]) +
-            numpy.absolute(geocenter_y_errors_km[these_indices])
+        geocenter_coord_averaged_biases_km[k] = 0.5 * (
+            numpy.absolute(numpy.mean(geocenter_x_errors_km[these_indices])) +
+            numpy.absolute(numpy.mean(geocenter_y_errors_km[these_indices]))
         )
 
     print((
@@ -557,6 +703,83 @@ def _compute_errors(archer_table_xarray):
         numpy.percentile(archer_coord_averaged_biases_km - geocenter_coord_averaged_biases_km, 2.5),
         numpy.percentile(archer_coord_averaged_biases_km - geocenter_coord_averaged_biases_km, 97.5)
     ))
+
+    error_dict = dict()
+    error_dict['Mean distance error (km)'] = {
+        'ARCHER-2: microwave': (
+            numpy.mean(archer_mean_euclidean_errors_km),
+            numpy.mean(archer_mean_euclidean_errors_km) -
+            numpy.percentile(archer_mean_euclidean_errors_km, 2.5),
+            numpy.percentile(archer_mean_euclidean_errors_km, 97.5) -
+            numpy.mean(archer_mean_euclidean_errors_km)
+        ),
+        'GeoCenter': (
+            numpy.mean(geocenter_mean_euclidean_errors_km),
+            numpy.mean(geocenter_mean_euclidean_errors_km) -
+            numpy.percentile(geocenter_mean_euclidean_errors_km, 2.5),
+            numpy.percentile(geocenter_mean_euclidean_errors_km, 97.5) -
+            numpy.mean(geocenter_mean_euclidean_errors_km)
+        )
+    }
+    error_dict['Median distance error (km)'] = {
+        'ARCHER-2: microwave': (
+            numpy.mean(archer_median_euclidean_errors_km),
+            numpy.mean(archer_median_euclidean_errors_km) -
+            numpy.percentile(archer_median_euclidean_errors_km, 2.5),
+            numpy.percentile(archer_median_euclidean_errors_km, 97.5) -
+            numpy.mean(archer_median_euclidean_errors_km)
+        ),
+        'GeoCenter': (
+            numpy.mean(geocenter_median_euclidean_errors_km),
+            numpy.mean(geocenter_median_euclidean_errors_km) -
+            numpy.percentile(geocenter_median_euclidean_errors_km, 2.5),
+            numpy.percentile(geocenter_median_euclidean_errors_km, 97.5) -
+            numpy.mean(geocenter_median_euclidean_errors_km)
+        )
+    }
+    error_dict['RMS distance error (km)'] = {
+        'ARCHER-2: microwave': (
+            numpy.mean(archer_rms_euclidean_errors_km),
+            numpy.mean(archer_rms_euclidean_errors_km) -
+            numpy.percentile(archer_rms_euclidean_errors_km, 2.5),
+            numpy.percentile(archer_rms_euclidean_errors_km, 97.5) -
+            numpy.mean(archer_rms_euclidean_errors_km)
+        ),
+        'GeoCenter': (
+            numpy.mean(geocenter_rms_euclidean_errors_km),
+            numpy.mean(geocenter_rms_euclidean_errors_km) -
+            numpy.percentile(geocenter_rms_euclidean_errors_km, 2.5),
+            numpy.percentile(geocenter_rms_euclidean_errors_km, 97.5) -
+            numpy.mean(geocenter_rms_euclidean_errors_km)
+        )
+    }
+    error_dict['Coord-avg absolute bias (km)'] = {
+        'ARCHER-2: microwave': (
+            numpy.mean(archer_coord_averaged_biases_km),
+            numpy.mean(archer_coord_averaged_biases_km) -
+            numpy.percentile(archer_coord_averaged_biases_km, 2.5),
+            numpy.percentile(archer_coord_averaged_biases_km, 97.5) -
+            numpy.mean(archer_coord_averaged_biases_km)
+        ),
+        'GeoCenter': (
+            numpy.mean(geocenter_coord_averaged_biases_km),
+            numpy.mean(geocenter_coord_averaged_biases_km) -
+            numpy.percentile(geocenter_coord_averaged_biases_km, 2.5),
+            numpy.percentile(geocenter_coord_averaged_biases_km, 97.5) -
+            numpy.mean(geocenter_coord_averaged_biases_km)
+        )
+    }
+
+    figure_object = _plot_grouped_bar_chart(
+        data_dict=error_dict, title_string='Homogeneous comparison'
+    )[0]
+
+    print('Saving figure to file: "{0:s}"...'.format(output_file_name))
+    figure_object.savefig(
+        output_file_name,
+        dpi=FIGURE_RESOLUTION_DPI, pad_inches=0, bbox_inches='tight'
+    )
+    pyplot.close(figure_object)
 
 
 def _run(archer_file_pattern, raw_best_track_dir_name, geocenter_dir_name,
@@ -941,7 +1164,13 @@ def _run(archer_file_pattern, raw_best_track_dir_name, geocenter_dir_name,
         path=output_file_name, mode='w', format='NETCDF3_64BIT'
     )
 
-    _compute_errors(archer_table_xarray)
+    _compute_errors(
+        archer_table_xarray=archer_table_xarray,
+        output_file_name='{0:s}/{1:s}.jpg'.format(
+            os.path.split(output_file_name)[0],
+            os.path.splitext(os.path.split(output_file_name)[1])[0]
+        )
+    )
 
 
 if __name__ == '__main__':
