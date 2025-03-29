@@ -17,6 +17,6 @@ for valid_date_string in "${VALID_DATE_STRINGS[@]}"; do
 
     python3 -u "${CODE_DIR_NAME}/convert_prediction_file_for_zhixing.py" &> ${log_file_name} \
     --input_prediction_file_name="${ENSEMBLE_DIR_NAME}/${CYCLONE_ID_STRING}_${valid_date_string}.nc" \
-    --input_satellite_dir_name="/mnt/nvme-data5/lagerquist/ml4tccf_project/satellite_data/processed/normalized_params_for_paper/simplified_700x700" \
+    --input_satellite_dir_name="${SATELLITE_DIR_NAME}" \
     --output_prediction_dir_name="${ENSEMBLE_DIR_NAME}/for_zhixing"
 done
