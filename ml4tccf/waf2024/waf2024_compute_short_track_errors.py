@@ -507,9 +507,13 @@ def _run(processed_short_track_dir_name, raw_best_track_dir_name,
         )
     ])
 
-    print('Mean and median Euclidean errors = {0:.2f} km, {1:.2f} km'.format(
+    print((
+        'Mean/median/stdev Euclidean errors = '
+        '{0:.2f} km, {1:.2f} km, {2:.2f} km'
+    ).format(
         numpy.mean(euclidean_errors_km),
-        numpy.median(euclidean_errors_km)
+        numpy.median(euclidean_errors_km),
+        numpy.std(euclidean_errors_km, ddof=1)
     ))
 
     for this_percentile_level in [0, 25, 50, 75, 90, 95, 99, 99.5, 99.9, 100]:
