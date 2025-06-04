@@ -406,7 +406,7 @@ def plot_spread_vs_skill(
         figure_object=figure_object, bin_centers=mean_prediction_stdevs,
         bin_mean_predictions=mean_mean_predictions,
         bin_mean_target_values=mean_target_values,
-        plotting_corner_string='bottom_right'
+        plotting_corner_string='top_left'
     )
     inset_axes_object.set_zorder(axes_object.get_zorder() + 1)
 
