@@ -169,7 +169,7 @@ def _run(ascii_prediction_dir_name, ebtrk_file_name, cyclone_id_string,
         year
     )
 
-    prediction_file_pattern = '{0:s}/{1:s}_{2:s}_{3:s}.txt'.format(
+    prediction_file_pattern = '{0:s}/{1:s}/{1:s}_{2:s}_{3:s}.txt'.format(
         ascii_prediction_dir_name,
         fake_cyclone_id_string,
         DATE_PATTERN_STRING,
