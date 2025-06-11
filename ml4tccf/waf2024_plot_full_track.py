@@ -231,8 +231,9 @@ def _run(ascii_prediction_dir_name, ebtrk_file_name, cyclone_id_string,
     ebtrk_latitudes_deg_n = (
         etx[ebtrk_utils.CENTER_LATITUDE_KEY].values[good_indices]
     )
-    ebtrk_longitudes_deg_e = (
-        etx[ebtrk_utils.CENTER_LONGITUDE_KEY].values[good_indices]
+    ebtrk_longitudes_deg_e = lng_conversion.convert_lng_negative_in_west(
+        etx[ebtrk_utils.CENTER_LONGITUDE_KEY].values[good_indices],
+        allow_nan=False
     )
     ebtrk_times_unix_sec = (
         etx[ebtrk_utils.VALID_TIME_KEY].values[good_indices]
