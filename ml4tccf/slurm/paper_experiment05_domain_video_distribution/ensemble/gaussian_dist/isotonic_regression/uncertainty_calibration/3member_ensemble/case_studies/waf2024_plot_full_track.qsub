@@ -40,7 +40,7 @@ echo $model_dir_name
 CYCLONE_ID_STRINGS=("2021AL06" "2021AL15" "2021WP01" "2021WP19" "2022EP15")
 
 python3 -u "${CODE_DIR_NAME}/waf2024_plot_full_track.py" \
---input_ascii_prediction_dir_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/predictions_${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
+--input_ascii_prediction_dir_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/case_studies/predictions_${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
 --input_ebtrk_file_name="${EBTRK_FILE_NAME}" \
 --cyclone_id_string="${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}" \
---output_file_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/predictions_${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}/full_track.jpg"
+--output_file_name="${model_dir_name}/isotonic_regression_gaussian_dist/uncertainty_calibration/testing/case_studies/predictions_${CYCLONE_ID_STRINGS[$SLURM_ARRAY_TASK_ID]}/full_track.jpg"

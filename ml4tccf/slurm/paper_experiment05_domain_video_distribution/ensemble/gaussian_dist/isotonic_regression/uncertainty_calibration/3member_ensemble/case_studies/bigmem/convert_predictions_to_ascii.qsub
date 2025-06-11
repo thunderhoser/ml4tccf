@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name="convert_predictions_to_ascii"
-#SBATCH --partition="fge"
+#SBATCH --partition="bigmem"
 #SBATCH --account="rda-ghpcs"
-#SBATCH --qos="gpuwf"
+#SBATCH --qos="batch"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
