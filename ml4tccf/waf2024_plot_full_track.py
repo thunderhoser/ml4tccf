@@ -34,12 +34,12 @@ COLOUR_BAR_TIME_FORMAT = '%HZ %b %-d'
 DATE_PATTERN_STRING = '[0-9][0-9][0-9][0-9][0-1][0-9][0-3][0-9]'
 HOUR_MINUTE_PATTERN_STRING = '[0-2][0-9][0-5][0-9]'
 
-PREDICTION_MARKER_SIZE = 32
+PREDICTION_MARKER_SIZE = 24
 PREDICTION_MARKER_TYPE = 's'
 PREDICTION_MARKER_EDGE_WIDTH = 1.5
 PREDICTION_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
-BEST_TRACK_MARKER_SIZE = 200
+BEST_TRACK_MARKER_SIZE = 300
 BEST_TRACK_MARKER_TYPE = '*'
 BEST_TRACK_MARKER_EDGE_WIDTH = 1.5
 BEST_TRACK_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
@@ -274,12 +274,14 @@ def _run(ascii_prediction_dir_name, ebtrk_file_name, cyclone_id_string,
         x=predicted_longitudes_deg_e, y=predicted_latitudes_deg_n,
         s=PREDICTION_MARKER_SIZE,
         marker=PREDICTION_MARKER_TYPE,
-        linewidths=PREDICTION_MARKER_EDGE_WIDTH,
+        # linewidths=PREDICTION_MARKER_EDGE_WIDTH,
+        # edgecolors=PREDICTION_MARKER_EDGE_COLOUR,
+        # c=PREDICTION_MARKER_EDGE_COLOUR,
+        linewidths=0,
         edgecolors=PREDICTION_MARKER_EDGE_COLOUR,
-        c=PREDICTION_MARKER_EDGE_COLOUR
-        # c=predicted_times_unix_sec,
-        # cmap=COLOUR_MAP_OBJECT,
-        # norm=colour_norm_object
+        c=predicted_times_unix_sec,
+        cmap=COLOUR_MAP_OBJECT,
+        norm=colour_norm_object
     )
 
     axes_object.scatter(
