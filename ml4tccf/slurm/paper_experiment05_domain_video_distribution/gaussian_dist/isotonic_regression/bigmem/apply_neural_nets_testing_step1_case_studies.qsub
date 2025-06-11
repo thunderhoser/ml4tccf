@@ -3,7 +3,7 @@
 #SBATCH --job-name="apply_neural_nets_testing_step1_case_studies"
 #SBATCH --partition="bigmem"
 #SBATCH --account="rda-ghpcs"
-#SBATCH --qos="urgent"
+#SBATCH --qos="batch"
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
