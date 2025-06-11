@@ -328,7 +328,7 @@ def _run(ascii_prediction_dir_name, ebtrk_file_name, cyclone_id_string,
 
     title_string = (
         'Track comparison for {0:s}\n'
-        'Best track in coloured stars; GeoCenter in squares'
+        'Best track in stars; GeoCenter in squares'
     ).format(
         cyclone_id_string
     )
