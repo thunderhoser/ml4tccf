@@ -36,7 +36,7 @@ HOUR_MINUTE_PATTERN_STRING = '[0-2][0-9][0-5][0-9]'
 
 PREDICTION_MARKER_SIZE = 24
 PREDICTION_MARKER_TYPE = 's'
-PREDICTION_MARKER_EDGE_WIDTH = 1.5
+PREDICTION_MARKER_EDGE_WIDTH = 0.75
 PREDICTION_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
 BEST_TRACK_MARKER_SIZE = 300
@@ -277,7 +277,7 @@ def _run(ascii_prediction_dir_name, ebtrk_file_name, cyclone_id_string,
         # linewidths=PREDICTION_MARKER_EDGE_WIDTH,
         # edgecolors=PREDICTION_MARKER_EDGE_COLOUR,
         # c=PREDICTION_MARKER_EDGE_COLOUR,
-        linewidths=0,
+        linewidths=PREDICTION_MARKER_EDGE_WIDTH,
         edgecolors=PREDICTION_MARKER_EDGE_COLOUR,
         c=predicted_times_unix_sec,
         cmap=COLOUR_MAP_OBJECT,
