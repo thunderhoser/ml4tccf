@@ -34,12 +34,12 @@ COLOUR_BAR_TIME_FORMAT = '%HZ %b %-d'
 DATE_PATTERN_STRING = '[0-9][0-9][0-9][0-9][0-1][0-9][0-3][0-9]'
 HOUR_MINUTE_PATTERN_STRING = '[0-2][0-9][0-5][0-9]'
 
-PREDICTION_MARKER_SIZE = 24
+PREDICTION_MARKER_SIZE = 32
 PREDICTION_MARKER_TYPE = 's'
 PREDICTION_MARKER_EDGE_WIDTH = 1.5
 PREDICTION_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
 
-BEST_TRACK_MARKER_SIZE = 150
+BEST_TRACK_MARKER_SIZE = 200
 BEST_TRACK_MARKER_TYPE = '*'
 BEST_TRACK_MARKER_EDGE_WIDTH = 1.5
 BEST_TRACK_MARKER_EDGE_COLOUR = numpy.full(3, 0.)
@@ -262,7 +262,8 @@ def _run(ascii_prediction_dir_name, ebtrk_file_name, cyclone_id_string,
     plotting_utils.plot_borders(
         border_latitudes_deg_n=border_latitudes_deg_n,
         border_longitudes_deg_e=border_longitudes_deg_e,
-        axes_object=axes_object
+        axes_object=axes_object,
+        line_colour=numpy.full(3, 152. / 255)
     )
 
     colour_norm_object = pyplot.Normalize(
@@ -302,8 +303,8 @@ def _run(ascii_prediction_dir_name, ebtrk_file_name, cyclone_id_string,
         plot_latitudes_deg_n=all_latitudes_deg_n,
         plot_longitudes_deg_e=all_longitudes_deg_e,
         axes_object=axes_object,
-        parallel_spacing_deg=2.,
-        meridian_spacing_deg=2.
+        parallel_spacing_deg=5.,
+        meridian_spacing_deg=5.
     )
 
     axes_object.set_xlim([
@@ -323,7 +324,10 @@ def _run(ascii_prediction_dir_name, ebtrk_file_name, cyclone_id_string,
         axes_object.get_yticklabels(), fontsize=TICK_LABEL_FONT_SIZE
     )
 
-    title_string = 'Track comparison for {0:s}\nStars = best track'.format(
+    title_string = (
+        'Track comparison for {0:s}\n'
+        'Best track in coloured stars; GeoCenter in squares'
+    ).format(
         cyclone_id_string
     )
 
@@ -339,8 +343,7 @@ def _run(ascii_prediction_dir_name, ebtrk_file_name, cyclone_id_string,
     )
 
     title_string += (
-        '\nError of GeoCenter (squares): mean = {0:.1f} km; '
-        'median = {1:.1f} km; sample size = {2:d}'
+        '\nMean/median errors: {0:.1f}/{1:.1f} km; sample size = {2:d}'
     ).format(
         mean_error_km, median_error_km, num_samples
     )
